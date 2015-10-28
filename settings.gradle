@@ -1,0 +1,4 @@
+rootProject.name = 'root'
+include 'thrifty-schema'
+include 'thrifty-runtime'
+

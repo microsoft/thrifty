@@ -1,0 +1,21 @@
+group 'com.bendb.thrifty'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'antlr'
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    antlr "org.antlr:antlr4:4.5"
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+idea {
+    module {
+        sourceDirs += file( "${buildDir}/generated-src/antlr/main" )
+    }
+}

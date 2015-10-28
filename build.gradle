@@ -1,0 +1,34 @@
+apply plugin: 'idea'
+
+group 'com.bendb.thrifty'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    dependencies {
+
+    }
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects { sp ->
+    apply plugin: 'idea'
+    apply plugin: 'java'
+//    apply plugin: 'findbugs'
+//    apply plugin: 'checkstyle'
+
+    sourceCompatibility = '1.7'
+}
