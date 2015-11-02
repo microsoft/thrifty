@@ -1,21 +1,22 @@
+plugins {
+    id "com.ewerk.gradle.plugins.auto-value" version "1.0.4"
+}
+
 group 'com.bendb.thrifty'
 version '1.0-SNAPSHOT'
 
-apply plugin: 'antlr'
-apply plugin: 'java'
+autoValue {
+    library = 'com.google.auto.value:auto-value:1.1'
+}
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    antlr "org.antlr:antlr4:4.5"
+    compile 'com.google.code.findbugs:jsr305:3.0.1'
+    compile 'com.google.guava:guava:18.0'
+    compile 'com.google.auto.value:auto-value:1.1'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
-}
-
-idea {
-    module {
-        sourceDirs += file( "${buildDir}/generated-src/antlr/main" )
-    }
 }

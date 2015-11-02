@@ -12,10 +12,6 @@ buildscript {
         mavenCentral()
         jcenter()
     }
-
-    dependencies {
-
-    }
 }
 
 allprojects {
@@ -25,8 +21,8 @@ allprojects {
 }
 
 subprojects { sp ->
-    apply plugin: 'idea'
     apply plugin: 'java'
+    apply plugin: 'idea'
 //    apply plugin: 'findbugs'
 //    apply plugin: 'checkstyle'
 

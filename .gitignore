@@ -4,3 +4,6 @@ build/
 .git/
 
 *.iml
+
+# Gradle AutoValue plugin deposits generated sources in roots named "auto-value"
+auto-value/
