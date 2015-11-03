@@ -36,8 +36,8 @@ public final class Location {
         this.line = line;
         this.column = column;
 
-        Preconditions.checkArgument(line > 0 || line == -1);
-        Preconditions.checkArgument(column > 0 || column == -1);
+        Preconditions.checkArgument(line > 0 || line == -1, "line: " + line);
+        Preconditions.checkArgument(column > 0 || column == -1, "column: " + column);
     }
 
     public Location at(int line, int column) {

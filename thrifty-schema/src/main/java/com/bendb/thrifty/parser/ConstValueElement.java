@@ -4,9 +4,11 @@ import com.bendb.thrifty.Location;
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @AutoValue
 public abstract class ConstValueElement {
@@ -16,7 +18,8 @@ public abstract class ConstValueElement {
         STRING,
         IDENTIFIER,
         LIST,
-        MAP
+        MAP,
+        SET,
     }
 
     public abstract Location location();
@@ -47,5 +50,9 @@ public abstract class ConstValueElement {
 
     public static ConstValueElement map(Location location, Map<ConstValueElement, ConstValueElement> elements) {
         return new AutoValue_ConstValueElement(location, Kind.MAP, ImmutableMap.copyOf(elements));
+    }
+
+    public static ConstValueElement set(Location location, Set<ConstValueElement> elements) {
+        return new AutoValue_ConstValueElement(location, Kind.SET, ImmutableSet.copyOf(elements));
     }
 }

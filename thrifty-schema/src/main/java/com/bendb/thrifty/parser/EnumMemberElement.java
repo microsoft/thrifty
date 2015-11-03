@@ -6,7 +6,7 @@ import com.google.auto.value.AutoValue;
 import javax.annotation.Nullable;
 
 @AutoValue
-abstract class EnumMemberElement {
+public abstract class EnumMemberElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract String name();

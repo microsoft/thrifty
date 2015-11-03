@@ -5,7 +5,7 @@ import com.bendb.thrifty.NamespaceScope;
 import com.google.auto.value.AutoValue;
 
 @AutoValue
-abstract class NamespaceElement {
+public abstract class NamespaceElement {
     public abstract Location location();
     public abstract NamespaceScope scope();
     public abstract String namespace();

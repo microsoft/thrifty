@@ -4,7 +4,7 @@ import com.bendb.thrifty.Location;
 import com.google.auto.value.AutoValue;
 
 @AutoValue
-abstract class TypedefElement {
+public abstract class TypedefElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract String oldName();

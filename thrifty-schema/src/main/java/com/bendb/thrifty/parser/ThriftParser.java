@@ -20,19 +20,19 @@ import autovalue.shaded.com.google.common.common.base.Preconditions;
 import com.bendb.thrifty.Location;
 import com.bendb.thrifty.NamespaceScope;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 public final class ThriftParser {
     private final Location location;
     private final char[] data;
-    private final ImmutableMap.Builder<NamespaceScope, NamespaceElement> namespaces = ImmutableMap.builder();
-    private final ImmutableList.Builder<String> imports = ImmutableList.builder();
+    private final ImmutableList.Builder<NamespaceElement> namespaces = ImmutableList.builder();
+    private final ImmutableList.Builder<IncludeElement> imports = ImmutableList.builder();
     private final ImmutableList.Builder<EnumElement> enums = ImmutableList.builder();
     private final ImmutableList.Builder<ConstElement> consts = ImmutableList.builder();
     private final ImmutableList.Builder<StructElement> structs = ImmutableList.builder();
     private final ImmutableList.Builder<ServiceElement> services = ImmutableList.builder();
     private final ImmutableList.Builder<TypedefElement> typedefs = ImmutableList.builder();
 
+    private boolean readingHeaders = true;
     private int declCount = 0;
     private int pos;
     private int line;
@@ -41,6 +41,171 @@ public final class ThriftParser {
     ThriftParser(Location location, char[] data) {
         this.location = Preconditions.checkNotNull(location, "location");
         this.data = Preconditions.checkNotNull(data, "data");
+    }
+
+    public static ThriftFileElement parse(Location location, String text) {
+        return new ThriftParser(location, text.toCharArray()).readThriftData();
+    }
+
+    ThriftFileElement readThriftData() {
+        //noinspection InfiniteLoopStatement
+        while (true) {
+            String doc = readDocumentation();
+            if (pos == data.length) {
+                return buildFileElement();
+            }
+
+            Object element = readElement(doc);
+
+            if (isHeader(element)) {
+                if (!readingHeaders) {
+                    throw unexpected("namespace and import statements must precede all other declarations");
+                }
+            } else {
+                readingHeaders = false;
+            }
+
+            if (element instanceof NamespaceElement) {
+                namespaces.add((NamespaceElement) element);
+            } else if (element instanceof IncludeElement) {
+                imports.add((IncludeElement) element);
+            } else if (element instanceof EnumElement) {
+                enums.add((EnumElement) element);
+            } else if (element instanceof ConstElement) {
+                consts.add((ConstElement) element);
+            } else if (element instanceof StructElement) {
+                structs.add((StructElement) element);
+            } else if (element instanceof ServiceElement) {
+                services.add((ServiceElement) element);
+            } else if (element instanceof TypedefElement) {
+                typedefs.add((TypedefElement) element);
+            }
+        }
+    }
+
+    private ThriftFileElement buildFileElement() {
+        ThriftFileElement.Builder builder = ThriftFileElement.builder(location)
+                .namespaces(namespaces.build())
+                .includes(imports.build())
+                .constants(consts.build())
+                .typedefs(typedefs.build())
+                .enums(enums.build())
+                .services(services.build());
+
+        ImmutableList.Builder<StructElement> structElements = ImmutableList.builder();
+        ImmutableList.Builder<StructElement> unionElements = ImmutableList.builder();
+        ImmutableList.Builder<StructElement> exceptionElements = ImmutableList.builder();
+        for (StructElement element : structs.build()) {
+            switch (element.type()) {
+                case STRUCT:
+                    structElements.add(element);
+                    break;
+
+                case UNION:
+                    unionElements.add(element);
+                    break;
+
+                case EXCEPTION:
+                    exceptionElements.add(element);
+                    break;
+
+                default:
+                    throw new AssertionError("Unexpected struct type: " + element.type());
+            }
+        }
+
+        return builder
+                .structs(structElements.build())
+                .unions(unionElements.build())
+                .exceptions(exceptionElements.build())
+                .build();
+    }
+
+    private static boolean isHeader(Object element) {
+        return element instanceof NamespaceElement
+                || element instanceof IncludeElement;
+    }
+
+    private Object readElement(String doc) {
+        Location location = location();
+        String word = readWord();
+
+        if ("namespace".equals(word)) {
+            String scopeName = readNamespaceScope();
+            NamespaceScope scope = NamespaceScope.forThriftName(scopeName);
+            if (scope == null) {
+                throw unexpected("invalid namespace scope: " + scopeName);
+            }
+            if (scope == NamespaceScope.PHP) {
+                throw unexpected("scoped namespaces for PHP are not supported");
+            }
+
+            String namespace = readWord();
+            return NamespaceElement.builder(location)
+                    .scope(scope)
+                    .namespace(namespace)
+                    .build();
+        }
+
+        if ("php_namespace".equals(word)) {
+            String namespace = readWord();
+            return NamespaceElement.builder(location)
+                    .scope(NamespaceScope.PHP)
+                    .namespace(namespace)
+                    .build();
+        }
+
+        if ("xsd_namespace".equals(word)) {
+            throw unexpected("xsd_syntax is not supported");
+        }
+
+        if ("include".equals(word)) {
+            String path = readLiteral();
+            return IncludeElement.create(location, false, path);
+        }
+
+        if ("cpp_include".equals(word)) {
+            String path = readLiteral();
+            return IncludeElement.create(location, true, path);
+        }
+
+        if ("const".equals(word)) {
+            throw unexpected("const is not yet implemented");
+        }
+
+        if ("typedef".equals(word)) {
+            ++declCount;
+            String oldType = readTypeName();
+            String newName = readWord();
+
+            return TypedefElement.builder(location)
+                    .documentation(doc)
+                    .oldName(oldType)
+                    .newName(newName)
+                    .build();
+        }
+
+        if ("senum".equals(word)) {
+            throw unexpected("senum has been deprecated and is not supported.");
+        }
+
+        if ("struct".equals(word)) {
+            throw unexpected("struct is not yet implemented");
+        }
+
+        if ("union".equals(word)) {
+            throw unexpected("union is not yet implemented");
+        }
+
+        if ("exception".equals(word)) {
+            throw unexpected("exception is not yet implemented");
+        }
+
+        if ("service".equals(word)) {
+            throw unexpected("service is not yet implemented");
+        }
+
+        throw unexpected("unexpected element: " + word);
     }
 
     private char readChar() {
@@ -55,6 +220,111 @@ public final class ThriftParser {
             throw unexpected("unexpected end of file");
         }
         return data[pos];
+    }
+
+    private String readLiteral() {
+        char quote = peekChar();
+        if (quote != '"' && quote != '\'') {
+            throw new AssertionError();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        while (pos < data.length) {
+            char c = data[pos++];
+            if (c == quote) {
+                return sb.toString();
+            }
+
+            if (c == '\\') {
+                if (pos == data.length) {
+                    throw unexpected("Unexpected end of input");
+                }
+
+                char escape = data[pos++];
+                switch (escape) {
+                    case 'a':
+                        sb.append((char) 0x7);
+                        break;
+                    case 'b':
+                        sb.append('\b');
+                        break;
+                    case 'f':
+                        sb.append('\f');
+                        break;
+                    case 'n':
+                        sb.append('\n');
+                        break;
+                    case 'r':
+                        sb.append('\r');
+                        break;
+                    case 't':
+                        sb.append('\t');
+                        break;
+                    case 'v':
+                        sb.append((char) 0xB);
+                        break;
+                    case '\\':
+                        sb.append('\\');
+                        break;
+                    default:
+                        throw unexpected("invalid escape character: " + escape);
+                }
+            } else {
+                if (c == '\n') {
+                    newline();
+                }
+
+                sb.append(c);
+            }
+        }
+
+        throw unexpected("unterminated string");
+    }
+
+    private String readTypeName() {
+        String name = readWord();
+        if ("list".equals(name) || "set".equals(name)) {
+            if (readChar() != '<') {
+                throw unexpected("missing type parameter");
+            }
+            String param = readTypeName();
+            if (readChar() != '>') {
+                throw unexpected("missing closing '>' in parameter list");
+            }
+            return name + "<" + param + ">";
+        }
+
+        if ("map".equals(name)) {
+            if (readChar() != '<') {
+                throw unexpected("missing type parameter list");
+            }
+
+            String keyType = readTypeName();
+            if (readChar() != ',') {
+                throw unexpected("invalid map-type parameter list");
+            }
+
+            String valueType = readTypeName();
+            if (readChar() != '>') {
+                throw unexpected("missing closing '>' in parameter list");
+            }
+
+            return "map<" + keyType + "," + valueType + ">";
+        }
+
+        return name;
+    }
+
+    private String readNamespaceScope() {
+        skipWhitespace(true);
+        if (pos == data.length) {
+            throw unexpected("unexpected end of input");
+        }
+        if (data[pos] == '*') {
+            ++pos;
+            return "*";
+        }
+        return readWord();
     }
 
     private String readWord() {
@@ -195,7 +465,7 @@ public final class ThriftParser {
     }
 
     private Location location() {
-        return location.at(line, pos - lineStart + 1);
+        return location.at(line + 1, pos - lineStart + 1);
     }
 
     private RuntimeException unexpected(String message) {

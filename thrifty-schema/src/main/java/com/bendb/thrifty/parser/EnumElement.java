@@ -5,7 +5,7 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
 @AutoValue
-abstract class EnumElement {
+public abstract class EnumElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract String name();

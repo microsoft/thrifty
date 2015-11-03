@@ -5,7 +5,7 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
 @AutoValue
-abstract class StructElement {
+public abstract class StructElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract Type type();
