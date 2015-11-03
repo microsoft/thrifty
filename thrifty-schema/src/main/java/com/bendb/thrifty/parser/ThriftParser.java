@@ -223,7 +223,8 @@ public final class ThriftParser {
     }
 
     private String readLiteral() {
-        char quote = peekChar();
+        skipWhitespace(true);
+        char quote = readChar();
         if (quote != '"' && quote != '\'') {
             throw new AssertionError();
         }
@@ -267,7 +268,11 @@ public final class ThriftParser {
                         sb.append('\\');
                         break;
                     default:
-                        throw unexpected("invalid escape character: " + escape);
+                        if (escape == quote) {
+                            sb.append(quote);
+                        } else {
+                            throw unexpected("invalid escape character: " + escape);
+                        }
                 }
             } else {
                 if (c == '\n') {

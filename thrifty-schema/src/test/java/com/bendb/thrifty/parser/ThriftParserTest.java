@@ -4,6 +4,7 @@ import com.bendb.thrifty.Location;
 import com.bendb.thrifty.NamespaceScope;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
@@ -31,13 +32,37 @@ public class ThriftParserTest {
     }
 
     @Test
-    public void phpScopedNamespace() {
+    public void phpScopedNamespaceFails() {
         String thrift = "namespace php should.not.work";
         try {
             ThriftParser.parse(Location.get("test.php", "nope"), thrift);
             fail("Scoped namespace statements for PHP should not pass parsing");
         } catch (IllegalStateException expected) {
-            assertThat(expected.getMessage(), startsWith("Syntax error"));
+            assertThat(expected.getMessage(), containsString("not supported"));
         }
+    }
+
+    @Test
+    public void includes() {
+        String thrift =
+                "include 'inc/common.thrift'\n" +
+                "include \".././parent.thrift\"\n" +
+                "cpp_include 'inc/boost.hpp'\n" +
+                "\n" +
+                "namespace * bendb";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get(".", "includes.thrift"), thrift);
+
+        assertThat(file.includes().size(), is(3));
+        assertThat(file.namespaces().size(), is(1));
+
+        assertThat(file.includes().get(0).path(), is("inc/common.thrift"));
+        assertThat(file.includes().get(0).isCpp(), is(false));
+
+        assertThat(file.includes().get(1).path(), is(".././parent.thrift"));
+        assertThat(file.includes().get(1).isCpp(), is(false));
+
+        assertThat(file.includes().get(2).path(), is("inc/boost.hpp"));
+        assertThat(file.includes().get(2).isCpp(), is(true));
     }
 }
