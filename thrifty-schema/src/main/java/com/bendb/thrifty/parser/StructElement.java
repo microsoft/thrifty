@@ -4,6 +4,9 @@ import com.bendb.thrifty.Location;
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
+/**
+ * Represents one of the three aggregate Thrift declarations: struct, union, or exception.
+ */
 @AutoValue
 public abstract class StructElement {
     public abstract Location location();
@@ -12,23 +15,13 @@ public abstract class StructElement {
     public abstract String name();
     public abstract ImmutableList<FieldElement> fields();
 
-    public static Builder struct(Location location) {
-        return builder(location).type(Type.STRUCT);
-    }
-
-    public static Builder union(Location location) {
-        return builder(location).type(Type.UNION);
-    }
-
-    public static Builder exception(Location location) {
-        return builder(location).type(Type.EXCEPTION);
-    }
-
-    private static Builder builder(Location location) {
+    public static Builder builder(Location location) {
         return new AutoValue_StructElement.Builder()
                 .location(location)
                 .documentation("");
     }
+
+    StructElement() {}
 
     @AutoValue.Builder
     public interface Builder {

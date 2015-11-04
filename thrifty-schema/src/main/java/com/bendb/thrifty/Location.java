@@ -63,7 +63,7 @@ public final class Location {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(base.length() + path.length());
-        if (base.isEmpty()) {
+        if (!base.isEmpty()) {
             sb.append(base).append(File.separator);
         }
         sb.append(path);

@@ -140,7 +140,13 @@ public final class ThriftParser {
                 throw unexpected("scoped namespaces for PHP are not supported");
             }
 
-            String namespace = readWord();
+            String namespace;
+            if (scope == NamespaceScope.SMALLTALK_CATEGORY) {
+                namespace = readSmalltalkIdentifier();
+            } else {
+                namespace = readIdentifier();
+            }
+
             return NamespaceElement.builder(location)
                     .scope(scope)
                     .namespace(namespace)
@@ -148,7 +154,7 @@ public final class ThriftParser {
         }
 
         if ("php_namespace".equals(word)) {
-            String namespace = readWord();
+            String namespace = readLiteral();
             return NamespaceElement.builder(location)
                     .scope(NamespaceScope.PHP)
                     .namespace(namespace)
@@ -170,6 +176,7 @@ public final class ThriftParser {
         }
 
         if ("const".equals(word)) {
+            ++declCount;
             throw unexpected("const is not yet implemented");
         }
 
@@ -185,27 +192,125 @@ public final class ThriftParser {
                     .build();
         }
 
+        if ("enum".equals(word)) {
+            throw unexpected("enum is not yet implemented");
+        }
+
         if ("senum".equals(word)) {
             throw unexpected("senum has been deprecated and is not supported.");
         }
 
         if ("struct".equals(word)) {
-            throw unexpected("struct is not yet implemented");
+            ++declCount;
+            return readStruct(location, doc);
         }
 
         if ("union".equals(word)) {
-            throw unexpected("union is not yet implemented");
+            ++declCount;
+            return readUnion(location, doc);
         }
 
         if ("exception".equals(word)) {
-            throw unexpected("exception is not yet implemented");
+            ++declCount;
+            return readException(location, doc);
         }
 
         if ("service".equals(word)) {
+            ++declCount;
             throw unexpected("service is not yet implemented");
         }
 
         throw unexpected("unexpected element: " + word);
+    }
+
+    private StructElement readStruct(Location location, String documentation) {
+        return readAggregateType(location, documentation, StructElement.Type.STRUCT);
+    }
+
+    private StructElement readUnion(Location location, String documentation) {
+        return readAggregateType(location, documentation, StructElement.Type.UNION);
+    }
+
+    private StructElement readException(Location location, String documentation) {
+        return readAggregateType(location, documentation, StructElement.Type.EXCEPTION);
+    }
+
+    private StructElement readAggregateType(Location location, String documentation, StructElement.Type type) {
+        String name = readIdentifier();
+
+        // Deliberately not supporting xsd_all.
+        if (readChar() != '{') {
+            throw unexpected("expected an opening brace in struct definition for: " + name);
+        }
+
+        ImmutableList.Builder<FieldElement> fields = ImmutableList.builder();
+        while (true) {
+            String fieldDoc = readDocumentation();
+            if (peekChar() == '}') {
+                ++pos;
+                break;
+            }
+
+            FieldElement field = readField(fieldDoc);
+
+            fields.add(field);
+        }
+
+        return StructElement.builder(location)
+                .documentation(documentation)
+                .type(type)
+                .name(name)
+                .fields(fields.build())
+                .build();
+    }
+
+    private FieldElement readField(String doc) {
+        if (pos == data.length) {
+            throw new AssertionError();
+        }
+
+        Location location = location();
+        Integer fieldId = null;
+        if (data[pos] >= '0' && data[pos] <= '9') {
+            try {
+                fieldId = readInt();
+            } catch (Exception e) {
+                throw unexpected("Invalid field ID: " + e.getMessage());
+            }
+
+            if (readChar() != ':') {
+                throw unexpected("expected a ':' separator");
+            }
+        }
+
+        boolean required = false;
+        String typeName = readTypeName();
+        if ("required".equals(typeName) || "optional".equals(typeName)) {
+            required = "required".equals(typeName);
+            typeName = readTypeName();
+        }
+
+        String fieldName = readIdentifier();
+
+        ConstValueElement value = null;
+
+        char next = peekChar();
+        if (next == '=') {
+            throw unexpected("const values are not yet implemented");
+        } else if (next == ';' || next == ',') {
+            ++pos;
+        }
+
+        // TODO: Look for trailing documentation and consume it
+
+        return FieldElement.builder(location)
+                .documentation(doc)
+                .fieldId(fieldId)
+                .required(required)
+                .type(typeName)
+                .name(fieldName)
+                .constValue(value)
+                .build();
     }
 
     private char readChar() {
@@ -314,7 +419,7 @@ public final class ThriftParser {
                 throw unexpected("missing closing '>' in parameter list");
             }
 
-            return "map<" + keyType + "," + valueType + ">";
+            return "map<" + keyType + ", " + valueType + ">";
         }
 
         return name;
@@ -330,6 +435,36 @@ public final class ThriftParser {
             return "*";
         }
         return readWord();
+    }
+
+    private String readIdentifier() {
+        return readIdentifier(false);
+    }
+
+    private String readSmalltalkIdentifier() {
+        return readIdentifier(true);
+    }
+
+    private String readIdentifier(boolean allowSmalltalk) {
+        skipWhitespace(true);
+        int start = pos;
+        while (pos < data.length) {
+            char c = data[pos];
+            if ((c >= 'a' && c <= 'z')
+                || (c >= 'A' && c <= 'Z')
+                || (c == '_')
+                || (c >= '0' && c <= '9' && pos > start)
+                || (c == '.' && pos > start)
+                || (c == '-' && allowSmalltalk && pos > start)) {
+                pos++;
+            } else {
+                break;
+            }
+        }
+        if (start == pos) {
+            throw unexpected("expected an identifier");
+        }
+        return new String(data, start, pos - start);
     }
 
     private String readWord() {
@@ -479,5 +614,11 @@ public final class ThriftParser {
 
     private RuntimeException unexpected(Location location, String message) {
         throw new IllegalStateException(String.format("Syntax error in %s: %s", location, message));
+    }
+
+    private enum ParseContext {
+        FILE,
+        STRUCT,
+        FUNCTION
     }
 }

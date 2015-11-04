@@ -18,6 +18,8 @@ public abstract class EnumMemberElement {
                 .documentation("");
     }
 
+    EnumMemberElement() {}
+
     @AutoValue.Builder
     public interface Builder {
         Builder location(Location location);

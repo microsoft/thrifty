@@ -10,22 +10,25 @@ public abstract class FieldElement {
     public static Builder builder(Location location) {
         return new AutoValue_FieldElement.Builder()
                 .location(location)
-                .documentation("");
+                .documentation("")
+                .required(false);
     }
 
     public abstract Location location();
     public abstract String documentation();
-    public abstract int fieldId();
+    @Nullable public abstract Integer fieldId();
     public abstract boolean required();
     public abstract String type();
     public abstract String name();
     @Nullable public abstract ConstValueElement constValue();
 
+    FieldElement() {}
+
     @AutoValue.Builder
     public interface Builder {
         Builder location(Location location);
         Builder documentation(String documentation);
-        Builder fieldId(int fieldId);
+        Builder fieldId(Integer fieldId);
         Builder required(boolean required);
         Builder type(String type);
         Builder name(String name);
