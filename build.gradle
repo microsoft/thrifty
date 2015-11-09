@@ -3,10 +3,6 @@ apply plugin: 'idea'
 group 'com.bendb.thrifty'
 version '1.0-SNAPSHOT'
 
-repositories {
-    mavenCentral()
-}
-
 buildscript {
     repositories {
         mavenCentral()

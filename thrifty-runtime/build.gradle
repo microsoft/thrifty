@@ -8,3 +8,7 @@ sourceCompatibility = 1.5
 repositories {
     mavenCentral()
 }
+
+dependencies {
+    compile "com.squareup.okio:okio:1.6.0"
+}

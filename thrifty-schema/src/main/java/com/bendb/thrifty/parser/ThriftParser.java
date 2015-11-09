@@ -17,9 +17,14 @@
 package com.bendb.thrifty.parser;
 
 import autovalue.shaded.com.google.common.common.base.Preconditions;
+import autovalue.shaded.com.google.common.common.collect.Sets;
 import com.bendb.thrifty.Location;
 import com.bendb.thrifty.NamespaceScope;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public final class ThriftParser {
     private final Location location;
@@ -193,7 +198,8 @@ public final class ThriftParser {
         }
 
         if ("enum".equals(word)) {
-            throw unexpected("enum is not yet implemented");
+            ++declCount;
+            return readEnum(location, doc);
         }
 
         if ("senum".equals(word)) {
@@ -223,6 +229,79 @@ public final class ThriftParser {
         throw unexpected("unexpected element: " + word);
     }
 
+    private EnumElement readEnum(Location location, String documentation) {
+        String name = readIdentifier();
+
+        if (readChar() != '{') {
+            throw unexpected("expected an opening brace in enum definition for: " + name);
+        }
+
+        int nextId = 0;
+        Set<Integer> ids = Sets.newHashSet();
+        ImmutableList.Builder<EnumMemberElement> members = ImmutableList.builder();
+        while (true) {
+            String memberDoc = readDocumentation();
+            if (peekChar() == '}') {
+                ++pos;
+                break;
+            }
+
+            EnumMemberElement member = readEnumMember(memberDoc);
+
+            int value;
+            if (member.value() == null) {
+                value = nextId++;
+                member = member.withValue(value);
+            } else {
+                //noinspection ConstantConditions
+                value = member.value();
+                nextId = Math.max(nextId, value) + 1;
+            }
+
+            if (!ids.add(value)) {
+                throw unexpected(member.location(), "duplicate enum value: " + value);
+            }
+
+            members.add(member);
+        }
+
+        return EnumElement.builder(location)
+                .documentation(documentation)
+                .name(name)
+                .members(members.build())
+                .build();
+    }
+
+    private EnumMemberElement readEnumMember(String doc) {
+        // enum member:
+        //   identifier ('=' IntValue)? Separator? Comment? '\n'
+        Location location = location();
+        String name = readIdentifier();
+
+        skipWhitespace(false);
+        if (pos == data.length) {
+            throw unexpected("unexpected end of output");
+        }
+
+        char next = data[pos];
+        Integer value = null;
+        if (next == '=') {
+            ++pos;
+            value = readInt();
+        }
+
+        String trailingDoc = readTrailingDoc(true);
+        if (!Strings.isNullOrEmpty(trailingDoc)) {
+            doc = doc + System.lineSeparator() + trailingDoc;
+        }
+
+        return EnumMemberElement.builder(location)
+                .documentation(doc)
+                .name(name)
+                .value(value)
+                .build();
+    }
+
     private StructElement readStruct(Location location, String documentation) {
         return readAggregateType(location, documentation, StructElement.Type.STRUCT);
     }
@@ -243,6 +322,9 @@ public final class ThriftParser {
             throw unexpected("expected an opening brace in struct definition for: " + name);
         }
 
+        int currentId = 1;
+        Set<Integer> ids = new HashSet<>();
+
         ImmutableList.Builder<FieldElement> fields = ImmutableList.builder();
         while (true) {
             String fieldDoc = readDocumentation();
@@ -252,6 +334,24 @@ public final class ThriftParser {
             }
 
             FieldElement field = readField(fieldDoc);
+
+            Integer id = field.fieldId();
+            if (id != null) {
+                if (!ids.add(id)) {
+                    throw unexpected("duplicate field ID: " + id);
+                }
+
+                if (id >= currentId) {
+                    currentId = id + 1;
+                }
+            } else {
+                while (!ids.add(currentId)) {
+                    // just increment until we find an unused ID
+                    ++currentId;
+                }
+
+                field = field.withId(currentId++);
+            }
 
             fields.add(field);
         }
@@ -271,11 +371,15 @@ public final class ThriftParser {
 
         Location location = location();
         Integer fieldId = null;
-        if (data[pos] >= '0' && data[pos] <= '9') {
+        if ((data[pos] >= '0' && data[pos] <= '9') || data[pos] == '-') {
             try {
                 fieldId = readInt();
             } catch (Exception e) {
-                throw unexpected("Invalid field ID: " + e.getMessage());
+                throw unexpected("invalid field ID: " + e.getMessage());
+            }
+
+            if (fieldId < 1) {
+                throw unexpected("field ID must be greater than zero, was: " + fieldId);
             }
 
             if (readChar() != ':') {
@@ -325,6 +429,92 @@ public final class ThriftParser {
             throw unexpected("unexpected end of file");
         }
         return data[pos];
+    }
+
+    private String readTrailingDoc(boolean consumeSeparator) {
+        boolean acceptSeparator = consumeSeparator;
+        int commentType = -1;
+        while (pos < data.length) {
+            char c = data[pos];
+            if (acceptSeparator && (c == ',' || c == ';')) {
+                ++pos;
+                acceptSeparator = false;
+            } else if (c == ' ' || c == '\t') {
+                ++pos;
+            } else if (c == '#' || c == '/') {
+                ++pos;
+                commentType = c;
+                break;
+            } else {
+                break;
+            }
+        }
+
+        if (commentType == -1) {
+            return "";
+        }
+
+        if (commentType == '/') {
+            if (pos == data.length || (data[pos] != '/' && data[pos] != '*')) {
+                --pos;
+                throw unexpected("expected '//' or '/*'");
+            }
+
+            commentType = data[pos++];
+        }
+
+        int start = pos;
+        int end;
+        if (commentType == '*') {
+            while (true) {
+                if (pos == data.length || data[pos] == '\n') {
+                    throw unexpected("trailing comment must be closed on the same line");
+                }
+                if (data[pos] == '*' && pos + 1 < data.length && data[pos + 1] == '/') {
+                    end = pos - 1;
+                    pos += 2;
+                    break;
+                }
+                ++pos;
+            }
+
+            // Only whitespace can follow a trailing star comment
+            while (pos < data.length) {
+                char c = data[pos++];
+                if (c == '\n') {
+                    newline();
+                    break;
+                }
+
+                if (c != ' ' && c != '\t') {
+                    throw unexpected("no syntax may follow trailing comment");
+                }
+            }
+        } else {
+            while (true) {
+                if (pos == data.length) {
+                    end = pos - 1;
+                    break;
+                }
+
+                char c = data[pos++];
+                if (c == '\n') {
+                    newline();
+                    end = pos - 2;
+                    break;
+                }
+            }
+        }
+
+        while (end > start && (data[end] == ' ' || data[end] == '\t')) {
+            --end;
+        }
+
+        if (end == start) {
+            return "";
+        }
+
+        return new String(data, start, end - start + 1);
     }
 
     private String readLiteral() {
@@ -491,16 +681,29 @@ public final class ThriftParser {
     }
 
     private int readInt() {
-        String word = readWord();
-        try {
-            int base = 10;
-            if (word.startsWith("0x") || word.startsWith("0X")) {
-                word = word.substring(2);
-                base = 16;
+        skipWhitespace(false);
+        int start = pos;
+        while (pos < data.length) {
+            char c = data[pos];
+            if ((c >= '0' && c <= '9')
+                    || (c == '+')
+                    || (c == '-')
+                    || (c == 'x') // for hex prefix
+                    || (c == '.')) {
+                pos++;
+            } else {
+                break;
             }
-            return Integer.valueOf(word, base);
+        }
+        if (start == pos) {
+            throw unexpected("unexpected end of input");
+        }
+        String text = new String(data, start, pos - start);
+        try {
+            int radix = text.startsWith("0x") ? 16 : 10;
+            return Integer.parseInt(text, radix);
         } catch (Exception e) {
-            throw unexpected("expected an int but was " + word);
+            throw unexpected("expected an integer but was " + text);
         }
     }
 

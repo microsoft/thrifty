@@ -18,6 +18,12 @@ public abstract class EnumMemberElement {
                 .documentation("");
     }
 
+    public EnumMemberElement withValue(Integer value) {
+        return new AutoValue_EnumMemberElement.Builder(this)
+                .value(value)
+                .build();
+    }
+
     EnumMemberElement() {}
 
     @AutoValue.Builder

@@ -147,4 +147,25 @@ public class ThriftParserTest {
         assertThat(second.required(), is(true));
         assertThat(second.name(), is("bar"));
     }
+
+    @Test
+    public void invalidFieldIds() {
+        String thrift = "struct NegativeId { -1: required i32 nope }";
+        try {
+            ThriftParser.parse(Location.get("", ""), thrift);
+            fail("Should not parse a struct with a negative field ID");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("field ID must be greater than zero"));
+        }
+
+        thrift = "struct ZeroId {\n" +
+                "  0: option i64 stillNope\n" +
+                "}";
+        try {
+            ThriftParser.parse(Location.get("", ""), thrift);
+            fail("Should not parse a struct with a zero field ID");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("field ID must be greater than zero"));
+        }
+    }
 }

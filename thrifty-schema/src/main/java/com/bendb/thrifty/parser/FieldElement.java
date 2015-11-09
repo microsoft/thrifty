@@ -14,6 +14,12 @@ public abstract class FieldElement {
                 .required(false);
     }
 
+    public FieldElement withId(int fieldId) {
+        return new AutoValue_FieldElement.Builder(this)
+                .fieldId(fieldId)
+                .build();
+    }
+
     public abstract Location location();
     public abstract String documentation();
     @Nullable public abstract Integer fieldId();
