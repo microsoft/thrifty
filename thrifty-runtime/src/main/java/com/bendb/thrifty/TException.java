@@ -1,4 +1,6 @@
 package com.bendb.thrifty;
 
-public class TException extends Exception {
+public abstract class TException extends Exception {
 }
+
+// jEv8BHNTUFgGBY8dGoiZ

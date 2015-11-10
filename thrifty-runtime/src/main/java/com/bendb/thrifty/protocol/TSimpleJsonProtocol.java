@@ -22,10 +22,9 @@
 
 package com.bendb.thrifty.protocol;
 
-import com.bendb.thrifty.TException;
+import okio.BufferedSink;
+import okio.BufferedSource;
 import okio.ByteString;
-import okio.Sink;
-import okio.Source;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -33,117 +32,121 @@ import java.util.Deque;
 
 public class TSimpleJsonProtocol extends TProtocol {
 
-    private static final byte[] COMMA = new byte[] { ',' };
-    private static final byte[] COLON = new byte[] { ':' };
+    private static final byte[] COMMA = { ',' };
+    private static final byte[] COLON = { ':' };
+    private static final byte[] LBRACE = { '{' };
+    private static final byte[] RBRACE = { '}' };
+    private static final byte[] LBRACKET = { '[' };
+    private static final byte[] RBRACKET = { ']' };
 
     private final Deque<Context> contextStack = new ArrayDeque<>();
 
-    public TSimpleJsonProtocol(Source source, Sink sink) {
+    public TSimpleJsonProtocol(BufferedSource source, BufferedSink sink) {
         super(source, sink);
     }
 
     @Override
-    public void writeMessageBegin(TMessageMetadata message) throws TException {
+    public void writeMessageBegin(String name, byte typeId, int seqId) throws IOException {
 
     }
 
     @Override
-    public void writeMessageEnd() throws TException {
+    public void writeMessageEnd() throws IOException {
 
     }
 
     @Override
-    public void writeStructBegin(String structName) throws TException {
+    public void writeStructBegin(String structName) throws IOException {
 
     }
 
     @Override
-    public void writeStructEnd() throws TException {
+    public void writeStructEnd() throws IOException {
 
     }
 
     @Override
-    public void writeFieldBegin(String fieldName, int fieldId, byte typeId) throws TException {
+    public void writeFieldBegin(String fieldName, int fieldId, byte typeId) throws IOException {
 
     }
 
     @Override
-    public void writeFieldEnd() throws TException {
+    public void writeFieldEnd() throws IOException {
 
     }
 
     @Override
-    public void writeFieldStop() throws TException {
+    public void writeFieldStop() throws IOException {
 
     }
 
     @Override
-    public void writeMapBegin(byte keyTypeId, byte valueTypeId, int mapSize) throws TException {
+    public void writeMapBegin(byte keyTypeId, byte valueTypeId, int mapSize) throws IOException {
 
     }
 
     @Override
-    public void writeMapEnd() throws TException {
+    public void writeMapEnd() throws IOException {
 
     }
 
     @Override
-    public void writeListBegin(byte elementTypeId, int listSize) throws TException {
+    public void writeListBegin(byte elementTypeId, int listSize) throws IOException {
 
     }
 
     @Override
-    public void writeListEnd() throws TException {
+    public void writeListEnd() throws IOException {
 
     }
 
     @Override
-    public void writeSetBegin(byte elementTypeId, int setSize) throws TException {
+    public void writeSetBegin(byte elementTypeId, int setSize) throws IOException {
 
     }
 
     @Override
-    public void writeSetEnd() throws TException {
+    public void writeSetEnd() throws IOException {
 
     }
 
     @Override
-    public void writeBool(boolean b) throws TException {
+    public void writeBool(boolean b) throws IOException {
 
     }
 
     @Override
-    public void writeByte(byte b) throws TException {
+    public void writeByte(byte b) throws IOException {
 
     }
 
     @Override
-    public void writeI16(short i16) throws TException {
+    public void writeI16(short i16) throws IOException {
 
     }
 
     @Override
-    public void writeI32(int i32) throws TException {
+    public void writeI32(int i32) throws IOException {
 
     }
 
     @Override
-    public void writeI64(long i64) throws TException {
+    public void writeI64(long i64) throws IOException {
 
     }
 
     @Override
-    public void writeDouble(double dub) throws TException {
+    public void writeDouble(double dub) throws IOException {
 
     }
 
     @Override
-    public void writeString(String str) throws TException {
+    public void writeString(String str) throws IOException {
 
     }
 
     @Override
-    public void writeBinary(ByteString buf) throws TException {
+    public void writeBinary(ByteString buf) throws IOException {
 
     }
 

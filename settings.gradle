@@ -1,4 +1,6 @@
-rootProject.name = 'root'
+rootProject.name = 'thrifty'
 include 'thrifty-schema'
 include 'thrifty-runtime'
+include 'thrifty-java-codegen'
+include 'thrifty-gradle-plugin'
 

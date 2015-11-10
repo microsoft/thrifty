@@ -1,0 +1,8 @@
+dependencies {
+    compile gradleApi()
+    compile 'com.android.tools.build:gradle:1.0.0'
+
+    compile project(':thrifty-java-codegen')
+
+    testCompile libraries.testing
+}

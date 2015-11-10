@@ -6,6 +6,19 @@ import com.google.common.collect.ImmutableList;
 
 @AutoValue
 public abstract class FunctionElement {
+    public static Builder builder(Location location) {
+        return new AutoValue_FunctionElement.Builder()
+                .location(location)
+                .documentation("")
+                .oneWay(false)
+                .params(ImmutableList.<FieldElement>of())
+                .exceptions(ImmutableList.<FieldElement>of());
+    }
+
+    public static Builder builder(FunctionElement element) {
+        return new AutoValue_FunctionElement.Builder(element);
+    }
+
     public abstract Location location();
     public abstract String documentation();
     public abstract boolean oneWay();
@@ -13,14 +26,6 @@ public abstract class FunctionElement {
     public abstract String name();
     public abstract ImmutableList<FieldElement> params();
     public abstract ImmutableList<FieldElement> exceptions();
-
-    public static Builder builder(Location location) {
-        return new AutoValue_FunctionElement.Builder()
-                .location(location)
-                .documentation("")
-                .params(ImmutableList.<FieldElement>of())
-                .exceptions(ImmutableList.<FieldElement>of());
-    }
 
     FunctionElement() {}
 

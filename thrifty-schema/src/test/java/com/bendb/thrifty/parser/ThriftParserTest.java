@@ -2,6 +2,7 @@ package com.bendb.thrifty.parser;
 
 import com.bendb.thrifty.Location;
 import com.bendb.thrifty.NamespaceScope;
+import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -98,16 +99,19 @@ public class ThriftParserTest {
                 "typedef set<string> Names\n" +
                 "typedef map < i16,set<binary > > BlobMap\n";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "typedefs.thrift"), thrift);
+        ThriftFileElement file = ThriftParser.parse(Location.get("", "containerTypedefs.thrift"), thrift);
 
-        assertThat(file.typedefs().get(0).oldName(), is("list<i32>"));
-        assertThat(file.typedefs().get(0).newName(), is("IntList"));
+        TypedefElement typedef = file.typedefs().get(0);
+        assertThat(typedef.oldName(), is("list<i32>"));
+        assertThat(typedef.newName(), is("IntList"));
 
-        assertThat(file.typedefs().get(1).oldName(), is("set<string>"));
-        assertThat(file.typedefs().get(1).newName(), is("Names"));
+        typedef = file.typedefs().get(1);
+        assertThat(typedef.oldName(), is("set<string>"));
+        assertThat(typedef.newName(), is("Names"));
 
-        assertThat(file.typedefs().get(2).oldName(), is("map<i16, set<binary>>"));
-        assertThat(file.typedefs().get(2).newName(), is("BlobMap"));
+        typedef = file.typedefs().get(2);
+        assertThat(typedef.oldName(), is("map<i16, set<binary>>"));
+        assertThat(typedef.newName(), is("BlobMap"));
     }
 
     @Test
@@ -126,7 +130,7 @@ public class ThriftParserTest {
                 "  /** This field is optional */\n" +
                 "  1:i32 foo,\n" +
                 "  // This next field is required\n" +
-                "  2: required string bar\n" +
+                "  2: required string bar   // and has trailing doc\n" +
                 "}";
 
         ThriftFileElement file = ThriftParser.parse(Location.get("", "simple.thrift"), thrift);
@@ -142,10 +146,110 @@ public class ThriftParserTest {
 
         FieldElement second = file.structs().get(0).fields().get(1);
         assertThat(second.fieldId(), is(2));
-        assertThat(second.documentation(), is("This next field is required"));
+        assertThat(second.documentation(), is("This next field is required\nand has trailing doc"));
         assertThat(second.type(), is("string"));
         assertThat(second.required(), is(true));
         assertThat(second.name(), is("bar"));
+    }
+
+    @Test
+    public void trailingFieldDoc() {
+        String thrift = "// This struct demonstrates trailing comments\n" +
+                "struct TrailingDoc {" +
+                "  1: required string standard, // cpp-style\n" +
+                "  2: required string python,    # py-style\n" +
+                "  3: optional binary knr;      /** K&R-style **/\n" +
+                "}";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get("", "trailing.thrift"), thrift);
+        StructElement doc = file.structs().get(0);
+
+        assertThat(doc.fields().get(0).documentation(), is("\ncpp-style"));
+        assertThat(doc.fields().get(1).documentation(), is("\npy-style"));
+        assertThat(doc.fields().get(2).documentation(), is("\n* K&R-style *"));
+    }
+
+    @Test
+    public void duplicateFieldIds() {
+        String thrift = "struct Nope {\n" +
+                "1: string foo;\n" +
+                "1: string bar;\n" +
+                "}";
+
+        try {
+            ThriftParser.parse(Location.get("", "duplicateIds.thrift"), thrift);
+            fail("Structs with duplicate field IDs should fail to parse");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("duplicate field ID:"));
+        }
+    }
+
+    @Test
+    public void implicitDuplicateFieldIds() {
+        String thrift = "struct StillNope {\n" +
+                "string foo;\n" +
+                "string bar;\n" +
+                "1: bytes baz\n" +
+                "}";
+
+        try {
+            ThriftParser.parse(
+                    Location.get("", "duplicateImplicitIds.thrift"),
+                    thrift);
+            fail("Structs with duplicate implicit field IDs should fail to parse");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("duplicate field ID: 1"));
+        }
+    }
+
+    @Test
+    public void weirdFieldPermutations() {
+        String thrift = "struct WeirdButLegal {\n" +
+                "byte minimal\n" +
+                "byte minimalWithSeparator,\n" +
+                "byte minimalWithOtherSeparator,\n" +
+                "required byte required\n" +
+                "required byte requiredWithComma,\n" +
+                "required byte requiredWithSemicolon;\n" +
+                "optional i16 optional\n" +
+                "optional i16 optionalWithComma,\n" +
+                "optional i16 optionalWithSemicolon;\n" +
+                "10: i32 implicitOptional\n" +
+                "11: i32 implicitOptionalWithComma,\n" +
+                "12: i32 implicitOptionalWithSemicolon;\n" +
+                "13: required i64 requiredId\n" +
+                "14: required i64 requiredIdWithComma,\n" +
+                "15: required i64 requiredIdWithSemicolon;\n" +
+                "}";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get("", "weird.thrift"), thrift);
+
+        StructElement struct = file.structs().get(0);
+        ImmutableList<FieldElement> fields = struct.fields();
+
+        assertThat(fields.size(), is(15));
+
+        FieldElement field = fields.get(0);
+        assertThat(field.name(), is("minimal"));
+        assertThat(field.type(), is("byte"));
+        assertThat(field.fieldId(), is(1));
+
+        field = fields.get(1);
+        assertThat(field.name(), is("minimalWithSeparator"));
+        assertThat(field.type(), is("byte"));
+        assertThat(field.fieldId(), is(2));
+
+        field = fields.get(8);
+        assertThat(field.name(), is("optionalWithSemicolon"));
+        assertThat(field.type(), is("i16"));
+        assertThat(field.required(), is(false));
+        assertThat(field.fieldId(), is(9));
+
+        field = fields.get(14);
+        assertThat(field.name(), is("requiredIdWithSemicolon"));
+        assertThat(field.type(), is("i64"));
+        assertThat(field.required(), is(true));
+        assertThat(field.fieldId(), is(15));
     }
 
     @Test
@@ -167,5 +271,32 @@ public class ThriftParserTest {
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("field ID must be greater than zero"));
         }
+    }
+
+    @Test
+    public void services() {
+        String thrift = "\n" +
+                "service Svc {\n" +
+                "  FooResult foo(1:FooRequest request, 2: optional FooMeta meta)\n" +
+                "  oneway BarResult bar() throws (1:FooException foo, 2:BarException bar)\n" +
+                "}";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get("", "simpleService.thrift"), thrift);
+        ServiceElement svc = file.services().get(0);
+
+        ImmutableList<FunctionElement> functions = svc.functions();
+
+        FunctionElement f = functions.get(0);
+        assertThat(f.name(), is("foo"));
+        assertThat(f.returnType(), is("FooResult"));
+        assertThat(f.params().get(0).name(), is("request"));
+        assertThat(f.params().get(0).type(), is("FooRequest"));
+        assertThat(f.params().get(0).fieldId(), is(1));
+        assertThat(f.params().get(0).required(), is(true));
+
+        assertThat(f.params().get(1).name(), is("meta"));
+        assertThat(f.params().get(1).type(), is("FooMeta"));
+        assertThat(f.params().get(1).fieldId(), is(2));
+        assertThat(f.params().get(1).required(), is(false));
     }
 }

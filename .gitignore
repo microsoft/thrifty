@@ -1,5 +1,6 @@
 build/
 .gradle/
+local.properties
 .idea/
 .git/
 

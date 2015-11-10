@@ -1,18 +1,36 @@
-apply plugin: 'idea'
+allprojects {
+    repositories {
+        mavenCentral()
+    }
 
-group 'com.bendb.thrifty'
-version '1.0-SNAPSHOT'
+    project.ext {
+        group = 'com.bendb.thrifty'
+        version = '1.0-SNAPSHOT'
+
+        libraries = [
+                okio: [
+                        'com.squareup.okio:okio:1.6.0'
+                ],
+
+                javaPoet: [
+                        'com.squareup:javapoet:1.3.0'
+                ],
+
+                testing: [
+                        'junit:junit:4.12',
+                        'org.mockito:mockito-core:1.10.19'
+                ]
+        ]
+    }
+}
+
+group ext.group
+version ext.version
 
 buildscript {
     repositories {
         mavenCentral()
         jcenter()
-    }
-}
-
-allprojects {
-    repositories {
-        mavenCentral()
     }
 }
 
@@ -23,4 +41,8 @@ subprojects { sp ->
 //    apply plugin: 'checkstyle'
 
     sourceCompatibility = '1.7'
+    targetCompatibility = '1.7'
+
+    group ext.group
+    version ext.version
 }

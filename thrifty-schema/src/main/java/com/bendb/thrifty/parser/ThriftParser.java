@@ -16,12 +16,12 @@
  */
 package com.bendb.thrifty.parser;
 
-import autovalue.shaded.com.google.common.common.base.Preconditions;
-import autovalue.shaded.com.google.common.common.collect.Sets;
 import com.bendb.thrifty.Location;
 import com.bendb.thrifty.NamespaceScope;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -43,16 +43,16 @@ public final class ThriftParser {
     private int line;
     private int lineStart;
 
-    ThriftParser(Location location, char[] data) {
-        this.location = Preconditions.checkNotNull(location, "location");
-        this.data = Preconditions.checkNotNull(data, "data");
-    }
-
     public static ThriftFileElement parse(Location location, String text) {
         return new ThriftParser(location, text.toCharArray()).readThriftData();
     }
 
-    ThriftFileElement readThriftData() {
+    private ThriftParser(Location location, char[] data) {
+        this.location = Preconditions.checkNotNull(location, "location");
+        this.data = Preconditions.checkNotNull(data, "data");
+    }
+
+    private ThriftFileElement readThriftData() {
         //noinspection InfiniteLoopStatement
         while (true) {
             String doc = readDocumentation();
@@ -223,7 +223,7 @@ public final class ThriftParser {
 
         if ("service".equals(word)) {
             ++declCount;
-            throw unexpected("service is not yet implemented");
+            return readService(location, doc);
         }
 
         throw unexpected("unexpected element: " + word);
@@ -278,12 +278,7 @@ public final class ThriftParser {
         Location location = location();
         String name = readIdentifier();
 
-        skipWhitespace(false);
-        if (pos == data.length) {
-            throw unexpected("unexpected end of output");
-        }
-
-        char next = data[pos];
+        char next = peekChar(false);
         Integer value = null;
         if (next == '=') {
             ++pos;
@@ -322,13 +317,24 @@ public final class ThriftParser {
             throw unexpected("expected an opening brace in struct definition for: " + name);
         }
 
+        ImmutableList<FieldElement> fields = readFieldList('}');
+
+        return StructElement.builder(location)
+                .documentation(documentation)
+                .type(type)
+                .name(name)
+                .fields(fields)
+                .build();
+    }
+
+    private ImmutableList<FieldElement> readFieldList(char terminator) {
         int currentId = 1;
-        Set<Integer> ids = new HashSet<>();
+        Set<Integer> ids = Sets.newHashSet();
 
         ImmutableList.Builder<FieldElement> fields = ImmutableList.builder();
         while (true) {
             String fieldDoc = readDocumentation();
-            if (peekChar() == '}') {
+            if (peekChar() == terminator) {
                 ++pos;
                 break;
             }
@@ -337,6 +343,10 @@ public final class ThriftParser {
 
             Integer id = field.fieldId();
             if (id != null) {
+                if (id < 1) {
+                    throw unexpected("field ID must be a positive integer");
+                }
+
                 if (!ids.add(id)) {
                     throw unexpected("duplicate field ID: " + id);
                 }
@@ -345,23 +355,18 @@ public final class ThriftParser {
                     currentId = id + 1;
                 }
             } else {
-                while (!ids.add(currentId)) {
-                    // just increment until we find an unused ID
-                    ++currentId;
+                int fieldId = currentId++;
+                if (!ids.add(fieldId)) {
+                    throw unexpected("duplicate field ID: " + fieldId);
                 }
 
-                field = field.withId(currentId++);
+                field = field.withId(fieldId);
             }
 
             fields.add(field);
         }
 
-        return StructElement.builder(location)
-                .documentation(documentation)
-                .type(type)
-                .name(name)
-                .fields(fields.build())
-                .build();
+        return fields.build();
     }
 
     private FieldElement readField(String doc) {
@@ -369,9 +374,11 @@ public final class ThriftParser {
             throw new AssertionError();
         }
 
-        Location location = location();
-        Integer fieldId = null;
+        FieldElement.Builder field = FieldElement.builder(location())
+                .documentation(doc);
+
         if ((data[pos] >= '0' && data[pos] <= '9') || data[pos] == '-') {
+            Integer fieldId;
             try {
                 fieldId = readInt();
             } catch (Exception e) {
@@ -385,36 +392,123 @@ public final class ThriftParser {
             if (readChar() != ':') {
                 throw unexpected("expected a ':' separator");
             }
+
+            field.fieldId(fieldId);
         }
 
-        boolean required = false;
         String typeName = readTypeName();
+
         if ("required".equals(typeName) || "optional".equals(typeName)) {
-            required = "required".equals(typeName);
+            field.required("required".equals(typeName));
             typeName = readTypeName();
         }
 
-        String fieldName = readIdentifier();
+        field.type(typeName);
+        field.name(readIdentifier());
 
-        ConstValueElement value = null;
-
-        char next = peekChar();
+        char next = peekChar(false);
         if (next == '=') {
             throw unexpected("const values are not yet implemented");
-        } else if (next == ';' || next == ',') {
-            ++pos;
         }
 
-        // TODO: Look for trailing documentation and consume it
+        String trailingDoc = readTrailingDoc(true);
+        if (!Strings.isNullOrEmpty(trailingDoc)) {
+            field.documentation(doc + "\n" + trailingDoc);
+        }
 
-        return FieldElement.builder(location)
+        return field.build();
+    }
+
+    private ServiceElement readService(Location location, String doc) {
+        String name = readIdentifier();
+        String extendsName = null;
+
+        if (peekChar() == 'e') {
+            String word = readWord();
+            if (!"extends".equals(word)) {
+                throw unexpected("unexpected token: " + word);
+            }
+
+            extendsName = readIdentifier();
+        }
+
+        if (readChar() != '{') {
+            throw unexpected("expected an opening brace in service definition");
+        }
+
+        ImmutableList<FunctionElement> functions = readFunctionList();
+
+        return ServiceElement.builder(location)
                 .documentation(doc)
-                .fieldId(fieldId)
-                .required(required)
-                .type(typeName)
-                .name(fieldName)
-                .constValue(value)
+                .name(name)
+                .extendsServiceName(extendsName)
+                .functions(functions)
                 .build();
+    }
+
+    private ImmutableList<FunctionElement> readFunctionList() {
+        ImmutableList.Builder<FunctionElement> funcs = ImmutableList.builder();
+        while (true) {
+            String functionDoc = readDocumentation();
+            if (peekChar() == '}') {
+                ++pos;
+                return funcs.build();
+            }
+
+            FunctionElement func = readFunction(location(), functionDoc);
+
+            String trailingDoc = readTrailingDoc(true);
+            if (!Strings.isNullOrEmpty(trailingDoc)) {
+                functionDoc = functionDoc + '\n' + trailingDoc;
+                func = FunctionElement.builder(func)
+                        .documentation(functionDoc)
+                        .build();
+            }
+
+            funcs.add(func);
+        }
+    }
+
+    private FunctionElement readFunction(Location location, String functionDoc) {
+        FunctionElement.Builder func = FunctionElement.builder(location)
+                .documentation(functionDoc);
+
+        String word = readTypeName();
+        if ("oneway".equals(word)) {
+            func.oneWay(true);
+            word = readTypeName();
+        }
+
+        func.returnType(word);
+        func.name(readIdentifier());
+
+        if (readChar() != '(') {
+            throw unexpected("invalid function definition");
+        }
+
+        func.params(readFieldList(')'));
+
+        char next = peekChar(false);
+        if (next == 't') {
+            word = readWord();
+
+            if (!"throws".equals(word)) {
+                throw unexpected("unexpected token in function definition: " + word);
+            }
+
+            if (readChar() != '(') {
+                throw unexpected("expected a list of exception types after 'throws'");
+            }
+
+            func.exceptions(readFieldList(')'));
+        }
+
+        String trailingDoc = readTrailingDoc(true);
+        if (!Strings.isNullOrEmpty(trailingDoc)) {
+            func.documentation(functionDoc + '\n' + trailingDoc);
+        }
+
+        return func.build();
     }
 
     private char readChar() {
@@ -424,7 +518,11 @@ public final class ThriftParser {
     }
 
     private char peekChar() {
-        skipWhitespace(true);
+        return peekChar(true);
+    }
+
+    private char peekChar(boolean skipComments) {
+        skipWhitespace(skipComments);
         if (pos == data.length) {
             throw unexpected("unexpected end of file");
         }
@@ -508,6 +606,10 @@ public final class ThriftParser {
 
         while (end > start && (data[end] == ' ' || data[end] == '\t')) {
             --end;
+        }
+
+        while (start < end && (data[start] == ' ' || data[start] == '\t')) {
+            ++start;
         }
 
         if (end == start) {
@@ -817,11 +919,5 @@ public final class ThriftParser {
 
     private RuntimeException unexpected(Location location, String message) {
         throw new IllegalStateException(String.format("Syntax error in %s: %s", location, message));
-    }
-
-    private enum ParseContext {
-        FILE,
-        STRUCT,
-        FUNCTION
     }
 }
