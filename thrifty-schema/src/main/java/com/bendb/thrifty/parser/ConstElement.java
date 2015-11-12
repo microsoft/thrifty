@@ -11,7 +11,7 @@ public abstract class ConstElement {
     public abstract String name();
     public abstract ConstValueElement value();
 
-    ConstElement() {}
+    ConstElement() { }
 
     public Builder builder(Location location) {
         return new AutoValue_ConstElement.Builder()

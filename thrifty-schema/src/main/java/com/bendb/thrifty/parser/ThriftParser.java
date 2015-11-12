@@ -792,14 +792,19 @@ public final class ThriftParser {
     }
 
     private String readDocumentation() {
-        String result = null;
+        StringBuilder result = null;
         while (true) {
             skipWhitespace(false);
             if (pos == data.length || (data[pos] != '/' && data[pos] != '#')) {
-                return result != null ? result : "";
+                return result != null ? result.toString() : "";
             }
+
             String comment = readComment();
-            result = result == null ? comment : (result + "\n" + comment);
+            if (result == null) {
+                result = new StringBuilder(comment);
+            } else {
+                result.append("\n").append(comment);
+            }
         }
     }
 

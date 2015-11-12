@@ -3,6 +3,7 @@ package com.bendb.thrifty;
 import com.bendb.thrifty.parser.ThriftFileElement;
 import com.bendb.thrifty.parser.ThriftParser;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import okio.Okio;
 import okio.Source;
 
@@ -13,7 +14,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class Loader {
     /**
@@ -44,10 +51,11 @@ public final class Loader {
     private Set<Program> loadFromDisk() throws IOException {
         final Deque<String> filesToLoad = new ArrayDeque<>(thriftFiles);
         if (filesToLoad.isEmpty()) {
-            for (Path path : includePaths) {
+            for (final Path path : includePaths) {
                 Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
                     @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    public FileVisitResult visitFile(
+                            Path file, BasicFileAttributes attrs) throws IOException {
                         if (file.getFileName().toString().endsWith(".thrift")) {
                             filesToLoad.add(path.relativize(file).toString());
                         }
@@ -82,10 +90,13 @@ public final class Loader {
                 }
 
                 if (element == null) {
-                    throw new FileNotFoundException("Failed to locate " + path + " in " + includePaths);
+                    throw new FileNotFoundException(
+                            "Failed to locate " + path + " in " + includePaths);
                 }
             }
         }
+
+        return Sets.newHashSet();
     }
 
     private static Source source(String thrift, Path directory) throws IOException {
