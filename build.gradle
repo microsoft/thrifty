@@ -37,12 +37,26 @@ buildscript {
 subprojects { sp ->
     apply plugin: 'java'
     apply plugin: 'idea'
-//    apply plugin: 'findbugs'
-//    apply plugin: 'checkstyle'
+    apply plugin: 'checkstyle'
+    apply plugin: 'findbugs'
 
     sourceCompatibility = '1.7'
     targetCompatibility = '1.7'
 
     group ext.group
     version ext.version
+
+    checkstyle {
+        configFile = rootProject.file("config/checkstyle/checkstyle.xml")
+        configProperties = ["checkstyle.cache.file": file('build/checkstyle.cache')]
+        showViolations = true
+        sourceSets = [sourceSets.main]
+    }
+
+    tasks.withType(FindBugs) {
+        reports {
+            xml.enabled = false
+            html.enabled = true
+        }
+    }
 }
