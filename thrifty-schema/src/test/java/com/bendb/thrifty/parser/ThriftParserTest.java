@@ -298,5 +298,20 @@ public class ThriftParserTest {
         assertThat(f.params().get(1).type(), is("FooMeta"));
         assertThat(f.params().get(1).fieldId(), is(2));
         assertThat(f.params().get(1).required(), is(false));
+
+        f = functions.get(1);
+        assertThat(f.name(), is("bar"));
+        assertThat(f.returnType(), is("BarResult"));
+        assertThat(f.oneWay(), is(true));
+        assertThat(f.params().size(), is(0));
+
+        ImmutableList<FieldElement> exns = f.exceptions();
+        assertThat(exns.get(0).name(), is("foo"));
+        assertThat(exns.get(0).type(), is("FooException"));
+        assertThat(exns.get(0).fieldId(), is(1));
+
+        assertThat(exns.get(1).name(), is("bar"));
+        assertThat(exns.get(1).type(), is("BarException"));
+        assertThat(exns.get(1).fieldId(), is(2));
     }
 }

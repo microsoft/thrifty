@@ -23,7 +23,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
-import java.util.HashSet;
 import java.util.Set;
 
 public final class ThriftParser {
@@ -34,6 +33,8 @@ public final class ThriftParser {
     private final ImmutableList.Builder<EnumElement> enums = ImmutableList.builder();
     private final ImmutableList.Builder<ConstElement> consts = ImmutableList.builder();
     private final ImmutableList.Builder<StructElement> structs = ImmutableList.builder();
+    private final ImmutableList.Builder<StructElement> unions = ImmutableList.builder();
+    private final ImmutableList.Builder<StructElement> exceptions = ImmutableList.builder();
     private final ImmutableList.Builder<ServiceElement> services = ImmutableList.builder();
     private final ImmutableList.Builder<TypedefElement> typedefs = ImmutableList.builder();
 
@@ -57,7 +58,17 @@ public final class ThriftParser {
         while (true) {
             String doc = readDocumentation();
             if (pos == data.length) {
-                return buildFileElement();
+                return ThriftFileElement.builder(location)
+                        .namespaces(namespaces.build())
+                        .includes(imports.build())
+                        .constants(consts.build())
+                        .typedefs(typedefs.build())
+                        .enums(enums.build())
+                        .structs(structs.build())
+                        .unions(unions.build())
+                        .exceptions(exceptions.build())
+                        .services(services.build())
+                        .build();
             }
 
             Object element = readElement(doc);
@@ -79,6 +90,14 @@ public final class ThriftParser {
             } else if (element instanceof ConstElement) {
                 consts.add((ConstElement) element);
             } else if (element instanceof StructElement) {
+                StructElement struct = (StructElement) element;
+                switch (struct.type()) {
+                    case STRUCT:    structs.add(struct);    break;
+                    case UNION:     unions.add(struct);     break;
+                    case EXCEPTION: exceptions.add(struct); break;
+                    default:
+                        throw new AssertionError("Unexpected struct type: " + struct.type().name());
+                }
                 structs.add((StructElement) element);
             } else if (element instanceof ServiceElement) {
                 services.add((ServiceElement) element);
@@ -86,44 +105,6 @@ public final class ThriftParser {
                 typedefs.add((TypedefElement) element);
             }
         }
-    }
-
-    private ThriftFileElement buildFileElement() {
-        ThriftFileElement.Builder builder = ThriftFileElement.builder(location)
-                .namespaces(namespaces.build())
-                .includes(imports.build())
-                .constants(consts.build())
-                .typedefs(typedefs.build())
-                .enums(enums.build())
-                .services(services.build());
-
-        ImmutableList.Builder<StructElement> structElements = ImmutableList.builder();
-        ImmutableList.Builder<StructElement> unionElements = ImmutableList.builder();
-        ImmutableList.Builder<StructElement> exceptionElements = ImmutableList.builder();
-        for (StructElement element : structs.build()) {
-            switch (element.type()) {
-                case STRUCT:
-                    structElements.add(element);
-                    break;
-
-                case UNION:
-                    unionElements.add(element);
-                    break;
-
-                case EXCEPTION:
-                    exceptionElements.add(element);
-                    break;
-
-                default:
-                    throw new AssertionError("Unexpected struct type: " + element.type());
-            }
-        }
-
-        return builder
-                .structs(structElements.build())
-                .unions(unionElements.build())
-                .exceptions(exceptionElements.build())
-                .build();
     }
 
     private static boolean isHeader(Object element) {
@@ -317,7 +298,7 @@ public final class ThriftParser {
             throw unexpected("expected an opening brace in struct definition for: " + name);
         }
 
-        ImmutableList<FieldElement> fields = readFieldList('}');
+        ImmutableList<FieldElement> fields = readFieldList('}', false);
 
         return StructElement.builder(location)
                 .documentation(documentation)
@@ -327,7 +308,7 @@ public final class ThriftParser {
                 .build();
     }
 
-    private ImmutableList<FieldElement> readFieldList(char terminator) {
+    private ImmutableList<FieldElement> readFieldList(char terminator, boolean requiredByDefault) {
         int currentId = 1;
         Set<Integer> ids = Sets.newHashSet();
 
@@ -339,7 +320,7 @@ public final class ThriftParser {
                 break;
             }
 
-            FieldElement field = readField(fieldDoc);
+            FieldElement field = readField(fieldDoc, requiredByDefault);
 
             Integer id = field.fieldId();
             if (id != null) {
@@ -369,13 +350,14 @@ public final class ThriftParser {
         return fields.build();
     }
 
-    private FieldElement readField(String doc) {
+    private FieldElement readField(String doc, boolean requiredByDefault) {
         if (pos == data.length) {
             throw new AssertionError();
         }
 
         FieldElement.Builder field = FieldElement.builder(location())
-                .documentation(doc);
+                .documentation(doc)
+                .required(requiredByDefault);
 
         if ((data[pos] >= '0' && data[pos] <= '9') || data[pos] == '-') {
             Integer fieldId;
@@ -486,7 +468,7 @@ public final class ThriftParser {
             throw unexpected("invalid function definition");
         }
 
-        func.params(readFieldList(')'));
+        func.params(readFieldList(')', true));
 
         char next = peekChar(false);
         if (next == 't') {
@@ -500,7 +482,7 @@ public final class ThriftParser {
                 throw unexpected("expected a list of exception types after 'throws'");
             }
 
-            func.exceptions(readFieldList(')'));
+            func.exceptions(readFieldList(')', false));
         }
 
         String trailingDoc = readTrailingDoc(true);
