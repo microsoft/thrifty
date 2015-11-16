@@ -7,6 +7,8 @@ autoValue {
 }
 
 dependencies {
+    compile project(':thrifty-runtime')
+
     compile 'com.google.code.findbugs:jsr305:3.0.1'
     compile 'com.google.guava:guava:18.0'
     compile 'com.google.auto.value:auto-value:1.1'

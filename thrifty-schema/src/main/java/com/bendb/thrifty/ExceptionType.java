@@ -1,4 +1,9 @@
 package com.bendb.thrifty;
 
-public class ExceptionType extends Type {
+import java.util.Map;
+
+public class ExceptionType extends Named {
+    public ExceptionType(String name, Map<NamespaceScope, String> namespaces) {
+        super(name, namespaces);
+    }
 }

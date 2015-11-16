@@ -1,19 +1,22 @@
 package com.bendb.thrifty;
 
+import com.bendb.thrifty.parser.IncludeElement;
 import com.bendb.thrifty.parser.ThriftFileElement;
 import com.bendb.thrifty.parser.ThriftParser;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
 import okio.Okio;
 import okio.Source;
 
+import javax.annotation.Nullable;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -33,7 +36,7 @@ public final class Loader {
      * The search path for imported thrift files.  If {@link #thriftFiles} is
      * empty, then all .thrift files located on the search path will be loaded.
      */
-    private final List<Path> includePaths = new ArrayList<>();
+    private final List<File> includePaths = new ArrayList<>();
 
     public Loader addThriftFile(String file) {
         Preconditions.checkNotNull(file, "file");
@@ -41,9 +44,9 @@ public final class Loader {
         return this;
     }
 
-    public Loader addIncludePath(Path path) {
+    public Loader addIncludePath(File path) {
         Preconditions.checkNotNull(path, "path");
-        Preconditions.checkArgument(Files.isDirectory(path), "path must be a directory");
+        Preconditions.checkArgument(path.isDirectory(), "path must be a directory");
         includePaths.add(path);
         return this;
     }
@@ -51,17 +54,14 @@ public final class Loader {
     private Set<Program> loadFromDisk() throws IOException {
         final Deque<String> filesToLoad = new ArrayDeque<>(thriftFiles);
         if (filesToLoad.isEmpty()) {
-            for (final Path path : includePaths) {
-                Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-                    @Override
-                    public FileVisitResult visitFile(
-                            Path file, BasicFileAttributes attrs) throws IOException {
-                        if (file.getFileName().toString().endsWith(".thrift")) {
-                            filesToLoad.add(path.relativize(file).toString());
-                        }
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
+            for (File file : includePaths) {
+                FluentIterable<File> iterable = Files.fileTreeTraverser()
+                        .breadthFirstTraversal(file)
+                        .filter(IS_THRIFT);
+
+                for (File thriftFile : iterable) {
+                    filesToLoad.add(thriftFile.getAbsolutePath());
+                }
             }
         }
 
@@ -73,37 +73,44 @@ public final class Loader {
             }
 
             ThriftFileElement element = null;
-            for (Path base : includePaths) {
-                Source src = source(path, base);
-                if (src == null) {
+            for (File base : includePaths) {
+                File resolved = new File(base, path).getAbsoluteFile();
+                if (!resolved.exists()) {
                     continue;
                 }
 
+                Source src = Okio.source(resolved);
                 try {
                     Location location = Location.get(base.toString(), path);
                     String data = Okio.buffer(src).readUtf8();
                     element = ThriftParser.parse(location, data);
+                    break;
                 } catch (IOException e) {
                     throw new IOException("Failed to load " + path + " from " + base, e);
                 } finally {
-                    src.close();
+                    Closeables.close(src, true);
                 }
+            }
 
-                if (element == null) {
-                    throw new FileNotFoundException(
-                            "Failed to locate " + path + " in " + includePaths);
-                }
+            if (element == null) {
+                throw new FileNotFoundException(
+                        "Failed to locate " + path + " in " + includePaths);
+            }
+
+            loadedFiles.put(path, element);
+
+            for (IncludeElement include : element.includes()) {
+                filesToLoad.addLast(include.path());
             }
         }
 
         return Sets.newHashSet();
     }
 
-    private static Source source(String thrift, Path directory) throws IOException {
-        Path resolved = directory.resolve(thrift);
-        if (Files.exists(resolved)) {
-            return Okio.source(resolved);
+    private static final Predicate<File> IS_THRIFT = new Predicate<File>() {
+        @Override
+        public boolean apply(@Nullable File input) {
+            return input != null && input.getName().endsWith(".thrift");
         }
-        return null;
-    }
+    };
 }
