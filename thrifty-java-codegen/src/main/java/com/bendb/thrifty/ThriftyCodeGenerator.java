@@ -10,6 +10,8 @@ import java.net.ProtocolException;
 import java.util.*;
 
 public final class ThriftyCodeGenerator {
+    public static final String ADAPTER_FIELDNAME = "ADAPTER";
+
     static final ClassName STRING = ClassName.get(String.class);
     static final ClassName LIST = ClassName.get(List.class);
     static final ClassName MAP = ClassName.get(Map.class);
@@ -134,7 +136,7 @@ public final class ThriftyCodeGenerator {
 
         structBuilder.addMethod(ctor.build());
         structBuilder.addType(builderBuilder.build());
-        structBuilder.addField(FieldSpec.builder(adapterSuperclass, "ADAPTER")
+        structBuilder.addField(FieldSpec.builder(adapterSuperclass, ADAPTER_FIELDNAME)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                 .initializer("$L", adapterBuilder.build())
                 .build());
@@ -201,6 +203,7 @@ public final class ThriftyCodeGenerator {
                 .addMethod(MethodSpec.methodBuilder("read")
                         .addAnnotation(Override.class)
                         .returns(enumClassName)
+                        .addException(PROTOCOL_EXCEPTION)
                         .addParameter(TPROTOCOL, "protocol")
                         .addStatement("int code = $N.readI32()", "protocol")
                         .addStatement("$T value = $T.fromCode(code)", enumClassName, enumClassName)
@@ -210,6 +213,7 @@ public final class ThriftyCodeGenerator {
                         .addStatement("return value")
                         .build())
                 .addMethod(MethodSpec.methodBuilder("write")
+                        .addException(PROTOCOL_EXCEPTION)
                         .addParameter(TPROTOCOL, "protocol")
                         .addParameter(enumClassName, "value")
                         .addStatement("$N.writeI32($N.code)", "protocol", "value")
@@ -218,7 +222,7 @@ public final class ThriftyCodeGenerator {
 
         FieldSpec.Builder adapterField = FieldSpec.builder(
                         adapterTypeName,
-                        "ADAPTER",
+                        ADAPTER_FIELDNAME,
                         Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                 .initializer("$L", adapter);
 

@@ -1,5 +1,6 @@
 package com.bendb.thrifty;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.LinkedHashMap;
@@ -13,6 +14,13 @@ public abstract class ThriftType {
     private static final String SET_PREFIX = "set<";
     private static final String MAP_PREFIX = "map<";
 
+    /**
+     * Represents a type that has not yet been resolved.
+     *
+     * Not an actual type - used for type resolution algorithms only.
+     */
+    static final ThriftType PLACEHOLDER = new BuiltinType("placeholder");
+
     public static final ThriftType BOOL = new BuiltinType("bool");
     public static final ThriftType BYTE = new BuiltinType("byte");
     public static final ThriftType I16 = new BuiltinType("i16");
@@ -21,6 +29,9 @@ public abstract class ThriftType {
     public static final ThriftType DOUBLE = new BuiltinType("double");
     public static final ThriftType STRING = new BuiltinType("string");
     public static final ThriftType BINARY = new BuiltinType("binary");
+
+    // Only valid as a "return type" for service methods
+    public static final ThriftType VOID = new BuiltinType("void");
 
     private static final ImmutableMap<String, ThriftType> BUILTINS;
     static {
@@ -37,7 +48,6 @@ public abstract class ThriftType {
     }
 
     private final String name;
-    private final Map<NamespaceScope, String> namespaces = new LinkedHashMap<>();
 
     protected ThriftType(String name) {
         this.name = name;
@@ -72,7 +82,7 @@ public abstract class ThriftType {
                     .trim();
             ThriftType elementType = ThriftType.get(elementTypeName);
             return new SetType(name, elementType);
-        } else if (name.startsWith("map<")) {
+        } else if (name.startsWith(MAP_PREFIX)) {
             String[] bothTypeNames = name
                     .substring(MAP_PREFIX.length(), name.indexOf('>'))
                     .trim()
@@ -80,8 +90,8 @@ public abstract class ThriftType {
             if (bothTypeNames.length != 2) {
                 throw new AssertionError("Parser error - invalid map-type name: " + name);
             }
-            ThriftType keyType = ThriftType.get(bothTypeNames[0]);
-            ThriftType valueType = ThriftType.get(bothTypeNames[1]);
+            ThriftType keyType = ThriftType.get(bothTypeNames[0].trim());
+            ThriftType valueType = ThriftType.get(bothTypeNames[1].trim());
             return new MapType(name, keyType, valueType);
 
         } else {
@@ -118,21 +128,40 @@ public abstract class ThriftType {
                 || t instanceof MapType;
     }
 
-    public void addNamespace(NamespaceScope scope, String namespace) {
-        String oldNamespace = namespaces.put(scope, namespace);
-        if (oldNamespace != null) {
-            namespaces.put(scope, oldNamespace);
-            throw new IllegalArgumentException(
-                    "duplicated namespaces, type " + name + " already in ns " + oldNamespace);
-        }
+    public boolean isList() {
+        return getTrueType() instanceof ListType;
     }
 
-    public String getNamespace(NamespaceScope scope) {
-        String ns = namespaces.get(scope);
-        if (ns == null) {
-            ns = namespaces.get(NamespaceScope.ALL);
+    public boolean isSet() {
+        return getTrueType() instanceof SetType;
+    }
+
+    public boolean isMap() {
+        return getTrueType() instanceof MapType;
+    }
+
+    public ThriftType getTrueType() {
+        ThriftType t = this;
+        while (t instanceof TypedefType) {
+            t = ((TypedefType) t).originalType;
         }
-        return ns;
+        return t;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ThriftType that = (ThriftType) o;
+
+        return name.equals(that.name);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
     }
 
     private static class BuiltinType extends ThriftType {
@@ -146,13 +175,13 @@ public abstract class ThriftType {
         }
     }
 
-    private static class UserType extends ThriftType {
+    static class UserType extends ThriftType {
         UserType(String name) {
             super(name);
         }
     }
 
-    private static class ListType extends ThriftType {
+    static class ListType extends ThriftType {
         private final ThriftType elementType;
 
         ListType(String name, ThriftType elementType) {
@@ -163,9 +192,20 @@ public abstract class ThriftType {
         public ThriftType elementType() {
             return elementType;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            return super.equals(o)
+                    && elementType.equals(((ListType) o).elementType);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(super.hashCode(), elementType.hashCode());
+        }
     }
 
-    private static class SetType extends ThriftType {
+    static class SetType extends ThriftType {
         private final ThriftType elementType;
 
         SetType(String name, ThriftType elementType) {
@@ -176,9 +216,21 @@ public abstract class ThriftType {
         public ThriftType elementType() {
             return elementType;
         }
+
+
+        @Override
+        public boolean equals(Object o) {
+            return super.equals(o)
+                    && elementType.equals(((SetType) o).elementType);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(super.hashCode(), elementType.hashCode());
+        }
     }
 
-    private static class MapType extends ThriftType {
+    static class MapType extends ThriftType {
         private final ThriftType keyType;
         private final ThriftType valueType;
 
@@ -195,9 +247,27 @@ public abstract class ThriftType {
         public ThriftType valueType() {
             return valueType;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (super.equals(o)) {
+                MapType that = (MapType) o;
+                return this.keyType.equals(that.keyType)
+                        && this.valueType.equals(that.valueType);
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(
+                    super.hashCode(),
+                    keyType.hashCode(),
+                    valueType.hashCode());
+        }
     }
 
-    private static class TypedefType extends ThriftType {
+    static class TypedefType extends ThriftType {
         private final ThriftType originalType;
 
         TypedefType(String name, ThriftType originalType) {

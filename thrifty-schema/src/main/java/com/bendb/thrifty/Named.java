@@ -26,6 +26,8 @@ public abstract class Named {
         return namespaces;
     }
 
+    public abstract ThriftType type();
+
     /**
      * Checks if a given {@link Named} has a name conflict with this instance.
      *

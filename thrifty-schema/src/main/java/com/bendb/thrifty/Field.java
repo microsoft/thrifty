@@ -47,4 +47,8 @@ public final class Field {
     public String typedefName() {
         return null;
     }
+
+    void link(Linker linker) {
+        type = linker.resolveType(element.type());
+    }
 }

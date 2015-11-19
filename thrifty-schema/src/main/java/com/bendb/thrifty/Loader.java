@@ -6,7 +6,7 @@ import com.bendb.thrifty.parser.ThriftParser;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import okio.Okio;
@@ -15,15 +15,8 @@ import okio.Source;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public final class Loader {
     /**
@@ -38,6 +31,8 @@ public final class Loader {
      */
     private final List<File> includePaths = new ArrayList<>();
 
+    private Map<String, Program> loadedPrograms;
+
     public Loader addThriftFile(String file) {
         Preconditions.checkNotNull(file, "file");
         thriftFiles.add(file);
@@ -47,11 +42,11 @@ public final class Loader {
     public Loader addIncludePath(File path) {
         Preconditions.checkNotNull(path, "path");
         Preconditions.checkArgument(path.isDirectory(), "path must be a directory");
-        includePaths.add(path);
+        includePaths.add(path.getAbsoluteFile());
         return this;
     }
 
-    private Set<Program> loadFromDisk() throws IOException {
+    private void loadFromDisk() throws IOException {
         final Deque<String> filesToLoad = new ArrayDeque<>(thriftFiles);
         if (filesToLoad.isEmpty()) {
             for (File file : includePaths) {
@@ -73,22 +68,17 @@ public final class Loader {
             }
 
             ThriftFileElement element = null;
-            for (File base : includePaths) {
-                File resolved = new File(base, path).getAbsoluteFile();
-                if (!resolved.exists()) {
-                    continue;
-                }
 
-                Source src = Okio.source(resolved);
-                try {
-                    Location location = Location.get(base.toString(), path);
-                    String data = Okio.buffer(src).readUtf8();
-                    element = ThriftParser.parse(location, data);
-                    break;
-                } catch (IOException e) {
-                    throw new IOException("Failed to load " + path + " from " + base, e);
-                } finally {
-                    Closeables.close(src, true);
+            if (path.startsWith("/")) {
+                File file = new File(path);
+                File dir = file.getParentFile();
+                element = loadSingleFile(dir, file.getName());
+            } else {
+                for (File base : includePaths) {
+                    element = loadSingleFile(base, path);
+                    if (element != null) {
+                        break;
+                    }
                 }
             }
 
@@ -104,7 +94,89 @@ public final class Loader {
             }
         }
 
-        return Sets.newHashSet();
+        // Convert to Programs
+        List<Program> programs = new ArrayList<>();
+        for (ThriftFileElement fileElement : loadedFiles.values()) {
+            programs.add(new Program(fileElement));
+        }
+
+        // Load symbols
+        Set<Program> visited = new HashSet<>(programs.size());
+        for (Program program : programs) {
+            program.loadSymbols(this, visited);
+        }
+
+        loadedPrograms = new HashMap<>();
+    }
+
+    private ThriftFileElement loadSingleFile(File base, String path) throws IOException {
+        File file = new File(base, path).getAbsoluteFile();
+        if (!file.exists()) {
+            return null;
+        }
+
+        Source source = Okio.source(file);
+        try {
+            Location location = Location.get(base.toString(), path);
+            String data = Okio.buffer(source).readUtf8();
+            return ThriftParser.parse(location, data);
+        } catch (IOException e) {
+            throw new IOException("Failed to load " + path + " from " + base, e);
+        } finally {
+            Closeables.close(source, true);
+        }
+    }
+
+    Program resolveImport(Location currentPath, String importPath) {
+        File resolved = findFirstExisting(importPath, currentPath);
+        if (resolved == null) {
+            throw new AssertionError("Included thrift file not found: " + importPath);
+        }
+        return getAndCheck(resolved.getAbsolutePath());
+    }
+
+    /**
+     * Resolves a relative path to the first existing match.
+     *
+     * Resolution rules favor, in order:
+     * 1. Absolute paths
+     * 2. The current working location, if given
+     * 3. The include path, in the order given.
+     *
+     * @param path
+     * @param currentLocation
+     * @return
+     */
+    private File findFirstExisting(String path, Location currentLocation) {
+        if (path.startsWith("/")) {
+            // absolute path, should be loaded as-is
+            File f = new File(path);
+            return f.exists() ? f : null;
+        }
+
+        if (currentLocation != null) {
+            File maybeFile = new File(currentLocation.base(), path).getAbsoluteFile();
+            if (maybeFile.exists()) {
+                return maybeFile;
+            }
+        }
+
+        for (File includePath : includePaths) {
+            File maybeFile = new File(includePath, path).getAbsoluteFile();
+            if (maybeFile.exists()) {
+                return maybeFile;
+            }
+        }
+
+        return null;
+    }
+
+    private Program getAndCheck(String absolutePath) {
+        Program p = loadedPrograms.get(absolutePath);
+        if (p == null) {
+            throw new AssertionError("All includes should have been resolved by now: " + absolutePath);
+        }
+        return p;
     }
 
     private static final Predicate<File> IS_THRIFT = new Predicate<File>() {

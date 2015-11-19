@@ -39,4 +39,16 @@ public class StructType extends Named {
     public ImmutableList<Field> fields() {
         return fields;
     }
+
+    public boolean isStruct() {
+        return element.type() == StructElement.Type.STRUCT;
+    }
+
+    public boolean isUnion() {
+        return element.type() == StructElement.Type.UNION;
+    }
+
+    public boolean isException() {
+        return element.type() == StructElement.Type.EXCEPTION;
+    }
 }
