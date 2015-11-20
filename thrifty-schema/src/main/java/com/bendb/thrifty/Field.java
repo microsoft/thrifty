@@ -2,6 +2,8 @@ package com.bendb.thrifty;
 
 import com.bendb.thrifty.parser.FieldElement;
 
+import javax.annotation.Nullable;
+
 public final class Field {
     private final FieldElement element;
     private ThriftType type;
@@ -44,8 +46,13 @@ public final class Field {
         this.type = type;
     }
 
+    @Nullable
     public String typedefName() {
-        return null;
+        String name = null;
+        if (type != null && type.isTypedef()) {
+            name = type.name();
+        }
+        return name;
     }
 
     void link(Linker linker) {

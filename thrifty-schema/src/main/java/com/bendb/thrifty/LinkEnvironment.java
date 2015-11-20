@@ -1,6 +1,9 @@
 package com.bendb.thrifty;
 
+import com.google.common.collect.ImmutableList;
+
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,5 +36,9 @@ class LinkEnvironment {
 
     boolean hasErrors() {
         return errors.size() > 0;
+    }
+
+    public ImmutableList<String> getErrors() {
+        return ImmutableList.copyOf(errors);
     }
 }

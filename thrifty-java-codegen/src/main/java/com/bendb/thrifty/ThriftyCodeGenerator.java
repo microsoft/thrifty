@@ -1,5 +1,6 @@
 package com.bendb.thrifty;
 
+import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.protocol.TProtocol;
 import com.google.common.base.Strings;
 import com.squareup.javapoet.*;
@@ -21,7 +22,7 @@ public final class ThriftyCodeGenerator {
     static final ClassName TADAPTER = ClassName.get(ThriftAdapter.class);
     static final ClassName TSTRUCT = ClassName.get(TStruct.class);
     static final ClassName TBUILDER = ClassName.get(TStruct.Builder.class);
-    static final ClassName TPROTOCOL = ClassName.get(TProtocol.class);
+    static final ClassName TPROTOCOL = ClassName.get(Protocol.class);
     static final ClassName PROTOCOL_EXCEPTION = ClassName.get(ProtocolException.class);
     static final ClassName TEXCEPTION = ClassName.get(TException.class);
     static final ClassName TFIELD = ClassName.get(ThriftField.class);

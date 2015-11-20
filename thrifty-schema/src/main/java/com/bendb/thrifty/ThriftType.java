@@ -3,6 +3,7 @@ package com.bendb.thrifty;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
+import javax.annotation.Nonnull;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -79,7 +80,7 @@ public abstract class ThriftType {
      * @param name
      * @return
      */
-    public static ThriftType get(String name) {
+    public static ThriftType get(@Nonnull String name) {
         ThriftType t = BUILTINS.get(name);
         if (t != null) {
             return t;
@@ -105,16 +106,6 @@ public abstract class ThriftType {
 
     public boolean isTypedef() {
         return false;
-    }
-
-    public boolean isContainer() {
-        ThriftType t = this;
-        while (t instanceof TypedefType) {
-            t = ((TypedefType) t).originalType;
-        }
-        return t instanceof ListType
-                || t instanceof SetType
-                || t instanceof MapType;
     }
 
     public boolean isList() {
@@ -206,7 +197,6 @@ public abstract class ThriftType {
             return elementType;
         }
 
-
         @Override
         public boolean equals(Object o) {
             return super.equals(o)
@@ -271,6 +261,24 @@ public abstract class ThriftType {
 
         public ThriftType originalType() {
             return originalType;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!super.equals(o)) {
+                return false;
+            }
+            TypedefType that = (TypedefType) o;
+
+            return originalType.equals(that.originalType);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = super.hashCode();
+            result = 31 * result + originalType.hashCode();
+            return result;
         }
     }
 }

@@ -3,6 +3,7 @@ package com.bendb.thrifty.parser;
 import com.bendb.thrifty.Location;
 import com.bendb.thrifty.NamespaceScope;
 import com.google.common.collect.ImmutableList;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -313,5 +314,65 @@ public class ThriftParserTest {
         assertThat(exns.get(1).name(), is("bar"));
         assertThat(exns.get(1).type(), is("BarException"));
         assertThat(exns.get(1).fieldId(), is(2));
+    }
+
+    @Test
+    public void unions() {
+        String thrift = "\n" +
+                "union Normal {\n" +
+                "  2: i16 foo,\n" +
+                "  4: i32 bar\n" +
+                "}\n";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get("", "union.thrift"), thrift);
+        StructElement union = file.unions().get(0);
+
+        assertThat(union.name(), is("Normal"));
+        assertThat(union.fields().size(), is(2));
+
+        FieldElement f = union.fields().get(0);
+        assertThat(f.fieldId(), is(2));
+        assertThat(f.name(), is("foo"));
+        assertThat(f.type(), is("i16"));
+        assertThat(f.required(), is(false));
+
+        f = union.fields().get(1);
+        assertThat(f.fieldId(), is(4));
+        assertThat(f.name(), is("bar"));
+        assertThat(f.type(), is("i32"));
+        assertThat(f.required(), is(false));
+    }
+
+    @Test
+    public void unionCannotHaveRequiredField() {
+        String thrift = "\n" +
+                "union Normal {\n" +
+                "  3: optional i16 foo,\n" +
+                "  5: required i32 bar\n" +
+                "}\n";
+
+        try {
+            ThriftParser.parse(Location.get("", "unionWithRequired.thrift"), thrift);
+            fail("Union cannot have a required field");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("unions cannot have required fields"));
+        }
+    }
+
+    @Test
+    @Ignore("Depends on const values being implemented")
+    public void unionCannotHaveMultipleDefaultValues() {
+        String thrift = "\n" +
+                "union Normal {\n" +
+                "  3: optional i16 foo = 1,\n" +
+                "  5: required i32 bar = 2\n" +
+                "}\n";
+
+        try {
+            ThriftParser.parse(Location.get("", "unionWithRequired.thrift"), thrift);
+            fail("Union cannot have a required field");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("unions cannot have required fields"));
+        }
     }
 }

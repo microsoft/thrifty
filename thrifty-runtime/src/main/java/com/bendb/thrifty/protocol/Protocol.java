@@ -6,11 +6,11 @@ import okio.ByteString;
 
 import java.io.IOException;
 
-public abstract class TProtocol {
+public abstract class Protocol {
     protected final BufferedSource source;
     protected final BufferedSink sink;
 
-    protected TProtocol(BufferedSource source, BufferedSink sink) {
+    protected Protocol(BufferedSource source, BufferedSink sink) {
         if (source == null) throw new NullPointerException("source");
         if (sink == null) throw new NullPointerException("sink");
         this.source = source;
@@ -58,4 +58,52 @@ public abstract class TProtocol {
     public abstract void writeString(String str) throws IOException;
 
     public abstract void writeBinary(ByteString buf) throws IOException;
+
+    ////////
+
+    public abstract MessageMetadata readMessageBegin() throws IOException;
+
+    public abstract void readMessageEnd() throws IOException;
+
+    public abstract StructMetadata readStructBegin() throws IOException;
+
+    public abstract void readStructEnd() throws IOException;
+
+    public abstract FieldMetadata readFieldBegin() throws IOException;
+
+    public abstract void readFieldEnd() throws IOException;
+
+    public abstract MapMetadata readMapBegin() throws IOException;
+
+    public abstract void readMapEnd() throws IOException;
+
+    public abstract ListMetadata readListBegin() throws IOException;
+
+    public abstract void readListEnd() throws IOException;
+
+    public abstract SetMetadata readSetBegin() throws IOException;
+
+    public abstract void readSetEnd() throws IOException;
+
+    public abstract boolean readBool() throws IOException;
+
+    public abstract byte readByte() throws IOException;
+
+    public abstract short readI16() throws IOException;
+
+    public abstract int readI32() throws IOException;
+
+    public abstract long readI64() throws IOException;
+
+    public abstract double readDouble() throws IOException;
+
+    public abstract String readString() throws IOException;
+
+    public abstract ByteString readBinary() throws IOException;
+
+    //////////////
+
+    public void reset() {
+        // to be implemented by children as needed
+    }
 }

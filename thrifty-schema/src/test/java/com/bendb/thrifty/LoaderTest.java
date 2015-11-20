@@ -86,4 +86,40 @@ public class LoaderTest {
         assertThat(param.type().name(), is("S"));
         assertThat(param.type() == st.type(), is(true));
     }
+
+    @Test
+    public void oneInclude() throws Exception {
+        String included = "\n" +
+                "namespace java com.bendb.thrifty.test.include\n" +
+                "\n" +
+                "enum TestEnum {\n" +
+                "  ONE,\n" +
+                "  TWO\n" +
+                "}";
+
+        File f = tempDir.newFile();
+        BufferedSink sink = Okio.buffer(Okio.sink(f));
+        sink.writeUtf8(included);
+        sink.flush();
+        sink.close();
+
+        String thrift = "\n" +
+                "namespace java com.bendb.thrifty.test.include\n" +
+                "include '" + f.getName() + "'\n" +
+                "\n" +
+                "typedef TestEnum Ordinal";
+
+        File f1 = tempDir.newFile();
+        sink = Okio.buffer(Okio.sink(f1));
+        sink.writeUtf8(thrift);
+        sink.flush();
+        sink.close();
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+        loader.addThriftFile(f1.getAbsolutePath());
+
+        // TODO: Currently failing because loading includes doesn't take the including file's directory into account.
+        ImmutableList<Program> programs = loader.load();
+    }
 }

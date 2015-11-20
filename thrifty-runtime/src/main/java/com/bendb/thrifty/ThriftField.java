@@ -9,7 +9,7 @@ import java.lang.annotation.*;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThriftField {
-    int tag();
+    short fieldId();
     boolean isRequired() default false;
     String typedefName() default "";
 }

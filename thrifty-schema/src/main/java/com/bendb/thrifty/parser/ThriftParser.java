@@ -282,7 +282,21 @@ public final class ThriftParser {
     }
 
     private StructElement readUnion(Location location, String documentation) {
-        return readAggregateType(location, documentation, StructElement.Type.UNION);
+        StructElement element = readAggregateType(location, documentation, StructElement.Type.UNION);
+        boolean hasDefaultField = false;
+        for (FieldElement field : element.fields()) {
+            if (field.required()) {
+                throw unexpected("unions cannot have required fields: " + field.name());
+            }
+
+            if (field.constValue() != null) {
+                if (hasDefaultField) {
+                    throw unexpected("unions can have at most one default value");
+                }
+                hasDefaultField = true;
+            }
+        }
+        return element;
     }
 
     private StructElement readException(Location location, String documentation) {

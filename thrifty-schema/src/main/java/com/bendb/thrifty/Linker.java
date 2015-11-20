@@ -1,12 +1,16 @@
 package com.bendb.thrifty;
 
 import javax.annotation.Nonnull;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import javax.annotation.Nullable;
+import java.util.*;
 
+/**
+ * An object that can resolve the types of typdefs, struct fields, and service
+ * method parameters based on types declared in Thrift {@link Program}s and their
+ * transitive included Programs.
+ *
+ * In other words, a type-checker.
+ */
 class Linker {
     private final LinkEnvironment environment;
     private final Program program;
@@ -92,20 +96,40 @@ class Linker {
     }
 
     private void resolveTypdefs() {
-        // Typedefs require special handling
+        // Typedefs require special handling.
         for (Typedef typedef : program.typedefs()) {
             typesByName.put(typedef.name(), ThriftType.PLACEHOLDER);
         }
 
         // TODO: Surely there must be a more efficient way to do this.
+
+        // The strategy for resolving typedefs is:
+        // First, register all typedefs with a placeholder ThriftType.
+        // Next, make a list of typedefs, then loop through it.  A
+        // typedef will resolve in one of three ways:
+        // 1. to a known type - perfect!  remove it from the list.
+        // 2. to a placeholder - it's a typedef of an unresolved typedef.  Keep going, try again later.
+        // 3. to null - we will never be able to resolve this.  fail.
+        //
+        // Keep iterating over the list until it is either empty or contains only unresolvable
+        // typedefs.  In the latter case, linking fails.
+
         List<Typedef> typedefs = new LinkedList<>(program.typedefs());
+        List<Typedef> unresolvableTypedefs = new ArrayList<>();
         while (!typedefs.isEmpty()) {
             boolean atLeastOneResolved = false;
+            unresolvableTypedefs.clear();
             Iterator<Typedef> iter = typedefs.iterator();
+
             while (iter.hasNext()) {
                 Typedef typedef = iter.next();
-                ThriftType tt = resolveType(typedef.oldName());
-                if (tt != ThriftType.PLACEHOLDER) {
+                ThriftType tt = resolveType(typedef.oldName(), ResolveContext.TYPEDEF);
+                if (tt == null) {
+                    unresolvableTypedefs.add(typedef);
+                } else if (tt == ThriftType.PLACEHOLDER) {
+                    // This is a typedef of a typedef, the latter of which
+                    // has not yet been linked.  Skip it for now.
+                } else {
                     ThriftType td = ThriftType.typedefOf(tt, typedef.name());
                     typesByName.put(td.name(), td);
                     atLeastOneResolved = true;
@@ -114,11 +138,17 @@ class Linker {
                 }
             }
 
+            if (unresolvableTypedefs.size() > 0) {
+                for (Typedef typedef : unresolvableTypedefs) {
+                    environment.addError("Unresolvable typedef '" + typedef.name() + "' at " + typedef.location());
+                }
+                return;
+            }
+
             if (!atLeastOneResolved) {
                 for (Typedef typedef : typedefs) {
                     environment.addError("Unresolvable typedef '" + typedef.name() + "' at " + typedef.location());
                 }
-                linking = false;
                 return;
             }
         }
@@ -160,6 +190,12 @@ class Linker {
 
     @Nonnull
     ThriftType resolveType(String type) {
+        //noinspection ConstantConditions ResolveContext.NORMAL guarantees that the result is non-null or exceptional.
+        return resolveType(type, ResolveContext.NORMAL);
+    }
+
+    @Nullable
+    ThriftType resolveType(String type, ResolveContext context) {
         ThriftType tt = typesByName.get(type);
         if (tt != null) {
             return tt;
@@ -202,7 +238,25 @@ class Linker {
             return tt;
         }
 
-        environment.addError("Failed to resolve type: " + type);
-        throw new RuntimeException("Failed to resolve type: " + type);
+        if (context.throwOnUnresolved()) {
+            environment.addError("Failed to resolve type: " + type);
+            throw new RuntimeException("Failed to resolve type: " + type);
+        } else {
+            return null;
+        }
+    }
+
+    private enum ResolveContext {
+        NORMAL,
+        TYPEDEF {
+            @Override
+            boolean throwOnUnresolved() {
+                return false;
+            }
+        };
+
+        boolean throwOnUnresolved() {
+            return true;
+        }
     }
 }

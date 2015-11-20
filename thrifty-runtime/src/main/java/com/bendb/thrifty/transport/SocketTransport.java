@@ -1,16 +1,13 @@
 package com.bendb.thrifty.transport;
 
-import okio.Okio;
-import okio.Sink;
-import okio.Source;
+import okio.*;
 
 import javax.net.SocketFactory;
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-public class TSocket implements Closeable {
+public class SocketTransport extends Transport {
     private final String host;
     private final int port;
     private final int readTimeout;
@@ -18,8 +15,8 @@ public class TSocket implements Closeable {
     private final SocketFactory socketFactory;
 
     private Socket socket;
-    private Source source;
-    private Sink sink;
+    private BufferedSource source;
+    private BufferedSink sink;
 
     public static class Builder {
         private final String host;
@@ -66,12 +63,12 @@ public class TSocket implements Closeable {
             return this;
         }
 
-        public TSocket build() {
-            return new TSocket(this);
+        public SocketTransport build() {
+            return new SocketTransport(this);
         }
     }
 
-    TSocket(Builder builder) {
+    SocketTransport(Builder builder) {
         this.host = builder.host;
         this.port = builder.port;
         this.readTimeout = builder.readTimeout;
@@ -86,11 +83,13 @@ public class TSocket implements Closeable {
         return s != null && s.isConnected() && !s.isClosed();
     }
 
-    public Source getSource() {
+    @Override
+    public BufferedSource source() {
         return source;
     }
 
-    public Sink getSink() {
+    @Override
+    public BufferedSink sink() {
         return sink;
     }
 
@@ -106,8 +105,8 @@ public class TSocket implements Closeable {
 
         socket.connect(InetSocketAddress.createUnresolved(host, port), connectTimeout);
 
-        source = Okio.source(socket);
-        sink = Okio.sink(socket);
+        source = Okio.buffer(Okio.source(socket));
+        sink = Okio.buffer(Okio.sink(socket));
     }
 
     @Override

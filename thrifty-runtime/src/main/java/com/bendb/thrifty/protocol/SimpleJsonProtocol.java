@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-public class TSimpleJsonProtocol extends TProtocol {
+public class SimpleJsonProtocol extends Protocol {
 
     private static final byte[] COMMA = { ',' };
     private static final byte[] COLON = { ':' };
@@ -44,7 +44,7 @@ public class TSimpleJsonProtocol extends TProtocol {
 
     private Context writeContext = BASE_CONTEXT;
 
-    public TSimpleJsonProtocol(BufferedSource source, BufferedSink sink) {
+    public SimpleJsonProtocol(BufferedSource source, BufferedSink sink) {
         super(source, sink);
     }
 
@@ -227,6 +227,106 @@ public class TSimpleJsonProtocol extends TProtocol {
     @Override
     public void writeBinary(ByteString buf) throws IOException {
         writeString(buf.hex());
+    }
+
+    @Override
+    public MessageMetadata readMessageBegin() throws IOException {
+        return null;
+    }
+
+    @Override
+    public void readMessageEnd() throws IOException {
+
+    }
+
+    @Override
+    public StructMetadata readStructBegin() throws IOException {
+        return null;
+    }
+
+    @Override
+    public void readStructEnd() throws IOException {
+
+    }
+
+    @Override
+    public FieldMetadata readFieldBegin() throws IOException {
+        return null;
+    }
+
+    @Override
+    public void readFieldEnd() throws IOException {
+
+    }
+
+    @Override
+    public MapMetadata readMapBegin() throws IOException {
+        return null;
+    }
+
+    @Override
+    public void readMapEnd() throws IOException {
+
+    }
+
+    @Override
+    public ListMetadata readListBegin() throws IOException {
+        return null;
+    }
+
+    @Override
+    public void readListEnd() throws IOException {
+
+    }
+
+    @Override
+    public SetMetadata readSetBegin() throws IOException {
+        return null;
+    }
+
+    @Override
+    public void readSetEnd() throws IOException {
+
+    }
+
+    @Override
+    public boolean readBool() throws IOException {
+        return false;
+    }
+
+    @Override
+    public byte readByte() throws IOException {
+        return 0;
+    }
+
+    @Override
+    public short readI16() throws IOException {
+        return 0;
+    }
+
+    @Override
+    public int readI32() throws IOException {
+        return 0;
+    }
+
+    @Override
+    public long readI64() throws IOException {
+        return 0;
+    }
+
+    @Override
+    public double readDouble() throws IOException {
+        return 0;
+    }
+
+    @Override
+    public String readString() throws IOException {
+        return null;
+    }
+
+    @Override
+    public ByteString readBinary() throws IOException {
+        return null;
     }
 
     private void writeText(String text) throws IOException {

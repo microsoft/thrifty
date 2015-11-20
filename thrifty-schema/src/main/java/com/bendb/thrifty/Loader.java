@@ -3,6 +3,7 @@ package com.bendb.thrifty;
 import com.bendb.thrifty.parser.IncludeElement;
 import com.bendb.thrifty.parser.ThriftFileElement;
 import com.bendb.thrifty.parser.ThriftParser;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -79,7 +80,7 @@ public final class Loader {
 
             ThriftFileElement element = null;
 
-            if (path.startsWith("/")) {
+            if (isAbsolutePath(path)) {
                 File file = new File(path);
                 File dir = file.getParentFile();
                 element = loadSingleFile(dir, file.getName());
@@ -129,7 +130,8 @@ public final class Loader {
             }
 
             if (environment.hasErrors()) {
-
+                String report = Joiner.on('\n').join(environment.getErrors());
+                throw new RuntimeException(report);
             }
 
             linkedPrograms = ImmutableList.copyOf(loadedPrograms.values());
@@ -175,7 +177,7 @@ public final class Loader {
      * @return
      */
     private File findFirstExisting(String path, Location currentLocation) {
-        if (path.startsWith("/")) {
+        if (isAbsolutePath(path)) {
             // absolute path, should be loaded as-is
             File f = new File(path);
             return f.exists() ? f : null;
@@ -212,4 +214,11 @@ public final class Loader {
             return input != null && input.getName().endsWith(".thrift");
         }
     };
+
+    /**
+     * Checks if the path is absolute in an attempted cross-platform manner.
+     */
+    private static boolean isAbsolutePath(String path) {
+        return path.startsWith("/") || path.matches("^\\w:\\\\.*");
+    }
 }
