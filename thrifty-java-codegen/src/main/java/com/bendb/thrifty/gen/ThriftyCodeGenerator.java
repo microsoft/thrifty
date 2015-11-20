@@ -321,5 +321,23 @@ public final class ThriftyCodeGenerator {
 
             throw new AssertionError("Unexpected builtin type: " + type.name());
         }
+
+        if (type.isList()) {
+            return TType.LIST;
+        }
+
+        if (type.isMap()) {
+            return TType.MAP;
+        }
+
+        if (type.isSet()) {
+            return TType.SET;
+        }
+
+        if (type.isEnum()) {
+            return TType.ENUM;
+        }
+
+        return TType.STRUCT;
     }
 }

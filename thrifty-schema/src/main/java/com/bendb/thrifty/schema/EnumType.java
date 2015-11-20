@@ -2,6 +2,7 @@ package com.bendb.thrifty.schema;
 
 import com.bendb.thrifty.schema.parser.EnumElement;
 import com.bendb.thrifty.schema.parser.EnumMemberElement;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Map;
@@ -11,7 +12,8 @@ public final class EnumType extends Named {
     private final ThriftType type;
     private final ImmutableList<Member> members;
 
-    EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
+    @VisibleForTesting
+    public EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
