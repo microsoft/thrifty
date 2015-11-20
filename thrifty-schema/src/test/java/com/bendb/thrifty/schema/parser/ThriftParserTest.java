@@ -1,7 +1,7 @@
-package com.bendb.thrifty.parser;
+package com.bendb.thrifty.schema.parser;
 
-import com.bendb.thrifty.Location;
-import com.bendb.thrifty.NamespaceScope;
+import com.bendb.thrifty.schema.Location;
+import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.common.collect.ImmutableList;
 import org.junit.Ignore;
 import org.junit.Test;

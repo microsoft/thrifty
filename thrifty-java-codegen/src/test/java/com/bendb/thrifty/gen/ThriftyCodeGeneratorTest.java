@@ -1,7 +1,11 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.gen;
 
-import com.bendb.thrifty.parser.EnumElement;
-import com.bendb.thrifty.parser.EnumMemberElement;
+import com.bendb.thrifty.schema.EnumType;
+import com.bendb.thrifty.schema.Location;
+import com.bendb.thrifty.schema.NamespaceScope;
+import com.bendb.thrifty.schema.ThriftType;
+import com.bendb.thrifty.schema.parser.EnumElement;
+import com.bendb.thrifty.schema.parser.EnumMemberElement;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.squareup.javapoet.JavaFile;

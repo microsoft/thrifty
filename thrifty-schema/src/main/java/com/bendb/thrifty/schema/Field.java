@@ -1,6 +1,6 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
-import com.bendb.thrifty.parser.FieldElement;
+import com.bendb.thrifty.schema.parser.FieldElement;
 
 import javax.annotation.Nullable;
 

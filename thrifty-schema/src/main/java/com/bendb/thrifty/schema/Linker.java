@@ -1,4 +1,4 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

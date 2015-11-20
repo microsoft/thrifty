@@ -1,12 +1,12 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
-import com.bendb.thrifty.parser.EnumElement;
-import com.bendb.thrifty.parser.IncludeElement;
-import com.bendb.thrifty.parser.NamespaceElement;
-import com.bendb.thrifty.parser.ServiceElement;
-import com.bendb.thrifty.parser.StructElement;
-import com.bendb.thrifty.parser.ThriftFileElement;
-import com.bendb.thrifty.parser.TypedefElement;
+import com.bendb.thrifty.schema.parser.EnumElement;
+import com.bendb.thrifty.schema.parser.IncludeElement;
+import com.bendb.thrifty.schema.parser.NamespaceElement;
+import com.bendb.thrifty.schema.parser.ServiceElement;
+import com.bendb.thrifty.schema.parser.StructElement;
+import com.bendb.thrifty.schema.parser.ThriftFileElement;
+import com.bendb.thrifty.schema.parser.TypedefElement;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;

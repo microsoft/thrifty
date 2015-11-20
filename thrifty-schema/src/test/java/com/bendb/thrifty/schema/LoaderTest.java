@@ -1,4 +1,4 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
 import com.google.common.collect.ImmutableList;
 import okio.BufferedSink;

@@ -1,7 +1,7 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
-import com.bendb.thrifty.parser.FunctionElement;
-import com.bendb.thrifty.parser.ServiceElement;
+import com.bendb.thrifty.schema.parser.FunctionElement;
+import com.bendb.thrifty.schema.parser.ServiceElement;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 

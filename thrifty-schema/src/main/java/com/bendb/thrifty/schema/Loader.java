@@ -1,8 +1,8 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
-import com.bendb.thrifty.parser.IncludeElement;
-import com.bendb.thrifty.parser.ThriftFileElement;
-import com.bendb.thrifty.parser.ThriftParser;
+import com.bendb.thrifty.schema.parser.IncludeElement;
+import com.bendb.thrifty.schema.parser.ThriftFileElement;
+import com.bendb.thrifty.schema.parser.ThriftParser;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;

@@ -1,6 +1,6 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
-import com.bendb.thrifty.parser.TypedefElement;
+import com.bendb.thrifty.schema.parser.TypedefElement;
 
 import java.util.Map;
 

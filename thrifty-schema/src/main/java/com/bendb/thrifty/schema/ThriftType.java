@@ -1,4 +1,4 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
@@ -89,6 +89,10 @@ public abstract class ThriftType {
         return new UserType(name);
     }
 
+    public static ThriftType enumType(@Nonnull String name) {
+        return new UserType(name, true);
+    }
+
     public static ThriftType typedefOf(ThriftType oldType, String name) {
         if (BUILTINS.get(name) != null) {
             throw new IllegalArgumentException("Cannot typedef built-in type: " + name);
@@ -118,6 +122,10 @@ public abstract class ThriftType {
 
     public boolean isMap() {
         return getTrueType() instanceof MapType;
+    }
+
+    public boolean isEnum() {
+        return false;
     }
 
     public ThriftType getTrueType() {
@@ -156,8 +164,30 @@ public abstract class ThriftType {
     }
 
     static class UserType extends ThriftType {
+        private final boolean isEnum;
+
         UserType(String name) {
+            this(name, false);
+        }
+
+        UserType(String name, boolean isEnum) {
             super(name);
+            this.isEnum = isEnum;
+        }
+
+        @Override
+        public boolean isEnum() {
+            return isEnum;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return super.equals(o) && isEnum == ((UserType) o).isEnum;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(super.hashCode(), isEnum);
         }
     }
 

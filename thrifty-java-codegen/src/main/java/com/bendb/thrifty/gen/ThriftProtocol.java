@@ -1,4 +1,4 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.gen;
 
 /**
  * Represents the wire protocol to which generated adapters wil conform.

@@ -1,7 +1,7 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
-import com.bendb.thrifty.parser.EnumElement;
-import com.bendb.thrifty.parser.EnumMemberElement;
+import com.bendb.thrifty.schema.parser.EnumElement;
+import com.bendb.thrifty.schema.parser.EnumMemberElement;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Map;

@@ -1,7 +1,7 @@
-package com.bendb.thrifty.parser;
+package com.bendb.thrifty.schema.parser;
 
-import com.bendb.thrifty.Location;
-import com.bendb.thrifty.ThriftType;
+import com.bendb.thrifty.schema.Location;
+import com.bendb.thrifty.schema.ThriftType;
 import com.google.auto.value.AutoValue;
 
 import javax.annotation.Nullable;

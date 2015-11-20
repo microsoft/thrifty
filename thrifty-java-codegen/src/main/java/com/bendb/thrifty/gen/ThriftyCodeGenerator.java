@@ -1,7 +1,8 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.gen;
 
+import com.bendb.thrifty.*;
+import com.bendb.thrifty.schema.*;
 import com.bendb.thrifty.protocol.Protocol;
-import com.bendb.thrifty.protocol.TProtocol;
 import com.google.common.base.Strings;
 import com.squareup.javapoet.*;
 import okio.ByteString;

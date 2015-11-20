@@ -1,8 +1,7 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
-import com.bendb.thrifty.parser.FieldElement;
-import com.bendb.thrifty.parser.StructElement;
-import com.bendb.thrifty.parser.ThriftFileElement;
+import com.bendb.thrifty.schema.parser.FieldElement;
+import com.bendb.thrifty.schema.parser.StructElement;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Map;

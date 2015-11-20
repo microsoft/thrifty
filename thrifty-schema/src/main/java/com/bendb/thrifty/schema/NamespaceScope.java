@@ -1,4 +1,4 @@
-package com.bendb.thrifty;
+package com.bendb.thrifty.schema;
 
 public enum NamespaceScope {
     ALL("*"),
