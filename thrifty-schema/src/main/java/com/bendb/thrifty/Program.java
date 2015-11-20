@@ -32,7 +32,6 @@ public final class Program {
     private final ImmutableList<Service> services;
 
     private ImmutableList<Program> includedPrograms;
-    private ImmutableMap<String, Named> symbols;
 
     Program(ThriftFileElement element) {
         this.element = element;
@@ -74,7 +73,10 @@ public final class Program {
 
         ImmutableList.Builder<EnumType> enums = ImmutableList.builder();
         for (EnumElement enumElement : element.enums()) {
-            enums.add(new EnumType(enumElement, namespaces));
+            enums.add(new EnumType(
+                    enumElement,
+                    ThriftType.get(enumElement.name()),
+                    namespaces));
         }
         this.enums = enums.build();
 
@@ -125,10 +127,6 @@ public final class Program {
         return this.includedPrograms;
     }
 
-    public ImmutableMap<String, Named> symbols() {
-        return this.symbols;
-    }
-
     public ImmutableList<EnumType> enums() {
         return this.enums;
     }
@@ -172,11 +170,11 @@ public final class Program {
      * @param loader
      * @param visited
      */
-    void loadSymbols(Loader loader, Set<Program> visited) {
-        Preconditions.checkState(this.symbols() == null, "Symbol table already set");
+    void loadIncludedPrograms(Loader loader, Set<Program> visited) {
+        Preconditions.checkState(this.includedPrograms == null, "Included programs already resolved");
 
         if (!visited.add(this)) {
-            if (symbols == null) {
+            if (includedPrograms == null) {
                 throw new AssertionError("Circular include: " + location().path() + " includes itself transitively");
             }
             return;
@@ -184,47 +182,10 @@ public final class Program {
 
         ImmutableList.Builder<Program> includes = ImmutableList.builder();
         for (String thriftImport : thriftIncludes) {
-            Program included = loader.resolveImport(location(), thriftImport);
-            included.loadSymbols(loader, visited);
+            Program included = loader.resolveIncludedProgram(location(), thriftImport);
             includes.add(included);
         }
         this.includedPrograms = includes.build();
-
-        ImmutableMap.Builder<String, Named> symbolBuilder = ImmutableMap.builder();
-        for (Program program : includedPrograms) {
-            symbolBuilder.putAll(program.symbols);
-        }
-
-        for (StructType struct : structs) {
-            symbolBuilder.put(struct.name(), struct);
-        }
-
-        for (StructType exception : exceptions) {
-            symbolBuilder.put(exception.name(), exception);
-        }
-
-        for (StructType union : unions) {
-            symbolBuilder.put(union.name(), union);
-        }
-
-        for (EnumType anEnum : enums) {
-            symbolBuilder.put(anEnum.name(), anEnum);
-        }
-
-        for (Typedef typedef : typedefs) {
-            symbolBuilder.put(typedef.name(), typedef);
-        }
-
-        // TODO: implement constants
-//        for (Constant constant : constants) {
-//            symbols.put(constant.name(), constant);
-//        }
-
-        for (Service service : services) {
-            symbolBuilder.put(service.name(), service);
-        }
-
-        this.symbols = symbolBuilder.build();
     }
 
     @Override

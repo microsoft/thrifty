@@ -53,6 +53,21 @@ public abstract class ThriftType {
         this.name = name;
     }
 
+    public static ThriftType list(ThriftType elementType) {
+        String name = LIST_PREFIX + elementType.name + ">";
+        return new ListType(name, elementType);
+    }
+
+    public static ThriftType set(ThriftType elementType) {
+        String name = SET_PREFIX + elementType.name + ">";
+        return new SetType(name, elementType);
+    }
+
+    public static ThriftType map(ThriftType keyType, ThriftType valueType) {
+        String name = MAP_PREFIX + keyType.name + "," + valueType.name + ">";
+        return new MapType(name, keyType, valueType);
+    }
+
     /**
      * Gets a {@link ThriftType} for the given type name.
      *
@@ -70,33 +85,7 @@ public abstract class ThriftType {
             return t;
         }
 
-        if (name.startsWith(LIST_PREFIX)) {
-            String elementTypeName = name
-                    .substring(LIST_PREFIX.length(), name.indexOf('>'))
-                    .trim();
-            ThriftType elementType = ThriftType.get(elementTypeName);
-            return new ListType(name, elementType);
-        } else if (name.startsWith(SET_PREFIX)) {
-            String elementTypeName = name
-                    .substring(SET_PREFIX.length(), name.indexOf('>'))
-                    .trim();
-            ThriftType elementType = ThriftType.get(elementTypeName);
-            return new SetType(name, elementType);
-        } else if (name.startsWith(MAP_PREFIX)) {
-            String[] bothTypeNames = name
-                    .substring(MAP_PREFIX.length(), name.indexOf('>'))
-                    .trim()
-                    .split(",");
-            if (bothTypeNames.length != 2) {
-                throw new AssertionError("Parser error - invalid map-type name: " + name);
-            }
-            ThriftType keyType = ThriftType.get(bothTypeNames[0].trim());
-            ThriftType valueType = ThriftType.get(bothTypeNames[1].trim());
-            return new MapType(name, keyType, valueType);
-
-        } else {
-            return new UserType(name);
-        }
+        return new UserType(name);
     }
 
     public static ThriftType typedefOf(ThriftType oldType, String name) {

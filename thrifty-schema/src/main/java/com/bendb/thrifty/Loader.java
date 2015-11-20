@@ -31,6 +31,10 @@ public final class Loader {
      */
     private final List<File> includePaths = new ArrayList<>();
 
+    private final LinkEnvironment environment = new LinkEnvironment();
+
+    private volatile ImmutableList<Program> linkedPrograms;
+
     private Map<String, Program> loadedPrograms;
 
     public Loader addThriftFile(String file) {
@@ -44,6 +48,12 @@ public final class Loader {
         Preconditions.checkArgument(path.isDirectory(), "path must be a directory");
         includePaths.add(path.getAbsoluteFile());
         return this;
+    }
+
+    public ImmutableList<Program> load() throws IOException {
+        loadFromDisk();
+        linkPrograms();
+        return ImmutableList.copyOf(loadedPrograms.values());
     }
 
     private void loadFromDisk() throws IOException {
@@ -95,18 +105,35 @@ public final class Loader {
         }
 
         // Convert to Programs
-        List<Program> programs = new ArrayList<>();
+        loadedPrograms = new LinkedHashMap<>();
         for (ThriftFileElement fileElement : loadedFiles.values()) {
-            programs.add(new Program(fileElement));
+            File file = new File(fileElement.location().base(), fileElement.location().path());
+            if (!file.exists()) throw new AssertionError();
+            if (!file.isAbsolute()) file = file.getAbsoluteFile();
+            Program program = new Program(fileElement);
+            loadedPrograms.put(file.getAbsolutePath(), program);
         }
 
-        // Load symbols
-        Set<Program> visited = new HashSet<>(programs.size());
-        for (Program program : programs) {
-            program.loadSymbols(this, visited);
+        // Link included programs together
+        Set<Program> visited = new HashSet<>(loadedPrograms.size());
+        for (Program program : loadedPrograms.values()) {
+            program.loadIncludedPrograms(this, visited);
         }
+    }
 
-        loadedPrograms = new HashMap<>();
+    private void linkPrograms() {
+        synchronized (environment) {
+            for (Program program : loadedPrograms.values()) {
+                Linker linker = environment.getLinker(program);
+                linker.link();
+            }
+
+            if (environment.hasErrors()) {
+
+            }
+
+            linkedPrograms = ImmutableList.copyOf(loadedPrograms.values());
+        }
     }
 
     private ThriftFileElement loadSingleFile(File base, String path) throws IOException {
@@ -127,7 +154,7 @@ public final class Loader {
         }
     }
 
-    Program resolveImport(Location currentPath, String importPath) {
+    Program resolveIncludedProgram(Location currentPath, String importPath) {
         File resolved = findFirstExisting(importPath, currentPath);
         if (resolved == null) {
             throw new AssertionError("Included thrift file not found: " + importPath);

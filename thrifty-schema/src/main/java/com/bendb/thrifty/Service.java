@@ -2,6 +2,7 @@ package com.bendb.thrifty;
 
 import com.bendb.thrifty.parser.FunctionElement;
 import com.bendb.thrifty.parser.ServiceElement;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Map;
@@ -42,5 +43,17 @@ public final class Service extends Named {
 
     public ThriftType extendsService() {
         return extendsService;
+    }
+
+    void link(Linker linker) {
+        String extendsName = element.extendsServiceName();
+        if (!Strings.isNullOrEmpty(extendsName)) {
+            extendsService = linker.resolveType(extendsName);
+            // TODO: Validate that this is actually a service type
+        }
+
+        for (ServiceMethod method : methods) {
+            method.link(linker);
+        }
     }
 }

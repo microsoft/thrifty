@@ -3,6 +3,7 @@ package com.bendb.thrifty;
 import com.bendb.thrifty.parser.FieldElement;
 import com.bendb.thrifty.parser.FunctionElement;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -10,11 +11,23 @@ public final class ServiceMethod {
     private final FunctionElement element;
 
     private ThriftType returnType;
-    private List<ThriftType> paramTypes;
-    private List<ThriftType> exceptionTypes;
+    private ImmutableList<Field> paramTypes;
+    private ImmutableList<Field> exceptionTypes;
 
     public ServiceMethod(FunctionElement element) {
         this.element = element;
+
+        ImmutableList.Builder<Field> params = ImmutableList.builder();
+        for (FieldElement field : element.params()) {
+            params.add(new Field(field));
+        }
+        this.paramTypes = params.build();
+
+        ImmutableList.Builder<Field> exceptions = ImmutableList.builder();
+        for (FieldElement field : element.exceptions()) {
+            exceptions.add(new Field(field));
+        }
+        this.exceptionTypes = exceptions.build();
     }
 
     public String documentation() {
@@ -33,24 +46,27 @@ public final class ServiceMethod {
         return Optional.fromNullable(returnType);
     }
 
-    public List<ThriftType> paramTypes() {
+    public List<Field> paramTypes() {
         return paramTypes;
     }
 
-    public List<ThriftType> exceptionTypes() {
+    public List<Field> exceptionTypes() {
         return exceptionTypes;
     }
 
     void link(Linker linker) {
-        // TODO: finish
         if (element.returnType().equals("void")) {
             returnType = ThriftType.VOID;
         } else {
             returnType = linker.resolveType(element.returnType());
         }
 
-        for (FieldElement paramElement : element.params()) {
+        for (Field field : paramTypes) {
+            field.link(linker);
+        }
 
+        for (Field field : exceptionTypes) {
+            field.link(linker);
         }
     }
 }

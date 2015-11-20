@@ -23,6 +23,10 @@ public final class Typedef extends Named {
         return element.documentation();
     }
 
+    public Location location() {
+        return element.location();
+    }
+
     public String oldName() {
         return element.oldName();
     }

@@ -31,9 +31,9 @@ public class ThriftyCodeGeneratorTest {
                                 .value(1)
                                 .build()))
                 .build();
-        EnumType et = new EnumType(ee, ImmutableMap.of(NamespaceScope.JAVA, "com.test.enums"));
+        EnumType et = new EnumType(ee, ThriftType.get("BuildStatus"), ImmutableMap.of(NamespaceScope.JAVA, "com.test.enums"));
 
-        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(ThriftProtocol.BINARY);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(false);
         TypeSpec generated = gen.buildEnum(et);
 
         JavaFile file = JavaFile.builder("com.test.enums", generated).build();

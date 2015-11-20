@@ -33,7 +33,7 @@ public final class ThriftyCodeGenerator {
     private final ClassName setClassName = ClassName.get(HashSet.class);
     private final boolean includeTupleAdapter;
 
-    private ThriftyCodeGenerator(boolean includeTupleAdapter) {
+    ThriftyCodeGenerator(boolean includeTupleAdapter) {
         this.includeTupleAdapter = includeTupleAdapter;
     }
 

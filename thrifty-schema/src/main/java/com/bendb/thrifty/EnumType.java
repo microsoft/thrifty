@@ -8,11 +8,13 @@ import java.util.Map;
 
 public final class EnumType extends Named {
     private final EnumElement element;
+    private final ThriftType type;
     private final ImmutableList<Member> members;
 
-    EnumType(EnumElement element, Map<NamespaceScope, String> namespaces) {
+    EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
         this.element = element;
+        this.type = type;
 
         ImmutableList.Builder<Member> membersBuilder = ImmutableList.builder();
         for (EnumMemberElement memberElement : element.members()) {
@@ -27,6 +29,11 @@ public final class EnumType extends Named {
 
     public ImmutableList<Member> members() {
         return members;
+    }
+
+    @Override
+    public ThriftType type() {
+        return null;
     }
 
     public static final class Member {

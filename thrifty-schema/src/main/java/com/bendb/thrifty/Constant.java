@@ -11,4 +11,9 @@ public class Constant extends Named {
         super(element.name(), namespaces);
         this.element = element;
     }
+
+    @Override
+    public ThriftType type() {
+        return null;
+    }
 }

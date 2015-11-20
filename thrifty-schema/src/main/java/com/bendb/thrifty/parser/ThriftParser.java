@@ -98,7 +98,6 @@ public final class ThriftParser {
                     default:
                         throw new AssertionError("Unexpected struct type: " + struct.type().name());
                 }
-                structs.add((StructElement) element);
             } else if (element instanceof ServiceElement) {
                 services.add((ServiceElement) element);
             } else if (element instanceof TypedefElement) {
