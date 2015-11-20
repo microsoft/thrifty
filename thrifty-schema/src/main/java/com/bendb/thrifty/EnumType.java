@@ -33,7 +33,7 @@ public final class EnumType extends Named {
 
     @Override
     public ThriftType type() {
-        return null;
+        return type;
     }
 
     public static final class Member {

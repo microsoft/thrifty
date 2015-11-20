@@ -119,7 +119,6 @@ public class LoaderTest {
         loader.addThriftFile(f.getAbsolutePath());
         loader.addThriftFile(f1.getAbsolutePath());
 
-        // TODO: Currently failing because loading includes doesn't take the including file's directory into account.
         ImmutableList<Program> programs = loader.load();
     }
 }

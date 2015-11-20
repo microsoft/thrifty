@@ -17,9 +17,31 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public final class Loader {
+    /**
+     * Attempts to identify strings that represent absolute filesystem paths.
+     * Does not attempt to support more unusual paths like UNC ("\\c\path") or
+     * filesystem URIs ("file:///c/path").
+     */
+    private static final Pattern ABSOLUTE_PATH_PATTERN = Pattern.compile("^(/|\\w:\\\\).*");
+
+    private static final Predicate<File> IS_THRIFT = new Predicate<File>() {
+        @Override
+        public boolean apply(@Nullable File input) {
+            return input != null && input.getName().endsWith(".thrift");
+        }
+    };
+
     /**
      * A list of thrift files to be loaded.  If empty, all .thrift files within
      * {@link #includePaths} will be loaded.
@@ -30,7 +52,7 @@ public final class Loader {
      * The search path for imported thrift files.  If {@link #thriftFiles} is
      * empty, then all .thrift files located on the search path will be loaded.
      */
-    private final List<File> includePaths = new ArrayList<>();
+    private final Deque<File> includePaths = new ArrayDeque<>();
 
     private final LinkEnvironment environment = new LinkEnvironment();
 
@@ -58,7 +80,7 @@ public final class Loader {
     }
 
     private void loadFromDisk() throws IOException {
-        final Deque<String> filesToLoad = new ArrayDeque<>(thriftFiles);
+        final List<String> filesToLoad = new ArrayList<>(thriftFiles);
         if (filesToLoad.isEmpty()) {
             for (File file : includePaths) {
                 FluentIterable<File> iterable = Files.fileTreeTraverser()
@@ -72,45 +94,16 @@ public final class Loader {
         }
 
         Map<String, ThriftFileElement> loadedFiles = new LinkedHashMap<>();
-        while (!filesToLoad.isEmpty()) {
-            String path = filesToLoad.removeFirst();
-            if (loadedFiles.containsKey(path)) {
-                continue;
-            }
-
-            ThriftFileElement element = null;
-
-            if (isAbsolutePath(path)) {
-                File file = new File(path);
-                File dir = file.getParentFile();
-                element = loadSingleFile(dir, file.getName());
-            } else {
-                for (File base : includePaths) {
-                    element = loadSingleFile(base, path);
-                    if (element != null) {
-                        break;
-                    }
-                }
-            }
-
-            if (element == null) {
-                throw new FileNotFoundException(
-                        "Failed to locate " + path + " in " + includePaths);
-            }
-
-            loadedFiles.put(path, element);
-
-            for (IncludeElement include : element.includes()) {
-                filesToLoad.addLast(include.path());
-            }
+        for (String path : filesToLoad) {
+            loadFileRecursively(path, loadedFiles);
         }
 
         // Convert to Programs
         loadedPrograms = new LinkedHashMap<>();
         for (ThriftFileElement fileElement : loadedFiles.values()) {
             File file = new File(fileElement.location().base(), fileElement.location().path());
-            if (!file.exists()) throw new AssertionError();
-            if (!file.isAbsolute()) file = file.getAbsoluteFile();
+            if (!file.exists()) throw new AssertionError("WTF, we have a parsed ThriftFileElement with a non-existing location");
+            if (!file.isAbsolute()) throw new AssertionError("WTF, we have a non-canonical path");
             Program program = new Program(fileElement);
             loadedPrograms.put(file.getAbsolutePath(), program);
         }
@@ -119,6 +112,50 @@ public final class Loader {
         Set<Program> visited = new HashSet<>(loadedPrograms.size());
         for (Program program : loadedPrograms.values()) {
             program.loadIncludedPrograms(this, visited);
+        }
+    }
+
+    /**
+     * Loads and parses a Thrift file and all files included (both directly and
+     * transitively) by it.
+     *
+     * @param path A relative or absolute path to a Thrift file.
+     * @param loadedFiles A mapping of absolute paths to parsed Thrift files.
+     */
+    private void loadFileRecursively(String path, Map<String, ThriftFileElement> loadedFiles) throws IOException {
+        ThriftFileElement element = null;
+        File dir = null;
+
+        File file = findFirstExisting(path, null);
+
+        if (file != null) {
+            // Resolve symlinks, redundant '.' and '..' segments.
+            file = file.getCanonicalFile();
+
+            if (loadedFiles.containsKey(file.getAbsolutePath())) {
+                return;
+            }
+
+            dir = file.getParentFile();
+            element = loadSingleFile(file.getParentFile(), file.getName());
+        }
+
+        if (element == null) {
+            throw new FileNotFoundException(
+                    "Failed to locate " + path + " in " + includePaths);
+        }
+
+        loadedFiles.put(file.getAbsolutePath(), element);
+
+        ImmutableList<IncludeElement> includes = element.includes();
+        if (includes.size() > 0) {
+            includePaths.addFirst(dir);
+            for (IncludeElement include : includes) {
+                if (!include.isCpp()) {
+                    loadFileRecursively(include.path(), loadedFiles);
+                }
+            }
+            includePaths.removeFirst();
         }
     }
 
@@ -176,7 +213,7 @@ public final class Loader {
      * @param currentLocation
      * @return
      */
-    private File findFirstExisting(String path, Location currentLocation) {
+    private File findFirstExisting(String path, @Nullable  Location currentLocation) {
         if (isAbsolutePath(path)) {
             // absolute path, should be loaded as-is
             File f = new File(path);
@@ -208,17 +245,10 @@ public final class Loader {
         return p;
     }
 
-    private static final Predicate<File> IS_THRIFT = new Predicate<File>() {
-        @Override
-        public boolean apply(@Nullable File input) {
-            return input != null && input.getName().endsWith(".thrift");
-        }
-    };
-
     /**
      * Checks if the path is absolute in an attempted cross-platform manner.
      */
     private static boolean isAbsolutePath(String path) {
-        return path.startsWith("/") || path.matches("^\\w:\\\\.*");
+        return ABSOLUTE_PATH_PATTERN.matcher(path).matches();
     }
 }
