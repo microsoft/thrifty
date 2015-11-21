@@ -56,7 +56,7 @@ class Linker {
             linkServices();
 
             linked = true;
-        } catch (LinkFailureException | TypedefResolutionException ignored) {
+        } catch (LinkFailureException ignored) {
             // The relevant errors will have already been
             // added to the environment; just let the caller
             // handle them.
@@ -106,19 +106,12 @@ class Linker {
 
     private void resolveTypdefs() {
         // The strategy for resolving typedefs is:
-        // First, register all typedefs with a placeholder ThriftType.
-        // Next, make a list of typedefs, then loop through it.  A
-        // typedef will resolve in one of three ways:
-        // 1. to a known type - perfect!  remove it from the list.
-        // 2. to a placeholder - it's a typedef of an unresolved typedef.  Keep going, try again later.
-        // 3. to null - we will never be able to resolve this.  fail.
+        // Make a list of typedefs, then loop through it.  If the typedef is
+        // successfully linked (i.e. its alias is resolvable), then remove it
+        // from the list.  If not, skip it and continue through the list.
         //
         // Keep iterating over the list until it is either empty or contains only unresolvable
         // typedefs.  In the latter case, linking fails.
-        for (Typedef typedef : program.typedefs()) {
-            typesByName.put(typedef.name(), ThriftType.PLACEHOLDER);
-        }
-
         // TODO: Surely there must be a more efficient way to do this.
 
         List<Typedef> typedefs = new LinkedList<>(program.typedefs());
@@ -128,10 +121,12 @@ class Linker {
 
             while (iter.hasNext()) {
                 Typedef typedef = iter.next();
-                if (typedef.link(this)) {
+                try {
+                    typedef.link(this);
                     register(typedef);
                     atLeastOneResolved = true;
                     iter.remove();
+                } catch (TypedefResolutionException ignored) {
                 }
             }
 
@@ -144,7 +139,7 @@ class Linker {
         }
 
         if (environment.hasErrors()) {
-            throw new TypedefResolutionException();
+            throw new LinkFailureException();
         }
     }
 
@@ -190,12 +185,6 @@ class Linker {
 
     @Nonnull
     ThriftType resolveType(String type) {
-        //noinspection ConstantConditions ResolveContext.NORMAL guarantees that the result is non-null or exceptional.
-        return resolveType(type, ResolveContext.NORMAL);
-    }
-
-    @Nullable
-    ThriftType resolveType(String type, ResolveContext context) {
         ThriftType tt = typesByName.get(type);
         if (tt != null) {
             return tt;
@@ -222,8 +211,9 @@ class Linker {
                     .trim()
                     .split(",");
             if (elementTypeNames.length != 2) {
-                environment.addError("Malformed map type name: " + type);
-                throw new RuntimeException("Malformed map type name: " + type);
+                // At this point, container type names should have already
+                // been verified.
+                throw new AssertionError("Malformed map type name: " + type);
             }
 
             ThriftType keyType = resolveType(elementTypeNames[0].trim());
@@ -238,29 +228,23 @@ class Linker {
             return tt;
         }
 
-        if (context.throwOnUnresolved()) {
-            environment.addError("Failed to resolve type: " + type);
-            throw new RuntimeException("Failed to resolve type: " + type);
-        } else {
-            return null;
+        throw new TypedefResolutionException(type);
+    }
+
+    private static class LinkFailureException extends RuntimeException {
+        LinkFailureException() {}
+
+        LinkFailureException(String message) {
+            super(message);
         }
     }
 
-    enum ResolveContext {
-        NORMAL,
-        TYPEDEF {
-            @Override
-            boolean throwOnUnresolved() {
-                return false;
-            }
-        };
+    private static class TypedefResolutionException extends LinkFailureException {
+        final String name;
 
-        boolean throwOnUnresolved() {
-            return true;
+        TypedefResolutionException(String name) {
+            super("Failed to resolve type: " + name);
+            this.name = name;
         }
     }
-
-    private static class LinkFailureException extends RuntimeException {}
-
-    private static class TypedefResolutionException extends RuntimeException {}
 }

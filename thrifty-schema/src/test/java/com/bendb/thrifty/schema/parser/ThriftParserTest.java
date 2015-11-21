@@ -411,7 +411,7 @@ public class ThriftParserTest {
         assertThat(f.name(), is("baz"));
         assertThat(f.fieldId(), is(3));
         assertThat(f.type(), is("i16"));
-        assertThat(f.constValue().value(), is(0xFFF));
+        assertThat((Integer) f.constValue().value(), is(0xFFF));
 
         f = fields.get(3);
         assertThat(f.name(), is("quux"));
@@ -429,7 +429,7 @@ public class ThriftParserTest {
         assertThat(c.name(), is("DefaultStatusCode"));
         assertThat(c.type(), is("i64"));
         assertThat(c.value().kind(), is(ConstValueElement.Kind.INTEGER));
-        assertThat(c.value().value(), is(200));
+        assertThat((Integer) c.value().value(), is(200));
     }
 
     @Test
@@ -446,10 +446,10 @@ public class ThriftParserTest {
 
         List<ConstValueElement> list = (List<ConstValueElement>) value.value();
         assertThat(list.size(), is(4));
-        assertThat(list.get(0).value(), is("foo"));
-        assertThat(list.get(1).value(), is("bar"));
-        assertThat(list.get(2).value(), is("baz"));
-        assertThat(list.get(3).value(), is("quux"));
+        assertThat((String) list.get(0).value(), is("foo"));
+        assertThat((String) list.get(1).value(), is("bar"));
+        assertThat((String) list.get(2).value(), is("baz"));
+        assertThat((String) list.get(3).value(), is("quux"));
     }
 
     @Test
@@ -475,9 +475,9 @@ public class ThriftParserTest {
         for (Map.Entry<ConstValueElement, ConstValueElement> entry : values.entrySet()) {
             String key = (String) entry.getKey().value();
             if (key.equals("foo")) {
-                assertThat(entry.getValue().value(), is("bar"));
+                assertThat((String) entry.getValue().value(), is("bar"));
             } else if (key.equals("baz")) {
-                assertThat(entry.getValue().value(), is("quux"));
+                assertThat((String) entry.getValue().value(), is("quux"));
             } else {
                 fail("unexpected key value: " + key);
             }
@@ -500,6 +500,6 @@ public class ThriftParserTest {
         ConstValueElement v = f.constValue();
         assertThat(v, is(notNullValue()));
         assertThat(v.kind(), is(ConstValueElement.Kind.INTEGER));
-        assertThat(v.value(), is(1));
+        assertThat((Integer) v.value(), is(1));
     }
 }

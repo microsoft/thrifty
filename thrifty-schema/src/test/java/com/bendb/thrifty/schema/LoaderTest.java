@@ -142,6 +142,25 @@ public class LoaderTest {
         }
     }
 
+    @Test
+    public void circularTypedefs() throws Exception {
+        String thrift = "" +
+                "typedef A B\n" +
+                "typedef B A";
+
+        File f = tempDir.newFile();
+        writeTo(f, thrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+
+        try {
+            loader.load();
+            fail("Circular typedefs should fail to link");
+        } catch (RuntimeException ignored) {
+        }
+    }
+
     private static void writeTo(File file, String content) throws IOException {
         BufferedSink sink = Okio.buffer(Okio.sink(file));
         sink.writeUtf8(content);

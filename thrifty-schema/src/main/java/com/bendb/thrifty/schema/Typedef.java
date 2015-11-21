@@ -36,13 +36,8 @@ public final class Typedef extends Named {
     }
 
     boolean link(Linker linker) {
-        ThriftType tt = linker.resolveType(element.oldName(), Linker.ResolveContext.TYPEDEF);
-        if (tt == null || tt == ThriftType.PLACEHOLDER) {
-            return false;
-        }
-
-        oldType = tt;
+        oldType = linker.resolveType(element.oldName());
         type = ThriftType.typedefOf(oldType, element.newName());
-        return false;
+        return true;
     }
 }
