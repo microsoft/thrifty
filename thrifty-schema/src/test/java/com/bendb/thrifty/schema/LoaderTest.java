@@ -8,7 +8,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
@@ -36,28 +39,23 @@ public class LoaderTest {
                 "}";
 
         File f = tempDir.newFile();
-        BufferedSink sink = Okio.buffer(Okio.sink(f));
-        sink.writeUtf8(thrift);
-        sink.flush();
-        sink.close();
+        writeTo(f, thrift);
 
         Loader loader = new Loader();
         loader.addThriftFile(f.getAbsolutePath());
 
-        ImmutableList<Program> programs = loader.load();
-        assertThat(programs.size(), is(1));
+        Schema schema = loader.load();
 
-        Program p = programs.get(0);
-        assertThat(p.enums().size(), is(1));
-        assertThat(p.structs().size(), is(1));
-        assertThat(p.services().size(), is(1));
+        assertThat(schema.enums().size(), is(1));
+        assertThat(schema.structs().size(), is(1));
+        assertThat(schema.services().size(), is(1));
 
-        EnumType et = p.enums().get(0);
+        EnumType et = schema.enums().get(0);
         assertThat(et.name(), is("TestEnum"));
         assertThat(et.members().get(0).name(), is("ONE"));
         assertThat(et.members().get(1).name(), is("TWO"));
 
-        StructType st = p.structs().get(0);
+        StructType st = schema.structs().get(0);
         assertThat(st.name(), is("S"));
         assertThat(st.fields().size(), is(1));
 
@@ -71,7 +69,7 @@ public class LoaderTest {
         assertThat(fieldType.name(), is("Int"));
         assertThat(fieldType.getTrueType(), is(ThriftType.I32));
 
-        Service svc = p.services().get(0);
+        Service svc = schema.services().get(0);
         assertThat(svc.name(), is("Svc"));
         assertThat(svc.methods().size(), is(1));
 
@@ -98,10 +96,7 @@ public class LoaderTest {
                 "}";
 
         File f = tempDir.newFile();
-        BufferedSink sink = Okio.buffer(Okio.sink(f));
-        sink.writeUtf8(included);
-        sink.flush();
-        sink.close();
+        writeTo(f, included);
 
         String thrift = "\n" +
                 "namespace java com.bendb.thrifty.test.include\n" +
@@ -110,15 +105,47 @@ public class LoaderTest {
                 "typedef TestEnum Ordinal";
 
         File f1 = tempDir.newFile();
-        sink = Okio.buffer(Okio.sink(f1));
-        sink.writeUtf8(thrift);
-        sink.flush();
-        sink.close();
+        writeTo(f1, thrift);
 
         Loader loader = new Loader();
         loader.addThriftFile(f.getAbsolutePath());
         loader.addThriftFile(f1.getAbsolutePath());
 
-        ImmutableList<Program> programs = loader.load();
+        Schema schema = loader.load();
+
+        EnumType et = schema.enums().get(0);
+        assertThat(et.type().name(), is("TestEnum"));
+
+        Typedef td = schema.typedefs().get(0);
+        assertThat(td.oldType(), sameInstance(et.type()));
+    }
+
+    @Test
+    public void circularInclude() throws Exception {
+        File f1 = tempDir.newFile();
+        File f2 = tempDir.newFile();
+        File f3 = tempDir.newFile();
+
+        writeTo(f1, "include '" + f2.getName() + "'");
+        writeTo(f2, "include '" + f3.getName() + "'");
+        writeTo(f3, "include '" + f1.getName() + "'");
+
+        try {
+            new Loader()
+                    .addThriftFile(f1.getAbsolutePath())
+                    .addThriftFile(f2.getAbsolutePath())
+                    .addThriftFile(f3.getAbsolutePath())
+                    .load();
+            fail("Circular includes should fail to load");
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage(), containsString("Circular link detected"));
+        }
+    }
+
+    private static void writeTo(File file, String content) throws IOException {
+        BufferedSink sink = Okio.buffer(Okio.sink(file));
+        sink.writeUtf8(content);
+        sink.flush();
+        sink.close();
     }
 }

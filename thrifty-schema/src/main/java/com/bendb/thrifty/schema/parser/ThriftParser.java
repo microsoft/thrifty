@@ -21,6 +21,7 @@ import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import java.util.Set;
@@ -162,7 +163,7 @@ public final class ThriftParser {
 
         if ("const".equals(word)) {
             ++declCount;
-            throw unexpected("const is not yet implemented");
+            return readConst(location, doc);
         }
 
         if ("typedef".equals(word)) {
@@ -272,6 +273,34 @@ public final class ThriftParser {
 
         return EnumMemberElement.builder(location)
                 .documentation(doc)
+                .name(name)
+                .value(value)
+                .build();
+    }
+
+    private ConstElement readConst(Location location, String documentation) {
+        String typeName = readTypeName();
+        String name = readIdentifier();
+
+        if (readChar() != '=') {
+            throw unexpected("expected a constant value for const: " + name);
+        }
+
+        ConstValueElement value = readConstValue();
+
+        String trailingDoc = readTrailingDoc(true);
+        if (!Strings.isNullOrEmpty(trailingDoc)) {
+            if (!Strings.isNullOrEmpty(documentation)) {
+                trailingDoc = "\n" + trailingDoc;
+            }
+            documentation += trailingDoc;
+        }
+
+        // Don't bother validating the value type against the typename -
+        // we'll catch that later.
+        return ConstElement.builder(location)
+                .documentation(documentation)
+                .type(typeName)
                 .name(name)
                 .value(value)
                 .build();
@@ -403,7 +432,8 @@ public final class ThriftParser {
 
         char next = peekChar(false);
         if (next == '=') {
-            throw unexpected("const values are not yet implemented");
+            readChar();
+            field.constValue(readConstValue());
         }
 
         String trailingDoc = readTrailingDoc(true);
@@ -504,6 +534,86 @@ public final class ThriftParser {
         }
 
         return func.build();
+    }
+
+    private ConstValueElement readConstValue() {
+        //throw unexpected("const values are not yet implemented");
+        Location location = location();
+        char c = peekChar(false);
+        if (c == '"' || c == '\'') {
+            String literal = readLiteral();
+            return ConstValueElement.literal(location, literal);
+        }
+
+        if (c == '[') {
+            ImmutableList.Builder<ConstValueElement> values = ImmutableList.builder();
+            readChar();
+            while (true) {
+                values.add(readConstValue());
+
+                char maybeSeparator = peekChar(false);
+                if (maybeSeparator == ',' || maybeSeparator == ';') {
+                    readChar();
+                    maybeSeparator = peekChar(false);
+                }
+
+                if (maybeSeparator == ']') {
+                    readChar();
+                    return ConstValueElement.list(location, values.build());
+                }
+            }
+        }
+
+        if (c == '{') {
+            ImmutableMap.Builder<ConstValueElement, ConstValueElement> map = ImmutableMap.builder();
+            readChar();
+            while (true) {
+                ConstValueElement key = readConstValue();
+                if (readChar() != ':') {
+                    throw unexpected("expected ':' in a map literal");
+                }
+                ConstValueElement value = readConstValue();
+                map.put(key, value);
+
+                char maybeSeparator = peekChar(false);
+                if (maybeSeparator == ',' || maybeSeparator == ';') {
+                    readChar();
+                    maybeSeparator = peekChar(false);
+                }
+
+                if (maybeSeparator == '}') {
+                    readChar();
+                    return ConstValueElement.map(location, map.build());
+                }
+            }
+        }
+
+        if (c == '+' || c == '-' || (c >= '0' && c <= '9')) {
+            String number = readWord();
+            if (number.indexOf('.') != -1) {
+                try {
+                    double d = Double.parseDouble(number);
+                    return ConstValueElement.real(location, d);
+                } catch (NumberFormatException e) {
+                    throw unexpected(location, "invalid double constant: " + number);
+                }
+            } else {
+                try {
+                    int radix = 10;
+                    if (number.startsWith("0x") || number.startsWith("0X")) {
+                        number = number.substring(2);
+                        radix = 16;
+                    }
+                    int i = Integer.parseInt(number, radix);
+                    return ConstValueElement.integer(location, i);
+                } catch (NumberFormatException e) {
+                    throw unexpected(location, "invalid integer constant: " + number);
+                }
+            }
+        }
+
+        String id = readIdentifier();
+        return ConstValueElement.identifier(location, id);
     }
 
     private char readChar() {

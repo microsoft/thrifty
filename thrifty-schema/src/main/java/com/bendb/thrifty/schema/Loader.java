@@ -73,10 +73,10 @@ public final class Loader {
         return this;
     }
 
-    public ImmutableList<Program> load() throws IOException {
+    public Schema load() throws IOException {
         loadFromDisk();
         linkPrograms();
-        return ImmutableList.copyOf(loadedPrograms.values());
+        return new Schema(loadedPrograms.values());
     }
 
     private void loadFromDisk() throws IOException {

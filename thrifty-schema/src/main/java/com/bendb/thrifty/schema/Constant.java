@@ -6,6 +6,7 @@ import java.util.Map;
 
 public class Constant extends Named {
     private final ConstElement element;
+    private ThriftType type;
 
     Constant(ConstElement element, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
@@ -14,6 +15,14 @@ public class Constant extends Named {
 
     @Override
     public ThriftType type() {
-        return null;
+        return type;
+    }
+
+    public String documentation() {
+        return element.documentation();
+    }
+
+    void link(Linker linker) {
+        this.type = linker.resolveType(element.type());
     }
 }

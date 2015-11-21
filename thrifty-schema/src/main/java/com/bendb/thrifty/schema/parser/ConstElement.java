@@ -11,13 +11,13 @@ public abstract class ConstElement {
     public abstract String name();
     public abstract ConstValueElement value();
 
-    ConstElement() { }
-
-    public Builder builder(Location location) {
+    public static Builder builder(Location location) {
         return new AutoValue_ConstElement.Builder()
                 .location(location)
                 .documentation("");
     }
+
+    ConstElement() { }
 
     @AutoValue.Builder
     public interface Builder {

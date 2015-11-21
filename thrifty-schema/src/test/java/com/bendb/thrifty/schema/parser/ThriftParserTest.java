@@ -3,8 +3,10 @@ package com.bendb.thrifty.schema.parser;
 import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.common.collect.ImmutableList;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -360,19 +362,144 @@ public class ThriftParserTest {
     }
 
     @Test
-    @Ignore("Depends on const values being implemented")
     public void unionCannotHaveMultipleDefaultValues() {
         String thrift = "\n" +
                 "union Normal {\n" +
-                "  3: optional i16 foo = 1,\n" +
-                "  5: required i32 bar = 2\n" +
+                "  3: i16 foo = 1,\n" +
+                "  5: i32 bar = 2\n" +
                 "}\n";
 
         try {
             ThriftParser.parse(Location.get("", "unionWithRequired.thrift"), thrift);
-            fail("Union cannot have a required field");
+            fail("Union cannot have a more than one default value");
         } catch (IllegalStateException e) {
-            assertThat(e.getMessage(), containsString("unions cannot have required fields"));
+            assertThat(e.getMessage(), containsString("unions can have at most one default value"));
         }
+    }
+
+    @Test
+    public void unionsCanHaveOneDefaultValue() {
+        String thrift = "\n" +
+                "union Default {\n" +
+                "  1: i16 foo,\n" +
+                "  2: i16 bar,\n" +
+                "  3: i16 baz = 0x0FFF,\n" +
+                "  4: i16 quux\n" +
+                "}";
+
+        ThriftFileElement element = ThriftParser.parse(Location.get("", "unionWithDefault.thrift"), thrift);
+        StructElement u = element.unions().get(0);
+
+        assertThat(u.name(), is("Default"));
+        assertThat(u.fields().size(), is(4));
+
+        ImmutableList<FieldElement> fields = u.fields();
+
+        FieldElement f = fields.get(0);
+        assertThat(f.name(), is("foo"));
+        assertThat(f.fieldId(), is(1));
+        assertThat(f.type(), is("i16"));
+        assertThat(f.constValue(), is(nullValue()));
+
+        f = fields.get(1);
+        assertThat(f.name(), is("bar"));
+        assertThat(f.fieldId(), is(2));
+        assertThat(f.type(), is("i16"));
+        assertThat(f.constValue(), is(nullValue()));
+
+        f = fields.get(2);
+        assertThat(f.name(), is("baz"));
+        assertThat(f.fieldId(), is(3));
+        assertThat(f.type(), is("i16"));
+        assertThat(f.constValue().value(), is(0xFFF));
+
+        f = fields.get(3);
+        assertThat(f.name(), is("quux"));
+        assertThat(f.fieldId(), is(4));
+        assertThat(f.type(), is("i16"));
+        assertThat(f.constValue(), is(nullValue()));
+    }
+
+    @Test
+    public void simpleConst() {
+        String thrift = "const i64 DefaultStatusCode = 200";
+        ThriftFileElement file = ThriftParser.parse(Location.get("", "simpleConst.thrift"), thrift);
+        ConstElement c = file.constants().get(0);
+
+        assertThat(c.name(), is("DefaultStatusCode"));
+        assertThat(c.type(), is("i64"));
+        assertThat(c.value().kind(), is(ConstValueElement.Kind.INTEGER));
+        assertThat(c.value().value(), is(200));
+    }
+
+    @Test
+    public void listConst() {
+        String thrift = "const list<string> Names = [\"foo\" \"bar\", \"baz\"; \"quux\"]";
+        ThriftFileElement file = ThriftParser.parse(Location.get("", "listConst.thrift"), thrift);
+        ConstElement c = file.constants().get(0);
+
+        assertThat(c.name(), is("Names"));
+        assertThat(c.type(), is("list<string>"));
+
+        ConstValueElement value = c.value();
+        assertThat(value.kind(), is(ConstValueElement.Kind.LIST));
+
+        List<ConstValueElement> list = (List<ConstValueElement>) value.value();
+        assertThat(list.size(), is(4));
+        assertThat(list.get(0).value(), is("foo"));
+        assertThat(list.get(1).value(), is("bar"));
+        assertThat(list.get(2).value(), is("baz"));
+        assertThat(list.get(3).value(), is("quux"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void mapConst() {
+        String thrift = "const map<string, string> Headers = {\n" +
+                "  \"foo\": \"bar\",\n" +
+                "  \"baz\": \"quux\";\n" +
+                "}";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get("", "mapConst.thrift"), thrift);
+        ConstElement c = file.constants().get(0);
+
+        assertThat(c.name(), is("Headers"));
+        assertThat(c.type(), is("map<string, string>"));
+
+        ConstValueElement value = c.value();
+        assertThat(value.kind(), is(ConstValueElement.Kind.MAP));
+
+        Map<ConstValueElement, ConstValueElement> values = (Map<ConstValueElement, ConstValueElement>) value.value();
+        assertThat(values.size(), is(2));
+
+        for (Map.Entry<ConstValueElement, ConstValueElement> entry : values.entrySet()) {
+            String key = (String) entry.getKey().value();
+            if (key.equals("foo")) {
+                assertThat(entry.getValue().value(), is("bar"));
+            } else if (key.equals("baz")) {
+                assertThat(entry.getValue().value(), is("quux"));
+            } else {
+                fail("unexpected key value: " + key);
+            }
+        }
+    }
+
+    @Test
+    public void structFieldWithConstValue() {
+        String thrift = "struct Foo {\n" +
+                "  100: i32 num = 1\n" +
+                "}";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get("", ""), thrift);
+        StructElement s = file.structs().get(0);
+        FieldElement f = s.fields().get(0);
+        assertThat(f.fieldId(), is(100));
+        assertThat(f.name(), is("num"));
+        assertThat(f.type(), is("i32"));
+
+        ConstValueElement v = f.constValue();
+        assertThat(v, is(notNullValue()));
+        assertThat(v.kind(), is(ConstValueElement.Kind.INTEGER));
+        assertThat(v.value(), is(1));
     }
 }

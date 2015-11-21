@@ -40,6 +40,32 @@ class Linker {
 
         linking = true;
 
+        try {
+            linkIncludedPrograms();
+
+            registerDeclaredTypes();
+
+            // Next, figure out what types typedefs are aliasing.
+            resolveTypdefs();
+
+            // At this point, all types defined
+            linkConstants();
+            linkStructFields();
+            linkExceptionFields();
+            linkUnionFields();
+            linkServices();
+
+            linked = true;
+        } catch (LinkFailureException | TypedefResolutionException ignored) {
+            // The relevant errors will have already been
+            // added to the environment; just let the caller
+            // handle them.
+        } finally {
+            linking = false;
+        }
+    }
+
+    private void linkIncludedPrograms() {
         // First, link included programs and add their resolved types
         // to our own map
         for (Program p : program.includes()) {
@@ -51,10 +77,11 @@ class Linker {
 
         // Linking included programs may have failed - if so, bail.
         if (environment.hasErrors()) {
-            linking = false;
-            return;
+            throw new LinkFailureException();
         }
+    }
 
+    private void registerDeclaredTypes() {
         // Register all types defined in this program
         for (StructType structType : program.structs()) {
             register(structType);
@@ -75,34 +102,9 @@ class Linker {
         for (Service service : program.services()) {
             register(service);
         }
-
-        try {
-            resolveTypdefs();
-
-            linkStructFields();
-            linkExceptionFields();
-            linkUnionFields();
-            linkServices();
-        } catch (Exception e) {
-            linking = false;
-            return;
-        }
-
-        // Now that types are registered and and typedefs are resolved, we can
-        // link fields of struct types and parameters of service methods.
-
-        linking = false;
-        linked = true;
     }
 
     private void resolveTypdefs() {
-        // Typedefs require special handling.
-        for (Typedef typedef : program.typedefs()) {
-            typesByName.put(typedef.name(), ThriftType.PLACEHOLDER);
-        }
-
-        // TODO: Surely there must be a more efficient way to do this.
-
         // The strategy for resolving typedefs is:
         // First, register all typedefs with a placeholder ThriftType.
         // Next, make a list of typedefs, then loop through it.  A
@@ -113,44 +115,42 @@ class Linker {
         //
         // Keep iterating over the list until it is either empty or contains only unresolvable
         // typedefs.  In the latter case, linking fails.
+        for (Typedef typedef : program.typedefs()) {
+            typesByName.put(typedef.name(), ThriftType.PLACEHOLDER);
+        }
+
+        // TODO: Surely there must be a more efficient way to do this.
 
         List<Typedef> typedefs = new LinkedList<>(program.typedefs());
-        List<Typedef> unresolvableTypedefs = new ArrayList<>();
         while (!typedefs.isEmpty()) {
             boolean atLeastOneResolved = false;
-            unresolvableTypedefs.clear();
             Iterator<Typedef> iter = typedefs.iterator();
 
             while (iter.hasNext()) {
                 Typedef typedef = iter.next();
-                ThriftType tt = resolveType(typedef.oldName(), ResolveContext.TYPEDEF);
-                if (tt == null) {
-                    unresolvableTypedefs.add(typedef);
-                } else if (tt == ThriftType.PLACEHOLDER) {
-                    // This is a typedef of a typedef, the latter of which
-                    // has not yet been linked.  Skip it for now.
-                } else {
-                    ThriftType td = ThriftType.typedefOf(tt, typedef.name());
-                    typesByName.put(td.name(), td);
+                if (typedef.link(this)) {
+                    register(typedef);
                     atLeastOneResolved = true;
-
                     iter.remove();
                 }
-            }
-
-            if (unresolvableTypedefs.size() > 0) {
-                for (Typedef typedef : unresolvableTypedefs) {
-                    environment.addError("Unresolvable typedef '" + typedef.name() + "' at " + typedef.location());
-                }
-                return;
             }
 
             if (!atLeastOneResolved) {
                 for (Typedef typedef : typedefs) {
                     environment.addError("Unresolvable typedef '" + typedef.name() + "' at " + typedef.location());
                 }
-                return;
+                break;
             }
+        }
+
+        if (environment.hasErrors()) {
+            throw new TypedefResolutionException();
+        }
+    }
+
+    private void linkConstants() {
+        for (Constant constant : program.constants()) {
+            constant.link(this);
         }
     }
 
@@ -246,7 +246,7 @@ class Linker {
         }
     }
 
-    private enum ResolveContext {
+    enum ResolveContext {
         NORMAL,
         TYPEDEF {
             @Override
@@ -259,4 +259,8 @@ class Linker {
             return true;
         }
     }
+
+    private static class LinkFailureException extends RuntimeException {}
+
+    private static class TypedefResolutionException extends RuntimeException {}
 }

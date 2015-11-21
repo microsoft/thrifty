@@ -1,5 +1,6 @@
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.ConstElement;
 import com.bendb.thrifty.schema.parser.EnumElement;
 import com.bendb.thrifty.schema.parser.IncludeElement;
 import com.bendb.thrifty.schema.parser.NamespaceElement;
@@ -25,6 +26,7 @@ public final class Program {
     private final ImmutableList<String> cppIncludes;
     private final ImmutableList<String> thriftIncludes;
     private final ImmutableList<Typedef> typedefs;
+    private final ImmutableList<Constant> constants;
     private final ImmutableList<EnumType> enums;
     private final ImmutableList<StructType> structs;
     private final ImmutableList<StructType> unions;
@@ -70,6 +72,13 @@ public final class Program {
             typedefs.add(td);
         }
         this.typedefs = typedefs.build();
+
+        ImmutableList.Builder<Constant> constants = ImmutableList.builder();
+        for (ConstElement constElement : element.constants()) {
+            Constant constant = new Constant(constElement, namespaces);
+            constants.add(constant);
+        }
+        this.constants = constants.build();
 
         ImmutableList.Builder<EnumType> enums = ImmutableList.builder();
         for (EnumElement enumElement : element.enums()) {
@@ -125,6 +134,10 @@ public final class Program {
 
     public ImmutableList<Program> includes() {
         return this.includedPrograms;
+    }
+
+    public ImmutableList<Constant> constants() {
+        return this.constants;
     }
 
     public ImmutableList<EnumType> enums() {
