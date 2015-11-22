@@ -4,8 +4,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
 import javax.annotation.Nonnull;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * Represents a type name and all containing namespaces.

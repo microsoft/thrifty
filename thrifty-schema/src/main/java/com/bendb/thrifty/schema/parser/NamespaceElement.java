@@ -10,7 +10,7 @@ public abstract class NamespaceElement {
     public abstract NamespaceScope scope();
     public abstract String namespace();
 
-    NamespaceElement() {}
+    NamespaceElement() { }
 
     public static Builder builder(Location location) {
         return new AutoValue_NamespaceElement.Builder()

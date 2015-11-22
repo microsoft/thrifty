@@ -2,7 +2,11 @@ package com.bendb.thrifty.schema;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * An object that can resolve the types of typdefs, struct fields, and service
@@ -269,7 +273,8 @@ class Linker {
     }
 
     private static class LinkFailureException extends RuntimeException {
-        LinkFailureException() {}
+        LinkFailureException() {
+        }
 
         LinkFailureException(String message) {
             super(message);

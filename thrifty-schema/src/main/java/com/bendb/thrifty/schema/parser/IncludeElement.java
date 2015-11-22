@@ -9,7 +9,7 @@ public abstract class IncludeElement {
     public abstract boolean isCpp();
     public abstract String path();
 
-    IncludeElement() {}
+    IncludeElement() { }
 
     public static IncludeElement create(Location location, boolean isCpp, String path) {
         return new AutoValue_IncludeElement(location, isCpp, path);

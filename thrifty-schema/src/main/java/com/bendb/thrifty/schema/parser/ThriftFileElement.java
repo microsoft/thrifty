@@ -31,7 +31,7 @@ public abstract class ThriftFileElement {
                 .services(ImmutableList.<ServiceElement>of());
     }
 
-    ThriftFileElement() {}
+    ThriftFileElement() { }
 
     @AutoValue.Builder
     public interface Builder {

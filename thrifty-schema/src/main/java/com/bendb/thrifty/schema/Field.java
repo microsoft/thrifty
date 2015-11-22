@@ -1,5 +1,6 @@
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.ConstValueElement;
 import com.bendb.thrifty.schema.parser.FieldElement;
 
 import javax.annotation.Nullable;
@@ -34,7 +35,7 @@ public final class Field {
         return element.documentation();
     }
 
-    public Constant defaultValue() {
+    public ConstValueElement defaultValue() {
         throw new IllegalStateException("Not implemented");
     }
 
@@ -57,5 +58,12 @@ public final class Field {
 
     void link(Linker linker) {
         type = linker.resolveType(element.type());
+    }
+
+    void validate(Linker linker) {
+        ConstValueElement value = element.constValue();
+        if (value != null) {
+            Constant.validate(linker, value, type);
+        }
     }
 }

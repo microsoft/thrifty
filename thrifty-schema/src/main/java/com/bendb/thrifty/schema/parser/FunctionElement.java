@@ -27,7 +27,7 @@ public abstract class FunctionElement {
     public abstract ImmutableList<FieldElement> params();
     public abstract ImmutableList<FieldElement> exceptions();
 
-    FunctionElement() {}
+    FunctionElement() { }
 
     @AutoValue.Builder
     public interface Builder {

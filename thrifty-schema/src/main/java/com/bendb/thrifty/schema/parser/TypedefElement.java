@@ -26,7 +26,7 @@ public abstract class TypedefElement {
                 .build();
     }
 
-    TypedefElement() {}
+    TypedefElement() { }
 
     public static Builder builder(Location location) {
         return new AutoValue_TypedefElement.Builder()

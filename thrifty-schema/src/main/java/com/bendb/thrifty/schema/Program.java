@@ -193,7 +193,8 @@ public final class Program {
     void loadIncludedPrograms(Loader loader, Set<Program> visited) {
         if (!visited.add(this)) {
             if (includedPrograms == null) {
-                throw new IllegalStateException("Circular include: " + location().path() + " includes itself transitively");
+                throw new IllegalStateException("Circular include: " + location().path()
+                        + " includes itself transitively");
             }
             return;
         }
@@ -231,8 +232,8 @@ public final class Program {
 
     private IllegalStateException duplicateSymbol(String symbol, Named oldValue, Named newValue) {
         throw new IllegalStateException(
-                "Duplicate symbols: '" + symbol + "' defined at " +
-                oldValue.location() + " and at " + newValue.location());
+                "Duplicate symbols: '" + symbol + "' defined at "
+                + oldValue.location() + " and at " + newValue.location());
     }
 
     @Override

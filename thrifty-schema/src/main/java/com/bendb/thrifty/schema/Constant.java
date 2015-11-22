@@ -113,14 +113,16 @@ public class Constant extends Named {
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
             if (value.kind() != ConstValueElement.Kind.IDENTIFIER) {
-                throw new IllegalStateException("Expected 'true', 'false', or a bool constant, but got: " + value.value());
+                throw new IllegalStateException("Expected 'true', 'false', or a bool constant, but got: "
+                        + value.value());
             }
 
             String identifier = (String) value.value();
             if (!"true".equals(identifier) && !"false".equals(identifier)) {
                 Named named = linker.lookupSymbol(identifier);
                 if (named == null || named.type().getTrueType() != ThriftType.BOOL) {
-                    throw new IllegalStateException("Expected 'true', 'false', or a bool constant, but got: " + identifier);
+                    throw new IllegalStateException("Expected 'true', 'false', or a bool constant, but got: "
+                            + identifier);
                 }
             }
         }
@@ -148,7 +150,8 @@ public class Constant extends Named {
                 }
 
                 if (!named.type().getTrueType().equals(expected)) {
-                    throw new IllegalStateException("Expected a value of type " + expected.name() + ", but got " + named.type().name());
+                    throw new IllegalStateException("Expected a value of type " + expected.name()
+                            + ", but got " + named.type().name());
                 }
             } else {
                 throw new IllegalStateException(
@@ -175,7 +178,8 @@ public class Constant extends Named {
             if (value.kind() == ConstValueElement.Kind.INTEGER) {
                 Long lv = (Long) value.value();
                 if (lv < minValue || lv > maxValue) {
-                    throw new IllegalStateException("value '" + String.valueOf(lv) + "' is out of range for type " + expected.name());
+                    throw new IllegalStateException("value '" + String.valueOf(lv)
+                            + "' is out of range for type " + expected.name());
                 }
             }
         }
@@ -234,8 +238,8 @@ public class Constant extends Named {
                 Named named = linker.lookupSymbol(id);
 
                 boolean isConstantOfCorrectType =
-                        named instanceof Constant &&
-                        named.type().getTrueType().equals(expected);
+                        named instanceof Constant
+                        && named.type().getTrueType().equals(expected);
 
                 if (!isConstantOfCorrectType) {
                     throw new IllegalStateException("Expected a value with type " + expected.name());
@@ -267,8 +271,8 @@ public class Constant extends Named {
                 Named named = linker.lookupSymbol(id);
 
                 boolean isConstantOfCorrectType =
-                        named instanceof Constant &&
-                                named.type().getTrueType().equals(expected);
+                        named instanceof Constant
+                                && named.type().getTrueType().equals(expected);
 
                 if (!isConstantOfCorrectType) {
                     throw new IllegalStateException("Expected a value with type " + expected.name());

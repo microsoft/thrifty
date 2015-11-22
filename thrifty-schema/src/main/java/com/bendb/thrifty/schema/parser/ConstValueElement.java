@@ -23,7 +23,7 @@ public abstract class ConstValueElement {
     public abstract Kind kind();
     public abstract Object value();
 
-    ConstValueElement() {}
+    ConstValueElement() { }
 
     public static ConstValueElement integer(Location location, long value) {
         return new AutoValue_ConstValueElement(location, Kind.INTEGER, value);

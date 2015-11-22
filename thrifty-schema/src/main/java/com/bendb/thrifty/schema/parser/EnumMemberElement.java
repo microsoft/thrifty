@@ -24,7 +24,7 @@ public abstract class EnumMemberElement {
                 .build();
     }
 
-    EnumMemberElement() {}
+    EnumMemberElement() { }
 
     @AutoValue.Builder
     public interface Builder {

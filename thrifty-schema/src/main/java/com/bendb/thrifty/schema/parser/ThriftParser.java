@@ -47,7 +47,7 @@ public final class ThriftParser {
 
     /**
      * Parse the given Thrift {@code text}, using the given {@code location}
-     * to
+     * to anchor parsed elements withing the file.
      * @param location
      * @param text
      * @return

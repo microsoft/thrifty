@@ -21,7 +21,7 @@ public abstract class StructElement {
                 .documentation("");
     }
 
-    StructElement() {}
+    StructElement() { }
 
     @AutoValue.Builder
     public interface Builder {

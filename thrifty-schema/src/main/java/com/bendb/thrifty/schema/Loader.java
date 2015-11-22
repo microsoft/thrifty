@@ -102,7 +102,8 @@ public final class Loader {
         loadedPrograms = new LinkedHashMap<>();
         for (ThriftFileElement fileElement : loadedFiles.values()) {
             File file = new File(fileElement.location().base(), fileElement.location().path());
-            if (!file.exists()) throw new AssertionError("WTF, we have a parsed ThriftFileElement with a non-existing location");
+            if (!file.exists()) throw new AssertionError(
+                    "WTF, we have a parsed ThriftFileElement with a non-existing location");
             if (!file.isAbsolute()) throw new AssertionError("WTF, we have a non-canonical path");
             Program program = new Program(fileElement);
             loadedPrograms.put(file.getAbsolutePath(), program);

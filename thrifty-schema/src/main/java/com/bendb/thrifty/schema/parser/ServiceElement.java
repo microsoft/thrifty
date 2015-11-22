@@ -14,7 +14,7 @@ public abstract class ServiceElement {
     @Nullable public abstract String extendsServiceName();
     public abstract ImmutableList<FunctionElement> functions();
 
-    ServiceElement() {}
+    ServiceElement() { }
 
     public static Builder builder(Location location) {
         return new AutoValue_ServiceElement.Builder()

@@ -28,7 +28,7 @@ public abstract class FieldElement {
     public abstract String name();
     @Nullable public abstract ConstValueElement constValue();
 
-    FieldElement() {}
+    FieldElement() { }
 
     @AutoValue.Builder
     public interface Builder {

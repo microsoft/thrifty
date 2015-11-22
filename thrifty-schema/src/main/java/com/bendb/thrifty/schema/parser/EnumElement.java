@@ -11,7 +11,7 @@ public abstract class EnumElement {
     public abstract String name();
     public abstract ImmutableList<EnumMemberElement> members();
 
-    EnumElement() {}
+    EnumElement() { }
 
     public static Builder builder(Location location) {
         return new AutoValue_EnumElement.Builder()
