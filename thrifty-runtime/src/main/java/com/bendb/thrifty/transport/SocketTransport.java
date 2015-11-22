@@ -1,6 +1,10 @@
 package com.bendb.thrifty.transport;
 
-import okio.*;
+import okio.BufferedSink;
+import okio.BufferedSource;
+import okio.Okio;
+import okio.Sink;
+import okio.Source;
 
 import javax.net.SocketFactory;
 import java.io.IOException;
@@ -122,19 +126,19 @@ public class SocketTransport extends Transport {
         if (source != null) {
             try {
                 source.close();
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) { }
         }
 
         if (sink != null) {
             try {
                 sink.close();
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) { }
         }
 
         if (socket != null) {
             try {
                 socket.close();
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) { }
         }
     }
 

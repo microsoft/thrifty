@@ -44,7 +44,7 @@ public class BinaryProtocol extends Protocol {
 
     /**
      * The maximum number of elements to read from the network for containers
-     * (maps, lists, sets)
+     * (maps, lists, sets).
      */
     private final long containerLengthLimit;
 
@@ -191,7 +191,7 @@ public class BinaryProtocol extends Protocol {
             if (version != VERSION_1) {
                 throw new ProtocolException("Bad version in readMessageBegin");
             }
-            return new MessageMetadata(readString(), (byte)(size & 0xff), readI32());
+            return new MessageMetadata(readString(), (byte) (size & 0xff), readI32());
         } else {
             if (strictRead) {
                 throw new ProtocolException("Missing version in readMessageBegin");

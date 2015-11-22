@@ -39,10 +39,10 @@ public class SimpleJsonProtocol extends Protocol {
     private static final byte[] LBRACKET = { '[' };
     private static final byte[] RBRACKET = { ']' };
 
-    private final Context BASE_CONTEXT = new Context();
+    private final Context baseContext = new Context();
     private final Deque<Context> contextStack = new ArrayDeque<>();
 
-    private Context writeContext = BASE_CONTEXT;
+    private Context writeContext = baseContext;
 
     public SimpleJsonProtocol(BufferedSource source, BufferedSink sink) {
         super(source, sink);
@@ -339,7 +339,7 @@ public class SimpleJsonProtocol extends Protocol {
     }
 
     private class Context {
-        protected void write() throws IOException {}
+        protected void write() throws IOException { }
 
         protected boolean isMapKey() {
             return false;
