@@ -204,7 +204,7 @@ public class ConstantTest {
                 ConstValueElement.integer(loc, 1),
                 ConstValueElement.integer(loc, 2)
         ));
-        
+
         Constant.validate(linker, listValue, setType);
     }
 }

@@ -411,7 +411,7 @@ public class ThriftParserTest {
         assertThat(f.name(), is("baz"));
         assertThat(f.fieldId(), is(3));
         assertThat(f.type(), is("i16"));
-        assertThat((Integer) f.constValue().value(), is(0xFFF));
+        assertThat((Long) f.constValue().value(), is(0xFFFL));
 
         f = fields.get(3);
         assertThat(f.name(), is("quux"));
@@ -429,7 +429,7 @@ public class ThriftParserTest {
         assertThat(c.name(), is("DefaultStatusCode"));
         assertThat(c.type(), is("i64"));
         assertThat(c.value().kind(), is(ConstValueElement.Kind.INTEGER));
-        assertThat((Integer) c.value().value(), is(200));
+        assertThat((Long) c.value().value(), is(200L));
     }
 
     @Test
@@ -500,6 +500,6 @@ public class ThriftParserTest {
         ConstValueElement v = f.constValue();
         assertThat(v, is(notNullValue()));
         assertThat(v.kind(), is(ConstValueElement.Kind.INTEGER));
-        assertThat((Integer) v.value(), is(1));
+        assertThat((Long) v.value(), is(1L));
     }
 }
