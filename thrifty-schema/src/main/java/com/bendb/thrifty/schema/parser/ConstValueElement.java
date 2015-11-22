@@ -17,7 +17,6 @@ public abstract class ConstValueElement {
         IDENTIFIER,
         LIST,
         MAP,
-        SET,
     }
 
     public abstract Location location();
@@ -26,7 +25,7 @@ public abstract class ConstValueElement {
 
     ConstValueElement() {}
 
-    public static ConstValueElement integer(Location location, int value) {
+    public static ConstValueElement integer(Location location, long value) {
         return new AutoValue_ConstValueElement(location, Kind.INTEGER, value);
     }
 

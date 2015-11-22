@@ -19,10 +19,12 @@ public final class Typedef extends Named {
         return type;
     }
 
+    @Override
     public String documentation() {
         return element.documentation();
     }
 
+    @Override
     public Location location() {
         return element.location();
     }

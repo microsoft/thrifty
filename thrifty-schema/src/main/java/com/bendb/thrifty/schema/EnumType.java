@@ -7,7 +7,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.Map;
 
-public final class EnumType extends Named {
+public class EnumType extends Named {
     private final EnumElement element;
     private final ThriftType type;
     private final ImmutableList<Member> members;
@@ -27,6 +27,11 @@ public final class EnumType extends Named {
 
     public String documentation() {
         return element.documentation();
+    }
+
+    @Override
+    public Location location() {
+        return element.location();
     }
 
     public ImmutableList<Member> members() {

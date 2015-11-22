@@ -45,6 +45,13 @@ public final class ThriftParser {
     private int line;
     private int lineStart;
 
+    /**
+     * Parse the given Thrift {@code text}, using the given {@code location}
+     * to
+     * @param location
+     * @param text
+     * @return
+     */
     public static ThriftFileElement parse(Location location, String text) {
         return new ThriftParser(location, text.toCharArray()).readThriftData();
     }

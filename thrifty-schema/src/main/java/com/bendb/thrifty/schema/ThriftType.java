@@ -15,13 +15,6 @@ public abstract class ThriftType {
     private static final String SET_PREFIX = "set<";
     private static final String MAP_PREFIX = "map<";
 
-    /**
-     * Represents a type that has not yet been resolved.
-     *
-     * Not an actual type - used for type resolution algorithms only.
-     */
-    static final ThriftType PLACEHOLDER = new BuiltinType("placeholder");
-
     public static final ThriftType BOOL = new BuiltinType("bool");
     public static final ThriftType BYTE = new BuiltinType("byte");
     public static final ThriftType I16 = new BuiltinType("i16");
@@ -152,7 +145,7 @@ public abstract class ThriftType {
         return name.hashCode();
     }
 
-    private static class BuiltinType extends ThriftType {
+    public static class BuiltinType extends ThriftType {
         BuiltinType(String name) {
             super(name);
         }
@@ -163,7 +156,7 @@ public abstract class ThriftType {
         }
     }
 
-    static class UserType extends ThriftType {
+    public static class UserType extends ThriftType {
         private final boolean isEnum;
 
         UserType(String name) {
@@ -191,7 +184,7 @@ public abstract class ThriftType {
         }
     }
 
-    static class ListType extends ThriftType {
+    public static class ListType extends ThriftType {
         private final ThriftType elementType;
 
         ListType(String name, ThriftType elementType) {
@@ -215,7 +208,7 @@ public abstract class ThriftType {
         }
     }
 
-    static class SetType extends ThriftType {
+    public static class SetType extends ThriftType {
         private final ThriftType elementType;
 
         SetType(String name, ThriftType elementType) {
@@ -239,7 +232,7 @@ public abstract class ThriftType {
         }
     }
 
-    static class MapType extends ThriftType {
+    public static class MapType extends ThriftType {
         private final ThriftType keyType;
         private final ThriftType valueType;
 
@@ -276,7 +269,7 @@ public abstract class ThriftType {
         }
     }
 
-    static class TypedefType extends ThriftType {
+    public static class TypedefType extends ThriftType {
         private final ThriftType originalType;
 
         TypedefType(String name, ThriftType originalType) {

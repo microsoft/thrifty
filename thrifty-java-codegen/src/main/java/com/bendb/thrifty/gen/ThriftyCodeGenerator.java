@@ -17,6 +17,7 @@ public final class ThriftyCodeGenerator {
     static final ClassName STRING = ClassName.get(String.class);
     static final ClassName LIST = ClassName.get(List.class);
     static final ClassName MAP = ClassName.get(Map.class);
+    static final ClassName MAP_ENTRY = ClassName.get(Map.Entry.class);
     static final ClassName SET = ClassName.get(Set.class);
     static final ClassName BYTE_STRING = ClassName.get(ByteString.class);
 
@@ -71,7 +72,7 @@ public final class ThriftyCodeGenerator {
         // Add fields to both struct and builder classes
         for (Field field : type.fields()) {
             ThriftType fieldType = field.type();
-            TypeName fieldTypeName = getJavaClassName(fieldType);
+            TypeName fieldTypeName = getJavaClassName(fieldType.getTrueType());
 
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(fieldTypeName, field.name())
                     .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -128,7 +129,7 @@ public final class ThriftyCodeGenerator {
                 .addStatement("$N.writeStructBegin($S)", "protocol", type.name());
 
         for (Field field : type.fields()) {
-            switch (field.t)
+            writeField(writeMethod, "protocol", "struct", field);
         }
 
         writeMethod.addStatement("$N.writeFieldStop()", "protocol");
@@ -144,6 +145,104 @@ public final class ThriftyCodeGenerator {
                 .build());
 
         return structBuilder.build();
+    }
+
+    private void writeField(
+            MethodSpec.Builder method,
+            String proto,
+            String struct,
+            Field field) {
+
+        if (!field.required()) {
+            method.beginControlFlow("if ($N.$N != null)", struct, field.name());
+        }
+
+        ThriftType trueType = field.type().getTrueType();
+        byte typeCode = typeCode(trueType);
+
+        method.addStatement("$N.writeFieldBegin($S, $L, $L)", proto, field.name(), field.id(), typeCode);
+
+        if (trueType.isBuiltin()) {
+            String spec = getBuiltinWriteSpec(trueType);
+            String stmt = "$N." + spec + "($N.$N)";
+            method.addStatement(stmt, proto, struct, field);
+        } else if (trueType.isList()) {
+            ThriftType.ListType lt = (ThriftType.ListType) trueType;
+            ThriftType elementType = lt.elementType().getTrueType();
+
+            method.addStatement("$N.writeListBegin($L, $N.$N.size())",
+                    proto,
+                    typeCode(elementType),
+                    struct,
+                    field.name());
+            method.beginControlFlow("for ($T item : $N.$N)",
+                    getJavaClassName(elementType),
+                    struct,
+                    field.name());
+
+            // TODO: ...?
+
+            method.endControlFlow();
+            method.addStatement("$N.writeListEnd()", proto);
+        } else if (trueType.isSet()) {
+            ThriftType.SetType st = (ThriftType.SetType) trueType;
+            ThriftType elementType = st.elementType().getTrueType();
+
+            method.addStatement("$N.writeSetBegin($L, $N.$N.size())",
+                    proto,
+                    typeCode(elementType),
+                    struct,
+                    field.name());
+            method.beginControlFlow("for ($T item : $N.$N)",
+                    getJavaClassName(elementType),
+                    struct,
+                    field.name());
+
+            // TODO: ...?
+
+            method.endControlFlow();
+            method.addStatement("$N.writeSetEnd()", proto);
+        } else if (trueType.isMap()) {
+            ThriftType.MapType mt = (ThriftType.MapType) trueType;
+            ThriftType kt = mt.keyType().getTrueType();
+            ThriftType vt = mt.valueType().getTrueType();
+
+            TypeName keyClassName = getJavaClassName(kt);
+            TypeName valueClassName = getJavaClassName(vt);
+
+            method.addStatement("$N.writeMapBegin($L, $L, $N.$N.size())",
+                    proto,
+                    typeCode(kt),
+                    typeCode(vt),
+                    struct,
+                    field.name());
+
+            method.beginControlFlow("for ($T entry : $N.$N.entrySet())",
+                    ParameterizedTypeName.get(MAP_ENTRY, keyClassName, valueClassName),
+                    struct,
+                    field.name());
+
+            method.addStatement("$T key = entry.getKey()", keyClassName);
+            method.addStatement("$T value = entry.getValue()", valueClassName);
+
+            // TODO: ...?
+
+            method.endControlFlow();
+            method.addStatement("$N.writeMapEnd()", proto);
+        } else {
+            method.addStatement(
+                    "$T.ADAPTER.write($N, $N.$N)",
+                    getJavaClassName(trueType),
+                    proto,
+                    struct,
+                    field.name());
+        }
+
+        method.addStatement("$N.writeFieldEnd()");
+
+        if (!field.required()) {
+            method.endControlFlow();
+        }
     }
 
     private static AnnotationSpec fieldAnnotation(Field field) {
@@ -235,6 +334,10 @@ public final class ThriftyCodeGenerator {
     }
 
     private TypeName getJavaClassName(ThriftType type) {
+        if (type.isTypedef()) {
+            type = type.getTrueType();
+        }
+
         if (type.isBuiltin()) {
             if (ThriftType.BOOL == type) {
                 return ClassName.BOOLEAN.box();
@@ -269,6 +372,18 @@ public final class ThriftyCodeGenerator {
             }
 
             throw new AssertionError("Unexpected builtin type: " + type.name());
+        }
+
+        if (type.isList()) {
+            return listClassName;
+        }
+
+        if (type.isSet()) {
+            return setClassName;
+        }
+
+        if (type.isMap()) {
+            return mapClassName;
         }
 
         String packageName = type.getNamespace(NamespaceScope.JAVA);
@@ -339,5 +454,27 @@ public final class ThriftyCodeGenerator {
         }
 
         return TType.STRUCT;
+    }
+
+    private String getBuiltinWriteSpec(ThriftType type) {
+        if (type == ThriftType.BOOL) {
+            return "writeBool";
+        } else if (type == ThriftType.BYTE) {
+            return "writeByte";
+        } else if (type == ThriftType.I16) {
+            return "writeI16";
+        } else if (type == ThriftType.I32) {
+            return "writeI32";
+        } else if (type == ThriftType.I64) {
+            return "writeI64";
+        } else if (type == ThriftType.DOUBLE) {
+            return "writeDouble";
+        } else if (type == ThriftType.STRING) {
+            return "writeString";
+        } else if (type == ThriftType.BINARY) {
+            return "writeBinary";
+        } else {
+            throw new AssertionError("Non-writable builtin type: " + type.name());
+        }
     }
 }

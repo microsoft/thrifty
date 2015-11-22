@@ -23,16 +23,19 @@ public class StructType extends Named {
         this.fields = fieldsBuilder.build();
     }
 
-    public String name() {
-        return element.name();
-    }
-
+    @Override
     public ThriftType type() {
         return type;
     }
 
+    @Override
     public String documentation() {
         return element.documentation();
+    }
+
+    @Override
+    public Location location() {
+        return element.location();
     }
 
     public ImmutableList<Field> fields() {

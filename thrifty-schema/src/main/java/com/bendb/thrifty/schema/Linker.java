@@ -55,7 +55,13 @@ class Linker {
             linkUnionFields();
             linkServices();
 
-            linked = true;
+            validateConstants();
+            validateStructs();
+            validateExceptions();
+            validateUnions();
+            validateServices();
+
+            linked = !environment.hasErrors();
         } catch (LinkFailureException ignored) {
             // The relevant errors will have already been
             // added to the environment; just let the caller
@@ -179,6 +185,32 @@ class Linker {
         }
     }
 
+    private void validateConstants() {
+        for (Constant constant : program.constants()) {
+            try {
+                constant.validate(this);
+            } catch (IllegalStateException e) {
+                environment.addError(e.getMessage());
+            }
+        }
+    }
+
+    private void validateStructs() {
+
+    }
+
+    private void validateExceptions() {
+
+    }
+
+    private void validateUnions() {
+
+    }
+
+    private void validateServices() {
+
+    }
+
     private void register(Named type) {
         typesByName.put(type.name(), type.type());
     }
@@ -229,6 +261,11 @@ class Linker {
         }
 
         throw new TypedefResolutionException(type);
+    }
+
+    @Nullable
+    Named lookupSymbol(String symbol) {
+        return program.symbols().get(symbol);
     }
 
     private static class LinkFailureException extends RuntimeException {

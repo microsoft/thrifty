@@ -14,6 +14,8 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -34,6 +36,7 @@ public final class Program {
     private final ImmutableList<Service> services;
 
     private ImmutableList<Program> includedPrograms;
+    private ImmutableMap<String, Named> symbols;
 
     Program(ThriftFileElement element) {
         this.element = element;
@@ -84,7 +87,7 @@ public final class Program {
         for (EnumElement enumElement : element.enums()) {
             enums.add(new EnumType(
                     enumElement,
-                    ThriftType.get(enumElement.name()),
+                    ThriftType.enumType(enumElement.name()),
                     namespaces));
         }
         this.enums = enums.build();
@@ -164,18 +167,22 @@ public final class Program {
         return this.typedefs;
     }
 
+    public ImmutableMap<String, Named> symbols() {
+        return this.symbols;
+    }
+
     /**
      * Get all named elements declared in this Program.
      */
     public Iterable<Named> names() {
         FluentIterable<Named> iter = FluentIterable.of(new Named[0]);
         return iter
-                .append(typedefs)
                 .append(enums)
                 .append(structs)
                 .append(unions)
                 .append(exceptions)
-                .append(services);
+                .append(services)
+                .append(typedefs);
     }
 
     /**
@@ -184,21 +191,48 @@ public final class Program {
      * @param visited
      */
     void loadIncludedPrograms(Loader loader, Set<Program> visited) {
-        Preconditions.checkState(this.includedPrograms == null, "Included programs already resolved");
-
         if (!visited.add(this)) {
             if (includedPrograms == null) {
-                throw new AssertionError("Circular include: " + location().path() + " includes itself transitively");
+                throw new IllegalStateException("Circular include: " + location().path() + " includes itself transitively");
             }
             return;
         }
 
+        Preconditions.checkState(this.includedPrograms == null, "Included programs already resolved");
+
+        LinkedHashMap<String, Named> symbolMap = new LinkedHashMap<>();
         ImmutableList.Builder<Program> includes = ImmutableList.builder();
         for (String thriftImport : thriftIncludes) {
             Program included = loader.resolveIncludedProgram(location(), thriftImport);
+            included.loadIncludedPrograms(loader, visited);
             includes.add(included);
+
+            for (Map.Entry<String, Named> entry : included.symbols.entrySet()) {
+                String symbol = entry.getKey();
+                Named value = entry.getValue();
+
+                Named oldValue = symbolMap.put(symbol, value);
+                if (oldValue != null) {
+                    throw duplicateSymbol(symbol, oldValue, value);
+                }
+            }
         }
         this.includedPrograms = includes.build();
+
+        for (Named named : names()) {
+            Named oldValue = symbolMap.put(named.name(), named);
+            if (oldValue != null) {
+                throw duplicateSymbol(named.name(), oldValue, named);
+            }
+        }
+
+        this.symbols = ImmutableMap.copyOf(symbolMap);
+    }
+
+    private IllegalStateException duplicateSymbol(String symbol, Named oldValue, Named newValue) {
+        throw new IllegalStateException(
+                "Duplicate symbols: '" + symbol + "' defined at " +
+                oldValue.location() + " and at " + newValue.location());
     }
 
     @Override

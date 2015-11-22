@@ -138,7 +138,7 @@ public class LoaderTest {
                     .load();
             fail("Circular includes should fail to load");
         } catch (RuntimeException e) {
-            assertThat(e.getMessage(), containsString("Circular link detected"));
+            assertThat(e.getMessage(), containsString("Circular include"));
         }
     }
 
@@ -159,6 +159,41 @@ public class LoaderTest {
             fail("Circular typedefs should fail to link");
         } catch (RuntimeException ignored) {
         }
+    }
+
+    @Test
+    public void containerTypedefs() throws Exception {
+        String thrift = "" +
+                "typedef i32 StatusCode\n" +
+                "typedef string Message\n" +
+                "typedef map<StatusCode, Message> Messages";
+
+        File f = tempDir.newFile();
+        writeTo(f, thrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+
+        Schema schema = loader.load();
+
+        Typedef code = schema.typedefs().get(0);
+        Typedef msg = schema.typedefs().get(1);
+        Typedef map = schema.typedefs().get(2);
+
+        assertThat(code.name(), is("StatusCode"));
+        assertThat(code.oldType().isBuiltin(), is(true));
+        assertThat(code.oldType().name(), is("i32"));
+
+        assertThat(msg.name(), is("Message"));
+        assertThat(msg.oldType().isBuiltin(), is(true));
+        assertThat(msg.oldType().name(), is("string"));
+
+        assertThat(map.name(), is("Messages"));
+        assertThat(map.oldType().isMap(), is(true));
+
+        ThriftType.MapType mt = (ThriftType.MapType) map.oldType();
+        assertThat(mt.keyType(), sameInstance(code.type()));
+        assertThat(mt.valueType(), sameInstance(msg.type()));
     }
 
     private static void writeTo(File file, String content) throws IOException {

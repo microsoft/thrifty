@@ -37,6 +37,11 @@ public final class Service extends Named {
         return element.documentation();
     }
 
+    @Override
+    public Location location() {
+        return element.location();
+    }
+
     public ImmutableList<ServiceMethod> methods() {
         return methods;
     }
@@ -55,5 +60,10 @@ public final class Service extends Named {
         for (ServiceMethod method : methods) {
             method.link(linker);
         }
+    }
+
+    void validate(Linker linker) {
+        // TODO: Implement
+        throw new IllegalStateException("not implemented");
     }
 }

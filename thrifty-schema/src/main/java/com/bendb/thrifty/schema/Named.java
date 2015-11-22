@@ -26,6 +26,8 @@ public abstract class Named {
         return namespaces;
     }
 
+    public abstract String documentation();
+    public abstract Location location();
     public abstract ThriftType type();
 
     /**
