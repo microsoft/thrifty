@@ -38,7 +38,6 @@ subprojects { sp ->
     apply plugin: 'java'
     apply plugin: 'idea'
     apply plugin: 'checkstyle'
-//    apply plugin: 'findbugs'
 
     sourceCompatibility = '1.7'
     targetCompatibility = '1.7'
@@ -51,12 +50,5 @@ subprojects { sp ->
         configProperties = ["checkstyle.cache.file": file('build/checkstyle.cache')]
         showViolations = true
         sourceSets = [sourceSets.main]
-    }
-
-    tasks.withType(FindBugs) {
-        reports {
-            xml.enabled = false
-            html.enabled = true
-        }
     }
 }
