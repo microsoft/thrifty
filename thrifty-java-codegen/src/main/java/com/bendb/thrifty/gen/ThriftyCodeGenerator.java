@@ -66,7 +66,7 @@ public final class ThriftyCodeGenerator {
     static final ClassName TTYPE = ClassName.get(TType.class);
 
     static final ClassName BUILDER = ClassName.get(StructBuilder.class);
-    static final ClassName I_ADAPTER = ClassName.get(Adapter.class);
+    static final ClassName ADAPTER = ClassName.get(Adapter.class);
 
     static final ClassName FIELD_METADATA = ClassName.get(FieldMetadata.class);
 
@@ -113,7 +113,7 @@ public final class ThriftyCodeGenerator {
         String packageName = type.getNamespaceFor(NamespaceScope.JAVA);
         ClassName structTypeName = ClassName.get(packageName, type.name());
         ClassName builderTypeName = structTypeName.nestedClass("Builder");
-        TypeName adapterSuperclass = ParameterizedTypeName.get(I_ADAPTER, structTypeName, builderTypeName);
+        TypeName adapterSuperclass = ParameterizedTypeName.get(ADAPTER, structTypeName, builderTypeName);
 
         TypeSpec.Builder structBuilder = TypeSpec.classBuilder(type.name())
                 .addJavadoc(type.documentation())
@@ -236,7 +236,7 @@ public final class ThriftyCodeGenerator {
     }
 
     private TypeSpec adapterFor(StructType structType, ClassName structClassName, ClassName builderClassName) {
-        TypeName adapterSuperclass = ParameterizedTypeName.get(I_ADAPTER, structClassName, builderClassName);
+        TypeName adapterSuperclass = ParameterizedTypeName.get(ADAPTER, structClassName, builderClassName);
 
         final MethodSpec.Builder write = MethodSpec.methodBuilder("write")
                 .addAnnotation(Override.class)
