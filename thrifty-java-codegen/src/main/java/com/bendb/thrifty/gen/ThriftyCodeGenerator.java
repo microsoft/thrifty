@@ -629,7 +629,6 @@ public final class ThriftyCodeGenerator {
             read.beginControlFlow("if (field.typeId == $T.$L)", TTYPE, codeName);
 
             // something
-            read.addStatement("$T value = null", getJavaClassName(field.type()));
             nameStack.push("value");
             field.type().getTrueType().accept(this);
             nameStack.pop();
@@ -644,49 +643,49 @@ public final class ThriftyCodeGenerator {
 
         @Override
         public Void visitBool() {
-            read.addStatement("$N = protocol.readBool()", nameStack.peek());
+            read.addStatement("$T $N = protocol.readBool()", ClassName.BOOLEAN.box(), nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitByte() {
-            read.addStatement("$N = protocol.readByte()", nameStack.peek());
+            read.addStatement("$T $N = protocol.readByte()", ClassName.BYTE.box(), nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitI16() {
-            read.addStatement("$N = protocol.readI16()", nameStack.peek());
+            read.addStatement("$T $N = protocol.readI16()", ClassName.SHORT.box(), nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitI32() {
-            read.addStatement("$N = protocol.readI32()", nameStack.peek());
+            read.addStatement("$T $N = protocol.readI32()", ClassName.INT.box(), nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitI64() {
-            read.addStatement("$N = protocol.readI64()", nameStack.peek());
+            read.addStatement("$T $N = protocol.readI64()", ClassName.LONG.box(), nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitDouble() {
-            read.addStatement("$N = protocol.readDouble()", nameStack.peek());
+            read.addStatement("$T $N = protocol.readDouble()", ClassName.DOUBLE.box(), nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitString() {
-            read.addStatement("$N = protocol.readString()", nameStack.peek());
+            read.addStatement("$T $N = protocol.readString()", STRING, nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitBinary() {
-            read.addStatement("$N = protocol.readBinary()", nameStack.peek());
+            read.addStatement("$T $N = protocol.readBinary()", BYTE_STRING, nameStack.peek());
             return null;
         }
 
@@ -699,7 +698,7 @@ public final class ThriftyCodeGenerator {
         public Void visitEnum(ThriftType userType) {
             String target = nameStack.peek();
             TypeName enumType = getJavaClassName(userType);
-            read.addStatement("$N = $T.fromCode(protocol.readI32())", target, enumType);
+            read.addStatement("$T $N = $T.fromCode(protocol.readI32())", enumType, target, enumType);
             return null;
         }
 
@@ -712,25 +711,24 @@ public final class ThriftyCodeGenerator {
             TypeName listImplType = ParameterizedTypeName.get(listClassName, elementType);
 
             String listInfo = "listMetadata" + scope;
-            String list = scope == 0 ? "value" : "list" + scope;
             String idx = "i" + scope;
             String item = "item" + scope;
+
+            read.addStatement("$T $N = protocol.readListBegin()", LIST_META, listInfo);
+            read.addStatement("$T $N = new $T($N.size)", genericListType, nameStack.peek(), listImplType, listInfo);
+            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, listInfo, idx);
+
             ++scope;
             nameStack.push(item);
 
-            read.addStatement("$T $N = protocol.readListBegin()", LIST_META, listInfo);
-            read.addStatement("$T $N = new $T($N.size)", genericListType, list, listImplType, listInfo);
-            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, listInfo, idx);
-
-            read.addStatement("$T $N = null", getJavaClassName(listType.elementType().getTrueType()), item);
             listType.elementType().getTrueType().accept(this);
-            read.addStatement("$N.add($N)", list, item);
-
-            read.endControlFlow();
-            read.addStatement("protocol.readListEnd()");
 
             nameStack.pop();
             --scope;
+
+            read.addStatement("$N.add($N)", nameStack.peek(), item);
+            read.endControlFlow();
+            read.addStatement("protocol.readListEnd()");
 
             return null;
         }
@@ -744,25 +742,24 @@ public final class ThriftyCodeGenerator {
             TypeName setImplType = ParameterizedTypeName.get(setClassName, elementType);
 
             String setInfo = "setMetadata" + scope;
-            String set = scope == 0 ? "value" : "list" + scope;
             String idx = "i" + scope;
             String item = "item" + scope;
+
+            read.addStatement("$T $N = protocol.readSetBegin()", SET_META, setInfo);
+            read.addStatement("$T $N = new $T($N.size)", genericSetType, nameStack.peek(), setImplType, setInfo);
+            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, setInfo, idx);
+
             ++scope;
             nameStack.push(item);
 
-            read.addStatement("$T $N = protocol.readSetBegin()", SET_META, setInfo);
-            read.addStatement("$T $N = new $T($N.size)", genericSetType, set, setImplType, setInfo);
-            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, setInfo, idx);
-
-            read.addStatement("$T $N = null", elementType, item);
-            setType.elementType().getTrueType().accept(this);
-            read.addStatement("$N.add($N)", set, item);
-
-            read.endControlFlow();
-            read.addStatement("protocol.readSetEnd()");
+            setType.accept(this);
 
             nameStack.pop();
             --scope;
+
+            read.addStatement("$N.add($N)", nameStack.peek(), item);
+            read.endControlFlow();
+            read.addStatement("protocol.readSetEnd()");
 
             return null;
         }
@@ -777,18 +774,14 @@ public final class ThriftyCodeGenerator {
             TypeName mapImplType = ParameterizedTypeName.get(mapClassName, keyType, valueType);
 
             String mapInfo = "mapMetadata" + scope;
-            String map = scope == 0 ? "value" : "map" + scope;
             String idx = "i" + scope;
             String key = "key" + scope;
             String value = "value" + scope;
             ++scope;
 
             read.addStatement("$T $N = protocol.readMapBegin()", MAP_META, mapInfo);
-            read.addStatement("$T $N = new $T($N.size)", genericMapType, map, mapImplType, mapInfo);
+            read.addStatement("$T $N = new $T($N.size)", genericMapType, nameStack.peek(), mapImplType, mapInfo);
             read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, mapInfo, idx);
-
-            read.addStatement("$T $N = null", keyType, key);
-            read.addStatement("$T $N = null", valueType, value);
 
             nameStack.push(key);
             mapType.keyType().accept(this);
@@ -798,7 +791,7 @@ public final class ThriftyCodeGenerator {
             mapType.valueType().accept(this);
             nameStack.pop();
 
-            read.addStatement("$N.put($N, $N)", map, key, value);
+            read.addStatement("$N.put($N, $N)", nameStack.peek(), key, value);
 
             read.endControlFlow();
             read.addStatement("protocol.readMapEnd()");
@@ -810,7 +803,8 @@ public final class ThriftyCodeGenerator {
 
         @Override
         public Void visitUserType(ThriftType userType) {
-            read.addStatement("$N = $T.ADAPTER.read(protocol)", nameStack.peek(), getJavaClassName(userType));
+            TypeName typeName = getJavaClassName(userType);
+            read.addStatement("$T $N = $T.ADAPTER.read(protocol)", typeName, nameStack.peek(), typeName);
             return null;
         }
 
