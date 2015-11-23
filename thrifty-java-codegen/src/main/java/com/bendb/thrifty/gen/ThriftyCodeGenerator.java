@@ -3,7 +3,6 @@ package com.bendb.thrifty.gen;
 import com.bendb.thrifty.Adapter;
 import com.bendb.thrifty.StructBuilder;
 import com.bendb.thrifty.TType;
-import com.bendb.thrifty.ThriftAdapter;
 import com.bendb.thrifty.ThriftField;
 import com.bendb.thrifty.protocol.FieldMetadata;
 import com.bendb.thrifty.protocol.ListMetadata;
@@ -220,7 +219,10 @@ public final class ThriftyCodeGenerator {
             } else {
                 if (field.required()) {
                     buildMethodBuilder.beginControlFlow("if (this.$N == null)", fieldName);
-                    buildMethodBuilder.addStatement("throw new $T($S)", PROTOCOL_EXCEPTION, "Required field " + fieldName + " is missing");
+                    buildMethodBuilder.addStatement(
+                            "throw new $T($S)",
+                            PROTOCOL_EXCEPTION,
+                            "Required field '" + fieldName + "' is missing");
                     buildMethodBuilder.endControlFlow();
                 }
             }
@@ -232,7 +234,11 @@ public final class ThriftyCodeGenerator {
         if (structType.isUnion()) {
             buildMethodBuilder
                     .beginControlFlow("if (setFields != 1)")
-                    .addStatement("throw new $T($S + setFields + $S)", PROTOCOL_EXCEPTION, "Invalid union; ", " field(s) were set")
+                    .addStatement(
+                            "throw new $T($S + setFields + $S)",
+                            PROTOCOL_EXCEPTION,
+                            "Invalid union; ",
+                            " field(s) were set")
                     .endControlFlow();
         }
 
@@ -407,7 +413,7 @@ public final class ThriftyCodeGenerator {
     }
 
     /**
-     * Generates Java code to write the value of a field in a {@link ThriftAdapter#write}
+     * Generates Java code to write the value of a field in a {@link Adapter#write}
      * implementation.
      *
      * Handles nested values like lists, sets, maps, and user types.
@@ -602,7 +608,7 @@ public final class ThriftyCodeGenerator {
      * Generates Java code to read a field's value from an open Protocol object.
      *
      * Assumptions:
-     * We are inside of {@link ThriftAdapter#read(Protocol)}.  Further, we are
+     * We are inside of {@link Adapter#read(Protocol)}.  Further, we are
      * inside of a single case block for a single field.  There are variables
      * in scope named "protocol" and "builder", representing the connection and
      * the struct builder.
