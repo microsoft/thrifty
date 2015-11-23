@@ -340,6 +340,10 @@ public final class ThriftyCodeGenerator {
     }
 
     TypeSpec buildEnum(EnumType type) {
+        ClassName enumClassName = ClassName.get(
+                type.getNamespaceFor(NamespaceScope.JAVA),
+                type.name());
+
         TypeSpec.Builder builder = TypeSpec.enumBuilder(type.name())
                 .addJavadoc(type.documentation())
                 .addModifiers(Modifier.PUBLIC)
@@ -349,6 +353,11 @@ public final class ThriftyCodeGenerator {
                         .addStatement("this.$N = $N", "code", "code")
                         .build());
 
+        MethodSpec.Builder fromCodeMethod = MethodSpec.methodBuilder("fromCode")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(enumClassName)
+                .addParameter(int.class, "code")
+                .beginControlFlow("switch (code)");
 
         for (EnumType.Member member : type.members()) {
             String name = member.name();
@@ -359,26 +368,15 @@ public final class ThriftyCodeGenerator {
                     name, TypeSpec.anonymousClassBuilder("$L", value)
                             .addJavadoc(member.documentation())
                             .build());
+
+            fromCodeMethod.addStatement("case $L: return $N", value, name);
         }
 
-        ClassName enumClassName = ClassName.get(
-                type.getNamespaceFor(NamespaceScope.JAVA), type.name());
+        fromCodeMethod
+                .addStatement("default: return null")
+                .endControlFlow();
 
-        MethodSpec fromCodeMethod = MethodSpec.methodBuilder("fromCode")
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .returns(enumClassName)
-                .addParameter(int.class, "code")
-                .addCode(CodeBlock.builder()
-                        .beginControlFlow("for ($T value : values())", enumClassName)
-                        .beginControlFlow("if (value.code == code)")
-                        .addStatement("return value")
-                        .endControlFlow()
-                        .endControlFlow()
-                        .addStatement("return null")
-                        .build())
-                .build();
-
-        builder.addMethod(fromCodeMethod);
+        builder.addMethod(fromCodeMethod.build());
 
         return builder.build();
     }
