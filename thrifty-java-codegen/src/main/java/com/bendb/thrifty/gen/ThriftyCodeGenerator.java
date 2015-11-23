@@ -21,7 +21,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.NameAllocator;
@@ -29,7 +28,10 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import okio.ByteString;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
+import javax.annotation.Generated;
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
 import java.net.ProtocolException;
@@ -46,6 +48,12 @@ import java.util.Set;
 
 public final class ThriftyCodeGenerator {
     public static final String ADAPTER_FIELDNAME = "ADAPTER";
+
+    private static final DateTimeFormatter DATE_FORMATTER = ISODateTimeFormat.dateTime();
+
+    /*
+     * ClassName constants used extensively in generated code.
+     */
 
     static final ClassName STRING = ClassName.get(String.class);
     static final ClassName LIST = ClassName.get(List.class);
@@ -117,6 +125,7 @@ public final class ThriftyCodeGenerator {
 
         TypeSpec.Builder structBuilder = TypeSpec.classBuilder(type.name())
                 .addJavadoc(type.documentation())
+                .addAnnotation(generatedAnnotation())
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
 
         if (type.isException()) {
@@ -339,6 +348,13 @@ public final class ThriftyCodeGenerator {
         return ann.build();
     }
 
+    private static AnnotationSpec generatedAnnotation() {
+        return AnnotationSpec.builder(Generated.class)
+                .addMember("value", "$S", ThriftyCodeGenerator.class.getCanonicalName())
+                .addMember("date", "$S", DATE_FORMATTER.print(System.currentTimeMillis()))
+                .build();
+    }
+
     TypeSpec buildEnum(EnumType type) {
         ClassName enumClassName = ClassName.get(
                 type.getNamespaceFor(NamespaceScope.JAVA),
@@ -346,6 +362,7 @@ public final class ThriftyCodeGenerator {
 
         TypeSpec.Builder builder = TypeSpec.enumBuilder(type.name())
                 .addJavadoc(type.documentation())
+                .addAnnotation(generatedAnnotation())
                 .addModifiers(Modifier.PUBLIC)
                 .addField(int.class, "code", Modifier.PUBLIC, Modifier.FINAL)
                 .addMethod(MethodSpec.constructorBuilder()
