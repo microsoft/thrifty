@@ -5,10 +5,8 @@ import com.bendb.thrifty.schema.parser.StructElement;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class StructType extends Named {
     private final StructElement element;
