@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -29,6 +30,7 @@ import java.util.Collections;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
+@Ignore("Used to manually inspect code generation")
 public class ThriftyCodeGeneratorTest {
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
 

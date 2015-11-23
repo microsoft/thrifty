@@ -37,32 +37,29 @@ public final class ProtocolUtil {
                 protocol.readStructEnd();
                 break;
 
-            case TType.LIST: {
+            case TType.LIST:
                 ListMetadata listMetadata = protocol.readListBegin();
                 for (int i = 0; i < listMetadata.size; ++i) {
                     skip(protocol, listMetadata.elementTypeId);
                 }
                 protocol.readListEnd();
-            }
             break;
 
-            case TType.SET: {
+            case TType.SET:
                 SetMetadata setMetadata = protocol.readSetBegin();
                 for (int i = 0; i < setMetadata.size; ++i) {
                     skip(protocol, setMetadata.elementTypeId);
                 }
                 protocol.readSetEnd();
-            }
             break;
 
-            case TType.MAP: {
+            case TType.MAP:
                 MapMetadata mapMetadata = protocol.readMapBegin();
                 for (int i = 0; i < mapMetadata.size; ++i) {
                     skip(protocol, mapMetadata.keyTypeId);
                     skip(protocol, mapMetadata.valueTypeId);
                 }
                 protocol.readMapEnd();
-            }
             break;
         }
     }
