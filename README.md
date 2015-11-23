@@ -2,6 +2,8 @@ Thrifty
 
 "It's like Thrift, but cheaper"
 
+[![Build Status](https://travis-ci.org/benjamin-bader/thrifty.svg?branch=master)](https://travis-ci.org/benjamin-bader/thrifty)
+
 Thrift is super cool, with a nifty interface definition language from which to generate types and RPC implementations.
 Unfortunately for Android devs, the canonical implementation generates very verbose and method-heavy Java code.
 
