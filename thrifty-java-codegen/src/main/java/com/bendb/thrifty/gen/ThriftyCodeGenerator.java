@@ -758,7 +758,7 @@ public final class ThriftyCodeGenerator {
             ++scope;
             nameStack.push(item);
 
-            setType.accept(this);
+            setType.elementType().accept(this);
 
             nameStack.pop();
             --scope;
