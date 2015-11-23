@@ -1,15 +1,48 @@
 package com.bendb.thrifty.gen;
 
-import com.bendb.thrifty.*;
-import com.bendb.thrifty.schema.*;
+import com.bendb.thrifty.Adapter;
+import com.bendb.thrifty.StructBuilder;
+import com.bendb.thrifty.TType;
+import com.bendb.thrifty.ThriftAdapter;
+import com.bendb.thrifty.ThriftField;
+import com.bendb.thrifty.protocol.FieldMetadata;
+import com.bendb.thrifty.protocol.ListMetadata;
+import com.bendb.thrifty.protocol.MapMetadata;
+import com.bendb.thrifty.protocol.SetMetadata;
+import com.bendb.thrifty.protocol.StructMetadata;
 import com.bendb.thrifty.protocol.Protocol;
+import com.bendb.thrifty.schema.EnumType;
+import com.bendb.thrifty.schema.Field;
+import com.bendb.thrifty.schema.NamespaceScope;
+import com.bendb.thrifty.schema.StructType;
+import com.bendb.thrifty.schema.ThriftType;
+import com.bendb.thrifty.util.ProtocolUtil;
 import com.google.common.base.Strings;
-import com.squareup.javapoet.*;
+import com.google.common.collect.ImmutableMap;
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.NameAllocator;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
 import okio.ByteString;
 
 import javax.lang.model.element.Modifier;
+import java.io.IOException;
 import java.net.ProtocolException;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class ThriftyCodeGenerator {
     public static final String ADAPTER_FIELDNAME = "ADAPTER";
@@ -21,14 +54,45 @@ public final class ThriftyCodeGenerator {
     static final ClassName SET = ClassName.get(Set.class);
     static final ClassName BYTE_STRING = ClassName.get(ByteString.class);
 
-    static final ClassName TADAPTER = ClassName.get(ThriftAdapter.class);
-    static final ClassName TSTRUCT = ClassName.get(TStruct.class);
-    static final ClassName TBUILDER = ClassName.get(TStruct.Builder.class);
+    static final ClassName LIST_META = ClassName.get(ListMetadata.class);
+    static final ClassName SET_META = ClassName.get(SetMetadata.class);
+    static final ClassName MAP_META = ClassName.get(MapMetadata.class);
+    static final ClassName STRUCT_META = ClassName.get(StructMetadata.class);
+    static final ClassName FIELD_META = ClassName.get(FieldMetadata.class);
+
     static final ClassName TPROTOCOL = ClassName.get(Protocol.class);
+    static final ClassName TPROTO_UTIL = ClassName.get(ProtocolUtil.class);
     static final ClassName PROTOCOL_EXCEPTION = ClassName.get(ProtocolException.class);
-    static final ClassName TEXCEPTION = ClassName.get(TException.class);
-    static final ClassName TFIELD = ClassName.get(ThriftField.class);
     static final ClassName TTYPE = ClassName.get(TType.class);
+
+    static final ClassName BUILDER = ClassName.get(StructBuilder.class);
+    static final ClassName I_ADAPTER = ClassName.get(Adapter.class);
+
+    static final ClassName FIELD_METADATA = ClassName.get(FieldMetadata.class);
+
+    /**
+     * A mapping of {@link TType} constant values to their Java names.
+     */
+    static final ImmutableMap<Byte, String> TTYPE_NAMES;
+
+    static {
+        ImmutableMap.Builder<Byte, String> map = ImmutableMap.builder();
+        map.put(TType.BOOL, "BOOL");
+        map.put(TType.BYTE, "BYTE");
+        map.put(TType.I16, "I16");
+        map.put(TType.I32, "I32");
+        map.put(TType.I64, "I64");
+        map.put(TType.DOUBLE, "DOUBLE");
+        map.put(TType.STRING, "STRING");
+        map.put(TType.ENUM, "ENUM");
+        map.put(TType.STRUCT, "STRUCT");
+        map.put(TType.LIST, "LIST");
+        map.put(TType.SET, "SET");
+        map.put(TType.MAP, "MAP");
+        map.put(TType.VOID, "VOID");
+        map.put(TType.STOP, "STOP");
+        TTYPE_NAMES = map.build();
+    }
 
     private final Map<String, ClassName> nameCache = new LinkedHashMap<>();
     private final ClassName listClassName = ClassName.get(ArrayList.class);
@@ -48,22 +112,25 @@ public final class ThriftyCodeGenerator {
     TypeSpec buildStruct(StructType type) {
         String packageName = type.getNamespaceFor(NamespaceScope.JAVA);
         ClassName structTypeName = ClassName.get(packageName, type.name());
-        ClassName builderTypeName = ClassName.get(packageName, type.name(), "Builder");
-        TypeName structSuperclass = ParameterizedTypeName.get(TSTRUCT, structTypeName, builderTypeName);
-        TypeName builderSuperclass = ParameterizedTypeName.get(TBUILDER, structTypeName, builderTypeName);
-        TypeName adapterSuperclass = ParameterizedTypeName.get(TADAPTER, structTypeName);
+        ClassName builderTypeName = structTypeName.nestedClass("Builder");
+        TypeName adapterSuperclass = ParameterizedTypeName.get(I_ADAPTER, structTypeName, builderTypeName);
 
         TypeSpec.Builder structBuilder = TypeSpec.classBuilder(type.name())
-                .superclass(structSuperclass)
                 .addJavadoc(type.documentation())
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
 
-        TypeSpec.Builder builderBuilder = TypeSpec.classBuilder("Builder")
-                .superclass(builderSuperclass)
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
+        if (type.isException()) {
+            structBuilder.superclass(Exception.class);
+        }
 
-        TypeSpec.Builder adapterBuilder = TypeSpec.anonymousClassBuilder("")
-                .superclass(adapterSuperclass);
+        TypeSpec builderSpec = builderFor(type, structTypeName, builderTypeName);
+        TypeSpec adapterSpec = adapterFor(type, structTypeName, builderTypeName);
+
+        structBuilder.addType(builderSpec);
+        structBuilder.addField(FieldSpec.builder(adapterSuperclass, ADAPTER_FIELDNAME)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                .initializer("$L", adapterSpec)
+                .build());
 
         MethodSpec.Builder ctor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE)
@@ -82,173 +149,187 @@ public final class ThriftyCodeGenerator {
                 fieldBuilder = fieldBuilder.addJavadoc(field.documentation());
             }
 
-            structBuilder.addField(fieldBuilder
-                    .build());
-
-            // Add a builder field and setter method for the new field
-            builderBuilder.addField(
-                    FieldSpec.builder(fieldTypeName, field.name(), Modifier.PRIVATE).build());
-
-            MethodSpec.Builder builderMethod = MethodSpec.methodBuilder(field.name())
-                    .addParameter(fieldTypeName, field.name())
-                    .returns(builderTypeName);
-
-            if (field.required()) {
-                builderMethod
-                        .beginControlFlow("if ($N == null)", field.name())
-                        .addStatement("throw new NullPointerException($S)", field.name())
-                        .endControlFlow();
-            }
-
-            builderMethod
-                    .addStatement("this.$N = $N", field.name(), field.name())
-                    .addStatement("return this");
-
-            builderBuilder.addMethod(builderMethod.build());
+            structBuilder.addField(fieldBuilder.build());
 
             // Update the struct ctor
-            if (field.required()) {
-                ctor.beginControlFlow("if (builder.$N == null)", field.name());
-                ctor.addStatement("throw new $T($S)", PROTOCOL_EXCEPTION, "Missing required field: " + field.name());
-                ctor.endControlFlow();
-            }
-
             ctor.addStatement("this.$N = builder.$N", field.name(), field.name());
         }
 
-        builderBuilder.addMethod(MethodSpec.methodBuilder("build")
-                .returns(structTypeName)
-                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addStatement("return new $T(this)", structTypeName)
-                .build());
-
-        MethodSpec.Builder writeMethod = MethodSpec.methodBuilder("write")
-                .addAnnotation(Override.class)
-                .addParameter(TPROTOCOL, "protocol")
-                .addParameter(structTypeName, "struct")
-                .addStatement("$N.writeStructBegin($S)", "protocol", type.name());
-
-        for (Field field : type.fields()) {
-            writeField(writeMethod, "protocol", "struct", field);
-        }
-
-        writeMethod.addStatement("$N.writeFieldStop()", "protocol");
-        writeMethod.addStatement("$N.writeStructEnd()", "protocol");
-
-        adapterBuilder.addMethod(writeMethod.build());
-
         structBuilder.addMethod(ctor.build());
-        structBuilder.addType(builderBuilder.build());
-        structBuilder.addField(FieldSpec.builder(adapterSuperclass, ADAPTER_FIELDNAME)
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                .initializer("$L", adapterBuilder.build())
-                .build());
+
 
         return structBuilder.build();
     }
 
-    private void writeField(
-            MethodSpec.Builder method,
-            String proto,
-            String struct,
-            Field field) {
+    private TypeSpec builderFor(
+            StructType structType,
+            ClassName structClassName,
+            ClassName builderClassName) {
+        TypeName builderSuperclassName = ParameterizedTypeName.get(BUILDER, structClassName);
+        TypeSpec.Builder builder = TypeSpec.classBuilder("Builder")
+                .addSuperinterface(builderSuperclassName)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                .addMethod(MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC).build());
 
-        if (!field.required()) {
-            method.beginControlFlow("if ($N.$N != null)", struct, field.name());
+        MethodSpec.Builder buildMethodBuilder = MethodSpec.methodBuilder("build")
+                .addAnnotation(Override.class)
+                .returns(structClassName)
+                .addModifiers(Modifier.PUBLIC);
+
+        MethodSpec.Builder resetBuilder = MethodSpec.methodBuilder("reset")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC);
+
+        MethodSpec.Builder copyCtor = MethodSpec.constructorBuilder()
+                .addParameter(structClassName, "struct");
+
+        if (structType.isUnion()) {
+            buildMethodBuilder.addStatement("int setFields = 0");
         }
 
-        ThriftType trueType = field.type().getTrueType();
-        byte typeCode = typeCode(trueType);
+        for (Field field : structType.fields()) {
+            TypeName javaTypeName = getJavaClassName(field.type());
+            String fieldName = field.name();
+            FieldSpec.Builder f = FieldSpec.builder(javaTypeName, fieldName, Modifier.PRIVATE);
+            builder.addField(f.build());
 
-        method.addStatement("$N.writeFieldBegin($S, $L, $L)", proto, field.name(), field.id(), typeCode);
+            MethodSpec setter = MethodSpec.methodBuilder(fieldName)
+                    .addModifiers(Modifier.PUBLIC)
+                    .returns(builderClassName)
+                    .addParameter(javaTypeName, fieldName)
+                    .addStatement("this.$N = $N", fieldName, fieldName)
+                    .addStatement("return this")
+                    .build();
 
-        if (trueType.isBuiltin()) {
-            String spec = getBuiltinWriteSpec(trueType);
-            String stmt = "$N." + spec + "($N.$N)";
-            method.addStatement(stmt, proto, struct, field);
-        } else if (trueType.isList()) {
-            ThriftType.ListType lt = (ThriftType.ListType) trueType;
-            ThriftType elementType = lt.elementType().getTrueType();
+            builder.addMethod(setter);
 
-            method.addStatement("$N.writeListBegin($L, $N.$N.size())",
-                    proto,
-                    typeCode(elementType),
-                    struct,
-                    field.name());
-            method.beginControlFlow("for ($T item : $N.$N)",
-                    getJavaClassName(elementType),
-                    struct,
-                    field.name());
+            if (structType.isUnion()) {
+                buildMethodBuilder
+                        .beginControlFlow("if (this.$N != null)")
+                        .addStatement("++setFields")
+                        .endControlFlow();
+            } else {
+                if (field.required()) {
+                    buildMethodBuilder.beginControlFlow("if (this.$N == null)");
+                    buildMethodBuilder.addStatement("throw new $T($S)", PROTOCOL_EXCEPTION, "Required field " + fieldName + " is missing");
+                    buildMethodBuilder.endControlFlow();
+                }
+            }
 
-            // TODO: ...?
-
-            method.endControlFlow();
-            method.addStatement("$N.writeListEnd()", proto);
-        } else if (trueType.isSet()) {
-            ThriftType.SetType st = (ThriftType.SetType) trueType;
-            ThriftType elementType = st.elementType().getTrueType();
-
-            method.addStatement("$N.writeSetBegin($L, $N.$N.size())",
-                    proto,
-                    typeCode(elementType),
-                    struct,
-                    field.name());
-            method.beginControlFlow("for ($T item : $N.$N)",
-                    getJavaClassName(elementType),
-                    struct,
-                    field.name());
-
-            // TODO: ...?
-
-            method.endControlFlow();
-            method.addStatement("$N.writeSetEnd()", proto);
-        } else if (trueType.isMap()) {
-            ThriftType.MapType mt = (ThriftType.MapType) trueType;
-            ThriftType kt = mt.keyType().getTrueType();
-            ThriftType vt = mt.valueType().getTrueType();
-
-            TypeName keyClassName = getJavaClassName(kt);
-            TypeName valueClassName = getJavaClassName(vt);
-
-            method.addStatement("$N.writeMapBegin($L, $L, $N.$N.size())",
-                    proto,
-                    typeCode(kt),
-                    typeCode(vt),
-                    struct,
-                    field.name());
-
-            method.beginControlFlow("for ($T entry : $N.$N.entrySet())",
-                    ParameterizedTypeName.get(MAP_ENTRY, keyClassName, valueClassName),
-                    struct,
-                    field.name());
-
-            method.addStatement("$T key = entry.getKey()", keyClassName);
-            method.addStatement("$T value = entry.getValue()", valueClassName);
-
-            // TODO: ...?
-
-            method.endControlFlow();
-            method.addStatement("$N.writeMapEnd()", proto);
-        } else {
-            method.addStatement(
-                    "$T.ADAPTER.write($N, $N.$N)",
-                    getJavaClassName(trueType),
-                    proto,
-                    struct,
-                    field.name());
+            resetBuilder.addStatement("this.$N = null", fieldName);
+            copyCtor.addStatement("this.$N = $N.$N", fieldName, "struct", fieldName);
         }
 
-        method.addStatement("$N.writeFieldEnd()");
-
-        if (!field.required()) {
-            method.endControlFlow();
+        if (structType.isUnion()) {
+            buildMethodBuilder
+                    .beginControlFlow("if (setFields != 1)")
+                    .addStatement("throw new $T($S + setFields + $S)", PROTOCOL_EXCEPTION, "Invalid union; ", " field(s) were set")
+                    .endControlFlow();
         }
+
+        buildMethodBuilder.addStatement("return new $T(this)", structClassName);
+        builder.addMethod(copyCtor.build());
+        builder.addMethod(buildMethodBuilder.build());
+        builder.addMethod(resetBuilder.build());
+
+        return builder.build();
+    }
+
+    private TypeSpec adapterFor(StructType structType, ClassName structClassName, ClassName builderClassName) {
+        TypeName adapterSuperclass = ParameterizedTypeName.get(I_ADAPTER, structClassName, builderClassName);
+
+        final MethodSpec.Builder write = MethodSpec.methodBuilder("write")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(TPROTOCOL, "protocol")
+                .addParameter(structClassName, "struct")
+                .addException(IOException.class);
+
+        final MethodSpec.Builder read = MethodSpec.methodBuilder("read")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(getJavaClassName(structType.type()))
+                .addParameter(TPROTOCOL, "protocol")
+                .addParameter(builderClassName, "builder")
+                .addException(IOException.class);
+
+        final MethodSpec readHelper = MethodSpec.methodBuilder("read")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(getJavaClassName(structType.type()))
+                .addParameter(TPROTOCOL, "protocol")
+                .addException(IOException.class)
+                .addStatement("return read(protocol, new $T())", builderClassName)
+                .build();
+
+        // First, the writer
+        write.addStatement("protocol.writeStructBegin($S)", structType.name());
+
+        // Then, the reader - set up the field-reading loop.
+        read.addStatement("protocol.readStructBegin()");
+        read.beginControlFlow("while (true)");
+        read.addStatement("$T field = protocol.readFieldBegin()", FIELD_METADATA);
+        read.beginControlFlow("if (field.fieldId == $T.STOP)", TTYPE);
+        read.addStatement("break");
+        read.endControlFlow();
+
+        if (structType.fields().size() > 0) {
+            read.beginControlFlow("switch (field.fieldId)");
+        }
+
+        for (Field field : structType.fields()) {
+            boolean optional = !field.required();
+            final String name = field.name();
+            final ThriftType tt = field.type().getTrueType();
+            byte typeCode = typeCode(tt);
+            String typeCodeName = TTYPE_NAMES.get(typeCode);
+
+            // Write
+            if (optional) {
+                write.beginControlFlow("if (struct.$N != null)", name);
+            }
+
+            write.addStatement("protocol.writeFieldBegin($S, $L, $T.$L)", name,  field.id(), TTYPE, typeCodeName);
+
+            tt.accept(new GenerateWriterVisitor(write, "protocol", "struct", field));
+
+            write.addStatement("protocol.writeFieldEnd()");
+
+            if (optional) {
+                write.endControlFlow();
+            }
+
+            // Read
+            read.beginControlFlow("case $L:", field.id());
+            new GenerateReaderVisitor(read, field).generate();
+            read.endControlFlow(); // end case block
+            read.addStatement("break");
+
+        }
+
+        write.addStatement("protocol.writeFieldStop()");
+        write.addStatement("protocol.writeStructEnd()");
+
+        if (structType.fields().size() > 0) {
+            read.endControlFlow(); //
+        }
+
+        read.addStatement("protocol.readFieldEnd()");
+        read.endControlFlow(); // end while
+        read.addStatement("return builder.build()");
+
+        return TypeSpec.anonymousClassBuilder("")
+                .superclass(adapterSuperclass)
+                .addMethod(write.build())
+                .addMethod(read.build())
+                .addMethod(readHelper)
+                .build();
     }
 
     private static AnnotationSpec fieldAnnotation(Field field) {
         AnnotationSpec.Builder ann = AnnotationSpec.builder(ThriftField.class)
-                .addMember("tag", "$L", field.id())
-                .addMember("required", "$L", field.required());
+                .addMember("fieldId", "$L", field.id())
+                .addMember("isRequired", "$L", field.required());
 
         String typedef = field.typedefName();
         if (!Strings.isNullOrEmpty(typedef)) {
@@ -297,184 +378,620 @@ public final class ThriftyCodeGenerator {
                         .build())
                 .build();
 
-        ParameterizedTypeName adapterTypeName = ParameterizedTypeName.get(TADAPTER, enumClassName);
-
-        TypeSpec adapter = TypeSpec.anonymousClassBuilder("")
-                .superclass(adapterTypeName)
-                .addMethod(MethodSpec.methodBuilder("read")
-                        .addAnnotation(Override.class)
-                        .returns(enumClassName)
-                        .addException(PROTOCOL_EXCEPTION)
-                        .addParameter(TPROTOCOL, "protocol")
-                        .addStatement("int code = $N.readI32()", "protocol")
-                        .addStatement("$T value = $T.fromCode(code)", enumClassName, enumClassName)
-                        .beginControlFlow("if (value == null)")
-                        .addStatement("throw new $T($S)", PROTOCOL_EXCEPTION, "Invalid enum value")
-                        .endControlFlow()
-                        .addStatement("return value")
-                        .build())
-                .addMethod(MethodSpec.methodBuilder("write")
-                        .addException(PROTOCOL_EXCEPTION)
-                        .addParameter(TPROTOCOL, "protocol")
-                        .addParameter(enumClassName, "value")
-                        .addStatement("$N.writeI32($N.code)", "protocol", "value")
-                        .build())
-                .build();
-
-        FieldSpec.Builder adapterField = FieldSpec.builder(
-                        adapterTypeName,
-                        ADAPTER_FIELDNAME,
-                        Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                .initializer("$L", adapter);
-
         builder.addMethod(fromCodeMethod);
-        builder.addField(adapterField.build());
 
         return builder.build();
     }
 
     private TypeName getJavaClassName(ThriftType type) {
-        if (type.isTypedef()) {
-            type = type.getTrueType();
-        }
-
-        if (type.isBuiltin()) {
-            if (ThriftType.BOOL == type) {
-                return ClassName.BOOLEAN.box();
-            }
-
-            if (ThriftType.BYTE == type) {
-                return ClassName.BYTE.box();
-            }
-
-            if (ThriftType.I16 == type) {
-                return ClassName.SHORT.box();
-            }
-
-            if (ThriftType.I32 == type) {
-                return ClassName.INT.box();
-            }
-
-            if (ThriftType.I64 == type) {
-                return ClassName.LONG.box();
-            }
-
-            if (ThriftType.DOUBLE == type) {
-                return ClassName.DOUBLE.box();
-            }
-
-            if (ThriftType.STRING == type) {
-                return STRING;
-            }
-
-            if (ThriftType.BINARY == type) {
-                return BYTE_STRING;
-            }
-
-            throw new AssertionError("Unexpected builtin type: " + type.name());
-        }
-
-        if (type.isList()) {
-            return listClassName;
-        }
-
-        if (type.isSet()) {
-            return setClassName;
-        }
-
-        if (type.isMap()) {
-            return mapClassName;
-        }
-
-        String packageName = type.getNamespace(NamespaceScope.JAVA);
-        if (packageName == null) {
-            throw new AssertionError("Missing namespace.  Did you forget to add 'namespace java'?");
-        }
-
-        String key = packageName + "##" + type.name();
-        ClassName cn = nameCache.get(key);
-        if (cn == null) {
-            cn = ClassName.get(packageName, type.name());
-            nameCache.put(key, cn);
-        }
-        return cn;
+        return type.getTrueType().accept(typeNameVisitor);
     }
 
     private byte typeCode(ThriftType type) {
-        if (type.isBuiltin()) {
-            if (ThriftType.BOOL == type) {
-                return TType.BOOL;
-            }
+        return type.getTrueType().accept(TYPE_CODE_VISITOR);
+    }
 
-            if (ThriftType.BYTE == type) {
-                return TType.BYTE;
-            }
+    /**
+     * Generates Java code to write the value of a field in a {@link ThriftAdapter#write}
+     * implementation.
+     *
+     * Handles nested values like lists, sets, maps, and user types.
+     */
+    class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
+        private MethodSpec.Builder write;
+        private String proto;
+        private Deque<String> nameStack = new LinkedList<>();
+        private NameAllocator nameAllocator;
+        private int scopeLevel;
 
-            if (ThriftType.I16 == type) {
-                return TType.I16;
-            }
-
-            if (ThriftType.I32 == type) {
-                return TType.I32;
-            }
-
-            if (ThriftType.I64 == type) {
-                return TType.I64;
-            }
-
-            if (ThriftType.DOUBLE == type) {
-                return TType.DOUBLE;
-            }
-
-            if (ThriftType.STRING == type) {
-                return TType.STRING;
-            }
-
-            if (ThriftType.BINARY == type) {
-                return TType.STRING;
-            }
-
-            throw new AssertionError("Unexpected builtin type: " + type.name());
+        GenerateWriterVisitor(
+                MethodSpec.Builder write,
+                String proto,
+                String subject,
+                Field field) {
+            this.write = write;
+            this.proto = proto;
+            nameStack.push(subject + "." + field.name());
         }
 
-        if (type.isList()) {
-            return TType.LIST;
+        public Void visitBool() {
+            write.addStatement("$N.writeBool($L)", proto, nameStack.peek());
+            return null;
         }
 
-        if (type.isMap()) {
-            return TType.MAP;
+        @Override
+        public Void visitByte() {
+            write.addStatement("$N.writeByte($L)", proto, nameStack.peek());
+            return null;
         }
 
-        if (type.isSet()) {
-            return TType.SET;
+        @Override
+        public Void visitI16() {
+            write.addStatement("$N.writeI16($L)", proto, nameStack.peek());
+            return null;
         }
 
-        if (type.isEnum()) {
+        @Override
+        public Void visitI32() {
+            write.addStatement("$N.writeI32($L)", proto, nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitI64() {
+            write.addStatement("$N.writeI64($L)", proto, nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitDouble() {
+            write.addStatement("$N.writeDouble($L)", proto, nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitString() {
+            write.addStatement("$N.writeString($L)", proto, nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitBinary() {
+            write.addStatement("$N.writeBinary($L)", proto, nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitVoid() {
+            throw new AssertionError("Fields cannot be void");
+        }
+
+        @Override
+        public Void visitEnum(ThriftType userType) {
+            write.addStatement("$N.writeI32($L.code)", proto, nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitList(ThriftType.ListType listType) {
+            initCollectionHelpers();
+            String tag = "item" + scopeLevel;
+            String item = nameAllocator.newName(tag, tag);
+
+            ThriftType tt = listType.elementType().getTrueType();
+            byte typeCode = typeCode(tt);
+            String typeCodeName = TTYPE_NAMES.get(typeCode);
+
+            write.addStatement("$N.writeListBegin($T.$L, $L.size())", proto, TTYPE, typeCodeName, nameStack.peek());
+            write.beginControlFlow("for ($T $N : $L)", getJavaClassName(tt), item, nameStack.peek());
+
+            scopeLevel++;
+            nameStack.push(item);
+            tt.accept(this);
+            nameStack.pop();
+            scopeLevel--;
+
+            write.endControlFlow();
+            return null;
+        }
+
+        @Override
+        public Void visitSet(ThriftType.SetType setType) {
+            initCollectionHelpers();
+            String tag = "item" + scopeLevel;
+            String item = nameAllocator.newName(tag, tag);
+
+            ThriftType tt = setType.elementType().getTrueType();
+            byte typeCode = typeCode(tt);
+            String typeCodeName = TTYPE_NAMES.get(typeCode);
+
+            write.addStatement("$N.writeSetBegin($T.$L, $L.size())", proto, TTYPE, typeCodeName, nameStack.peek());
+            write.beginControlFlow("for ($T $N : $L)", getJavaClassName(tt), item, nameStack.peek());
+
+            scopeLevel++;
+            nameStack.push(item);
+            tt.accept(this);
+            nameStack.pop();
+            scopeLevel--;
+
+            write.endControlFlow();
+            return null;
+        }
+
+        @Override
+        public Void visitMap(ThriftType.MapType mapType) {
+            initCollectionHelpers();
+            String entryTag = "entry" + scopeLevel;
+            String keyTag = "key" + scopeLevel;
+            String valueTag = "value" + scopeLevel;
+
+            String entryName = nameAllocator.newName(entryTag, entryTag);
+            String keyName = nameAllocator.newName(keyTag, keyTag);
+            String valueName = nameAllocator.newName(valueTag, valueTag);
+
+            ThriftType kt = mapType.keyType().getTrueType();
+            ThriftType vt = mapType.valueType().getTrueType();
+
+            write.addStatement(
+                    "$N.writeMapBegin($L, $L, $L.size()",
+                    proto,
+                    typeCode(kt),
+                    typeCode(vt),
+                    nameStack.peek());
+
+            TypeName keyTypeName = getJavaClassName(kt);
+            TypeName valueTypeName = getJavaClassName(vt);
+            TypeName entry = ParameterizedTypeName.get(MAP_ENTRY, keyTypeName, valueTypeName);
+            write.beginControlFlow("for ($T $N : $L.entrySet())", entry, entryTag, nameStack.peek());
+            write.addStatement("$T $N = $N.getKey()", keyTypeName, keyName, entryName);
+            write.addStatement("$T $N = $N.getValue()", valueTypeName, valueName, entryName);
+
+            scopeLevel++;
+            nameStack.push(keyName);
+            kt.accept(this);
+            nameStack.pop();
+
+            nameStack.push(valueName);
+            vt.accept(this);
+            nameStack.pop();
+            scopeLevel--;
+
+            write.endControlFlow();
+
+            return null;
+        }
+
+        @Override
+        public Void visitUserType(ThriftType userType) {
+            write.addStatement("$N.ADAPTER.write($N, $L)", userType.name(), proto, nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitTypedef(ThriftType.TypedefType typedefType) {
+            typedefType.getTrueType().accept(this);
+            return null;
+        }
+
+        private void initCollectionHelpers() {
+            if (nameAllocator == null) {
+                nameAllocator = new NameAllocator();
+                nameAllocator.newName(proto, proto);
+            }
+        }
+    }
+
+    /**
+     * Generates Java code to read a field's value from an open Protocol object.
+     *
+     * Assumptions:
+     * We are inside of {@link ThriftAdapter#read(Protocol)}.  Further, we are
+     * inside of a single case block for a single field.  There are variables
+     * in scope named "protocol" and "builder", representing the connection and
+     * the struct builder.
+     */
+    class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
+        private NameAllocator nameAllocator;
+        private Deque<String> nameStack = new ArrayDeque<>();
+        private MethodSpec.Builder read;
+        private Field field;
+        private int scope;
+
+        GenerateReaderVisitor(MethodSpec.Builder read, Field field) {
+            this.read = read;
+            this.field = field;
+        }
+
+        public void generate() {
+            byte fieldTypeCode = typeCode(field.type());
+            if (fieldTypeCode == TType.ENUM) {
+                // Enums are I32 on the wire
+                fieldTypeCode = TType.I32;
+            }
+            String codeName = TTYPE_NAMES.get(fieldTypeCode);
+            read.beginControlFlow("if (field.typeId == $T.$L)", TTYPE, codeName);
+
+            // something
+            read.addStatement("$T value = null", getJavaClassName(field.type()));
+            nameStack.push("value");
+            field.type().getTrueType().accept(this);
+            nameStack.pop();
+
+            read.addStatement("builder.$N(value)", field.name());
+
+            read.nextControlFlow("else");
+            read.addStatement("$T.skip(protocol, field.typeId)", TPROTO_UTIL);
+            read.endControlFlow();
+
+        }
+
+        @Override
+        public Void visitBool() {
+            read.addStatement("$N = protocol.readBool()", nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitByte() {
+            read.addStatement("$N = protocol.readByte()", nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitI16() {
+            read.addStatement("$N = protocol.readI16()", nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitI32() {
+            read.addStatement("$N = protocol.readI32()", nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitI64() {
+            read.addStatement("$N = protocol.readI64()", nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitDouble() {
+            read.addStatement("$N = protocol.readDouble()", nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitString() {
+            read.addStatement("$N = protocol.readString()", nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitBinary() {
+            read.addStatement("$N = protocol.readBinary()", nameStack.peek());
+            return null;
+        }
+
+        @Override
+        public Void visitVoid() {
+            throw new AssertionError("Cannot read void");
+        }
+
+        @Override
+        public Void visitEnum(ThriftType userType) {
+            String target = nameStack.peek();
+            TypeName enumType = getJavaClassName(userType);
+            read.addStatement("$N = $T.fromCode(protocol.readI32())", target, enumType);
+            return null;
+        }
+
+        @Override
+        public Void visitList(ThriftType.ListType listType) {
+            initNameAllocator();
+
+            TypeName elementType = getJavaClassName(listType.elementType().getTrueType());
+            TypeName genericListType = ParameterizedTypeName.get(LIST, elementType);
+            TypeName listImplType = ParameterizedTypeName.get(listClassName, elementType);
+
+            String listInfo = "listMetadata" + scope;
+            String list = scope == 0 ? "value" : "list" + scope;
+            String idx = "i" + scope;
+            String item = "item" + scope;
+            ++scope;
+            nameStack.push(item);
+
+            read.addStatement("$T $N = protocol.readListBegin()", LIST_META, listInfo);
+            read.addStatement("$T $N = new $T($N.size)", genericListType, list, listImplType, listInfo);
+            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, listInfo, idx);
+
+            read.addStatement("$T $N = null", getJavaClassName(listType.elementType().getTrueType()), item);
+            listType.elementType().getTrueType().accept(this);
+            read.addStatement("$N.add($N)", list, item);
+
+            read.endControlFlow();
+            read.addStatement("protocol.readListEnd()");
+
+            nameStack.pop();
+            --scope;
+
+            return null;
+        }
+
+        @Override
+        public Void visitSet(ThriftType.SetType setType) {
+            initNameAllocator();
+
+            TypeName elementType = getJavaClassName(setType.elementType().getTrueType());
+            TypeName genericSetType = ParameterizedTypeName.get(SET, elementType);
+            TypeName setImplType = ParameterizedTypeName.get(setClassName, elementType);
+
+            String setInfo = "setMetadata" + scope;
+            String set = scope == 0 ? "value" : "list" + scope;
+            String idx = "i" + scope;
+            String item = "item" + scope;
+            ++scope;
+            nameStack.push(item);
+
+            read.addStatement("$T $N = protocol.readSetBegin()", SET_META, setInfo);
+            read.addStatement("$T $N = new $T($N.size)", genericSetType, set, setImplType, setInfo);
+            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, setInfo, idx);
+
+            read.addStatement("$T $N = null", elementType, item);
+            setType.elementType().getTrueType().accept(this);
+            read.addStatement("$N.add($N)", set, item);
+
+            read.endControlFlow();
+            read.addStatement("protocol.readSetEnd()");
+
+            nameStack.pop();
+            --scope;
+
+            return null;
+        }
+
+        @Override
+        public Void visitMap(ThriftType.MapType mapType) {
+            initNameAllocator();
+
+            TypeName keyType = getJavaClassName(mapType.keyType().getTrueType());
+            TypeName valueType = getJavaClassName(mapType.valueType().getTrueType());
+            TypeName genericMapType = ParameterizedTypeName.get(MAP, keyType, valueType);
+            TypeName mapImplType = ParameterizedTypeName.get(mapClassName, keyType, valueType);
+
+            String mapInfo = "mapMetadata" + scope;
+            String map = scope == 0 ? "value" : "map" + scope;
+            String idx = "i" + scope;
+            String key = "key" + scope;
+            String value = "value" + scope;
+            ++scope;
+
+            read.addStatement("$T $N = protocol.readMapBegin()", MAP_META, mapInfo);
+            read.addStatement("$T $N = new $T($N.size)", genericMapType, map, mapImplType, mapInfo);
+            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, mapInfo, idx);
+
+            read.addStatement("$T $N = null", keyType, key);
+            read.addStatement("$T $N = null", valueType, value);
+
+            nameStack.push(key);
+            mapType.keyType().accept(this);
+            nameStack.pop();
+
+            nameStack.push(value);
+            mapType.valueType().accept(this);
+            nameStack.pop();
+
+            read.addStatement("$N.put($N, $N)", map, key, value);
+
+            read.endControlFlow();
+            read.addStatement("protocol.readMapEnd()");
+
+            --scope;
+
+            return null;
+        }
+
+        @Override
+        public Void visitUserType(ThriftType userType) {
+            read.addStatement("$N = $T.ADAPTER.read(protocol)", nameStack.peek(), getJavaClassName(userType));
+            return null;
+        }
+
+        @Override
+        public Void visitTypedef(ThriftType.TypedefType typedefType) {
+            // throw AssertionError?
+            typedefType.getTrueType().accept(this);
+            return null;
+        }
+
+        private void initNameAllocator() {
+            if (nameAllocator == null) {
+                nameAllocator = new NameAllocator();
+                nameAllocator.newName("protocol", "protocol");
+                nameAllocator.newName("builder", "builder");
+                nameAllocator.newName("value", "value");
+            }
+        }
+    }
+
+    /**
+     * A Visitor that converts a {@link ThriftType} into a {@link TypeName}.
+     */
+    private final ThriftType.Visitor<TypeName> typeNameVisitor = new ThriftType.Visitor<TypeName>() {
+        @Override
+        public TypeName visitBool() {
+            return ClassName.BOOLEAN.box();
+        }
+
+        @Override
+        public TypeName visitByte() {
+            return ClassName.BYTE.box();
+        }
+
+        @Override
+        public TypeName visitI16() {
+            return ClassName.SHORT.box();
+        }
+
+        @Override
+        public TypeName visitI32() {
+            return ClassName.INT.box();
+        }
+
+        @Override
+        public TypeName visitI64() {
+            return ClassName.LONG.box();
+        }
+
+        @Override
+        public TypeName visitDouble() {
+            return ClassName.DOUBLE.box();
+        }
+
+        @Override
+        public TypeName visitString() {
+            return STRING;
+        }
+
+        @Override
+        public TypeName visitBinary() {
+            return BYTE_STRING;
+        }
+
+        @Override
+        public TypeName visitVoid() {
+            return ClassName.VOID;
+        }
+
+        @Override
+        public TypeName visitEnum(ThriftType userType) {
+            return visitUserType(userType);
+        }
+
+        @Override
+        public TypeName visitList(ThriftType.ListType listType) {
+            ThriftType elementType = listType.elementType().getTrueType();
+            TypeName elementTypeName = elementType.accept(this);
+            return ParameterizedTypeName.get(LIST, elementTypeName);
+        }
+
+        @Override
+        public TypeName visitSet(ThriftType.SetType setType) {
+            ThriftType elementType = setType.elementType().getTrueType();
+            TypeName elementTypeName = elementType.accept(this);
+            return ParameterizedTypeName.get(SET, elementTypeName);
+        }
+
+        @Override
+        public TypeName visitMap(ThriftType.MapType mapType) {
+            ThriftType keyType = mapType.keyType().getTrueType();
+            ThriftType valueType = mapType.valueType().getTrueType();
+
+            TypeName keyTypeName = keyType.accept(this);
+            TypeName valueTypeName = valueType.accept(this);
+            return ParameterizedTypeName.get(MAP, keyTypeName, valueTypeName);
+        }
+
+        @Override
+        public TypeName visitUserType(ThriftType userType) {
+            String packageName = userType.getNamespace(NamespaceScope.JAVA);
+            if (packageName == null) {
+                throw new AssertionError("Missing namespace.  Did you forget to add 'namespace java'?");
+            }
+
+            String key = packageName + "##" + userType.name();
+            ClassName cn = nameCache.get(key);
+            if (cn == null) {
+                cn = ClassName.get(packageName, userType.name());
+                nameCache.put(key, cn);
+            }
+            return cn;
+        }
+
+        @Override
+        public TypeName visitTypedef(ThriftType.TypedefType typedefType) {
+            throw new AssertionError("Typedefs should have been resolved");
+        }
+    };
+
+    /**
+     * A Visitor that converts a {@link ThriftType} into a {@link TType}
+     * constant value.
+     */
+    private static final ThriftType.Visitor<Byte> TYPE_CODE_VISITOR = new ThriftType.Visitor<Byte>() {
+        @Override
+        public Byte visitBool() {
+            return TType.BOOL;
+        }
+
+        @Override
+        public Byte visitByte() {
+            return TType.BYTE;
+        }
+
+        @Override
+        public Byte visitI16() {
+            return TType.I16;
+        }
+
+        @Override
+        public Byte visitI32() {
+            return TType.I32;
+        }
+
+        @Override
+        public Byte visitI64() {
+            return TType.I64;
+        }
+
+        @Override
+        public Byte visitDouble() {
+            return TType.DOUBLE;
+        }
+
+        @Override
+        public Byte visitString() {
+            return TType.STRING;
+        }
+
+        @Override
+        public Byte visitBinary() {
+            return TType.STRING;
+        }
+
+        @Override
+        public Byte visitVoid() {
+            return TType.VOID;
+        }
+
+        @Override
+        public Byte visitEnum(ThriftType userType) {
             return TType.ENUM;
         }
 
-        return TType.STRUCT;
-    }
-
-    private String getBuiltinWriteSpec(ThriftType type) {
-        if (type == ThriftType.BOOL) {
-            return "writeBool";
-        } else if (type == ThriftType.BYTE) {
-            return "writeByte";
-        } else if (type == ThriftType.I16) {
-            return "writeI16";
-        } else if (type == ThriftType.I32) {
-            return "writeI32";
-        } else if (type == ThriftType.I64) {
-            return "writeI64";
-        } else if (type == ThriftType.DOUBLE) {
-            return "writeDouble";
-        } else if (type == ThriftType.STRING) {
-            return "writeString";
-        } else if (type == ThriftType.BINARY) {
-            return "writeBinary";
-        } else {
-            throw new AssertionError("Non-writable builtin type: " + type.name());
+        @Override
+        public Byte visitList(ThriftType.ListType listType) {
+            return TType.LIST;
         }
-    }
+
+        @Override
+        public Byte visitSet(ThriftType.SetType setType) {
+            return TType.SET;
+        }
+
+        @Override
+        public Byte visitMap(ThriftType.MapType mapType) {
+            return TType.MAP;
+        }
+
+        @Override
+        public Byte visitUserType(ThriftType userType) {
+            return TType.STRUCT;
+        }
+
+        @Override
+        public Byte visitTypedef(ThriftType.TypedefType typedefType) {
+            throw new AssertionError("Typedefs should have been resolved");
+        }
+    };
 }

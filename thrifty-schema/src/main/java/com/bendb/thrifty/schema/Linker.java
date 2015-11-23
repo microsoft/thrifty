@@ -2,6 +2,7 @@ package com.bendb.thrifty.schema;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -161,25 +162,19 @@ class Linker {
 
     private void linkStructFields() {
         for (StructType structType : program.structs()) {
-            for (Field field : structType.fields()) {
-                field.link(this);
-            }
+            structType.link(this);
         }
     }
 
     private void linkUnionFields() {
         for (StructType union : program.unions()) {
-            for (Field field : union.fields()) {
-                field.link(this);
-            }
+            union.link(this);
         }
     }
 
     private void linkExceptionFields() {
         for (StructType exception : program.exceptions()) {
-            for (Field field : exception.fields()) {
-                field.link(this);
-            }
+            exception.link(this);
         }
     }
 
@@ -200,19 +195,25 @@ class Linker {
     }
 
     private void validateStructs() {
-
+        for (StructType struct : program.structs()) {
+            struct.validate(this);
+        }
     }
 
     private void validateExceptions() {
-
+        for (StructType exception : program.exceptions()) {
+            exception.validate(this);
+        }
     }
 
     private void validateUnions() {
-
+        for (StructType union : program.unions()) {
+            union.validate(this);
+        }
     }
 
     private void validateServices() {
-
+        // TODO: Implement me
     }
 
     private void register(Named type) {
@@ -259,7 +260,7 @@ class Linker {
             return mapType;
         }
 
-        tt = ThriftType.get(type);
+        tt = ThriftType.get(type, Collections.<NamespaceScope, String>emptyMap()); // Any map will do
         if (tt.isBuiltin()) {
             return tt;
         }
@@ -270,6 +271,10 @@ class Linker {
     @Nullable
     Named lookupSymbol(String symbol) {
         return program.symbols().get(symbol);
+    }
+
+    void addError(String error) {
+        environment.addError(error);
     }
 
     private static class LinkFailureException extends RuntimeException {

@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.*;
@@ -68,7 +69,7 @@ public class ConstantTest {
     public void boolWithNonConstantIdentifier() {
         StructType s = mock(StructType.class);
         when(s.name()).thenReturn("someStruct");
-        when(s.type()).thenReturn(ThriftType.get("someStruct"));
+        when(s.type()).thenReturn(ThriftType.get("someStruct", Collections.<NamespaceScope, String>emptyMap()));
 
         when(linker.lookupSymbol("someStruct")).thenReturn(s);
 
@@ -134,7 +135,7 @@ public class ConstantTest {
 
     @Test
     public void enumWithMember() {
-        ThriftType tt = ThriftType.enumType("TestEnum");
+        ThriftType tt = ThriftType.enumType("TestEnum", Collections.<NamespaceScope, String>emptyMap());
         ImmutableList.Builder<EnumType.Member> members = ImmutableList.builder();
         members.add(new EnumType.Member(EnumMemberElement.builder(loc).name("TEST").value(1).build()));
 
@@ -150,7 +151,7 @@ public class ConstantTest {
 
     @Test
     public void enumWithNonMemberIdentifier() {
-        ThriftType tt = ThriftType.enumType("TestEnum");
+        ThriftType tt = ThriftType.enumType("TestEnum", Collections.<NamespaceScope, String>emptyMap());
         ImmutableList.Builder<EnumType.Member> members = ImmutableList.builder();
         members.add(new EnumType.Member(EnumMemberElement.builder(loc).name("TEST").value(1).build()));
 

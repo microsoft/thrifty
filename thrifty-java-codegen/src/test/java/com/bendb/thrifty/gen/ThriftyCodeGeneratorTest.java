@@ -1,21 +1,37 @@
 package com.bendb.thrifty.gen;
 
 import com.bendb.thrifty.schema.EnumType;
+import com.bendb.thrifty.schema.Loader;
 import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.NamespaceScope;
+import com.bendb.thrifty.schema.Schema;
+import com.bendb.thrifty.schema.StructType;
 import com.bendb.thrifty.schema.ThriftType;
+import com.bendb.thrifty.schema.parser.ConstValueElement;
 import com.bendb.thrifty.schema.parser.EnumElement;
 import com.bendb.thrifty.schema.parser.EnumMemberElement;
+import com.bendb.thrifty.schema.parser.FieldElement;
+import com.bendb.thrifty.schema.parser.StructElement;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 public class ThriftyCodeGeneratorTest {
+    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+
     @Test
     public void enumGeneration() {
         Location location = Location.get("", "");
@@ -35,7 +51,8 @@ public class ThriftyCodeGeneratorTest {
                                 .value(1)
                                 .build()))
                 .build();
-        EnumType et = new EnumType(ee, ThriftType.get("BuildStatus"), ImmutableMap.of(NamespaceScope.JAVA, "com.test.enums"));
+        ImmutableMap<NamespaceScope, String> namespaces = ImmutableMap.of(NamespaceScope.JAVA, "com.test.enums");
+        EnumType et = new EnumType(ee, ThriftType.enumType("BuildStatus", namespaces), namespaces);
 
         ThriftyCodeGenerator gen = new ThriftyCodeGenerator(false);
         TypeSpec generated = gen.buildEnum(et);
@@ -44,5 +61,48 @@ public class ThriftyCodeGeneratorTest {
         String code = file.toString();
 
         assertThat(code, is("test"));
+    }
+
+    @Test
+    public void structGeneration() throws Exception {
+        Location loc = Location.get("", "");
+        String thrift = "" +
+                "namespace java com.test.struct\n" +
+                "\n" +
+                "struct Str {\n" +
+                "  1: list<i32> numbers,\n" +
+                "  2: string name,\n" +
+                "  3: map<string, list<i16>> addresses\n" +
+                "}\n" +
+                "\n" +
+                "exception Boom {}";
+
+        File f = tmp.newFile();
+        write(f, thrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+
+        Schema schema = loader.load();
+
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(false);
+        TypeSpec type = gen.buildStruct(schema.structs().get(0));
+
+        JavaFile file = JavaFile.builder("com.test.struct", type).build();
+        String code = file.toString();
+
+        assertThat(code, is("foo"));
+    }
+
+    private void write(File file, String text) throws IOException {
+        PrintWriter writer = new PrintWriter(file);
+        BufferedWriter buf = new BufferedWriter(writer);
+        try {
+            buf.write(text);
+            buf.flush();
+        } finally {
+            buf.close();
+            writer.close();
+        }
     }
 }

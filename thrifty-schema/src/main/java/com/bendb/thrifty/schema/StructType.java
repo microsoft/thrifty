@@ -2,16 +2,21 @@ package com.bendb.thrifty.schema;
 
 import com.bendb.thrifty.schema.parser.FieldElement;
 import com.bendb.thrifty.schema.parser.StructElement;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class StructType extends Named {
     private final StructElement element;
     private final ThriftType type;
     private final ImmutableList<Field> fields;
 
-    StructType(StructElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
+    @VisibleForTesting
+    public StructType(StructElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
@@ -52,5 +57,31 @@ public class StructType extends Named {
 
     public boolean isException() {
         return element.type() == StructElement.Type.EXCEPTION;
+    }
+
+    void link(Linker linker) {
+        for (Field field : fields) {
+            field.link(linker);
+        }
+    }
+
+    void validate(Linker linker) {
+        for (Field field : fields) {
+            field.validate(linker);
+        }
+
+        Map<Integer, Field> fieldsById = new LinkedHashMap<>(fields.size());
+        for (Field field : fields) {
+            Field dupe = fieldsById.put(field.id(), field);
+            if (dupe != null) {
+                linker.addError(
+                        "Duplicate field IDs: " + field.name() + " and " + dupe.name()
+                        + " both have the same ID (" + field.id() + ")");
+            }
+
+            if (isUnion() && field.required()) {
+                linker.addError("Unions may not have required fields: " + field.name());
+            }
+        }
     }
 }

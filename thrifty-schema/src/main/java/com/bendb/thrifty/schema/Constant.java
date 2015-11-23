@@ -42,7 +42,11 @@ public class Constant extends Named {
         ConstValueElement value = this.element.value();
         ThriftType type = this.type;
 
-        validate(linker, value, type);
+        try {
+            validate(linker, value, type);
+        } catch (IllegalStateException e) {
+            linker.addError(e.getMessage());
+        }
     }
 
     @SuppressWarnings("unchecked")

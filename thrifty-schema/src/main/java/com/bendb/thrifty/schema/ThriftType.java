@@ -4,6 +4,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
 import javax.annotation.Nonnull;
+import java.util.Map;
 
 /**
  * Represents a type name and all containing namespaces.
@@ -71,17 +72,17 @@ public abstract class ThriftType {
      * @param name
      * @return
      */
-    public static ThriftType get(@Nonnull String name) {
+    public static ThriftType get(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
         ThriftType t = BUILTINS.get(name);
         if (t != null) {
             return t;
         }
 
-        return new UserType(name);
+        return new UserType(name, namespaces);
     }
 
-    public static ThriftType enumType(@Nonnull String name) {
-        return new UserType(name, true);
+    public static ThriftType enumType(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
+        return new UserType(name, namespaces, true);
     }
 
     public static ThriftType typedefOf(ThriftType oldType, String name) {
@@ -127,6 +128,12 @@ public abstract class ThriftType {
         return t;
     }
 
+    public abstract <T> T accept(Visitor<? extends T> visitor);
+
+    public String getNamespace(NamespaceScope scope) {
+        return "";
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -152,23 +159,68 @@ public abstract class ThriftType {
         public boolean isBuiltin() {
             return true;
         }
+
+        @Override
+        public <T> T accept(Visitor<? extends T> visitor) {
+            if (this == BOOL) {
+                return visitor.visitBool();
+            } else if (this == BYTE) {
+                return visitor.visitByte();
+            } else if (this == I16) {
+                return visitor.visitI16();
+            } else if (this == I32) {
+                return visitor.visitI32();
+            } else if (this == I64) {
+                return visitor.visitI64();
+            } else if (this == DOUBLE) {
+                return visitor.visitDouble();
+            } else if (this == STRING) {
+                return visitor.visitString();
+            } else if (this == BINARY) {
+                return visitor.visitBinary();
+            } else if (this == VOID) {
+                return visitor.visitVoid();
+            } else {
+                throw new AssertionError("Unexpected built-in type: " + name());
+            }
+        }
     }
 
     public static class UserType extends ThriftType {
+        private final Map<NamespaceScope, String> namespaces;
         private final boolean isEnum;
 
-        UserType(String name) {
-            this(name, false);
+        UserType(String name, Map<NamespaceScope, String> namespaces) {
+            this(name, namespaces, false);
         }
 
-        UserType(String name, boolean isEnum) {
+        UserType(String name, Map<NamespaceScope, String> namespaces, boolean isEnum) {
             super(name);
+            this.namespaces = namespaces;
             this.isEnum = isEnum;
+        }
+
+        @Override
+        public String getNamespace(NamespaceScope scope) {
+            String ns = namespaces.get(scope);
+            if (ns == null && scope != NamespaceScope.ALL) {
+                ns = namespaces.get(NamespaceScope.ALL);
+            }
+            return ns == null ? "" : ns;
         }
 
         @Override
         public boolean isEnum() {
             return isEnum;
+        }
+
+        @Override
+        public <T> T accept(Visitor<? extends T> visitor) {
+            if (isEnum) {
+                return visitor.visitEnum(this);
+            } else {
+                return visitor.visitUserType(this);
+            }
         }
 
         @Override
@@ -195,6 +247,11 @@ public abstract class ThriftType {
         }
 
         @Override
+        public <T> T accept(Visitor<? extends T> visitor) {
+            return visitor.visitList(this);
+        }
+
+        @Override
         public boolean equals(Object o) {
             return super.equals(o)
                     && elementType.equals(((ListType) o).elementType);
@@ -216,6 +273,11 @@ public abstract class ThriftType {
 
         public ThriftType elementType() {
             return elementType;
+        }
+
+        @Override
+        public <T> T accept(Visitor<? extends T> visitor) {
+            return visitor.visitSet(this);
         }
 
         @Override
@@ -246,6 +308,11 @@ public abstract class ThriftType {
 
         public ThriftType valueType() {
             return valueType;
+        }
+
+        @Override
+        public <T> T accept(Visitor<? extends T> visitor) {
+            return visitor.visitMap(this);
         }
 
         @Override
@@ -285,6 +352,11 @@ public abstract class ThriftType {
         }
 
         @Override
+        public <T> T accept(Visitor<? extends T> visitor) {
+            return visitor.visitTypedef(this);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (!super.equals(o)) {
                 return false;
@@ -301,5 +373,23 @@ public abstract class ThriftType {
             result = 31 * result + originalType.hashCode();
             return result;
         }
+    }
+
+    public interface Visitor<T> {
+        T visitBool();
+        T visitByte();
+        T visitI16();
+        T visitI32();
+        T visitI64();
+        T visitDouble();
+        T visitString();
+        T visitBinary();
+        T visitVoid();
+        T visitEnum(ThriftType userType);
+        T visitList(ListType listType);
+        T visitSet(SetType setType);
+        T visitMap(MapType mapType);
+        T visitUserType(ThriftType userType);
+        T visitTypedef(TypedefType typedefType);
     }
 }

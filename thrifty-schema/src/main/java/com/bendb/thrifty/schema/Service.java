@@ -18,7 +18,11 @@ public final class Service extends Named {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
-        this.extendsService = ThriftType.get(element.extendsServiceName());
+
+        String extendsServiceName = element.extendsServiceName();
+        if (extendsServiceName != null) {
+            this.extendsService = ThriftType.get(extendsServiceName, namespaces);
+        }
 
         ImmutableList.Builder<ServiceMethod> methods = ImmutableList.builder();
         for (FunctionElement functionElement : element.functions()) {

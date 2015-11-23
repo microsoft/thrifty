@@ -63,7 +63,7 @@ public final class Program {
         for (StructElement structElement : element.structs()) {
             StructType t = new StructType(
                     structElement,
-                    ThriftType.get(structElement.name()),
+                    ThriftType.get(structElement.name(), namespaces),
                     namespaces);
             structs.add(t);
         }
@@ -87,7 +87,7 @@ public final class Program {
         for (EnumElement enumElement : element.enums()) {
             enums.add(new EnumType(
                     enumElement,
-                    ThriftType.enumType(enumElement.name()),
+                    ThriftType.enumType(enumElement.name(), namespaces),
                     namespaces));
         }
         this.enums = enums.build();
@@ -96,7 +96,7 @@ public final class Program {
         for (StructElement structElement : element.unions()) {
             StructType u = new StructType(
                     structElement,
-                    ThriftType.get(structElement.name()),
+                    ThriftType.get(structElement.name(), namespaces),
                     namespaces);
             unions.add(u);
         }
@@ -106,7 +106,7 @@ public final class Program {
         for (StructElement structElement : element.exceptions()) {
             StructType u = new StructType(
                     structElement,
-                    ThriftType.get(structElement.name()),
+                    ThriftType.get(structElement.name(), namespaces),
                     namespaces);
             exceptions.add(u);
         }
@@ -116,7 +116,7 @@ public final class Program {
         for (ServiceElement serviceElement : element.services()) {
             Service svc = new Service(
                     serviceElement,
-                    ThriftType.get(serviceElement.name()),
+                    ThriftType.get(serviceElement.name(), namespaces),
                     namespaces);
             services.add(svc);
         }
