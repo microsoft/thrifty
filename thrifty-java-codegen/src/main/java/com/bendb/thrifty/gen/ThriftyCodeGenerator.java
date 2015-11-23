@@ -548,10 +548,12 @@ public final class ThriftyCodeGenerator {
             ThriftType vt = mapType.valueType().getTrueType();
 
             write.addStatement(
-                    "$N.writeMapBegin($L, $L, $L.size()",
+                    "$N.writeMapBegin($T.$L, $T.$L, $L.size()",
                     proto,
-                    typeCode(kt),
-                    typeCode(vt),
+                    TTYPE,
+                    TTYPE_NAMES.get(typeCode(kt)),
+                    TTYPE,
+                    TTYPE_NAMES.get(typeCode(vt)),
                     nameStack.peek());
 
             TypeName keyTypeName = getJavaClassName(kt);
