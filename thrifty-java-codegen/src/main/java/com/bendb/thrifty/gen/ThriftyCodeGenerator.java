@@ -912,7 +912,7 @@ public final class ThriftyCodeGenerator {
         @Override
         public TypeName visitUserType(ThriftType userType) {
             String packageName = userType.getNamespace(NamespaceScope.JAVA);
-            if (packageName == null) {
+            if (Strings.isNullOrEmpty(packageName)) {
                 throw new AssertionError("Missing namespace.  Did you forget to add 'namespace java'?");
             }
 
