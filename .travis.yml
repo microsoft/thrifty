@@ -4,6 +4,7 @@ install: echo "'./gradlew check' will install dependencies for us"
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -f $HOME/.gradle/caches/2.8/plugin-resolution/cache.properties.lock
 cache:
   directories:
     - $HOME/.gradle/caches/
