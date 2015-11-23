@@ -210,7 +210,7 @@ public final class ThriftyCodeGenerator {
                         .endControlFlow();
             } else {
                 if (field.required()) {
-                    buildMethodBuilder.beginControlFlow("if (this.$N == null)");
+                    buildMethodBuilder.beginControlFlow("if (this.$N == null)", fieldName);
                     buildMethodBuilder.addStatement("throw new $T($S)", PROTOCOL_EXCEPTION, "Required field " + fieldName + " is missing");
                     buildMethodBuilder.endControlFlow();
                 }

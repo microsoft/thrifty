@@ -196,18 +196,25 @@ public class Constant extends Named {
             if (named instanceof EnumType) {
                 EnumType et = (EnumType) named;
 
-                if (value.kind() != ConstValueElement.Kind.IDENTIFIER) {
-                    throw new IllegalStateException("bad enum literal");
-                }
-
-                String id = (String) value.value();
-                for (EnumType.Member member : et.members()) {
-                    if (member.name().equals(id)) {
-                        return;
+                if (value.kind() == ConstValueElement.Kind.INTEGER) {
+                    long id = (Long) value.value();
+                    for (EnumType.Member member : et.members()) {
+                        if (member.value().longValue() == id) {
+                            return;
+                        }
                     }
+                    throw new IllegalStateException("'" + id + "' is not a valid value for " + et.name());
+                } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
+                    String id = (String) value.value();
+                    for (EnumType.Member member : et.members()) {
+                        if (member.name().equals(id)) {
+                            return;
+                        }
+                    }
+                    throw new IllegalStateException("'" + id + "' is not a member of enum type " + et.name());
+                } else {
+                    throw new IllegalStateException("bad enum literal: " + value.value());
                 }
-
-                throw new IllegalStateException("");
             } else if (named instanceof Constant) {
                 if (!named.type().getTrueType().equals(expected)) {
                     throw new IllegalStateException("Invalid type");
