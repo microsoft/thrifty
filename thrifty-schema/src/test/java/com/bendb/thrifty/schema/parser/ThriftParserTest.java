@@ -141,7 +141,7 @@ public class ThriftParserTest {
         assertThat(file.structs().get(0).type(), is(StructElement.Type.STRUCT));
 
         FieldElement first = file.structs().get(0).fields().get(0);
-        assertThat(first.documentation(), is("This field is optional"));
+        assertThat(first.documentation(), is("This field is optional\n"));
         assertThat(first.fieldId(), is(1));
         assertThat(first.type(), is("i32"));
         assertThat(first.required(), is(false));
@@ -167,9 +167,9 @@ public class ThriftParserTest {
         ThriftFileElement file = ThriftParser.parse(Location.get("", "trailing.thrift"), thrift);
         StructElement doc = file.structs().get(0);
 
-        assertThat(doc.fields().get(0).documentation(), is("\ncpp-style\n"));
-        assertThat(doc.fields().get(1).documentation(), is("\npy-style\n"));
-        assertThat(doc.fields().get(2).documentation(), is("\n* K&R-style *\n"));
+        assertThat(doc.fields().get(0).documentation(), is("cpp-style\n"));
+        assertThat(doc.fields().get(1).documentation(), is("py-style\n"));
+        assertThat(doc.fields().get(2).documentation(), is("* K&R-style *\n"));
     }
 
     @Test
