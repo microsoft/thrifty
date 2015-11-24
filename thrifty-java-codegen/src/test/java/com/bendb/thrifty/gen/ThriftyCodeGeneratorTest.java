@@ -56,7 +56,7 @@ public class ThriftyCodeGeneratorTest {
         ImmutableMap<NamespaceScope, String> namespaces = ImmutableMap.of(NamespaceScope.JAVA, "com.test.enums");
         EnumType et = new EnumType(ee, ThriftType.enumType("BuildStatus", namespaces), namespaces);
 
-        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(false);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator();
         TypeSpec generated = gen.buildEnum(et);
 
         JavaFile file = JavaFile.builder("com.test.enums", generated).build();
@@ -87,7 +87,7 @@ public class ThriftyCodeGeneratorTest {
 
         Schema schema = loader.load();
 
-        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(false);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator();
         TypeSpec type = gen.buildStruct(schema.structs().get(0));
 
         JavaFile file = JavaFile.builder("com.test.struct", type).build();

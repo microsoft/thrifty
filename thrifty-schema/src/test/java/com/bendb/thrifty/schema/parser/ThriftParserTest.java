@@ -149,7 +149,7 @@ public class ThriftParserTest {
 
         FieldElement second = file.structs().get(0).fields().get(1);
         assertThat(second.fieldId(), is(2));
-        assertThat(second.documentation(), is("This next field is required\nand has trailing doc"));
+        assertThat(second.documentation(), is("This next field is required\nand has trailing doc\n"));
         assertThat(second.type(), is("string"));
         assertThat(second.required(), is(true));
         assertThat(second.name(), is("bar"));
@@ -167,9 +167,9 @@ public class ThriftParserTest {
         ThriftFileElement file = ThriftParser.parse(Location.get("", "trailing.thrift"), thrift);
         StructElement doc = file.structs().get(0);
 
-        assertThat(doc.fields().get(0).documentation(), is("\ncpp-style"));
-        assertThat(doc.fields().get(1).documentation(), is("\npy-style"));
-        assertThat(doc.fields().get(2).documentation(), is("\n* K&R-style *"));
+        assertThat(doc.fields().get(0).documentation(), is("\ncpp-style\n"));
+        assertThat(doc.fields().get(1).documentation(), is("\npy-style\n"));
+        assertThat(doc.fields().get(2).documentation(), is("\n* K&R-style *\n"));
     }
 
     @Test

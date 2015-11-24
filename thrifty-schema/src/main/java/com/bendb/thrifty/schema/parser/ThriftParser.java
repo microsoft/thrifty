@@ -253,6 +253,10 @@ public final class ThriftParser {
             members.add(member);
         }
 
+        if (!Strings.isNullOrEmpty(documentation) && !documentation.endsWith("\n")) {
+            documentation += "\n";
+        }
+
         return EnumElement.builder(location)
                 .documentation(documentation)
                 .name(name)
@@ -278,6 +282,10 @@ public final class ThriftParser {
             doc = doc + System.lineSeparator() + trailingDoc;
         }
 
+        if (!Strings.isNullOrEmpty(doc) && !doc.endsWith("\n")) {
+            doc += "\n";
+        }
+
         return EnumMemberElement.builder(location)
                 .documentation(doc)
                 .name(name)
@@ -301,6 +309,10 @@ public final class ThriftParser {
                 trailingDoc = "\n" + trailingDoc;
             }
             documentation += trailingDoc;
+
+            if (!documentation.endsWith("\n")) {
+                documentation += "\n";
+            }
         }
 
         // Don't bother validating the value type against the typename -
@@ -348,6 +360,10 @@ public final class ThriftParser {
         }
 
         ImmutableList<FieldElement> fields = readFieldList('}', false);
+
+        if (!documentation.endsWith("\n")) {
+            documentation += "\n";
+        }
 
         return StructElement.builder(location)
                 .documentation(documentation)
@@ -445,7 +461,11 @@ public final class ThriftParser {
 
         String trailingDoc = readTrailingDoc(true);
         if (!Strings.isNullOrEmpty(trailingDoc)) {
-            field.documentation(doc + "\n" + trailingDoc);
+            doc = doc + "\n" + trailingDoc;
+            if (!doc.endsWith("\n")) {
+                doc += "\n";
+            }
+            field.documentation(doc);
         }
 
         return field.build();
@@ -470,6 +490,10 @@ public final class ThriftParser {
 
         ImmutableList<FunctionElement> functions = readFunctionList();
 
+        if (!doc.endsWith("\n")) {
+            doc += "\n";
+        }
+
         return ServiceElement.builder(location)
                 .documentation(doc)
                 .name(name)
@@ -492,6 +516,9 @@ public final class ThriftParser {
             String trailingDoc = readTrailingDoc(true);
             if (!Strings.isNullOrEmpty(trailingDoc)) {
                 functionDoc = functionDoc + '\n' + trailingDoc;
+                if (!functionDoc.endsWith("\n")) {
+                    functionDoc += "\n";
+                }
                 func = FunctionElement.builder(func)
                         .documentation(functionDoc)
                         .build();
@@ -537,7 +564,11 @@ public final class ThriftParser {
 
         String trailingDoc = readTrailingDoc(true);
         if (!Strings.isNullOrEmpty(trailingDoc)) {
-            func.documentation(functionDoc + '\n' + trailingDoc);
+            String doc = functionDoc + '\n' + trailingDoc;
+            if (!doc.endsWith("\n")) {
+                doc += "\n";
+            }
+            func.documentation(doc);
         }
 
         return func.build();

@@ -48,7 +48,8 @@ import java.util.Set;
 public final class ThriftyCodeGenerator {
     public static final String ADAPTER_FIELDNAME = "ADAPTER";
 
-    private static final DateTimeFormatter DATE_FORMATTER = ISODateTimeFormat.dateTime();
+    private static final DateTimeFormatter DATE_FORMATTER =
+            ISODateTimeFormat.dateTime().withZoneUTC();
 
     /*
      * ClassName constants used extensively in generated code.
@@ -67,8 +68,8 @@ public final class ThriftyCodeGenerator {
     static final ClassName STRUCT_META = ClassName.get(StructMetadata.class);
     static final ClassName FIELD_META = ClassName.get(FieldMetadata.class);
 
-    static final ClassName TPROTOCOL = ClassName.get(Protocol.class);
-    static final ClassName TPROTO_UTIL = ClassName.get(ProtocolUtil.class);
+    static final ClassName PROTOCOL = ClassName.get(Protocol.class);
+    static final ClassName PROTO_UTIL = ClassName.get(ProtocolUtil.class);
     static final ClassName PROTOCOL_EXCEPTION = ClassName.get(ProtocolException.class);
     static final ClassName TTYPE = ClassName.get(TType.class);
 
@@ -102,17 +103,30 @@ public final class ThriftyCodeGenerator {
     }
 
     private final Map<String, ClassName> nameCache = new LinkedHashMap<>();
-    private final ClassName listClassName = ClassName.get(ArrayList.class);
-    private final ClassName mapClassName = ClassName.get(HashMap.class);
-    private final ClassName setClassName = ClassName.get(HashSet.class);
-    private final boolean includeTupleAdapter;
+    private final ClassName listClassName;
+    private final ClassName setClassName;
+    private final ClassName mapClassName;
 
-    ThriftyCodeGenerator(boolean includeTupleAdapter) {
-        this.includeTupleAdapter = includeTupleAdapter;
+    public ThriftyCodeGenerator() {
+        this(ClassName.get(ArrayList.class), ClassName.get(HashSet.class), ClassName.get(HashMap.class));
     }
 
-    public ThriftyCodeGenerator includeTupleAdapter() {
-        return new ThriftyCodeGenerator(true);
+    private ThriftyCodeGenerator(ClassName listClassName, ClassName setClassName, ClassName mapClassName) {
+        this.listClassName = listClassName;
+        this.setClassName = setClassName;
+        this.mapClassName = mapClassName;
+    }
+
+    public ThriftyCodeGenerator withListType(ClassName listClassName) {
+        return new ThriftyCodeGenerator(listClassName, setClassName, mapClassName);
+    }
+
+    public ThriftyCodeGenerator withSetType(ClassName setClassName) {
+        return new ThriftyCodeGenerator(listClassName, setClassName, mapClassName);
+    }
+
+    public ThriftyCodeGenerator withMapType(ClassName mapClassName) {
+        return new ThriftyCodeGenerator(listClassName, setClassName, mapClassName);
     }
 
 
@@ -123,9 +137,12 @@ public final class ThriftyCodeGenerator {
         TypeName adapterSuperclass = ParameterizedTypeName.get(ADAPTER, structTypeName, builderTypeName);
 
         TypeSpec.Builder structBuilder = TypeSpec.classBuilder(type.name())
-                .addJavadoc(type.documentation())
                 .addAnnotation(generatedAnnotation())
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+
+        if (!Strings.isNullOrEmpty(type.documentation())) {
+            structBuilder.addJavadoc(type.documentation());
+        }
 
         if (type.isException()) {
             structBuilder.superclass(Exception.class);
@@ -256,7 +273,7 @@ public final class ThriftyCodeGenerator {
         final MethodSpec.Builder write = MethodSpec.methodBuilder("write")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(TPROTOCOL, "protocol")
+                .addParameter(PROTOCOL, "protocol")
                 .addParameter(structClassName, "struct")
                 .addException(IOException.class);
 
@@ -264,7 +281,7 @@ public final class ThriftyCodeGenerator {
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(getJavaClassName(structType.type()))
-                .addParameter(TPROTOCOL, "protocol")
+                .addParameter(PROTOCOL, "protocol")
                 .addParameter(builderClassName, "builder")
                 .addException(IOException.class);
 
@@ -272,7 +289,7 @@ public final class ThriftyCodeGenerator {
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(getJavaClassName(structType.type()))
-                .addParameter(TPROTOCOL, "protocol")
+                .addParameter(PROTOCOL, "protocol")
                 .addException(IOException.class)
                 .addStatement("return read(protocol, new $T())", builderClassName)
                 .build();
@@ -642,7 +659,7 @@ public final class ThriftyCodeGenerator {
             read.addStatement("builder.$N(value)", field.name());
 
             read.nextControlFlow("else");
-            read.addStatement("$T.skip(protocol, field.typeId)", TPROTO_UTIL);
+            read.addStatement("$T.skip(protocol, field.typeId)", PROTO_UTIL);
             read.endControlFlow();
 
         }

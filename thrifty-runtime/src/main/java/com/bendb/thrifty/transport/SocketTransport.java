@@ -141,5 +141,4 @@ public class SocketTransport extends Transport {
             } catch (IOException ignored) { }
         }
     }
-
 }
