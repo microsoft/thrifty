@@ -61,5 +61,9 @@ public class EnumType extends Named {
         public String documentation() {
             return element.documentation();
         }
+
+        public boolean hasJavadoc() {
+            return JavadocUtil.hasJavadoc(this);
+        }
     }
 }

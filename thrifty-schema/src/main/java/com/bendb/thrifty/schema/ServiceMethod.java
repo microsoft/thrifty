@@ -34,6 +34,10 @@ public final class ServiceMethod {
         return element.documentation();
     }
 
+    public boolean hasJavadoc() {
+        return JavadocUtil.hasJavadoc(this);
+    }
+
     public String name() {
         return element.name();
     }

@@ -35,6 +35,10 @@ public final class Field {
         return element.documentation();
     }
 
+    public boolean hasJavadoc() {
+        return JavadocUtil.hasJavadoc(this);
+    }
+
     public ConstValueElement defaultValue() {
         throw new IllegalStateException("Not implemented");
     }

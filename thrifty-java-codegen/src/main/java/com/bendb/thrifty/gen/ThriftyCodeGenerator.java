@@ -140,7 +140,7 @@ public final class ThriftyCodeGenerator {
                 .addAnnotation(generatedAnnotation())
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
 
-        if (!Strings.isNullOrEmpty(type.documentation())) {
+        if (type.hasJavadoc()) {
             structBuilder.addJavadoc(type.documentation());
         }
 
@@ -216,6 +216,11 @@ public final class ThriftyCodeGenerator {
             TypeName javaTypeName = getJavaClassName(field.type());
             String fieldName = field.name();
             FieldSpec.Builder f = FieldSpec.builder(javaTypeName, fieldName, Modifier.PRIVATE);
+
+            if (field.hasJavadoc()) {
+                f.addJavadoc(field.documentation());
+            }
+
             builder.addField(f.build());
 
             MethodSpec setter = MethodSpec.methodBuilder(fieldName)
@@ -384,7 +389,6 @@ public final class ThriftyCodeGenerator {
                 type.name());
 
         TypeSpec.Builder builder = TypeSpec.enumBuilder(type.name())
-                .addJavadoc(type.documentation())
                 .addAnnotation(generatedAnnotation())
                 .addModifiers(Modifier.PUBLIC)
                 .addField(int.class, "code", Modifier.PUBLIC, Modifier.FINAL)
@@ -392,6 +396,10 @@ public final class ThriftyCodeGenerator {
                         .addParameter(int.class, "code")
                         .addStatement("this.$N = $N", "code", "code")
                         .build());
+
+        if (type.hasJavadoc()) {
+            builder.addJavadoc(type.documentation());
+        }
 
         MethodSpec.Builder fromCodeMethod = MethodSpec.methodBuilder("fromCode")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
@@ -404,10 +412,12 @@ public final class ThriftyCodeGenerator {
 
             int value = member.value();
 
-            builder.addEnumConstant(
-                    name, TypeSpec.anonymousClassBuilder("$L", value)
-                            .addJavadoc(member.documentation())
-                            .build());
+            TypeSpec.Builder memberBuilder = TypeSpec.anonymousClassBuilder("$L", value);
+            if (member.hasJavadoc()) {
+                memberBuilder.addJavadoc(member.documentation());
+            }
+
+            builder.addEnumConstant(name, memberBuilder.build());
 
             fromCodeMethod.addStatement("case $L: return $N", value, name);
         }

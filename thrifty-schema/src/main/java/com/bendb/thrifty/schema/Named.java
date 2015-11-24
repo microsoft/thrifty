@@ -30,6 +30,10 @@ public abstract class Named {
     public abstract Location location();
     public abstract ThriftType type();
 
+    public boolean hasJavadoc() {
+        return JavadocUtil.hasJavadoc(this);
+    }
+
     /**
      * Checks if a given {@link Named} has a name conflict with this instance.
      *
