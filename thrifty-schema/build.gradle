@@ -2,6 +2,8 @@ plugins {
     id "com.ewerk.gradle.plugins.auto-value" version "1.0.4"
 }
 
+description = 'A simple Thrift IDL parser and validator'
+
 autoValue {
     library = 'com.google.auto.value:auto-value:1.1'
 }

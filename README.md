@@ -12,3 +12,66 @@ maintains the core abstractions like Transport and Protocol, but saves on method
 adapters if configured to do so (not yet implemented).
 
 It it currently completely nonfunctional - in no way, shape, or form is this project usable or useful.  WIP.
+
+### Usage
+
+In `build.gradle`:
+
+```groovy
+buildscript {
+  repositories {
+    mavenCentral()
+
+    // or, for snapshot builds:
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+  }
+
+  dependencies {
+    classpath 'com.bendb.thrifty:thrifty-gradle-plugin:0.1.0-SNAPSHOT'
+  }
+}
+
+apply plugin: 'com.bendb.thrifty'
+
+thrifty {
+  searchPath '../inc/thrift'
+  thrift '../inc/thrift/MyService.thrift'
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile 'com.bendb.thrifty:thrifty-runtime:0.1.0-SNAPSHOT'
+}
+```
+
+### Building
+
+```bash
+./gradlew build
+```
+
+### Testing
+
+```bash
+./gradlew check
+```
+
+### Deploying
+
+```bash
+./gradlew uploadArchives
+```
+
+You will need to have valid Sonatype Nexus OSS credentials, as well as a valid *and published* GPG signing key, configured in your local `gradle.properties` file.
+
+### Credit
+
+Inspired by and borrowing from Square's Wire project, particularly the parser architecture
+Certain utilities borrowed (TType, BinaryProtcol) from the official Apache Thrift implementation
+
+-------
+
+Copyright © 2015 Benjamin Bader

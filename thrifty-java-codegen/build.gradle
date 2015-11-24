@@ -1,3 +1,5 @@
+description = 'Converts Thrifty Schemas into Java source files'
+
 dependencies {
     compile project(":thrifty-schema")
     compile project(":thrifty-runtime")
