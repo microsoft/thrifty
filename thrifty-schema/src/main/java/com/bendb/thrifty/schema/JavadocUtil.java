@@ -6,28 +6,28 @@ package com.bendb.thrifty.schema;
  *
  * If only we had traits - or JDK 8, at the very least.
  */
-final class JavadocUtil {
+public final class JavadocUtil {
     private JavadocUtil() {
         // no instances
     }
 
     static boolean hasJavadoc(Named named) {
-        return hasJavadoc(named.documentation());
+        return isNonEmptyJavadoc(named.documentation());
     }
 
     static boolean hasJavadoc(Field field) {
-        return hasJavadoc(field.documentation());
+        return isNonEmptyJavadoc(field.documentation());
     }
 
     static boolean hasJavadoc(EnumType.Member enumMember) {
-        return hasJavadoc(enumMember.documentation());
+        return isNonEmptyJavadoc(enumMember.documentation());
     }
 
     static boolean hasJavadoc(ServiceMethod method) {
-        return hasJavadoc(method.documentation());
+        return isNonEmptyJavadoc(method.documentation());
     }
 
-    private static boolean hasJavadoc(String doc) {
+    public static boolean isNonEmptyJavadoc(String doc) {
         if (doc == null) return false;
         if (doc.isEmpty()) return false;
 

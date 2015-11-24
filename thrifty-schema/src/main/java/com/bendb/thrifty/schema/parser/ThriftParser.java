@@ -16,6 +16,7 @@
  */
 package com.bendb.thrifty.schema.parser;
 
+import com.bendb.thrifty.schema.JavadocUtil;
 import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.common.base.Preconditions;
@@ -179,7 +180,7 @@ public final class ThriftParser {
             String newName = readWord();
 
             return TypedefElement.builder(location)
-                    .documentation(doc)
+                    .documentation(formatJavadoc(doc))
                     .oldName(oldType)
                     .newName(newName)
                     .build();
@@ -253,12 +254,8 @@ public final class ThriftParser {
             members.add(member);
         }
 
-        if (!Strings.isNullOrEmpty(documentation) && !documentation.endsWith("\n")) {
-            documentation += "\n";
-        }
-
         return EnumElement.builder(location)
-                .documentation(documentation)
+                .documentation(formatJavadoc(documentation))
                 .name(name)
                 .members(members.build())
                 .build();
@@ -277,17 +274,10 @@ public final class ThriftParser {
             value = readInt();
         }
 
-        String trailingDoc = readTrailingDoc(true);
-        if (!Strings.isNullOrEmpty(trailingDoc)) {
-            doc = doc + System.lineSeparator() + trailingDoc;
-        }
-
-        if (!Strings.isNullOrEmpty(doc) && !doc.endsWith("\n")) {
-            doc += "\n";
-        }
+        doc = readTrailingDoc(doc, true);
 
         return EnumMemberElement.builder(location)
-                .documentation(doc)
+                .documentation(formatJavadoc(doc))
                 .name(name)
                 .value(value)
                 .build();
@@ -303,22 +293,12 @@ public final class ThriftParser {
 
         ConstValueElement value = readConstValue();
 
-        String trailingDoc = readTrailingDoc(true);
-        if (!Strings.isNullOrEmpty(trailingDoc)) {
-            if (!Strings.isNullOrEmpty(documentation)) {
-                trailingDoc = "\n" + trailingDoc;
-            }
-            documentation += trailingDoc;
-
-            if (!documentation.endsWith("\n")) {
-                documentation += "\n";
-            }
-        }
+        documentation = readTrailingDoc(documentation, true);
 
         // Don't bother validating the value type against the typename -
         // we'll catch that later.
         return ConstElement.builder(location)
-                .documentation(documentation)
+                .documentation(formatJavadoc(documentation))
                 .type(typeName)
                 .name(name)
                 .value(value)
@@ -361,12 +341,8 @@ public final class ThriftParser {
 
         ImmutableList<FieldElement> fields = readFieldList('}', false);
 
-        if (!documentation.endsWith("\n")) {
-            documentation += "\n";
-        }
-
         return StructElement.builder(location)
-                .documentation(documentation)
+                .documentation(formatJavadoc(documentation))
                 .type(type)
                 .name(name)
                 .fields(fields)
@@ -421,7 +397,7 @@ public final class ThriftParser {
         }
 
         FieldElement.Builder field = FieldElement.builder(location())
-                .documentation(doc)
+                .documentation(formatJavadoc(doc))
                 .required(requiredByDefault);
 
         if ((data[pos] >= '0' && data[pos] <= '9') || data[pos] == '-') {
@@ -459,13 +435,9 @@ public final class ThriftParser {
             field.constValue(readConstValue());
         }
 
-        String trailingDoc = readTrailingDoc(true);
-        if (!Strings.isNullOrEmpty(trailingDoc)) {
-            doc = doc + "\n" + trailingDoc;
-            if (!doc.endsWith("\n")) {
-                doc += "\n";
-            }
-            field.documentation(doc);
+        doc = readTrailingDoc(doc, true);
+        if (JavadocUtil.isNonEmptyJavadoc(doc)) {
+            field.documentation(formatJavadoc(doc));
         }
 
         return field.build();
@@ -490,12 +462,8 @@ public final class ThriftParser {
 
         ImmutableList<FunctionElement> functions = readFunctionList();
 
-        if (!doc.endsWith("\n")) {
-            doc += "\n";
-        }
-
         return ServiceElement.builder(location)
-                .documentation(doc)
+                .documentation(formatJavadoc(doc))
                 .name(name)
                 .extendsServiceName(extendsName)
                 .functions(functions)
@@ -513,24 +481,13 @@ public final class ThriftParser {
 
             FunctionElement func = readFunction(location(), functionDoc);
 
-            String trailingDoc = readTrailingDoc(true);
-            if (!Strings.isNullOrEmpty(trailingDoc)) {
-                functionDoc = functionDoc + '\n' + trailingDoc;
-                if (!functionDoc.endsWith("\n")) {
-                    functionDoc += "\n";
-                }
-                func = FunctionElement.builder(func)
-                        .documentation(functionDoc)
-                        .build();
-            }
-
             funcs.add(func);
         }
     }
 
     private FunctionElement readFunction(Location location, String functionDoc) {
         FunctionElement.Builder func = FunctionElement.builder(location)
-                .documentation(functionDoc);
+                .documentation(formatJavadoc(functionDoc));
 
         String word = readTypeName();
         if ("oneway".equals(word)) {
@@ -562,13 +519,9 @@ public final class ThriftParser {
             func.exceptions(readFieldList(')', false));
         }
 
-        String trailingDoc = readTrailingDoc(true);
-        if (!Strings.isNullOrEmpty(trailingDoc)) {
-            String doc = functionDoc + '\n' + trailingDoc;
-            if (!doc.endsWith("\n")) {
-                doc += "\n";
-            }
-            func.documentation(doc);
+        functionDoc = readTrailingDoc(functionDoc, true);
+        if (JavadocUtil.isNonEmptyJavadoc(functionDoc)) {
+            func.documentation(formatJavadoc(functionDoc));
         }
 
         return func.build();
@@ -672,7 +625,7 @@ public final class ThriftParser {
         return data[pos];
     }
 
-    private String readTrailingDoc(boolean consumeSeparator) {
+    private String readTrailingDoc(String doc, boolean consumeSeparator) {
         boolean acceptSeparator = consumeSeparator;
         int commentType = -1;
         while (pos < data.length) {
@@ -692,7 +645,7 @@ public final class ThriftParser {
         }
 
         if (commentType == -1) {
-            return "";
+            return doc;
         }
 
         if (commentType == '/') {
@@ -756,10 +709,22 @@ public final class ThriftParser {
         }
 
         if (end == start) {
-            return "";
+            return doc;
         }
 
-        return new String(data, start, end - start + 1);
+        int trailingLength = end - start + 1;
+        StringBuilder result = new StringBuilder(doc.length() + trailingLength);
+        result.append(doc);
+        if (!Strings.isNullOrEmpty(doc) && !doc.endsWith("\n")) {
+            result.append('\n');
+        }
+        result.append(data, start, trailingLength);
+
+        if (result.charAt(result.length() - 1) != '\n') {
+            result.append('\n');
+        }
+
+        return result.toString();
     }
 
     private String readLiteral() {
@@ -1055,6 +1020,10 @@ public final class ThriftParser {
     private void newline() {
         line++;
         lineStart = pos;
+    }
+
+    private static String formatJavadoc(String doc) {
+        return doc.endsWith("\n") ? doc : doc + "\n";
     }
 
     private Location location() {

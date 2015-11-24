@@ -51,10 +51,6 @@ public final class ThriftyCodeGenerator {
     private static final DateTimeFormatter DATE_FORMATTER =
             ISODateTimeFormat.dateTime().withZoneUTC();
 
-    /*
-     * ClassName constants used extensively in generated code.
-     */
-
     static final ClassName STRING = ClassName.get(String.class);
     static final ClassName LIST = ClassName.get(List.class);
     static final ClassName MAP = ClassName.get(Map.class);
@@ -170,7 +166,7 @@ public final class ThriftyCodeGenerator {
                     .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                     .addAnnotation(fieldAnnotation(field));
 
-            if (!Strings.isNullOrEmpty(field.documentation())) {
+            if (field.hasJavadoc()) {
                 fieldBuilder = fieldBuilder.addJavadoc(field.documentation());
             }
 
