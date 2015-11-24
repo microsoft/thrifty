@@ -8,7 +8,6 @@ import com.bendb.thrifty.protocol.FieldMetadata;
 import com.bendb.thrifty.protocol.ListMetadata;
 import com.bendb.thrifty.protocol.MapMetadata;
 import com.bendb.thrifty.protocol.SetMetadata;
-import com.bendb.thrifty.protocol.StructMetadata;
 import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.schema.EnumType;
 import com.bendb.thrifty.schema.Field;
@@ -51,6 +50,14 @@ public final class ThriftyCodeGenerator {
     private static final DateTimeFormatter DATE_FORMATTER =
             ISODateTimeFormat.dateTime().withZoneUTC();
 
+    static final TypeName BOOLEAN = ClassName.BOOLEAN.box();
+    static final TypeName BYTE = ClassName.BYTE.box();
+    static final TypeName SHORT = ClassName.SHORT.box();
+    static final TypeName INTEGER = ClassName.INT.box();
+    static final TypeName LONG = ClassName.LONG.box();
+    static final TypeName DOUBLE = ClassName.DOUBLE.box();
+    static final TypeName VOID = ClassName.VOID; // Don't box void, it is only used as a non-return-value.
+
     static final ClassName STRING = ClassName.get(String.class);
     static final ClassName LIST = ClassName.get(List.class);
     static final ClassName MAP = ClassName.get(Map.class);
@@ -61,8 +68,6 @@ public final class ThriftyCodeGenerator {
     static final ClassName LIST_META = ClassName.get(ListMetadata.class);
     static final ClassName SET_META = ClassName.get(SetMetadata.class);
     static final ClassName MAP_META = ClassName.get(MapMetadata.class);
-    static final ClassName STRUCT_META = ClassName.get(StructMetadata.class);
-    static final ClassName FIELD_META = ClassName.get(FieldMetadata.class);
 
     static final ClassName PROTOCOL = ClassName.get(Protocol.class);
     static final ClassName PROTO_UTIL = ClassName.get(ProtocolUtil.class);
@@ -672,37 +677,37 @@ public final class ThriftyCodeGenerator {
 
         @Override
         public Void visitBool() {
-            read.addStatement("$T $N = protocol.readBool()", ClassName.BOOLEAN.box(), nameStack.peek());
+            read.addStatement("$T $N = protocol.readBool()", BOOLEAN, nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitByte() {
-            read.addStatement("$T $N = protocol.readByte()", ClassName.BYTE.box(), nameStack.peek());
+            read.addStatement("$T $N = protocol.readByte()", BYTE, nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitI16() {
-            read.addStatement("$T $N = protocol.readI16()", ClassName.SHORT.box(), nameStack.peek());
+            read.addStatement("$T $N = protocol.readI16()", SHORT, nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitI32() {
-            read.addStatement("$T $N = protocol.readI32()", ClassName.INT.box(), nameStack.peek());
+            read.addStatement("$T $N = protocol.readI32()", INTEGER, nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitI64() {
-            read.addStatement("$T $N = protocol.readI64()", ClassName.LONG.box(), nameStack.peek());
+            read.addStatement("$T $N = protocol.readI64()", LONG, nameStack.peek());
             return null;
         }
 
         @Override
         public Void visitDouble() {
-            read.addStatement("$T $N = protocol.readDouble()", ClassName.DOUBLE.box(), nameStack.peek());
+            read.addStatement("$T $N = protocol.readDouble()", DOUBLE, nameStack.peek());
             return null;
         }
 
@@ -860,32 +865,32 @@ public final class ThriftyCodeGenerator {
     private final ThriftType.Visitor<TypeName> typeNameVisitor = new ThriftType.Visitor<TypeName>() {
         @Override
         public TypeName visitBool() {
-            return ClassName.BOOLEAN.box();
+            return BOOLEAN;
         }
 
         @Override
         public TypeName visitByte() {
-            return ClassName.BYTE.box();
+            return BYTE;
         }
 
         @Override
         public TypeName visitI16() {
-            return ClassName.SHORT.box();
+            return SHORT;
         }
 
         @Override
         public TypeName visitI32() {
-            return ClassName.INT.box();
+            return INTEGER;
         }
 
         @Override
         public TypeName visitI64() {
-            return ClassName.LONG.box();
+            return LONG;
         }
 
         @Override
         public TypeName visitDouble() {
-            return ClassName.DOUBLE.box();
+            return DOUBLE;
         }
 
         @Override
@@ -900,7 +905,7 @@ public final class ThriftyCodeGenerator {
 
         @Override
         public TypeName visitVoid() {
-            return ClassName.VOID;
+            return VOID;
         }
 
         @Override
