@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.net.ProtocolException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +59,7 @@ public final class ThriftyCodeGenerator {
     static final TypeName DOUBLE = ClassName.DOUBLE.box();
     static final TypeName VOID = ClassName.VOID; // Don't box void, it is only used as a non-return-value.
 
+    static final ClassName COLLECTIONS = ClassName.get(Collections.class);
     static final ClassName STRING = ClassName.get(String.class);
     static final ClassName LIST = ClassName.get(List.class);
     static final ClassName MAP = ClassName.get(Map.class);
@@ -162,12 +164,15 @@ public final class ThriftyCodeGenerator {
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(builderTypeName, "builder");
 
-        // Add fields to both struct and builder classes
+        // Add fields to the struct and set them in the ctor
         for (Field field : type.fields()) {
+            String name = field.name();
             ThriftType fieldType = field.type();
-            TypeName fieldTypeName = getJavaClassName(fieldType.getTrueType());
+            ThriftType trueType = fieldType.getTrueType();
+            TypeName fieldTypeName = getJavaClassName(trueType);
 
-            FieldSpec.Builder fieldBuilder = FieldSpec.builder(fieldTypeName, field.name())
+            // Define field
+            FieldSpec.Builder fieldBuilder = FieldSpec.builder(fieldTypeName, name)
                     .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                     .addAnnotation(fieldAnnotation(field));
 
@@ -178,7 +183,18 @@ public final class ThriftyCodeGenerator {
             structBuilder.addField(fieldBuilder.build());
 
             // Update the struct ctor
-            ctor.addStatement("this.$N = builder.$N", field.name(), field.name());
+            if (trueType.isList()) {
+                ctor.addStatement("this.$N = $T.unmodifiableList(builder.$N)",
+                        name, COLLECTIONS, name);
+            } else if (trueType.isSet()) {
+                ctor.addStatement("this.$N = $T.unmodifiableSet(builder.$N)",
+                        name, COLLECTIONS, name);
+            } else if (trueType.isMap()) {
+                ctor.addStatement("this.$N = $T.unmodifiableMap(builder.$N)",
+                        name, COLLECTIONS, name);
+            } else {
+                ctor.addStatement("this.$N = builder.$N", name, name);
+            }
         }
 
         structBuilder.addMethod(ctor.build());
