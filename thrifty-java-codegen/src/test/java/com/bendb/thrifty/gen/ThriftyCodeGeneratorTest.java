@@ -29,6 +29,7 @@ import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 @Ignore("Used to manually inspect code generation")
 public class ThriftyCodeGeneratorTest {
@@ -56,7 +57,7 @@ public class ThriftyCodeGeneratorTest {
         ImmutableMap<NamespaceScope, String> namespaces = ImmutableMap.of(NamespaceScope.JAVA, "com.test.enums");
         EnumType et = new EnumType(ee, ThriftType.enumType("BuildStatus", namespaces), namespaces);
 
-        ThriftyCodeGenerator gen = new ThriftyCodeGenerator();
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(mock(Schema.class));
         TypeSpec generated = gen.buildEnum(et);
 
         JavaFile file = JavaFile.builder("com.test.enums", generated).build();
@@ -87,7 +88,7 @@ public class ThriftyCodeGeneratorTest {
 
         Schema schema = loader.load();
 
-        ThriftyCodeGenerator gen = new ThriftyCodeGenerator();
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(mock(Schema.class));
         TypeSpec type = gen.buildStruct(schema.structs().get(0));
 
         JavaFile file = JavaFile.builder("com.test.struct", type).build();

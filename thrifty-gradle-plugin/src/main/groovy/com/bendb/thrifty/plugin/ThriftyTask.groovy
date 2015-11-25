@@ -8,5 +8,7 @@ class ThriftyTask extends DefaultTask {
     @OutputDirectory
     def File outputDir
 
-    def List<ThriftyExtension> configurations
+    def List<ThriftyExtension> configurations = []
+
+
 }

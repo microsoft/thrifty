@@ -3,4 +3,4 @@ include 'thrifty-schema'
 include 'thrifty-runtime'
 include 'thrifty-java-codegen'
 include 'thrifty-gradle-plugin'
-
+include 'thrifty-compiler'

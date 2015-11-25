@@ -1,40 +1,60 @@
 package com.bendb.thrifty.plugin
 
+import com.android.build.gradle.AppExtension
+import com.android.build.gradle.AppPlugin
+import com.android.build.gradle.LibraryExtension
+import com.android.build.gradle.LibraryPlugin
 import com.android.build.gradle.api.BaseVariant
 import org.gradle.api.DomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.logging.Logger
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.compile.JavaCompile
 
 class ThriftyPlugin implements Plugin<Project> {
+    def Logger log
+
     @Override
     public void apply(Project project) {
-        if (project.getPlugins().hasPlugin("com.android.application")) {
-            applyAndroid(project, (DomainObjectCollection<BaseVariant>) project.android.applicationVariants);
-        } else if (project.getPlugins().hasPlugin("com.android.library")) {
-            applyAndroid(project, (DomainObjectCollection<BaseVariant>) project.android.libraryVariants);
-        } else if (project.plugins.hasPlugin("org.gradle.java")) {
+        def hasAppPlugin = project.plugins.hasPlugin AppPlugin
+        def hasLibraryPlugin = project.plugins.hasPlugin LibraryPlugin
+        def hasJavaPlugin = project.plugins.hasPlugin JavaPlugin
+
+        log = project.logger
+
+        if (hasAppPlugin) {
+            def plugin = project.getPlugins().getPlugin(AppPlugin)
+            def ext = (AppExtension) plugin.extension
+            applyAndroid(project, ext.applicationVariants);
+        } else if (hasLibraryPlugin) {
+            def plugin = project.plugins.getPlugin(LibraryPlugin)
+            def ext = (LibraryExtension) plugin.extension
+            applyAndroid(project, ext.libraryVariants);
+        } else if (hasJavaPlugin) {
             applyJava(project)
         } else {
             throw new IllegalArgumentException("thrifty plugin requires the Android or Java plugins to be configured");
         }
     }
 
-    private static def applyAndroid(Project project, DomainObjectCollection<BaseVariant> variants) {
-        project.android.sourceSets.all { ss ->
-            ss.extensions.create('thrifty', ThriftyExtension, project, ss.name)
+    private def applyAndroid(Project project, DomainObjectCollection<BaseVariant> variants) {
+        project.android.sourceSets.all { SourceSet ss ->
+            log.info("ss: ${ss}, name: ${ss.name}")
+            defineExtension(ss, project)
         }
 
         variants.each { variant ->
-            def name = variant.name.capitalize()
-            def slug = "generateThrift${name}Sources"
             def task = createTask(project, variant.name, variant.dirName, variant.sourceSets)
             variant.registerJavaGeneratingTask(task, task.outputDir)
         }
     }
 
-    private static def applyJava(Project project) {
-        project.sourceSets.each { ss ->
+    private def applyJava(Project project) {
+        project.sourceSets.each { SourceSet ss ->
+            log.info("applyJava: ss=${ss}, ss.name=${ss.name}")
+            defineExtension(ss, project)
             ss.extensions.create('thrifty', ThriftyExtension, project, ss.name)
 
             def setName = (String) ss.name
@@ -63,5 +83,9 @@ class ThriftyPlugin implements Plugin<Project> {
         task.outputDir = project.file("${project.buildDir}/generated/source/thrifty/${dir}")
 
         return task
+    }
+
+    private static defineExtension(SourceSet ss, Project project) {
+        ss.extensions.create('thrifty', ThriftyExtension, project, ss.name)
     }
 }

@@ -40,7 +40,7 @@ public final class Field {
     }
 
     public ConstValueElement defaultValue() {
-        throw new IllegalStateException("Not implemented");
+        return element.constValue();
     }
 
     public ThriftType type() {
