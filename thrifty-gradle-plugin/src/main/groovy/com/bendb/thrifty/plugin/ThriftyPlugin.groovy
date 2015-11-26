@@ -14,7 +14,7 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.compile.JavaCompile
 
 class ThriftyPlugin implements Plugin<Project> {
-    def Logger log
+    Logger log
 
     @Override
     public void apply(Project project) {

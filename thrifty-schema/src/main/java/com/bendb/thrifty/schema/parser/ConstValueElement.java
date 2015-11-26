@@ -23,6 +23,56 @@ public abstract class ConstValueElement {
     public abstract Kind kind();
     public abstract Object value();
 
+    public String getAsString() {
+        if (kind() == Kind.STRING || kind() == Kind.IDENTIFIER) {
+            return (String) value();
+        } else {
+            throw new IllegalStateException("Cannot convert to string, kind=" + kind());
+        }
+    }
+
+    public long getAsLong() {
+        if (kind() == Kind.INTEGER) {
+            return (Long) value();
+        } else {
+            throw new IllegalStateException("Cannot convert to long, kind=" + kind());
+        }
+    }
+
+    public int getAsInt() {
+        if (kind() == Kind.INTEGER) {
+            return ((Long) value()).intValue();
+        } else {
+            throw new IllegalStateException("Cannot convert to long, kind=" + kind());
+        }
+    }
+
+    public double getAsDouble() {
+        if (kind() == Kind.DOUBLE) {
+            return (Double) value();
+        } else {
+            throw new IllegalStateException("Cannot convert to double, kind=" + kind());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<ConstValueElement> getAsList() {
+        if (kind() == Kind.LIST) {
+            return (List<ConstValueElement>) value();
+        } else {
+            throw new IllegalStateException("Cannot convert to list, kind=" + kind());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<ConstValueElement, ConstValueElement> getAsMap() {
+        if (kind() == Kind.MAP) {
+            return (Map<ConstValueElement, ConstValueElement>) value();
+        } else {
+            throw new IllegalStateException("Cannot convert to map, kind=" + kind());
+        }
+    }
+
     ConstValueElement() { }
 
     public static ConstValueElement integer(Location location, long value) {

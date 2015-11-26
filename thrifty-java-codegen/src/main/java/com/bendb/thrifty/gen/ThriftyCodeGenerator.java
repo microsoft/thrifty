@@ -20,8 +20,10 @@ import com.bendb.thrifty.schema.ThriftType;
 import com.bendb.thrifty.schema.parser.ConstValueElement;
 import com.bendb.thrifty.util.ProtocolUtil;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -37,6 +39,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import javax.annotation.Generated;
+import javax.annotation.Nullable;
 import javax.lang.model.element.Modifier;
 import java.io.File;
 import java.io.IOException;
@@ -266,6 +269,13 @@ public final class ThriftyCodeGenerator {
                 .addParameter(builderTypeName, "builder");
 
         // Add fields to the struct and set them in the ctor
+        NameAllocator allocator = new NameAllocator();
+        allocator.newName("ADAPTER", "ADAPTER");
+        allocator.newName("Builder", "Builder");
+        for (Field field : type.fields()) {
+            allocator.newName(field.name(), field.name());
+        }
+
         for (Field field : type.fields()) {
             String name = field.name();
             ThriftType fieldType = field.type();
@@ -279,6 +289,18 @@ public final class ThriftyCodeGenerator {
 
             if (field.hasJavadoc()) {
                 fieldBuilder = fieldBuilder.addJavadoc(field.documentation());
+            }
+
+            if (field.defaultValue() != null) {
+                CodeBlock.Builder block = CodeBlock.builder();
+                generateFieldInitializer(
+                        block,
+                        allocator,
+                        "this." + field.name(),
+                        trueType,
+                        field.defaultValue());
+
+                fieldBuilder.initializer(block.build());
             }
 
             structBuilder.addField(fieldBuilder.build());
@@ -465,27 +487,145 @@ public final class ThriftyCodeGenerator {
         spec.addMethod(toString.build());
     }
 
+    @SuppressWarnings("unchecked")
     private void generateFieldInitializer(
-            CodeBlock.Builder initializer,
-            String name, ThriftType tt,
-            ConstValueElement value) {
-        if (tt.isBuiltin()) {
-            String init = renderConstValue(initializer, tt, value);
-            initializer.addStatement("$L = $L", name, init);
-        } else if (tt.isEnum()) {
+            final CodeBlock.Builder initializer,
+            final NameAllocator allocator,
+            final String name,
+            final ThriftType tt,
+            final ConstValueElement value) {
 
-        }
+        tt.getTrueType().accept(new SimpleVisitor<Void>() {
+            @Override
+            public Void visitBuiltin(ThriftType builtinType) {
+                String init = renderConstValue(initializer, allocator, tt, value);
+                initializer.addStatement("$L = $L", name, init);
+                return null;
+            }
+
+            @Override
+            public Void visitEnum(ThriftType userType) {
+                EnumType e;
+                try {
+                    e = Iterables.find(schema.enums(), new Predicate<EnumType>() {
+                        @Override
+                        public boolean apply(@Nullable EnumType enumType) {
+                            return enumType != null && enumType.type().equals(tt);
+                        }
+                    });
+                } catch (NoSuchElementException ignored) {
+                    throw new AssertionError("Missing enum type: " + tt.name());
+                }
+
+                Predicate<EnumType.Member> predicate;
+                if (value.kind() == ConstValueElement.Kind.INTEGER) {
+                    final int intValue = ((Long) value.value()).intValue();
+                    predicate = new Predicate<EnumType.Member>() {
+                        @Override
+                        public boolean apply(@Nullable EnumType.Member member) {
+                            return member != null && member.value() == intValue;
+                        }
+                    };
+                } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
+                    final String memberName = (String) value.value();
+                    predicate = new Predicate<EnumType.Member>() {
+                        @Override
+                        public boolean apply(@Nullable EnumType.Member member) {
+                            return member != null && member.name().equals(memberName);
+                        }
+                    };
+                } else {
+                    throw new AssertionError("Constant value kind " + value.kind() + " is not possibly and enum; validation bug");
+                }
+
+                EnumType.Member member;
+                try {
+                    member = Iterables.find(e.members(), predicate);
+                } catch (NoSuchElementException ignored) {
+                    throw new IllegalStateException("No enum member in " + e.name() + " with value " + value.value());
+                }
+
+                initializer.addStatement("$L = $T.$L", name, getJavaClassName(tt), member.name());
+                return null;
+            }
+
+            @Override
+            public Void visitList(ThriftType.ListType listType) {
+                List<ConstValueElement> list = (List<ConstValueElement>) value.value();
+                String listName = allocator.newName("list", "list");
+                TypeName elementTypeName = getJavaClassName(listType.elementType());
+                initializer.addStatement("$T $N = new $T($L)",
+                        ParameterizedTypeName.get(LIST, elementTypeName),
+                        listName,
+                        ParameterizedTypeName.get(listClassName, elementTypeName),
+                        list.size());
+
+                for (ConstValueElement element : list) {
+                    String item = renderConstValue(
+                            initializer,
+                            allocator,
+                            listType.elementType().getTrueType(),
+                            element);
+                    initializer.addStatement("$N.add($L)", listName, item);
+                }
+
+                initializer.addStatement("this.$N = $N", name, list);
+                return null;
+            }
+
+            @Override
+            public Void visitSet(ThriftType.SetType setType) {
+                List<ConstValueElement> set = (List<ConstValueElement>) value.value();
+                String setName = allocator.newName("set", "set");
+                TypeName elementTypeName = getJavaClassName(setType.elementType());
+                initializer.addStatement("$T $N = new $T($L)",
+                        ParameterizedTypeName.get(SET, elementTypeName),
+                        setName,
+                        ParameterizedTypeName.get(setClassName, elementTypeName),
+                        set.size());
+
+                for (ConstValueElement element : set) {
+                    String item = renderConstValue(
+                            initializer,
+                            allocator,
+                            setType.elementType().getTrueType(),
+                            element);
+                    initializer.addStatement("$N.add($L)", setName, item);
+                }
+
+                initializer.addStatement("this.$N = $N");
+                return null;
+            }
+
+            @Override
+            public Void visitMap(ThriftType.MapType mapType) {
+                return null;
+            }
+
+            @Override
+            public Void visitUserType(ThriftType userType) {
+                // TODO: this
+                throw new UnsupportedOperationException("struct-type default values are not yet implemented");
+            }
+
+            @Override
+            public Void visitTypedef(ThriftType.TypedefType typedefType) {
+                throw new AssertionError("Should not be possible!");
+            }
+        });
     }
 
     private String renderConstValue(
             final CodeBlock.Builder block,
+            final NameAllocator allocator,
             final ThriftType type,
             final ConstValueElement value) {
+        // TODO: Emit references to constants if kind == IDENTIFIER and it identifies an appropriately-typed const
         return type.accept(new ThriftType.Visitor<String>() {
             @Override
             public String visitBool() {
                 if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                    return "true".equals((String) value.value()) ? "true" : "false";
+                    return "true".equals(value.value()) ? "true" : "false";
                 } else if (value.kind() == ConstValueElement.Kind.INTEGER) {
                     return ((Long) value.value()) == 0L ? "false" : "true";
                 } else {
@@ -496,7 +636,7 @@ public final class ThriftyCodeGenerator {
             @Override
             public String visitByte() {
                 if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return "(byte) " + value.value();
+                    return "(byte) " + value.getAsInt();
                 } else {
                     throw new AssertionError("Invalid byte constant: " + value.value());
                 }
@@ -505,7 +645,7 @@ public final class ThriftyCodeGenerator {
             @Override
             public String visitI16() {
                 if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return "(short) " + value.value();
+                    return "(short) " + value.getAsInt();
                 } else {
                     throw new AssertionError("Invalid i16 constant: " + value.value());
                 }
@@ -514,7 +654,7 @@ public final class ThriftyCodeGenerator {
             @Override
             public String visitI32() {
                 if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return "(int) " + value.value();
+                    return "(int) " + value.getAsInt();
                 } else {
                     throw new AssertionError("Invalid i32 constant: " + value.value());
                 }
@@ -523,7 +663,7 @@ public final class ThriftyCodeGenerator {
             @Override
             public String visitI64() {
                 if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return "(long) " + value.value();
+                    return "(long) " + value.getAsLong();
                 } else {
                     throw new AssertionError("Invalid i64 constant: " + value.value());
                 }
@@ -532,7 +672,7 @@ public final class ThriftyCodeGenerator {
             @Override
             public String visitDouble() {
                 if (value.kind() == ConstValueElement.Kind.DOUBLE) {
-                    return "(double) " + value.value();
+                    return "(double) " + value.getAsDouble();
                 } else {
                     throw new AssertionError("Invalid double constant: " + value.value());
                 }
