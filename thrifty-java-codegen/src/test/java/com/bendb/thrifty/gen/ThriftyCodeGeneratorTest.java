@@ -97,6 +97,37 @@ public class ThriftyCodeGeneratorTest {
         assertThat(code, is("foo"));
     }
 
+    @Test
+    public void fieldInitializers() throws Exception {
+        String thrift = "namespace java com.bendb.thrifty\n" +
+                "\n" +
+                "enum Foo {\n" +
+                "  FOO = 0,\n" +
+                "  BAR = 5,\n" +
+                "  BAZ = 10, \n" +
+                "  QUUX = 15" +
+                "}\n" +
+                "\n" +
+                "struct Init {\n" +
+                "  1: required set<Foo> f = [10]\n" +
+                "}";
+
+        File f = tmp.newFile();
+        write(f, thrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+
+        Schema schema = loader.load();
+
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        TypeSpec spec = gen.buildStruct(schema.structs().get(0));
+        JavaFile file = JavaFile.builder("com.bendb.thrifty", spec).build();
+        String code = file.toString();
+        file.writeTo(System.err);
+        assertThat(code, is("foo"));
+    }
+
     private void write(File file, String text) throws IOException {
         PrintWriter writer = new PrintWriter(file);
         BufferedWriter buf = new BufferedWriter(writer);

@@ -268,14 +268,6 @@ public final class ThriftyCodeGenerator {
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(builderTypeName, "builder");
 
-        // Add fields to the struct and set them in the ctor
-        NameAllocator allocator = new NameAllocator();
-        allocator.newName("ADAPTER", "ADAPTER");
-        allocator.newName("Builder", "Builder");
-        for (Field field : type.fields()) {
-            allocator.newName(field.name(), field.name());
-        }
-
         for (Field field : type.fields()) {
             String name = field.name();
             ThriftType fieldType = field.type();
@@ -289,18 +281,6 @@ public final class ThriftyCodeGenerator {
 
             if (field.hasJavadoc()) {
                 fieldBuilder = fieldBuilder.addJavadoc(field.documentation());
-            }
-
-            if (field.defaultValue() != null) {
-                CodeBlock.Builder block = CodeBlock.builder();
-                generateFieldInitializer(
-                        block,
-                        allocator,
-                        "this." + field.name(),
-                        trueType,
-                        field.defaultValue());
-
-                fieldBuilder.initializer(block.build());
             }
 
             structBuilder.addField(fieldBuilder.build());
@@ -321,8 +301,9 @@ public final class ThriftyCodeGenerator {
         }
 
         structBuilder.addMethod(ctor.build());
-
-        generateEqualsHashCodeAndToString(structBuilder, type);
+        structBuilder.addMethod(buildEqualsFor(type));
+        structBuilder.addMethod(buildHashCodeFor(type));
+        structBuilder.addMethod(buildToStringFor(type));
 
         return structBuilder.build();
     }
@@ -356,6 +337,12 @@ public final class ThriftyCodeGenerator {
             buildMethodBuilder.addStatement("int setFields = 0");
         }
 
+        // Add fields to the struct and set them in the ctor
+        NameAllocator allocator = new NameAllocator();
+        for (Field field : structType.fields()) {
+            allocator.newName(field.name(), field.name());
+        }
+
         for (Field field : structType.fields()) {
             TypeName javaTypeName = getJavaClassName(field.type());
             String fieldName = field.name();
@@ -367,8 +354,17 @@ public final class ThriftyCodeGenerator {
 
             if (field.defaultValue() != null) {
                 CodeBlock.Builder initializer = CodeBlock.builder();
-                //generateFieldInitializer(field.type(), field.defaultValue(), initializer);
+                generateFieldInitializer(
+                        initializer,
+                        allocator,
+                        "this." + field.name(),
+                        field.type().getTrueType(),
+                        field.defaultValue());
                 defaultCtor.addCode(initializer.build());
+
+                resetBuilder.addCode(initializer.build());
+            } else {
+                resetBuilder.addStatement("this.$N = null", fieldName);
             }
 
             builder.addField(f.build());
@@ -385,9 +381,7 @@ public final class ThriftyCodeGenerator {
 
             if (structType.isUnion()) {
                 buildMethodBuilder
-                        .beginControlFlow("if (this.$N != null)")
-                        .addStatement("++setFields")
-                        .endControlFlow();
+                        .addStatement("if (this.$N != null) ++setFields", fieldName);
             } else {
                 if (field.required()) {
                     buildMethodBuilder.beginControlFlow("if (this.$N == null)", fieldName);
@@ -399,7 +393,6 @@ public final class ThriftyCodeGenerator {
                 }
             }
 
-            resetBuilder.addStatement("this.$N = null", fieldName);
             copyCtor.addStatement("this.$N = $N.$N", fieldName, "struct", fieldName);
         }
 
@@ -423,12 +416,7 @@ public final class ThriftyCodeGenerator {
         return builder.build();
     }
 
-    private void generateEqualsHashCodeAndToString(TypeSpec.Builder spec, StructType struct) {
-        NameAllocator allocator = new NameAllocator();
-        for (Field field : struct.fields()) {
-            allocator.newName(field.name(), field.name());
-        }
-
+    private MethodSpec buildEqualsFor(StructType struct) {
         MethodSpec.Builder equals = MethodSpec.methodBuilder("equals")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
@@ -437,17 +425,6 @@ public final class ThriftyCodeGenerator {
                 .addStatement("if (this == other) return true")
                 .addStatement("if (other == null) return false");
 
-        MethodSpec.Builder hashCode = MethodSpec.methodBuilder("hashCode")
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PUBLIC)
-                .returns(int.class)
-                .addStatement("int code = 16777619");
-
-        MethodSpec.Builder toString = MethodSpec.methodBuilder("toString")
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PUBLIC)
-                .returns(String.class)
-                .addStatement("$1T sb = new $1T()", STRING_BUILDER);
 
         if (struct.fields().size() > 0) {
             equals.addStatement("if (getType() != other.getType() return false")
@@ -464,11 +441,6 @@ public final class ThriftyCodeGenerator {
                 equals.addCode("\n&& (this.$1N == that.$1N || (this.$1N != null && this.$1N.equals(that.$1N)))",
                         field.name());
             }
-
-            hashCode.addStatement("code ^= (this.$1N == null) ? 0 : this.$1N.hashCode()", field.name());
-            hashCode.addStatement("code *= 0x811c9dc5");
-
-            toString.addStatement("if (this.$1N != null) sb.append(\",  $1N=\").append(this.$1N)", field.name());
         }
 
         if (struct.fields().size() > 0) {
@@ -477,14 +449,51 @@ public final class ThriftyCodeGenerator {
             equals.addStatement("return that instanceof $L", struct.name());
         }
 
+        return equals.build();
+    }
+
+    private MethodSpec buildHashCodeFor(StructType struct) {
+        MethodSpec.Builder hashCode = MethodSpec.methodBuilder("hashCode")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(int.class)
+                .addStatement("int code = 16777619");
+
+        for (Field field : struct.fields()) {
+            hashCode.addStatement("code ^= (this.$1N == null) ? 0 : this.$1N.hashCode()", field.name());
+            hashCode.addStatement("code *= 0x811c9dc5");
+        }
+
         hashCode.addStatement("return code");
+        return hashCode.build();
+    }
 
-        toString.addStatement("return sb.replace(0, 2, \"$L{\\n\").append('}').toString()",
-                struct.name());
+    private MethodSpec buildToStringFor(StructType struct) {
+        MethodSpec.Builder toString = MethodSpec.methodBuilder("toString")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class);
 
-        spec.addMethod(equals.build());
-        spec.addMethod(hashCode.build());
-        spec.addMethod(toString.build());
+        int index = 0;
+        if (struct.fields().size() > 0) {
+            toString.addStatement("$1T sb = new $1T()", STRING_BUILDER);
+            toString.addStatement("sb.append($S).append(\"\\n  \")", struct.name());
+            for (Field field : struct.fields()) {
+                boolean isLast = ++index == struct.fields().size();
+                toString.addStatement("sb.append($S)", field.name() + "=");
+                toString.addStatement("sb.append(this.$1N == null ? \"null\" : this.$1N)", field.name());
+                if (isLast) {
+                    toString.addStatement("sb.append(\"\\n}\")");
+                } else {
+                    toString.addStatement("sb.append(\",\\n  \")");
+                }
+            }
+            toString.addStatement("return sb.toString()");
+        } else {
+            toString.addStatement("return $S", struct.name() + "{}");
+        }
+
+        return toString.build();
     }
 
     @SuppressWarnings("unchecked")
@@ -498,13 +507,164 @@ public final class ThriftyCodeGenerator {
         tt.getTrueType().accept(new SimpleVisitor<Void>() {
             @Override
             public Void visitBuiltin(ThriftType builtinType) {
-                String init = renderConstValue(initializer, allocator, tt, value);
+                CodeBlock init = renderConstValue(initializer, allocator, tt, value);
                 initializer.addStatement("$L = $L", name, init);
                 return null;
             }
 
             @Override
             public Void visitEnum(ThriftType userType) {
+                CodeBlock item = renderConstValue(initializer, allocator, tt, value);
+
+                initializer.addStatement("$L = $L", name, item);
+                return null;
+            }
+
+            @Override
+            public Void visitList(ThriftType.ListType listType) {
+                List<ConstValueElement> list = (List<ConstValueElement>) value.value();
+                String listName = allocator.newName("list", "list");
+                TypeName elementTypeName = getJavaClassName(listType.elementType());
+                initializer.addStatement("$T $N = new $T($L)",
+                        ParameterizedTypeName.get(LIST, elementTypeName),
+                        listName,
+                        ParameterizedTypeName.get(listClassName, elementTypeName),
+                        list.size());
+
+                for (ConstValueElement element : list) {
+                    CodeBlock item = renderConstValue(
+                            initializer,
+                            allocator,
+                            listType.elementType().getTrueType(),
+                            element);
+                    initializer.addStatement("$N.add($L)", listName, item);
+                }
+
+                initializer.addStatement("$N = $N", name, listName);
+                return null;
+            }
+
+            @Override
+            public Void visitSet(ThriftType.SetType setType) {
+                List<ConstValueElement> set = (List<ConstValueElement>) value.value();
+                String setName = allocator.newName("set", "set");
+                TypeName elementTypeName = getJavaClassName(setType.elementType());
+                initializer.addStatement("$T $N = new $T($L)",
+                        ParameterizedTypeName.get(SET, elementTypeName),
+                        setName,
+                        ParameterizedTypeName.get(setClassName, elementTypeName),
+                        set.size());
+
+                for (ConstValueElement element : set) {
+                    CodeBlock item = renderConstValue(
+                            initializer,
+                            allocator,
+                            setType.elementType().getTrueType(),
+                            element);
+                    initializer.addStatement("$N.add($L)", setName, item);
+                }
+
+                initializer.addStatement("$N = $N", name, setName);
+                return null;
+            }
+
+            @Override
+            public Void visitMap(ThriftType.MapType mapType) {
+                return null;
+            }
+
+            @Override
+            public Void visitUserType(ThriftType userType) {
+                // TODO: this
+                throw new UnsupportedOperationException("struct-type default values are not yet implemented");
+            }
+
+            @Override
+            public Void visitTypedef(ThriftType.TypedefType typedefType) {
+                throw new AssertionError("Should not be possible!");
+            }
+        });
+    }
+
+    private CodeBlock renderConstValue(
+            final CodeBlock.Builder block,
+            final NameAllocator allocator,
+            final ThriftType type,
+            final ConstValueElement value) {
+        // TODO: Emit references to constants if kind == IDENTIFIER and it identifies an appropriately-typed const
+        return type.accept(new ThriftType.Visitor<CodeBlock>() {
+            @Override
+            public CodeBlock visitBool() {
+                String name;
+                if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
+                    name = "true".equals(value.value()) ? "true" : "false";
+                } else if (value.kind() == ConstValueElement.Kind.INTEGER) {
+                    name = ((Long) value.value()) == 0L ? "false" : "true";
+                } else {
+                    throw new AssertionError("Invalid boolean constant: " + value.value());
+                }
+
+                return CodeBlock.builder().add(name).build();
+            }
+
+            @Override
+            public CodeBlock visitByte() {
+                return castInt("byte", ThriftType.BYTE, value);
+            }
+
+            @Override
+            public CodeBlock visitI16() {
+                return castInt("short", ThriftType.I16, value);
+            }
+
+            @Override
+            public CodeBlock visitI32() {
+                return castInt("int", ThriftType.I32, value);
+            }
+
+            @Override
+            public CodeBlock visitI64() {
+                return castInt("long", ThriftType.I64, value);
+            }
+
+            @Override
+            public CodeBlock visitDouble() {
+                if (value.kind() == ConstValueElement.Kind.DOUBLE) {
+                    return CodeBlock.builder().add("(double) $L", value.getAsDouble()).build();
+                } else {
+                    throw new AssertionError("Invalid double constant: " + value.value());
+                }
+            }
+
+            private CodeBlock castInt(String name, ThriftType type, ConstValueElement value) {
+                if (value.kind() == ConstValueElement.Kind.INTEGER) {
+                    return CodeBlock.builder().add("($L) $L", name, value.getAsLong()).build();
+                } else {
+                    throw new AssertionError("Invalid " + type.name() + " constant: " + value.value());
+                }
+            }
+
+            @Override
+            public CodeBlock visitString() {
+                if (value.kind() == ConstValueElement.Kind.STRING) {
+                    return CodeBlock.builder().add("$S", value.value()).build();
+                } else {
+                    throw new AssertionError("Invalid string constant: " + value.value());
+                }
+            }
+
+            @Override
+            public CodeBlock visitBinary() {
+                throw new AssertionError("Binary literals are not supported");
+            }
+
+            @Override
+            public CodeBlock visitVoid() {
+                throw new AssertionError("Void literals are meaningless, what are you even doing");
+            }
+
+            @Override
+            public CodeBlock visitEnum(final ThriftType tt) {
                 EnumType e;
                 try {
                     e = Iterables.find(schema.enums(), new Predicate<EnumType>() {
@@ -545,190 +705,33 @@ public final class ThriftyCodeGenerator {
                     throw new IllegalStateException("No enum member in " + e.name() + " with value " + value.value());
                 }
 
-                initializer.addStatement("$L = $T.$L", name, getJavaClassName(tt), member.name());
-                return null;
+                return CodeBlock.builder()
+                        .add("$T.$L", getJavaClassName(tt), member.name())
+                        .build();
             }
 
             @Override
-            public Void visitList(ThriftType.ListType listType) {
-                List<ConstValueElement> list = (List<ConstValueElement>) value.value();
-                String listName = allocator.newName("list", "list");
-                TypeName elementTypeName = getJavaClassName(listType.elementType());
-                initializer.addStatement("$T $N = new $T($L)",
-                        ParameterizedTypeName.get(LIST, elementTypeName),
-                        listName,
-                        ParameterizedTypeName.get(listClassName, elementTypeName),
-                        list.size());
-
-                for (ConstValueElement element : list) {
-                    String item = renderConstValue(
-                            initializer,
-                            allocator,
-                            listType.elementType().getTrueType(),
-                            element);
-                    initializer.addStatement("$N.add($L)", listName, item);
-                }
-
-                initializer.addStatement("this.$N = $N", name, list);
-                return null;
+            public CodeBlock visitList(ThriftType.ListType listType) {
+                throw new IllegalStateException("nested lists not implemented");
             }
 
             @Override
-            public Void visitSet(ThriftType.SetType setType) {
-                List<ConstValueElement> set = (List<ConstValueElement>) value.value();
-                String setName = allocator.newName("set", "set");
-                TypeName elementTypeName = getJavaClassName(setType.elementType());
-                initializer.addStatement("$T $N = new $T($L)",
-                        ParameterizedTypeName.get(SET, elementTypeName),
-                        setName,
-                        ParameterizedTypeName.get(setClassName, elementTypeName),
-                        set.size());
-
-                for (ConstValueElement element : set) {
-                    String item = renderConstValue(
-                            initializer,
-                            allocator,
-                            setType.elementType().getTrueType(),
-                            element);
-                    initializer.addStatement("$N.add($L)", setName, item);
-                }
-
-                initializer.addStatement("this.$N = $N");
-                return null;
+            public CodeBlock visitSet(ThriftType.SetType setType) {
+                throw new IllegalStateException("nested sets not implemented");
             }
 
             @Override
-            public Void visitMap(ThriftType.MapType mapType) {
-                return null;
+            public CodeBlock visitMap(ThriftType.MapType mapType) {
+                throw new IllegalStateException("nested maps not implemented");
             }
 
             @Override
-            public Void visitUserType(ThriftType userType) {
-                // TODO: this
-                throw new UnsupportedOperationException("struct-type default values are not yet implemented");
+            public CodeBlock visitUserType(ThriftType userType) {
+                throw new IllegalStateException("nested structs not implemented");
             }
 
             @Override
-            public Void visitTypedef(ThriftType.TypedefType typedefType) {
-                throw new AssertionError("Should not be possible!");
-            }
-        });
-    }
-
-    private String renderConstValue(
-            final CodeBlock.Builder block,
-            final NameAllocator allocator,
-            final ThriftType type,
-            final ConstValueElement value) {
-        // TODO: Emit references to constants if kind == IDENTIFIER and it identifies an appropriately-typed const
-        return type.accept(new ThriftType.Visitor<String>() {
-            @Override
-            public String visitBool() {
-                if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                    return "true".equals(value.value()) ? "true" : "false";
-                } else if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return ((Long) value.value()) == 0L ? "false" : "true";
-                } else {
-                    throw new AssertionError("Invalid boolean constant: " + value.value());
-                }
-            }
-
-            @Override
-            public String visitByte() {
-                if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return "(byte) " + value.getAsInt();
-                } else {
-                    throw new AssertionError("Invalid byte constant: " + value.value());
-                }
-            }
-
-            @Override
-            public String visitI16() {
-                if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return "(short) " + value.getAsInt();
-                } else {
-                    throw new AssertionError("Invalid i16 constant: " + value.value());
-                }
-            }
-
-            @Override
-            public String visitI32() {
-                if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return "(int) " + value.getAsInt();
-                } else {
-                    throw new AssertionError("Invalid i32 constant: " + value.value());
-                }
-            }
-
-            @Override
-            public String visitI64() {
-                if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return "(long) " + value.getAsLong();
-                } else {
-                    throw new AssertionError("Invalid i64 constant: " + value.value());
-                }
-            }
-
-            @Override
-            public String visitDouble() {
-                if (value.kind() == ConstValueElement.Kind.DOUBLE) {
-                    return "(double) " + value.getAsDouble();
-                } else {
-                    throw new AssertionError("Invalid double constant: " + value.value());
-                }
-            }
-
-            @Override
-            public String visitString() {
-                if (value.kind() == ConstValueElement.Kind.STRING) {
-                    return CodeBlock.builder().add("$S", value.value()).build().toString();
-                } else {
-                    throw new AssertionError("Invalid string constant: " + value.value());
-                }
-            }
-
-            @Override
-            public String visitBinary() {
-                throw new AssertionError("Binary literals are not supported");
-            }
-
-            @Override
-            public String visitVoid() {
-                throw new AssertionError("Void literals are meaningless, what are you even doing");
-            }
-
-            @Override
-            public String visitEnum(ThriftType userType) {
-                if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    int id = ((Long) value.value()).intValue();
-                    return null;
-                } else {
-                    throw new AssertionError("Invalid enum literal: " + value.value());
-                }
-            }
-
-            @Override
-            public String visitList(ThriftType.ListType listType) {
-                return null;
-            }
-
-            @Override
-            public String visitSet(ThriftType.SetType setType) {
-                return null;
-            }
-
-            @Override
-            public String visitMap(ThriftType.MapType mapType) {
-                return null;
-            }
-
-            @Override
-            public String visitUserType(ThriftType userType) {
-                return null;
-            }
-
-            @Override
-            public String visitTypedef(ThriftType.TypedefType typedefType) {
+            public CodeBlock visitTypedef(ThriftType.TypedefType typedefType) {
                 return null;
             }
         });
