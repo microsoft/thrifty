@@ -109,7 +109,8 @@ public class ThriftyCodeGeneratorTest {
                 "}\n" +
                 "\n" +
                 "struct Init {\n" +
-                "  1: required set<Foo> f = [10]\n" +
+                "  1: required set<Foo> f = [10],\n" +
+                "  2: optional string b = \"bar\" ,\n" +
                 "}";
 
         File f = tmp.newFile();

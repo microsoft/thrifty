@@ -478,7 +478,7 @@ public final class ThriftyCodeGenerator {
         int index = 0;
         if (struct.fields().size() > 0) {
             toString.addStatement("$1T sb = new $1T()", STRING_BUILDER);
-            toString.addStatement("sb.append($S).append(\"\\n  \")", struct.name());
+            toString.addStatement("sb.append($S).append(\"{\\n  \")", struct.name());
             for (Field field : struct.fields()) {
                 boolean isLast = ++index == struct.fields().size();
                 toString.addStatement("sb.append($S)", field.name() + "=");
