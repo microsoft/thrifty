@@ -54,6 +54,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 public final class ThriftyCodeGenerator {
@@ -695,7 +696,8 @@ public final class ThriftyCodeGenerator {
                         }
                     };
                 } else {
-                    throw new AssertionError("Constant value kind " + value.kind() + " is not possibly and enum; validation bug");
+                    throw new AssertionError(
+                            "Constant value kind " + value.kind() + " is not possibly and enum; validation bug");
                 }
 
                 EnumType.Member member;
