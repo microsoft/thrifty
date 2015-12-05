@@ -411,7 +411,7 @@ public final class ThriftyCodeGenerator {
                     buildMethodBuilder.beginControlFlow("if (this.$N == null)", fieldName);
                     buildMethodBuilder.addStatement(
                             "throw new $T($S)",
-                            PROTOCOL_EXCEPTION,
+                            ClassName.get(IllegalStateException.class),
                             "Required field '" + fieldName + "' is missing");
                     buildMethodBuilder.endControlFlow();
                 }
@@ -425,7 +425,7 @@ public final class ThriftyCodeGenerator {
                     .beginControlFlow("if (setFields != 1)")
                     .addStatement(
                             "throw new $T($S + setFields + $S)",
-                            PROTOCOL_EXCEPTION,
+                            ClassName.get(IllegalStateException.class),
                             "Invalid union; ",
                             " field(s) were set")
                     .endControlFlow();
