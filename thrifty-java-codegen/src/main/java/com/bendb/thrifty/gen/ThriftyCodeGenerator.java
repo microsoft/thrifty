@@ -447,12 +447,12 @@ public final class ThriftyCodeGenerator {
                 .returns(boolean.class)
                 .addParameter(Object.class, "other")
                 .addStatement("if (this == other) return true")
-                .addStatement("if (other == null) return false");
+                .addStatement("if (other == null) return false")
+                .addStatement("if (!(other instanceof $L)) return false", struct.name());
 
 
         if (struct.fields().size() > 0) {
-            equals.addStatement("if (getType() != other.getType()) return false")
-                    .addStatement("$1L that = ($1L) other", struct.name());
+            equals.addStatement("$1L that = ($1L) other", struct.name());
         }
 
         boolean isFirst = true;
@@ -470,7 +470,7 @@ public final class ThriftyCodeGenerator {
         if (struct.fields().size() > 0) {
             equals.addCode(";\n$]");
         } else {
-            equals.addStatement("return that instanceof $L", struct.name());
+            equals.addStatement("return true");
         }
 
         return equals.build();
