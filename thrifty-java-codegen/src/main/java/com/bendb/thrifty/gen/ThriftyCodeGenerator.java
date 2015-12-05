@@ -228,11 +228,12 @@ public final class ThriftyCodeGenerator {
         for (Map.Entry<String, Collection<Constant>> entry : constantsByPackage.asMap().entrySet()) {
             String packageName = entry.getKey();
             Collection<Constant> values = entry.getValue();
-            TypeSpec spec = buildConst(packageName, values);
+            TypeSpec spec = buildConst(values);
             JavaFile file = assembleJavaFile(packageName, spec);
             writer.write(file);
         }
-        // TODO: Services, constants
+
+        // TODO: Services
     }
 
     private JavaFile assembleJavaFile(Named named, TypeSpec spec) {
@@ -521,8 +522,56 @@ public final class ThriftyCodeGenerator {
         return toString.build();
     }
 
-    TypeSpec buildConst(String packageName, Collection<Constant> constants) {
-        throw new IllegalStateException("not implemented");
+    TypeSpec buildConst(Collection<Constant> constants) {
+        TypeSpec.Builder builder = TypeSpec.classBuilder("Constants")
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addMethod(MethodSpec.constructorBuilder()
+                        .addModifiers(Modifier.PRIVATE)
+                        .addCode("// no instances\n")
+                        .build())
+                .addAnnotation(generatedAnnotation());
+
+        NameAllocator allocator = new NameAllocator();
+        allocator.newName("Constants", "Constants");
+
+        List<Constant> needsStaticInit = new ArrayList<>();
+        for (Constant constant : constants) {
+            ThriftType type = constant.type().getTrueType();
+
+            TypeName javaType = getJavaClassName(type);
+            if (type.isBuiltin()) {
+                javaType = javaType.unbox();
+            }
+            FieldSpec.Builder field = FieldSpec.builder(javaType, constant.name())
+                    .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
+
+            if (constant.hasJavadoc()) {
+                field.addJavadoc(constant.documentation());
+            }
+
+            boolean isCollection = type.isList() || type.isMap() || type.isSet();
+            if (!isCollection) {
+                CodeBlock fieldInit = renderConstValue(null, allocator, type, constant.value());
+                field.initializer(fieldInit);
+            } else {
+                needsStaticInit.add(constant);
+            }
+
+            builder.addField(field.build());
+        }
+
+        if (needsStaticInit.size() > 0) {
+            CodeBlock.Builder init = CodeBlock.builder();
+
+            for (Constant constant : needsStaticInit) {
+                ThriftType type = constant.type().getTrueType();
+                generateFieldInitializer(init, allocator, constant.name(), type, constant.value());
+            }
+
+            builder.addStaticBlock(init.build());
+        }
+
+        return builder.build();
     }
 
     @SuppressWarnings("unchecked")
@@ -638,22 +687,22 @@ public final class ThriftyCodeGenerator {
 
             @Override
             public CodeBlock visitByte() {
-                return castInt("byte", ThriftType.BYTE, value);
+                return CodeBlock.builder().add("(byte) $L", value.getAsInt()).build();
             }
 
             @Override
             public CodeBlock visitI16() {
-                return castInt("short", ThriftType.I16, value);
+                return CodeBlock.builder().add("(short) $L", value.getAsInt()).build();
             }
 
             @Override
             public CodeBlock visitI32() {
-                return castInt("int", ThriftType.I32, value);
+                return CodeBlock.builder().add("$L", value.getAsInt()).build();
             }
 
             @Override
             public CodeBlock visitI64() {
-                return castInt("long", ThriftType.I64, value);
+                return CodeBlock.builder().add("$L", value.getAsLong()).build();
             }
 
             @Override
@@ -662,14 +711,6 @@ public final class ThriftyCodeGenerator {
                     return CodeBlock.builder().add("(double) $L", value.getAsDouble()).build();
                 } else {
                     throw new AssertionError("Invalid double constant: " + value.value());
-                }
-            }
-
-            private CodeBlock castInt(String name, ThriftType type, ConstValueElement value) {
-                if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    return CodeBlock.builder().add("($L) $L", name, value.getAsLong()).build();
-                } else {
-                    throw new AssertionError("Invalid " + type.name() + " constant: " + value.value());
                 }
             }
 

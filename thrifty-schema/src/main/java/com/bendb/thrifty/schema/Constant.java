@@ -30,6 +30,10 @@ public class Constant extends Named {
         return element.location();
     }
 
+    public ConstValueElement value() {
+        return element.value();
+    }
+
     void link(Linker linker) {
         this.type = linker.resolveType(element.type());
     }
