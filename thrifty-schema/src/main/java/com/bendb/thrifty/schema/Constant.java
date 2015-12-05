@@ -120,19 +120,26 @@ public class Constant extends Named {
     static class BoolValidator implements ConstValueValidator {
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
-            if (value.kind() != ConstValueElement.Kind.IDENTIFIER) {
-                throw new IllegalStateException("Expected 'true', 'false', or a bool constant, but got: "
-                        + value.value());
-            }
+            if (value.kind() == ConstValueElement.Kind.INTEGER) {
+                int n = value.getAsInt();
+                if (n == 0 || n == 1) {
+                    return;
+                }
+            } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
+                String identifier = (String) value.value();
+                if ("true".equals(identifier) || "false".equals(identifier)) {
+                    return;
+                }
 
-            String identifier = (String) value.value();
-            if (!"true".equals(identifier) && !"false".equals(identifier)) {
                 Named named = linker.lookupSymbol(identifier);
-                if (named == null || named.type().getTrueType() != ThriftType.BOOL) {
-                    throw new IllegalStateException("Expected 'true', 'false', or a bool constant, but got: "
-                            + identifier);
+                if (named != null && named.type().getTrueType() == ThriftType.BOOL) {
+                    return;
                 }
             }
+
+            throw new IllegalStateException(
+                    "Expected 'true', 'false', '1', '0', or a bool constant; got: "
+                            + value.value() + " at " + value.location());
         }
     }
 

@@ -246,7 +246,7 @@ class Linker {
         if (type.startsWith("map<")) {
             String[] elementTypeNames = type.substring(4, type.length() - 1)
                     .trim()
-                    .split(",");
+                    .split(",", 2);
             if (elementTypeNames.length != 2) {
                 // At this point, container type names should have already
                 // been verified.
