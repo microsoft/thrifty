@@ -450,7 +450,7 @@ public final class ThriftyCodeGenerator {
 
 
         if (struct.fields().size() > 0) {
-            equals.addStatement("if (getType() != other.getType() return false")
+            equals.addStatement("if (getType() != other.getType()) return false")
                     .addStatement("$1L that = ($1L) other", struct.name());
         }
 
