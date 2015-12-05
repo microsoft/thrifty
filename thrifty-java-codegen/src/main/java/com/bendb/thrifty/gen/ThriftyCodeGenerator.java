@@ -842,7 +842,7 @@ public final class ThriftyCodeGenerator {
         read.addStatement("protocol.readStructBegin()");
         read.beginControlFlow("while (true)");
         read.addStatement("$T field = protocol.readFieldBegin()", FIELD_METADATA);
-        read.beginControlFlow("if (field.fieldId == $T.STOP)", TTYPE);
+        read.beginControlFlow("if (field.typeId == $T.STOP)", TTYPE);
         read.addStatement("break");
         read.endControlFlow();
 
@@ -1117,7 +1117,7 @@ public final class ThriftyCodeGenerator {
             ThriftType vt = mapType.valueType().getTrueType();
 
             write.addStatement(
-                    "$N.writeMapBegin($T.$L, $T.$L, $L.size()",
+                    "$N.writeMapBegin($T.$L, $T.$L, $L.size())",
                     proto,
                     TTYPE,
                     TTYPE_NAMES.get(typeCode(kt)),
