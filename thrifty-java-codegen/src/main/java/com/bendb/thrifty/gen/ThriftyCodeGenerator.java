@@ -9,6 +9,7 @@ import com.bendb.thrifty.protocol.ListMetadata;
 import com.bendb.thrifty.protocol.MapMetadata;
 import com.bendb.thrifty.protocol.SetMetadata;
 import com.bendb.thrifty.protocol.Protocol;
+import com.bendb.thrifty.schema.Constant;
 import com.bendb.thrifty.schema.EnumType;
 import com.bendb.thrifty.schema.Field;
 import com.bendb.thrifty.schema.Location;
@@ -22,8 +23,10 @@ import com.bendb.thrifty.util.ProtocolUtil;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -46,6 +49,7 @@ import java.io.IOException;
 import java.net.ProtocolException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -216,6 +220,18 @@ public final class ThriftyCodeGenerator {
             writer.write(file);
         }
 
+        Multimap<String, Constant> constantsByPackage = HashMultimap.create();
+        for (Constant constant : schema.constants()) {
+            constantsByPackage.put(constant.getNamespaceFor(NamespaceScope.JAVA), constant);
+        }
+
+        for (Map.Entry<String, Collection<Constant>> entry : constantsByPackage.asMap().entrySet()) {
+            String packageName = entry.getKey();
+            Collection<Constant> values = entry.getValue();
+            TypeSpec spec = buildConst(packageName, values);
+            JavaFile file = assembleJavaFile(packageName, spec);
+            writer.write(file);
+        }
         // TODO: Services, constants
     }
 
@@ -225,18 +241,24 @@ public final class ThriftyCodeGenerator {
             throw new IllegalArgumentException("A Java package name must be given for java code generation");
         }
 
+        return assembleJavaFile(packageName, spec, named.location());
+    }
+
+    private JavaFile assembleJavaFile(String packageName, TypeSpec spec) {
+        return assembleJavaFile(packageName, spec, null);
+    }
+
+    private JavaFile assembleJavaFile(String packageName, TypeSpec spec, Location location) {
         JavaFile.Builder file = JavaFile.builder(packageName, spec)
                 .skipJavaLangImports(true)
                 .addFileComment(FILE_COMMENT);
 
-        Location location = named.location();
         if (location != null) {
             file.addFileComment("\nSource: $L", location);
         }
 
         return file.build();
     }
-
 
     TypeSpec buildStruct(StructType type) {
         String packageName = type.getNamespaceFor(NamespaceScope.JAVA);
@@ -475,10 +497,11 @@ public final class ThriftyCodeGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .returns(String.class);
 
-        int index = 0;
         if (struct.fields().size() > 0) {
             toString.addStatement("$1T sb = new $1T()", STRING_BUILDER);
             toString.addStatement("sb.append($S).append(\"{\\n  \")", struct.name());
+
+            int index = 0;
             for (Field field : struct.fields()) {
                 boolean isLast = ++index == struct.fields().size();
                 toString.addStatement("sb.append($S)", field.name() + "=");
@@ -489,12 +512,17 @@ public final class ThriftyCodeGenerator {
                     toString.addStatement("sb.append(\",\\n  \")");
                 }
             }
+
             toString.addStatement("return sb.toString()");
         } else {
             toString.addStatement("return $S", struct.name() + "{}");
         }
 
         return toString.build();
+    }
+
+    TypeSpec buildConst(String packageName, Collection<Constant> constants) {
+        throw new IllegalStateException("not implemented");
     }
 
     @SuppressWarnings("unchecked")
