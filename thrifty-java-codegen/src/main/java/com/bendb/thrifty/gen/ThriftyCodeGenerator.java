@@ -884,7 +884,11 @@ public final class ThriftyCodeGenerator {
         write.addStatement("protocol.writeStructEnd()");
 
         if (structType.fields().size() > 0) {
-            read.endControlFlow(); //
+            read.beginControlFlow("default:");
+            read.addStatement("$T.skip(protocol, field.typeId)", PROTO_UTIL);
+            read.endControlFlow(); // end default
+            read.addStatement("break");
+            read.endControlFlow(); // end switch
         }
 
         read.addStatement("protocol.readFieldEnd()");
