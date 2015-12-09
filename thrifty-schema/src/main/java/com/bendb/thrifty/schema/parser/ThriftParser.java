@@ -539,26 +539,23 @@ public final class ThriftParser {
         if (c == '[') {
             ImmutableList.Builder<ConstValueElement> values = ImmutableList.builder();
             readChar();
-            while (true) {
+            while (peekChar(false) != ']') {
                 values.add(readConstValue());
 
                 char maybeSeparator = peekChar(false);
                 if (maybeSeparator == ',' || maybeSeparator == ';') {
                     readChar();
-                    maybeSeparator = peekChar(false);
-                }
-
-                if (maybeSeparator == ']') {
-                    readChar();
-                    return ConstValueElement.list(location, values.build());
                 }
             }
+
+            readChar();
+            return ConstValueElement.list(location, values.build());
         }
 
         if (c == '{') {
             ImmutableMap.Builder<ConstValueElement, ConstValueElement> map = ImmutableMap.builder();
             readChar();
-            while (true) {
+            while (peekChar(false) != '}') {
                 ConstValueElement key = readConstValue();
                 if (readChar() != ':') {
                     throw unexpected("expected ':' in a map literal");
@@ -569,14 +566,11 @@ public final class ThriftParser {
                 char maybeSeparator = peekChar(false);
                 if (maybeSeparator == ',' || maybeSeparator == ';') {
                     readChar();
-                    maybeSeparator = peekChar(false);
-                }
-
-                if (maybeSeparator == '}') {
-                    readChar();
-                    return ConstValueElement.map(location, map.build());
                 }
             }
+
+            readChar();
+            return ConstValueElement.map(location, map.build());
         }
 
         if (c == '+' || c == '-' || (c >= '0' && c <= '9')) {
