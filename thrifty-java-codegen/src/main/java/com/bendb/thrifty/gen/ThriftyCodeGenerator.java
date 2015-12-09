@@ -1122,11 +1122,10 @@ public final class ThriftyCodeGenerator {
             ThriftType vt = mapType.valueType().getTrueType();
 
             write.addStatement(
-                    "$N.writeMapBegin($T.$L, $T.$L, $L.size())",
+                    "$1N.writeMapBegin($2T.$3L, $2T.$4L, $5L.size())",
                     proto,
                     TTYPE,
                     TTYPE_NAMES.get(typeCode(kt)),
-                    TTYPE,
                     TTYPE_NAMES.get(typeCode(vt)),
                     nameStack.peek());
 
@@ -1272,7 +1271,7 @@ public final class ThriftyCodeGenerator {
         public Void visitEnum(ThriftType userType) {
             String target = nameStack.peek();
             TypeName enumType = getJavaClassName(userType);
-            read.addStatement("$T $N = $T.fromCode(protocol.readI32())", enumType, target, enumType);
+            read.addStatement("$1T $2N = $1T.fromCode(protocol.readI32())", enumType, target);
             return null;
         }
 
@@ -1290,7 +1289,7 @@ public final class ThriftyCodeGenerator {
 
             read.addStatement("$T $N = protocol.readListBegin()", LIST_META, listInfo);
             read.addStatement("$T $N = new $T($N.size)", genericListType, nameStack.peek(), listImplType, listInfo);
-            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, listInfo, idx);
+            read.beginControlFlow("for (int $1N = 0; $1N < $2N.size; ++$1N)", idx, listInfo);
 
             ++scope;
             nameStack.push(item);
@@ -1321,7 +1320,7 @@ public final class ThriftyCodeGenerator {
 
             read.addStatement("$T $N = protocol.readSetBegin()", SET_META, setInfo);
             read.addStatement("$T $N = new $T($N.size)", genericSetType, nameStack.peek(), setImplType, setInfo);
-            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, setInfo, idx);
+            read.beginControlFlow("for (int $1N = 0; $1N < $2N.size; ++$1N)", idx, setInfo);
 
             ++scope;
             nameStack.push(item);
@@ -1355,7 +1354,7 @@ public final class ThriftyCodeGenerator {
 
             read.addStatement("$T $N = protocol.readMapBegin()", MAP_META, mapInfo);
             read.addStatement("$T $N = new $T($N.size)", genericMapType, nameStack.peek(), mapImplType, mapInfo);
-            read.beginControlFlow("for (int $N = 0; $N < $N.size; ++$N)", idx, idx, mapInfo, idx);
+            read.beginControlFlow("for (int $1N = 0; $1N < $2N.size; ++$1N)", idx, mapInfo);
 
             nameStack.push(key);
             mapType.keyType().accept(this);
@@ -1378,7 +1377,7 @@ public final class ThriftyCodeGenerator {
         @Override
         public Void visitUserType(ThriftType userType) {
             TypeName typeName = getJavaClassName(userType);
-            read.addStatement("$T $N = $T.ADAPTER.read(protocol)", typeName, nameStack.peek(), typeName);
+            read.addStatement("$1T $2N = $1T.ADAPTER.read(protocol)", typeName, nameStack.peek());
             return null;
         }
 
