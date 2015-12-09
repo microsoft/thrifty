@@ -29,7 +29,11 @@ import okio.ByteString;
 
 import java.io.IOException;
 import java.net.ProtocolException;
+import java.nio.ByteBuffer;
 
+/**
+ * An implementation of the simple Thrift binary protocol.
+ */
 public class BinaryProtocol extends Protocol {
     private static final int VERSION_MASK = 0xffff0000;
     private static final int VERSION_1 = 0x80010000;
@@ -181,6 +185,21 @@ public class BinaryProtocol extends Protocol {
         sink.write(buf);
     }
 
+    @Override
+    public void writeByteBuffer(ByteBuffer buf) throws IOException {
+        int remaining = buf.hasRemaining() ? buf.remaining() : 0;
+        writeI32(remaining);
+
+        if (remaining == 0) return;
+
+        byte[] tmp = new byte[Math.min(remaining, 4096)];
+        while (remaining > 0) {
+            buf.get(tmp);
+            sink.write(tmp, 0, remaining);
+            remaining = buf.remaining();
+        }
+    }
+
     //////////////////////
 
     @Override
@@ -304,6 +323,14 @@ public class BinaryProtocol extends Protocol {
         int sizeInBytes = readI32();
         if (sizeInBytes > stringLengthLimit) throw new ProtocolException("Binary size limit exceeded");
         return source.readByteString();
+    }
+
+    @Override
+    public ByteBuffer readByteBuffer() throws IOException {
+        int sizeInBytes = readI32();
+        if (sizeInBytes > stringLengthLimit) throw new ProtocolException("Binary size limit exceeded");
+        byte[] byteArray = source.readByteArray(sizeInBytes);
+        return ByteBuffer.wrap(byteArray);
     }
 
     private String readStringWithSize(int size) throws IOException {

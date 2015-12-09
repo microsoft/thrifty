@@ -5,6 +5,7 @@ import okio.BufferedSource;
 import okio.ByteString;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public abstract class Protocol {
     protected final BufferedSource source;
@@ -59,6 +60,21 @@ public abstract class Protocol {
 
     public abstract void writeBinary(ByteString buf) throws IOException;
 
+    public void writeByteBuffer(ByteBuffer buf) throws IOException {
+        // TODO: Be better than this
+        ByteString str;
+        if (buf.hasArray()) {
+            byte[] arr = buf.array();
+            str = ByteString.of(arr, buf.arrayOffset(), buf.remaining());
+        } else {
+            int len = buf.remaining();
+            byte[] data = new byte[len];
+            buf.get(data);
+            str = ByteString.of(data);
+        }
+        writeBinary(str);
+    }
+
     ////////
 
     public abstract MessageMetadata readMessageBegin() throws IOException;
@@ -100,6 +116,12 @@ public abstract class Protocol {
     public abstract String readString() throws IOException;
 
     public abstract ByteString readBinary() throws IOException;
+
+    public ByteBuffer readByteBuffer() throws IOException {
+        ByteString str = readBinary();
+        byte[] bs = str.toByteArray();
+        return ByteBuffer.wrap(bs);
+    }
 
     //////////////
 
