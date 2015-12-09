@@ -283,9 +283,10 @@ public final class ThriftyCodeGenerator {
         TypeSpec adapterSpec = adapterFor(type, structTypeName, builderTypeName);
 
         structBuilder.addType(builderSpec);
+        structBuilder.addType(adapterSpec);
         structBuilder.addField(FieldSpec.builder(adapterSuperclass, ADAPTER_FIELDNAME)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                .initializer("$L", adapterSpec)
+                .initializer("new $N()", adapterSpec)
                 .build());
 
         MethodSpec.Builder ctor = MethodSpec.constructorBuilder()
@@ -877,7 +878,6 @@ public final class ThriftyCodeGenerator {
             new GenerateReaderVisitor(read, field).generate();
             read.endControlFlow(); // end case block
             read.addStatement("break");
-
         }
 
         write.addStatement("protocol.writeFieldStop()");
@@ -895,8 +895,9 @@ public final class ThriftyCodeGenerator {
         read.endControlFlow(); // end while
         read.addStatement("return builder.build()");
 
-        return TypeSpec.anonymousClassBuilder("")
-                .superclass(adapterSuperclass)
+        return TypeSpec.classBuilder(structType.name() + "Adapter")
+                .addSuperinterface(adapterSuperclass)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                 .addMethod(write.build())
                 .addMethod(read.build())
                 .addMethod(readHelper)
