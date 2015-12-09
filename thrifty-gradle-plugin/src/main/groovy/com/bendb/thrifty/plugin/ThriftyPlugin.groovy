@@ -55,7 +55,6 @@ class ThriftyPlugin implements Plugin<Project> {
         project.sourceSets.each { SourceSet ss ->
             log.info("applyJava: ss=${ss}, ss.name=${ss.name}")
             defineExtension(ss, project)
-            ss.extensions.create('thrifty', ThriftyExtension, project, ss.name)
 
             def setName = (String) ss.name
             def taskName = "main".equals(setName) ? "" : setName
@@ -66,7 +65,7 @@ class ThriftyPlugin implements Plugin<Project> {
             classesTask.mustRunAfter thriftyTask
 
             def javaTask = (JavaCompile) project.tasks.findByName("compile${taskName.capitalize()}Java")
-            javaTask.source += project.fileTree(thriftyTask.outputDir)
+            javaTask.source thriftyTask.outputDir
             javaTask.dependsOn thriftyTask
         }
     }
