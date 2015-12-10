@@ -62,6 +62,8 @@ public class ThriftyCompiler {
     public static void main(String[] args) {
         try {
             ThriftyCompiler compiler = withArgs(args);
+            compiler.searchPath.add(0, System.getProperty("user.dir"));
+            System.out.println(compiler.searchPath.get(0));
             compiler.compile();
         } catch (Exception e) {
             System.err.println("Unhandled exception:");
