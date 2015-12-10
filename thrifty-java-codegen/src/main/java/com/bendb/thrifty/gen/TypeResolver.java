@@ -15,7 +15,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Utility for
+ * Utility for getting JavaPoet {@link TypeName} and {@link TType} codes from
+ * {@link ThriftType} instances.
  */
 final class TypeResolver {
     private final Map<String, ClassName> nameCache = new LinkedHashMap<>();

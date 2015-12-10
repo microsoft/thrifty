@@ -22,7 +22,7 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
     private TypeResolver resolver;
 
     /**
-     * The write method under construction
+     * The write method under construction.
      */
     private MethodSpec.Builder write;
 
@@ -150,7 +150,14 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
         byte typeCode = resolver.getTypeCode(elementType);
         String typeCodeName = TypeNames.getTypeCodeName(typeCode);
 
-        write.addStatement("$N.$L($T.$L, $L.size()", proto, beginMethod, TypeNames.TTYPE, typeCodeName, nameStack.peek());
+        write.addStatement(
+                "$N.$L($T.$L, $L.size()",
+                proto,
+                beginMethod,
+                TypeNames.TTYPE,
+                typeCodeName,
+                nameStack.peek());
+
         write.beginControlFlow("for ($T $N : $L)", javaClass, item, nameStack.peek());
 
         scopeLevel++;

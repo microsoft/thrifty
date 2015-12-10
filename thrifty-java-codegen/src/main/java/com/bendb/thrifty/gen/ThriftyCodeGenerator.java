@@ -418,7 +418,12 @@ public final class ThriftyCodeGenerator {
                 write.beginControlFlow("if (struct.$N != null)", name);
             }
 
-            write.addStatement("protocol.writeFieldBegin($S, $L, $T.$L)", name,  field.id(), TypeNames.TTYPE, typeCodeName);
+            write.addStatement(
+                    "protocol.writeFieldBegin($S, $L, $T.$L)",
+                    name,
+                    field.id(),
+                    TypeNames.TTYPE,
+                    typeCodeName);
 
             tt.accept(new GenerateWriterVisitor(typeResolver, write, "protocol", "struct", field));
 
@@ -680,7 +685,8 @@ public final class ThriftyCodeGenerator {
 
             @Override
             public Void visitMap(ThriftType.MapType mapType) {
-                Map<ConstValueElement, ConstValueElement> map = (Map<ConstValueElement, ConstValueElement>) value.value();
+                Map<ConstValueElement, ConstValueElement> map =
+                        (Map<ConstValueElement, ConstValueElement>) value.value();
                 ThriftType keyType = mapType.keyType().getTrueType();
                 ThriftType valueType = mapType.valueType().getTrueType();
 
