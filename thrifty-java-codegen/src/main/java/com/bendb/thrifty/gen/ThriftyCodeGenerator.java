@@ -230,18 +230,32 @@ public final class ThriftyCodeGenerator {
             structBuilder.addField(fieldBuilder.build());
 
             // Update the struct ctor
+
+            CodeBlock.Builder assignment = CodeBlock.builder().add("$[this.$N = ", name);
+
             if (trueType.isList()) {
-                ctor.addStatement("this.$N = $T.unmodifiableList(builder.$N)",
-                        name, TypeNames.COLLECTIONS, name);
+                if (!field.required()) {
+                    assignment.add("builder.$N == null ? null : ", name);
+                }
+                assignment.add("$T.unmodifiableList(builder.$N)",
+                        TypeNames.COLLECTIONS, name);
             } else if (trueType.isSet()) {
-                ctor.addStatement("this.$N = $T.unmodifiableSet(builder.$N)",
-                        name, TypeNames.COLLECTIONS, name);
+                if (!field.required()) {
+                    assignment.add("builder.$N == null ? null : ", name);
+                }
+                assignment.add("$T.unmodifiableSet(builder.$N)",
+                        TypeNames.COLLECTIONS, name);
             } else if (trueType.isMap()) {
-                ctor.addStatement("this.$N = $T.unmodifiableMap(builder.$N)",
-                        name, TypeNames.COLLECTIONS, name);
+                if (!field.required()) {
+                    assignment.add("builder.$N == null ? null : ", name);
+                }
+                assignment.add("$T.unmodifiableMap(builder.$N)",
+                        TypeNames.COLLECTIONS, name);
             } else {
-                ctor.addStatement("this.$N = builder.$N", name, name);
+                assignment.add("builder.$N", name);
             }
+
+            ctor.addCode(assignment.add(";\n$]").build());
         }
 
         structBuilder.addMethod(ctor.build());
@@ -314,15 +328,25 @@ public final class ThriftyCodeGenerator {
 
             builder.addField(f.build());
 
-            MethodSpec setter = MethodSpec.methodBuilder(fieldName)
+            MethodSpec.Builder setterBuilder = MethodSpec.methodBuilder(fieldName)
                     .addModifiers(Modifier.PUBLIC)
                     .returns(builderClassName)
-                    .addParameter(javaTypeName, fieldName)
-                    .addStatement("this.$N = $N", fieldName, fieldName)
-                    .addStatement("return this")
-                    .build();
+                    .addParameter(javaTypeName, fieldName);
 
-            builder.addMethod(setter);
+            if (field.required()) {
+                setterBuilder.beginControlFlow("if ($N == null)", fieldName);
+                setterBuilder.addStatement(
+                        "throw new $T(\"Required field '$L' cannot be null\")",
+                        NullPointerException.class,
+                        fieldName);
+                setterBuilder.endControlFlow();
+            }
+
+            setterBuilder
+                    .addStatement("this.$N = $N", fieldName, fieldName)
+                    .addStatement("return this");
+
+            builder.addMethod(setterBuilder.build());
 
             if (structType.isUnion()) {
                 buildMethodBuilder
