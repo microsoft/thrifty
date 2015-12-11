@@ -1,6 +1,5 @@
 package com.bendb.thrifty.schema;
 
-import com.google.common.collect.ImmutableList;
 import okio.BufferedSink;
 import okio.Okio;
 import org.junit.Rule;
@@ -222,6 +221,27 @@ public class LoaderTest {
         Schema schema = loader.load();
 
         assertThat(schema.structs().get(0).fields().size(), is(2));
+    }
+
+    @Test
+    public void missingType() throws Exception {
+        String thrift = "" +
+                "struct Nope {\n" +
+                "  1: required list<Undefined> nope\n" +
+                "}";
+
+        File f = tempDir.newFile();
+        writeTo(f, thrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+
+        try {
+            loader.load();
+            fail();
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("Failed to resolve type Undefined"));
+        }
     }
 
     private static void writeTo(File file, String content) throws IOException {

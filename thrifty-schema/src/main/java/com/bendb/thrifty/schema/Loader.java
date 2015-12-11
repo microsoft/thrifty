@@ -169,7 +169,7 @@ public final class Loader {
 
             if (environment.hasErrors()) {
                 String report = Joiner.on('\n').join(environment.getErrors());
-                throw new RuntimeException(report);
+                throw new IllegalStateException(report);
             }
 
             linkedPrograms = ImmutableList.copyOf(loadedPrograms.values());
