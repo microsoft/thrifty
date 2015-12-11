@@ -141,7 +141,7 @@ class Linker {
                     register(typedef);
                     atLeastOneResolved = true;
                     iter.remove();
-                } catch (TypedefResolutionException ignored) {
+                } catch (LinkFailureException ignored) {
                 }
             }
 
