@@ -3,6 +3,7 @@ package com.bendb.thrifty.gen;
 import com.bendb.thrifty.Adapter;
 import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.schema.Field;
+import com.bendb.thrifty.schema.NamespaceScope;
 import com.bendb.thrifty.schema.ThriftType;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.NameAllocator;
@@ -217,7 +218,8 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
 
     @Override
     public Void visitUserType(ThriftType userType) {
-        write.addStatement("$N.ADAPTER.write($N, $L)", userType.name(), proto, nameStack.peek());
+        String javaName = userType.getNamespace(NamespaceScope.JAVA) + "." + userType.name();
+        write.addStatement("$L.ADAPTER.write($N, $L)", javaName, proto, nameStack.peek());
         return null;
     }
 
