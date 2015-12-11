@@ -620,11 +620,7 @@ public final class ThriftyCodeGenerator {
                         field.initializer("$T.emptyList()", TypeNames.COLLECTIONS);
                         return null;
                     }
-
-                    ThriftType elementType = listType.elementType().getTrueType();
-                    TypeName elementTypeName = typeResolver.getJavaClass(elementType);
-                    TypeName listTypeName = ParameterizedTypeName.get(TypeNames.LIST, elementTypeName);
-                    initCollection(listTypeName, "list", "unmodifiableList");
+                    initCollection("list", "unmodifiableList");
                     return null;
                 }
 
@@ -634,10 +630,7 @@ public final class ThriftyCodeGenerator {
                         field.initializer("$T.emptySet()", TypeNames.COLLECTIONS);
                         return null;
                     }
-                    ThriftType elementType = setType.elementType().getTrueType();
-                    TypeName elementTypeName = typeResolver.getJavaClass(elementType);
-                    TypeName setTypeName = ParameterizedTypeName.get(TypeNames.SET, elementTypeName);
-                    initCollection(setTypeName, "set", "unmodifiableSet");
+                    initCollection("set", "unmodifiableSet");
                     return null;
                 }
 
@@ -647,16 +640,11 @@ public final class ThriftyCodeGenerator {
                         field.initializer("$T.emptyMap()", TypeNames.COLLECTIONS);
                         return null;
                     }
-                    ThriftType keyType = mapType.keyType().getTrueType();
-                    ThriftType valueType = mapType.valueType().getTrueType();
-                    TypeName keyTypeName = typeResolver.getJavaClass(keyType);
-                    TypeName valueTypeName = typeResolver.getJavaClass(valueType);
-                    TypeName mapTypeName = ParameterizedTypeName.get(TypeNames.MAP, keyTypeName, valueTypeName);
-                    initCollection(mapTypeName, "map", "unmodifiableMap");
+                    initCollection("map", "unmodifiableMap");
                     return null;
                 }
 
-                private void initCollection(TypeName genericType, String tempName, String unmodifiableMethod) {
+                private void initCollection(String tempName, String unmodifiableMethod) {
                     tempName += scope.incrementAndGet();
                     generateFieldInitializer(staticInit, allocator, scope, tempName, type, constant.value(), true);
                     staticInit.addStatement("$N = $T.$L($N)",
