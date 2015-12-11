@@ -12,7 +12,7 @@ dependencies {
 sourceSets {
     main {
         java {
-            srcDir 'src/main'
+            srcDir 'src/main/java'
 
             // Include the generated test classes in the regular build
             srcDir 'build/src/gen/java'

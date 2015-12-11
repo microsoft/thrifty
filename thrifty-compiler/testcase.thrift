@@ -16,7 +16,12 @@ struct Email {
 }
 
 struct Wtf {
-  1: required map<string, string> data = {"foo": "bar", "baz": "quux"}
+  1: required map<EmailAddress, ReceiptStatus> data = {"foo@bar.com": 0, "baz@quux.com": READ}
+  2: required list<map<EmailAddress, set<ReceiptStatus>>> crazy = [{"ben@thrifty.org": [UNSENT, SENT]}]
+}
+
+struct NestedLists {
+  1: required list<list<list<i32>>> ints = [[[4], [5]], [[], []]]
 }
 
 union Attachment {
