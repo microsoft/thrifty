@@ -4,6 +4,7 @@ import com.bendb.thrifty.Adapter;
 import com.bendb.thrifty.TType;
 import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.schema.Field;
+import com.bendb.thrifty.schema.NamespaceScope;
 import com.bendb.thrifty.schema.ThriftType;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.NameAllocator;
@@ -114,8 +115,8 @@ final class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     @Override
     public Void visitEnum(ThriftType userType) {
         String target = nameStack.peek();
-        TypeName enumType = resolver.getJavaClass(userType);
-        read.addStatement("$1T $2N = $1T.fromCode(protocol.readI32())", enumType, target);
+        String qualifiedJavaName = getFullyQualifiedJavaName(userType);
+        read.addStatement("$1L $2N = $1L.fromCode(protocol.readI32())", qualifiedJavaName, target);
         return null;
     }
 
@@ -220,8 +221,8 @@ final class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
 
     @Override
     public Void visitUserType(ThriftType userType) {
-        TypeName typeName = resolver.getJavaClass(userType);
-        read.addStatement("$1T $2N = $1T.ADAPTER.read(protocol)", typeName, nameStack.peek());
+        String qualifiedJavaName = getFullyQualifiedJavaName(userType);
+        read.addStatement("$1L $2N = $1L.ADAPTER.read(protocol)", qualifiedJavaName, nameStack.peek());
         return null;
     }
 
@@ -230,6 +231,15 @@ final class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
         // throw AssertionError?
         typedefType.getTrueType().accept(this);
         return null;
+    }
+
+    private String getFullyQualifiedJavaName(ThriftType type) {
+        if (type.isBuiltin() || type.isList() || type.isMap() || type.isSet() || type.isTypedef()) {
+            throw new AssertionError("Only user and enum types are supported");
+        }
+
+        String packageName = type.getNamespace(NamespaceScope.JAVA);
+        return packageName + "." + type.name();
     }
 
     private void initNameAllocator() {
