@@ -38,7 +38,7 @@ task compileTestCase(type: Exec) {
     dependsOn jarTask
 
     executable 'java'
-    args('-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/src/gen/java", "/Users/bebader/Development/frontend/thrift-client2fe/AcompliTypes.thrift")
+    args('-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/src/gen/java", "$projectDir/testcase.thrift")
 }
 
 afterEvaluate {
