@@ -889,6 +889,10 @@ public final class ThriftyCodeGenerator {
 
             @Override
             public CodeBlock visitList(ThriftType.ListType listType) {
+                if (value.getAsList().isEmpty()) {
+                    return CodeBlock.builder().add("$T.emptyList()", TypeNames.COLLECTIONS).build();
+                }
+
                 ThriftType elementType = listType.elementType().getTrueType();
                 TypeName elementClassName = typeResolver.getJavaClass(elementType);
                 TypeName genericList = ParameterizedTypeName.get(TypeNames.LIST, elementClassName);
@@ -898,6 +902,9 @@ public final class ThriftyCodeGenerator {
 
             @Override
             public CodeBlock visitSet(ThriftType.SetType setType) {
+                if (value.getAsList().isEmpty()) {
+                    return CodeBlock.builder().add("$T.emptySet()", TypeNames.COLLECTIONS).build();
+                }
                 ThriftType elementType = setType.elementType().getTrueType();
                 TypeName elementTypeName = typeResolver.getJavaClass(elementType);
                 TypeName genericSet = ParameterizedTypeName.get(TypeNames.SET, elementTypeName);
@@ -907,6 +914,9 @@ public final class ThriftyCodeGenerator {
 
             @Override
             public CodeBlock visitMap(ThriftType.MapType mapType) {
+                if (value.getAsMap().isEmpty()) {
+                    return CodeBlock.builder().add("$T.emptyMap()", TypeNames.COLLECTIONS).build();
+                }
                 ThriftType keyType = mapType.keyType().getTrueType();
                 ThriftType valueType = mapType.valueType().getTrueType();
                 TypeName keyTypeName = typeResolver.getJavaClass(keyType);
