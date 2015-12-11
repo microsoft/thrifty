@@ -319,7 +319,8 @@ public final class ThriftyCodeGenerator {
                         tempNameId,
                         "this." + field.name(),
                         fieldType.getTrueType(),
-                        field.defaultValue());
+                        field.defaultValue(),
+                        false);
                 defaultCtor.addCode(initializer.build());
 
                 resetBuilder.addCode(initializer.build());
@@ -657,8 +658,7 @@ public final class ThriftyCodeGenerator {
 
                 private void initCollection(TypeName genericType, String tempName, String unmodifiableMethod) {
                     tempName += scope.incrementAndGet();
-                    staticInit.addStatement("$T $N", genericType, tempName);
-                    generateFieldInitializer(staticInit, allocator, scope, tempName, type, constant.value());
+                    generateFieldInitializer(staticInit, allocator, scope, tempName, type, constant.value(), true);
                     staticInit.addStatement("$N = $T.$L($N)",
                             constant.name(),
                             TypeNames.COLLECTIONS,
@@ -696,7 +696,8 @@ public final class ThriftyCodeGenerator {
             final AtomicInteger scope,
             final String name,
             final ThriftType tt,
-            final ConstValueElement value) {
+            final ConstValueElement value,
+            final boolean needsDeclaration) {
 
         tt.getTrueType().accept(new SimpleVisitor<Void>() {
             @Override
@@ -719,8 +720,9 @@ public final class ThriftyCodeGenerator {
                 List<ConstValueElement> list = (List<ConstValueElement>) value.value();
                 ThriftType elementType = listType.elementType().getTrueType();
                 TypeName elementTypeName = typeResolver.getJavaClass(elementType);
+                TypeName genericName = ParameterizedTypeName.get(TypeNames.LIST, elementTypeName);
                 TypeName listImplName = typeResolver.listOf(elementTypeName);
-                generateSingleElementCollection(elementType, listImplName, list);
+                generateSingleElementCollection(elementType, genericName, listImplName, list);
                 return null;
             }
 
@@ -729,16 +731,23 @@ public final class ThriftyCodeGenerator {
                 List<ConstValueElement> set = (List<ConstValueElement>) value.value();
                 ThriftType elementType = setType.elementType().getTrueType();
                 TypeName elementTypeName = typeResolver.getJavaClass(elementType);
+                TypeName genericName = ParameterizedTypeName.get(TypeNames.SET, elementTypeName);
                 TypeName setImplName = typeResolver.setOf(elementTypeName);
-                generateSingleElementCollection(elementType, setImplName, set);
+                generateSingleElementCollection(elementType, genericName, setImplName, set);
                 return null;
             }
 
             private void generateSingleElementCollection(
                     ThriftType elementType,
+                    TypeName genericName,
                     TypeName collectionImplName,
                     List<ConstValueElement> values) {
-                initializer.addStatement("$N = new $T()", name, collectionImplName);
+                if (needsDeclaration) {
+                    initializer.addStatement("$T $N = new $T()",
+                            genericName, name, collectionImplName);
+                } else {
+                    initializer.addStatement("$N = new $T()", name, collectionImplName);
+                }
 
                 for (ConstValueElement element : values) {
                     CodeBlock elementName = renderConstValue(initializer, allocator, scope, elementType, element);
@@ -757,7 +766,15 @@ public final class ThriftyCodeGenerator {
                 TypeName valueTypeName = typeResolver.getJavaClass(valueType);
                 TypeName mapImplName = typeResolver.mapOf(keyTypeName, valueTypeName);
 
-                initializer.addStatement("$N = new $T()", name, mapImplName);
+                if (needsDeclaration) {
+                    initializer.addStatement("$T $N = new $T()",
+                            ParameterizedTypeName.get(TypeNames.MAP, keyTypeName, valueTypeName),
+                            name,
+                            mapImplName);
+                } else {
+                    initializer.addStatement("$N = new $T()", name, mapImplName);
+                }
+
                 for (Map.Entry<ConstValueElement, ConstValueElement> entry : map.entrySet()) {
                     CodeBlock keyName = renderConstValue(initializer, allocator, scope, keyType, entry.getKey());
                     CodeBlock valueName = renderConstValue(initializer, allocator, scope, valueType, entry.getValue());
@@ -906,8 +923,7 @@ public final class ThriftyCodeGenerator {
                     String tempName,
                     String method) {
                 String name = allocator.newName(tempName, scope.getAndIncrement());
-                block.addStatement("$T $N = new $T()", genericType, name, implType);
-                generateFieldInitializer(block, allocator, scope, name, type, value);
+                generateFieldInitializer(block, allocator, scope, name, type, value, true);
                 return CodeBlock.builder().add("$T.$L($N)", TypeNames.COLLECTIONS, method, name).build();
             }
 
