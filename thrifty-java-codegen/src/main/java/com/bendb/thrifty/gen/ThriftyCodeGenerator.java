@@ -734,6 +734,8 @@ public final class ThriftyCodeGenerator {
 
                         initializer.addStatement("$N.put($L, $L)", mapName, key, value);
                     }
+
+                    initializer.addStatement("$N = $N", name, mapName);
                 }
                 return null;
             }
