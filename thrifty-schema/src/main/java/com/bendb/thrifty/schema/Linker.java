@@ -60,17 +60,21 @@ class Linker {
             linkUnionFields();
             linkServices();
 
-            validateConstants();
-            validateStructs();
-            validateExceptions();
-            validateUnions();
-            validateServices();
+            // Only validate the schema if linking succeeded; no point otherwise.
+            if (!environment.hasErrors()) {
+                validateConstants();
+                validateStructs();
+                validateExceptions();
+                validateUnions();
+                validateServices();
+            }
 
             linked = !environment.hasErrors();
         } catch (LinkFailureException ignored) {
             // The relevant errors will have already been
             // added to the environment; just let the caller
             // handle them.
+            System.err.print("UNEXPECTED ERROR: " + ignored);
         } finally {
             linking = false;
         }
@@ -156,31 +160,56 @@ class Linker {
 
     private void linkConstants() {
         for (Constant constant : program.constants()) {
-            constant.link(this);
+            try {
+                constant.link(this);
+            } catch (LinkFailureException e) {
+                environment.addError(
+                        "Failed to resolve type " + e.getMessage() + " referenced at " + constant.location());
+            }
         }
     }
 
     private void linkStructFields() {
         for (StructType structType : program.structs()) {
-            structType.link(this);
+            try {
+                structType.link(this);
+            } catch (LinkFailureException e) {
+                environment.addError(
+                        "Failed to resolve type " + e.getMessage() + " referenced at " + structType.location());
+            }
         }
     }
 
     private void linkUnionFields() {
         for (StructType union : program.unions()) {
-            union.link(this);
+            try {
+                union.link(this);
+            } catch (LinkFailureException e) {
+                environment.addError(
+                        "Failed to resolve type " + e.getMessage() + " referenced at " + union.location());
+            }
         }
     }
 
     private void linkExceptionFields() {
         for (StructType exception : program.exceptions()) {
-            exception.link(this);
+            try {
+                exception.link(this);
+            } catch (LinkFailureException e) {
+                environment.addError(
+                        "Failed to resolve type " + e.getMessage() + " referenced at " + exception.location());
+            }
         }
     }
 
     private void linkServices() {
         for (Service service : program.services()) {
-            service.link(this);
+            try {
+                service.link(this);
+            } catch (LinkFailureException e) {
+                environment.addError(
+                        "Failed to resolve type " + e.getMessage() + " referenced at " + service.location());
+            }
         }
     }
 
@@ -265,7 +294,7 @@ class Linker {
             return tt;
         }
 
-        throw new TypedefResolutionException(type);
+        throw new LinkFailureException(type);
     }
 
     @Nullable

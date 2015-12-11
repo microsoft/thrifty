@@ -196,6 +196,34 @@ public class LoaderTest {
         assertThat(mt.valueType(), sameInstance(msg.type()));
     }
 
+    @Test
+    public void crazyNesting() throws Exception {
+        String thrift = "namespace java com.bendb.thrifty.compiler.testcases\n" +
+                "\n" +
+                "typedef string EmailAddress\n" +
+                "\n" +
+                "struct Wtf {\n" +
+                "  1: required map<EmailAddress, ReceiptStatus> data = {\"foo@bar.com\": 0, \"baz@quux.com\": READ}\n" +
+                "  2: required list<map<EmailAddress, set<ReceiptStatus>>> crazy = [{\"ben@thrifty.org\": [UNSENT, SENT]}]\n" +
+                "}\n" +
+                "\n" +
+                "enum ReceiptStatus {\n" +
+                "  UNSENT,\n" +
+                "  SENT,\n" +
+                "  READ\n" +
+                "}";
+
+        File f = tempDir.newFile();
+        writeTo(f, thrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+
+        Schema schema = loader.load();
+
+        assertThat(schema.structs().get(0).fields().size(), is(2));
+    }
+
     private static void writeTo(File file, String content) throws IOException {
         BufferedSink sink = Okio.buffer(Okio.sink(file));
         sink.writeUtf8(content);
