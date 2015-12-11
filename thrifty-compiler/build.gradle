@@ -9,6 +9,17 @@ dependencies {
     compile project(':thrifty-java-codegen')
 }
 
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main'
+
+            // Include the generated test classes in the regular build
+            srcDir 'build/src/gen/java'
+        }
+    }
+}
+
 jar {
     from {
         (configurations.runtime).collect() {
@@ -18,5 +29,22 @@ jar {
 
     manifest {
         attributes("Main-Class": "com.bendb.thrifty.compiler.ThriftyCompiler")
+    }
+}
+
+task compileTestCase(type: Exec) {
+    def jarTask = project.tasks['jar'] as Jar
+
+    dependsOn jarTask
+
+    executable 'java'
+    args('-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/src/gen/java", "/Users/bebader/Development/frontend/thrift-client2fe/AcompliTypes.thrift")
+}
+
+afterEvaluate {
+    if (project.tasks.getByName('compileTestCase') != null) {
+        project.tasks['compileJava'].dependsOn project.tasks.create('deleteTestCaseJava', Delete) {
+            delete "$projectDir/build/src/gen"
+        }
     }
 }
