@@ -6,6 +6,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class EnumType extends Named {
     private final EnumElement element;
@@ -41,6 +42,24 @@ public class EnumType extends Named {
     @Override
     public ThriftType type() {
         return type;
+    }
+
+    public Member findMemberByName(String name) {
+        for (Member member : members) {
+            if (name.equals(member.name())) {
+                return member;
+            }
+        }
+        throw new NoSuchElementException();
+    }
+
+    public Member findMemberById(int id) {
+        for (Member member : members) {
+            if (member.value() == id) {
+                return member;
+            }
+        }
+        throw new NoSuchElementException();
     }
 
     public static final class Member {

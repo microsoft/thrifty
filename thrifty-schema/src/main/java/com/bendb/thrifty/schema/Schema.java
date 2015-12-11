@@ -2,6 +2,8 @@ package com.bendb.thrifty.schema;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.NoSuchElementException;
+
 /**
  * Encapsulates all types, values, and services defined in a set of Thrift
  * files.
@@ -75,5 +77,23 @@ public class Schema {
 
     public ImmutableList<Service> services() {
         return services;
+    }
+
+    public EnumType findEnumByType(ThriftType type) {
+        for (EnumType enumType : enums) {
+            if (enumType.type().equals(type)) {
+                return enumType;
+            }
+        }
+        throw new NoSuchElementException();
+    }
+
+    public EnumType findEnumByName(String name) {
+        for (EnumType enumType : enums) {
+            if (enumType.name().equals(name)) {
+                return enumType;
+            }
+        }
+        throw new NoSuchElementException();
     }
 }

@@ -12,10 +12,8 @@ import com.bendb.thrifty.schema.StructType;
 import com.bendb.thrifty.schema.ThriftType;
 import com.bendb.thrifty.schema.parser.ConstValueElement;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
@@ -31,7 +29,6 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import javax.annotation.Generated;
-import javax.annotation.Nullable;
 import javax.lang.model.element.Modifier;
 import java.io.File;
 import java.io.IOException;
@@ -824,45 +821,26 @@ public final class ThriftyCodeGenerator {
 
             @Override
             public CodeBlock visitEnum(final ThriftType tt) {
-                EnumType e;
+                EnumType enumType;
                 try {
-                    e = Iterables.find(schema.enums(), new Predicate<EnumType>() {
-                        @Override
-                        public boolean apply(@Nullable EnumType enumType) {
-                            return enumType != null && enumType.type().equals(tt);
-                        }
-                    });
-                } catch (NoSuchElementException ignored) {
+                    enumType = schema.findEnumByType(tt);
+                } catch (NoSuchElementException e) {
                     throw new AssertionError("Missing enum type: " + tt.name());
-                }
-
-                Predicate<EnumType.Member> predicate;
-                if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    final int intValue = ((Long) value.value()).intValue();
-                    predicate = new Predicate<EnumType.Member>() {
-                        @Override
-                        public boolean apply(@Nullable EnumType.Member member) {
-                            return member != null && member.value() == intValue;
-                        }
-                    };
-                } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                    final String memberName = (String) value.value();
-                    predicate = new Predicate<EnumType.Member>() {
-                        @Override
-                        public boolean apply(@Nullable EnumType.Member member) {
-                            return member != null && member.name().equals(memberName);
-                        }
-                    };
-                } else {
-                    throw new AssertionError(
-                            "Constant value kind " + value.kind() + " is not possibly and enum; validation bug");
                 }
 
                 EnumType.Member member;
                 try {
-                    member = Iterables.find(e.members(), predicate);
-                } catch (NoSuchElementException ignored) {
-                    throw new IllegalStateException("No enum member in " + e.name() + " with value " + value.value());
+                    if (value.kind() == ConstValueElement.Kind.INTEGER) {
+                        member = enumType.findMemberById(value.getAsInt());
+                    } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
+                        member = enumType.findMemberByName(value.getAsString());
+                    } else {
+                        throw new AssertionError(
+                                "Constant value kind " + value.kind() + " is not possibly an enum; validation bug");
+                    }
+                } catch (NoSuchElementException e) {
+                    throw new IllegalStateException(
+                            "No enum member in " + enumType.name() + " with value " + value.value());
                 }
 
                 return CodeBlock.builder()
