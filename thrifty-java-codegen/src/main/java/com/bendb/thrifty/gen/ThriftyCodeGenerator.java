@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class ThriftyCodeGenerator {
@@ -578,46 +579,111 @@ public final class ThriftyCodeGenerator {
                         .addCode("// no instances\n")
                         .build());
 
-        NameAllocator allocator = new NameAllocator();
+        final NameAllocator allocator = new NameAllocator();
         allocator.newName("Constants", "Constants");
 
-        AtomicInteger scope = new AtomicInteger(0);
+        final AtomicInteger scope = new AtomicInteger(0); // used for temporaries in const collections
+        final CodeBlock.Builder staticInit = CodeBlock.builder();
+        final AtomicBoolean hasStaticInit = new AtomicBoolean(false);
 
-        List<Constant> needsStaticInit = new ArrayList<>();
-        for (Constant constant : constants) {
-            ThriftType type = constant.type().getTrueType();
+        for (final Constant constant : constants) {
+            final ThriftType type = constant.type().getTrueType();
 
             TypeName javaType = typeResolver.getJavaClass(type);
             if (type.isBuiltin() && type != ThriftType.STRING) {
                 javaType = javaType.unbox();
             }
-            FieldSpec.Builder field = FieldSpec.builder(javaType, constant.name())
+            final FieldSpec.Builder field = FieldSpec.builder(javaType, constant.name())
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
 
             if (constant.hasJavadoc()) {
-                field.addJavadoc(constant.documentation());
+                field.addJavadoc(constant.documentation() + "\n\nGenerated from: " + constant.location());
             }
 
-            boolean isCollection = type.isList() || type.isMap() || type.isSet();
-            if (!isCollection) {
-                CodeBlock fieldInit = renderConstValue(null, allocator, scope, type, constant.value());
-                field.initializer(fieldInit);
-            } else {
-                needsStaticInit.add(constant);
-            }
+            type.accept(new SimpleVisitor<Void>() {
+                @Override
+                public Void visitBuiltin(ThriftType builtinType) {
+                    field.initializer(renderConstValue(null, allocator, scope, type, constant.value()));
+                    return null;
+                }
+
+                @Override
+                public Void visitEnum(ThriftType userType) {
+                    field.initializer(renderConstValue(null, allocator, scope, type, constant.value()));
+                    return null;
+                }
+
+                @Override
+                public Void visitList(ThriftType.ListType listType) {
+                    if (constant.value().getAsList().isEmpty()) {
+                        field.initializer("$T.emptyList()", TypeNames.COLLECTIONS);
+                        return null;
+                    }
+
+                    ThriftType elementType = listType.elementType().getTrueType();
+                    TypeName elementTypeName = typeResolver.getJavaClass(elementType);
+                    TypeName listTypeName = ParameterizedTypeName.get(TypeNames.LIST, elementTypeName);
+                    initCollection(listTypeName, "list", "unmodifiableList");
+                    return null;
+                }
+
+                @Override
+                public Void visitSet(ThriftType.SetType setType) {
+                    if (constant.value().getAsList().isEmpty()) {
+                        field.initializer("$T.emptySet()", TypeNames.COLLECTIONS);
+                        return null;
+                    }
+                    ThriftType elementType = setType.elementType().getTrueType();
+                    TypeName elementTypeName = typeResolver.getJavaClass(elementType);
+                    TypeName setTypeName = ParameterizedTypeName.get(TypeNames.SET, elementTypeName);
+                    initCollection(setTypeName, "set", "unmodifiableSet");
+                    return null;
+                }
+
+                @Override
+                public Void visitMap(ThriftType.MapType mapType) {
+                    if (constant.value().getAsMap().isEmpty()) {
+                        field.initializer("$T.emptyMap()", TypeNames.COLLECTIONS);
+                        return null;
+                    }
+                    ThriftType keyType = mapType.keyType().getTrueType();
+                    ThriftType valueType = mapType.valueType().getTrueType();
+                    TypeName keyTypeName = typeResolver.getJavaClass(keyType);
+                    TypeName valueTypeName = typeResolver.getJavaClass(valueType);
+                    TypeName mapTypeName = ParameterizedTypeName.get(TypeNames.MAP, keyTypeName, valueTypeName);
+                    initCollection(mapTypeName, "map", "unmodifiableMap");
+                    return null;
+                }
+
+                private void initCollection(TypeName genericType, String tempName, String unmodifiableMethod) {
+                    tempName += scope.incrementAndGet();
+                    staticInit.addStatement("$T $N", genericType, tempName);
+                    generateFieldInitializer(staticInit, allocator, scope, tempName, type, constant.value());
+                    staticInit.addStatement("$N = $T.$L($N)",
+                            constant.name(),
+                            TypeNames.COLLECTIONS,
+                            unmodifiableMethod,
+                            tempName);
+
+                    hasStaticInit.set(true);
+                }
+
+                @Override
+                public Void visitUserType(ThriftType userType) {
+                    throw new UnsupportedOperationException("Struct-type constants are not supported");
+                }
+
+                @Override
+                public Void visitTypedef(ThriftType.TypedefType typedefType) {
+                    throw new AssertionError("impossibru");
+                }
+            });
 
             builder.addField(field.build());
         }
 
-        if (needsStaticInit.size() > 0) {
-            CodeBlock.Builder init = CodeBlock.builder();
-
-            for (Constant constant : needsStaticInit) {
-                ThriftType type = constant.type().getTrueType();
-                generateFieldInitializer(init, allocator, scope, constant.name(), type, constant.value());
-            }
-
-            builder.addStaticBlock(init.build());
+        if (hasStaticInit.get()) {
+            builder.addStaticBlock(staticInit.build());
         }
 
         return builder.build();
@@ -810,7 +876,7 @@ public final class ThriftyCodeGenerator {
                 TypeName elementClassName = typeResolver.getJavaClass(elementType);
                 TypeName genericList = ParameterizedTypeName.get(TypeNames.LIST, elementClassName);
                 TypeName listImpl = typeResolver.listOf(elementClassName);
-                return visitCollection(listType, genericList, listImpl, "list");
+                return visitCollection(listType, genericList, listImpl, "list", "unmodifiableList");
             }
 
             @Override
@@ -819,7 +885,7 @@ public final class ThriftyCodeGenerator {
                 TypeName elementTypeName = typeResolver.getJavaClass(elementType);
                 TypeName genericSet = ParameterizedTypeName.get(TypeNames.SET, elementTypeName);
                 TypeName setImpl = typeResolver.setOf(elementTypeName);
-                return visitCollection(setType, genericSet, setImpl, "set");
+                return visitCollection(setType, genericSet, setImpl, "set", "unmodifiableSet");
             }
 
             @Override
@@ -830,18 +896,19 @@ public final class ThriftyCodeGenerator {
                 TypeName valueTypeName = typeResolver.getJavaClass(valueType);
                 TypeName genericMap = ParameterizedTypeName.get(TypeNames.MAP, keyTypeName, valueTypeName);
                 TypeName mapImpl = typeResolver.mapOf(keyTypeName, valueTypeName);
-                return visitCollection(mapType, genericMap, mapImpl, "map");
+                return visitCollection(mapType, genericMap, mapImpl, "map", "unmodifiableMap");
             }
 
             private CodeBlock visitCollection(
                     ThriftType type,
                     TypeName genericType,
                     TypeName implType,
-                    String tempName) {
+                    String tempName,
+                    String method) {
                 String name = allocator.newName(tempName, scope.getAndIncrement());
                 block.addStatement("$T $N = new $T()", genericType, name, implType);
                 generateFieldInitializer(block, allocator, scope, name, type, value);
-                return CodeBlock.builder().add("$N", name).build();
+                return CodeBlock.builder().add("$T.$L($N)", TypeNames.COLLECTIONS, method, name).build();
             }
 
             @Override

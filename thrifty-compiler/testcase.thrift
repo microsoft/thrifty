@@ -5,6 +5,13 @@ namespace java com.bendb.thrifty.compiler.testcases
 
 typedef string EmailAddress
 
+const list<i32> EMPTY_INT_LIST = []
+const set<double> EMPTY_DOUBLE_SET = []
+const map<string, list<i32>> DUMB_CONSTANT = {
+  "foo": [1, 2, 3],
+  "bar": [4, 5, 6]
+}
+
 struct Email {
   1: required EmailAddress from,
   2: optional list<EmailAddress> to,
