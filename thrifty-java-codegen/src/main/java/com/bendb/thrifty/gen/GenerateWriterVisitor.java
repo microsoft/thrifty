@@ -151,7 +151,7 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
         String typeCodeName = TypeNames.getTypeCodeName(typeCode);
 
         write.addStatement(
-                "$N.$L($T.$L, $L.size()",
+                "$N.$L($T.$L, $L.size())",
                 proto,
                 beginMethod,
                 TypeNames.TTYPE,
