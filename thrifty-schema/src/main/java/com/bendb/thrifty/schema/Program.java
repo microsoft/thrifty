@@ -175,6 +175,10 @@ public final class Program {
      * Get all named elements declared in this Program.
      */
     public Iterable<Named> names() {
+        // Some type-resolution subtlety eludes me.  I'd have thought that
+        // Iterable<EnumType> is castable to Iterable<Named> (inheritance),
+        // but the IDE claims otherwise.  So, instead of FluentIterable.<Named>from(enums),
+        // we work around by making one from an empty Named array and appending.
         FluentIterable<Named> iter = FluentIterable.of(new Named[0]);
         return iter
                 .append(enums)

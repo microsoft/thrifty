@@ -94,14 +94,20 @@ public class LoaderTest {
                 "  TWO\n" +
                 "}";
 
-        File f = tempDir.newFile();
+        File f = tempDir.newFile("toInclude.thrift");
         writeTo(f, included);
+
+        String name = f.getName().split("\\.")[0];
 
         String thrift = "\n" +
                 "namespace java com.bendb.thrifty.test.include\n" +
                 "include '" + f.getName() + "'\n" +
                 "\n" +
-                "typedef TestEnum Ordinal";
+                "typedef " + name + ".TestEnum Ordinal\n" +
+                "\n" +
+                "struct TestStruct {\n" +
+                "  1: " + name + ".TestEnum foo\n" +
+                "}";
 
         File f1 = tempDir.newFile();
         writeTo(f1, thrift);
@@ -117,6 +123,81 @@ public class LoaderTest {
 
         Typedef td = schema.typedefs().get(0);
         assertThat(td.oldType(), sameInstance(et.type()));
+    }
+
+    @Test
+    public void includedTypesMustBeScoped() throws Exception {
+        File f = tempDir.newFile("toInclude.thrift");
+        File f1 = tempDir.newFile();
+
+        String included = "\n" +
+                "namespace java com.bendb.thrifty.test.scopedInclude\n" +
+                "\n" +
+                "enum TestEnum {\n" +
+                "  ONE,\n" +
+                "  TWO\n" +
+                "}";
+
+        String thrift = "\n" +
+                "namespace java com.bendb.thrifty.test.scopedInclude\n" +
+                "include '" + f.getName() + "'\n" +
+                "\n" +
+                "struct TestStruct {\n" +
+                "  1: TestEnum foo\n" +
+                "}";
+
+        writeTo(f, included);
+        writeTo(f1, thrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+        loader.addThriftFile(f1.getAbsolutePath());
+
+        try {
+            loader.load();
+            fail();
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("Failed to resolve type TestEnum"));
+        }
+    }
+
+    @Test
+    public void crazyIncludes() throws Exception {
+        File f1 = tempDir.newFile("a.thrift");
+        File f2 = tempDir.newFile("b.thrift");
+        File f3 = tempDir.newFile("c.thrift");
+
+        String a = "namespace java com.bendb.thrifty.test.crazyIncludes\n" +
+                "\n" +
+                "enum A {\n" +
+                "  ONE, TWO, THREE\n" +
+                "}";
+
+        String b = "include '" + f1.getCanonicalPath() + "'\n" +
+                "namespace java com.bendb.thrifty.test.crazyIncludes\n" +
+                "\n" +
+                "struct B {\n" +
+                "  1: a.A a = ONE\n" +
+                "}";
+
+        String c = "include '" + f2.getCanonicalPath() + "'\n" +
+                "\n" +
+                "namespace java com.bendb.thrifty.test.crazyIncludes\n" +
+                "\n" +
+                "struct C {\n" +
+                "  100: required b.B b,\n" +
+                "}";
+
+        writeTo(f1, a);
+        writeTo(f2, b);
+        writeTo(f3, c);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f1.getAbsolutePath());
+        loader.addThriftFile(f2.getAbsolutePath());
+        loader.addThriftFile(f3.getAbsolutePath());
+
+        Schema schema = loader.load();
     }
 
     @Test

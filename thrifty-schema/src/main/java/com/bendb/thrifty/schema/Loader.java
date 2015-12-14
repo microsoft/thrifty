@@ -106,7 +106,7 @@ public final class Loader {
                     "WTF, we have a parsed ThriftFileElement with a non-existing location");
             if (!file.isAbsolute()) throw new AssertionError("WTF, we have a non-canonical path");
             Program program = new Program(fileElement);
-            loadedPrograms.put(file.getAbsolutePath(), program);
+            loadedPrograms.put(file.getCanonicalPath(), program);
         }
 
         // Link included programs together

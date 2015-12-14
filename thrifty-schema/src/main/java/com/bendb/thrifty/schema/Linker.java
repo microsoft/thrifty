@@ -2,6 +2,8 @@ package com.bendb.thrifty.schema;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import java.io.File;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -87,7 +89,25 @@ class Linker {
             Linker l = environment.getLinker(p);
             l.link();
 
-            typesByName.putAll(l.typesByName);
+            File included = new File(p.location().base(), p.location().path());
+            String name = included.getName();
+            int ix = name.indexOf('.');
+            if (ix == -1) {
+                throw new AssertionError(
+                        "No extension found for included file " + included.getAbsolutePath() + ","
+                        + "invalid include statement");
+            }
+            String prefix = name.substring(0, ix);
+
+            for (Map.Entry<String, ThriftType> entry : l.typesByName.entrySet()) {
+                // Include types defined directly within the included program,
+                // but _not_ qualified names defined in programs that _it_ includes.
+                // Include-chains like top.mid.bottom.SomeType are illegal.
+                if (entry.getKey().indexOf('.') < 0) {
+                    String qualifiedName = prefix + "." + entry.getKey();
+                    typesByName.put(qualifiedName, entry.getValue());
+                }
+            }
         }
 
         // Linking included programs may have failed - if so, bail.
