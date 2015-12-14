@@ -800,7 +800,7 @@ public final class ThriftyCodeGenerator {
                 } else if (value.kind() == ConstValueElement.Kind.INTEGER) {
                     name = ((Long) value.value()) == 0L ? "false" : "true";
                 } else {
-                    throw new AssertionError("Invalid boolean constant: " + value.value());
+                    throw new AssertionError("Invalid boolean constant: " + value.value() + " at " + value.location());
                 }
 
                 return CodeBlock.builder().add(name).build();
@@ -838,7 +838,7 @@ public final class ThriftyCodeGenerator {
 
             @Override
             public CodeBlock visitBinary() {
-                throw new AssertionError("Binary literals are not supported");
+                throw new UnsupportedOperationException("Binary literals are not supported");
             }
 
             @Override
