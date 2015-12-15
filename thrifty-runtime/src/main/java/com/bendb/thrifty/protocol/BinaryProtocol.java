@@ -319,7 +319,7 @@ public class BinaryProtocol extends Protocol {
         if (stringLengthLimit != -1 && sizeInBytes > stringLengthLimit) {
             throw new ProtocolException("Binary size limit exceeded");
         }
-        return source.readByteString();
+        return source.readByteString(sizeInBytes);
     }
 
     private String readStringWithSize(int size) throws IOException {

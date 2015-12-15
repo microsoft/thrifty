@@ -1,9 +1,12 @@
 package com.bendb.thrifty.protocol;
 
+import com.bendb.thrifty.TType;
+import com.bendb.thrifty.util.ProtocolUtil;
 import okio.Buffer;
 import okio.ByteString;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.ProtocolException;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -124,5 +127,87 @@ public class BinaryProtocolTest {
         proto.writeString("here is a string");
         assertThat(buffer.readInt(), equalTo(16));
         assertThat(buffer.readUtf8(), equalTo("here is a string"));
+    }
+
+    @Test
+    public void adapterTest() throws Exception {
+        // This test case comes from internal data, and is intended
+        // to ensure in particular that readers don't grab more data than
+        // they are supposed to.
+        String payload =
+                "030001000600" +
+                "0200030600030002" +
+                "0b00040000007f08" +
+                "0001000001930600" +
+                "0200a70b00030000" +
+                "006b0e00010c0000" +
+                "000206000100020b" +
+                "0002000000243030" +
+                "3030303030302d30" +
+                "3030302d30303030" +
+                "2d303030302d3030" +
+                "3030303030303030" +
+                "3031000600010001" +
+                "0b00020000002430" +
+                "613831356232312d" +
+                "616533372d343966" +
+                "622d616633322d31" +
+                "3636363261616366" +
+                "62333300000000";
+
+        ByteString binaryData = ByteString.decodeHex(payload);
+        Buffer buffer = new Buffer();
+        buffer.write(binaryData);
+        BinaryProtocol protocol = new BinaryProtocol(buffer, buffer);
+        read(protocol);
+    }
+
+    public void read(Protocol protocol) throws IOException {
+        protocol.readStructBegin();
+        while (true) {
+            FieldMetadata field = protocol.readFieldBegin();
+            if (field.typeId == TType.STOP) {
+                break;
+            }
+            switch (field.fieldId) {
+                case 1: {
+                    if (field.typeId == TType.BYTE) {
+                        byte value = protocol.readByte();
+                    } else {
+                        ProtocolUtil.skip(protocol, field.typeId);
+                    }
+                }
+                break;
+                case 2: {
+                    if (field.typeId == TType.I16) {
+                        short value = protocol.readI16();
+                    } else {
+                        ProtocolUtil.skip(protocol, field.typeId);
+                    }
+                }
+                break;
+                case 3: {
+                    if (field.typeId == TType.I16) {
+                        short value = protocol.readI16();
+                    } else {
+                        ProtocolUtil.skip(protocol, field.typeId);
+                    }
+                }
+                break;
+                case 4: {
+                    if (field.typeId == TType.STRING) {
+                        ByteString value = protocol.readBinary();
+                    } else {
+                        ProtocolUtil.skip(protocol, field.typeId);
+                    }
+                }
+                break;
+                default: {
+                    ProtocolUtil.skip(protocol, field.typeId);
+                }
+                break;
+            }
+            protocol.readFieldEnd();
+        }
     }
 }
