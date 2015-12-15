@@ -52,6 +52,7 @@ public final class ThriftyCodeGenerator {
 
     private final TypeResolver typeResolver = new TypeResolver();
     private final Schema schema;
+    private boolean emitAndroidAnnotations;
 
     public ThriftyCodeGenerator(Schema schema) {
         this(
@@ -90,6 +91,11 @@ public final class ThriftyCodeGenerator {
 
     public ThriftyCodeGenerator withMapType(String mapClassName) {
         typeResolver.setMapClass(ClassName.bestGuess(mapClassName));
+        return this;
+    }
+
+    public ThriftyCodeGenerator emitAndroidAnnotations(boolean shouldEmit) {
+        emitAndroidAnnotations = shouldEmit;
         return this;
     }
 
@@ -221,6 +227,11 @@ public final class ThriftyCodeGenerator {
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(fieldTypeName, name)
                     .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                     .addAnnotation(fieldAnnotation(field));
+
+            if (emitAndroidAnnotations) {
+                ClassName anno = field.required() ? TypeNames.NOT_NULL : TypeNames.NULLABLE;
+                fieldBuilder.addAnnotation(anno);
+            }
 
             if (field.hasJavadoc()) {
                 fieldBuilder = fieldBuilder.addJavadoc(field.documentation());

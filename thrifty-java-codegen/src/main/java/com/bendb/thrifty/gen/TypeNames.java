@@ -56,6 +56,9 @@ final class TypeNames {
 
     static final ClassName FIELD_METADATA = ClassName.get(FieldMetadata.class);
 
+    static final ClassName NOT_NULL = ClassName.get("android.support.annotation", "NonNull");
+    static final ClassName NULLABLE = ClassName.get("android.support.annotation", "Nullable");
+
     /**
      * A mapping of {@link TType} constant values to their Java names.
      */
