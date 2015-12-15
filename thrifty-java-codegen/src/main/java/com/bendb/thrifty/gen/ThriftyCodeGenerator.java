@@ -508,22 +508,27 @@ public final class ThriftyCodeGenerator {
                 .returns(boolean.class)
                 .addParameter(Object.class, "other")
                 .addStatement("if (this == other) return true")
-                .addStatement("if (other == null) return false")
-                .addStatement("if (!(other instanceof $L)) return false", struct.name());
+                .addStatement("if (other == null) return false");
 
 
         if (struct.fields().size() > 0) {
+            equals.addStatement("if (!(other instanceof $L)) return false", struct.name());
             equals.addStatement("$1L that = ($1L) other", struct.name());
         }
 
         boolean isFirst = true;
         for (Field field : struct.fields()) {
             if (isFirst) {
-                equals.addCode("$[return (this.$1N == that.$1N || (this.$1N != null && this.$1N.equals(that.$1N)))",
-                        field.name());
+                equals.addCode("$[return ");
                 isFirst = false;
             } else {
-                equals.addCode("\n&& (this.$1N == that.$1N || (this.$1N != null && this.$1N.equals(that.$1N)))",
+                equals.addCode("\n&& ");
+            }
+
+            if (field.required()) {
+                equals.addCode("(this.$1N == that.$1N || this.$1N.equals(that.$1N))", field.name());
+            } else {
+                equals.addCode("(this.$1N == that.$1N || (this.$1N != null && this.$1N.equals(that.$1N)))",
                         field.name());
             }
         }
@@ -531,7 +536,7 @@ public final class ThriftyCodeGenerator {
         if (struct.fields().size() > 0) {
             equals.addCode(";\n$]");
         } else {
-            equals.addStatement("return true");
+            equals.addStatement("return other instanceof $L", struct.name());
         }
 
         return equals.build();
@@ -545,7 +550,11 @@ public final class ThriftyCodeGenerator {
                 .addStatement("int code = 16777619");
 
         for (Field field : struct.fields()) {
-            hashCode.addStatement("code ^= (this.$1N == null) ? 0 : this.$1N.hashCode()", field.name());
+            if (field.required()) {
+                hashCode.addStatement("code ^= this.$N.hashCode()", field.name());
+            } else {
+                hashCode.addStatement("code ^= (this.$1N == null) ? 0 : this.$1N.hashCode()", field.name());
+            }
             hashCode.addStatement("code *= 0x811c9dc5");
         }
 
@@ -567,7 +576,13 @@ public final class ThriftyCodeGenerator {
             for (Field field : struct.fields()) {
                 boolean isLast = ++index == struct.fields().size();
                 toString.addStatement("sb.append($S)", field.name() + "=");
-                toString.addStatement("sb.append(this.$1N == null ? \"null\" : this.$1N)", field.name());
+
+                if (field.required()) {
+                    toString.addStatement("sb.append(this.$N)", field.name());
+                } else {
+                    toString.addStatement("sb.append(this.$1N == null ? \"null\" : this.$1N)", field.name());
+                }
+
                 if (isLast) {
                     toString.addStatement("sb.append(\"\\n}\")");
                 } else {
