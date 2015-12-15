@@ -28,6 +28,7 @@ import okio.BufferedSource;
 import okio.ByteString;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.ProtocolException;
 import java.nio.ByteBuffer;
 
@@ -173,10 +174,13 @@ public class BinaryProtocol extends Protocol {
 
     @Override
     public void writeString(String str) throws IOException {
-        Buffer tmp = new Buffer();
-        tmp.writeUtf8(str);
-        writeI32((int) tmp.size());
-        sink.write(tmp, tmp.size());
+        try {
+            byte[] bs = str.getBytes("UTF-8");
+            writeI32(bs.length);
+            sink.write(bs);
+        } catch (UnsupportedEncodingException e) {
+            throw new AssertionError(e);
+        }
     }
 
     @Override
@@ -249,7 +253,9 @@ public class BinaryProtocol extends Protocol {
         byte keyTypeId = readByte();
         byte valueTypeId = readByte();
         int size = readI32();
-        if (size > containerLengthLimit) throw new ProtocolException("Container size limit exceeded");
+        if (containerLengthLimit != -1 && size > containerLengthLimit) {
+            throw new ProtocolException("Container size limit exceeded");
+        }
         return new MapMetadata(keyTypeId, valueTypeId, size);
     }
 
@@ -261,7 +267,9 @@ public class BinaryProtocol extends Protocol {
     public ListMetadata readListBegin() throws IOException {
         byte elementTypeId = readByte();
         int size = readI32();
-        if (size > containerLengthLimit) throw new ProtocolException("Container size limit exceeded");
+        if (containerLengthLimit != -1 && size > containerLengthLimit) {
+            throw new ProtocolException("Container size limit exceeded");
+        }
         return new ListMetadata(elementTypeId, size);
     }
 
@@ -273,7 +281,9 @@ public class BinaryProtocol extends Protocol {
     public SetMetadata readSetBegin() throws IOException {
         byte elementTypeId = readByte();
         int size = readI32();
-        if (size > containerLengthLimit) throw new ProtocolException("Container size limit exceeded");
+        if (containerLengthLimit != -1 && size > containerLengthLimit) {
+            throw new ProtocolException("Container size limit exceeded");
+        }
         return new SetMetadata(elementTypeId, size);
     }
 
@@ -314,21 +324,27 @@ public class BinaryProtocol extends Protocol {
     @Override
     public String readString() throws IOException {
         int sizeInBytes = readI32();
-        if (sizeInBytes > stringLengthLimit) throw new ProtocolException("String size limit exceeded");
+        if (stringLengthLimit != -1 && sizeInBytes > stringLengthLimit) {
+            throw new ProtocolException("String size limit exceeded");
+        }
         return source.readUtf8(sizeInBytes);
     }
 
     @Override
     public ByteString readBinary() throws IOException {
         int sizeInBytes = readI32();
-        if (sizeInBytes > stringLengthLimit) throw new ProtocolException("Binary size limit exceeded");
+        if (stringLengthLimit != -1 && sizeInBytes > stringLengthLimit) {
+            throw new ProtocolException("Binary size limit exceeded");
+        }
         return source.readByteString();
     }
 
     @Override
     public ByteBuffer readByteBuffer() throws IOException {
         int sizeInBytes = readI32();
-        if (sizeInBytes > stringLengthLimit) throw new ProtocolException("Binary size limit exceeded");
+        if (stringLengthLimit != -1 && sizeInBytes > stringLengthLimit) {
+            throw new ProtocolException("Binary size limit exceeded");
+        }
         byte[] byteArray = source.readByteArray(sizeInBytes);
         return ByteBuffer.wrap(byteArray);
     }
