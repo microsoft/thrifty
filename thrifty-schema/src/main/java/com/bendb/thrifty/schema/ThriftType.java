@@ -16,6 +16,7 @@ public abstract class ThriftType {
 
     public static final ThriftType BOOL = new BuiltinType("bool");
     public static final ThriftType BYTE = new BuiltinType("byte");
+    public static final ThriftType I8 = new BuiltinType("i8");
     public static final ThriftType I16 = new BuiltinType("i16");
     public static final ThriftType I32 = new BuiltinType("i32");
     public static final ThriftType I64 = new BuiltinType("i64");
@@ -31,6 +32,7 @@ public abstract class ThriftType {
         ImmutableMap.Builder<String, ThriftType> builtins = ImmutableMap.builder();
         builtins.put(BOOL.name, BOOL);
         builtins.put(BYTE.name, BYTE);
+        builtins.put(I8.name, I8);
         builtins.put(I16.name, I16);
         builtins.put(I32.name, I32);
         builtins.put(I64.name, I64);
@@ -164,7 +166,7 @@ public abstract class ThriftType {
         public <T> T accept(Visitor<? extends T> visitor) {
             if (this == BOOL) {
                 return visitor.visitBool();
-            } else if (this == BYTE) {
+            } else if (this == BYTE || this == I8) {
                 return visitor.visitByte();
             } else if (this == I16) {
                 return visitor.visitI16();
