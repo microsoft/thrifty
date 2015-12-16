@@ -42,17 +42,6 @@ public class ThriftParserTest {
     }
 
     @Test
-    public void phpScopedNamespaceFails() {
-        String thrift = "namespace php should.not.work";
-        try {
-            ThriftParser.parse(Location.get("", "test.php"), thrift);
-            fail("Scoped namespace statements for PHP should not pass parsing");
-        } catch (IllegalStateException expected) {
-            assertThat(expected.getMessage(), containsString("not supported"));
-        }
-    }
-
-    @Test
     public void includes() {
         String thrift =
                 "include 'inc/common.thrift'\n" +

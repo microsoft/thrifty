@@ -91,7 +91,9 @@ public final class ThriftParser {
             }
 
             if (element instanceof NamespaceElement) {
-                namespaces.add((NamespaceElement) element);
+                if (((NamespaceElement) element).scope() != NamespaceScope.UNKNOWN) {
+                    namespaces.add((NamespaceElement) element);
+                }
             } else if (element instanceof IncludeElement) {
                 imports.add((IncludeElement) element);
             } else if (element instanceof EnumElement) {
@@ -127,18 +129,17 @@ public final class ThriftParser {
         if ("namespace".equals(word)) {
             String scopeName = readNamespaceScope();
             NamespaceScope scope = NamespaceScope.forThriftName(scopeName);
-            if (scope == null) {
-                throw unexpected("invalid namespace scope: " + scopeName);
-            }
-            if (scope == NamespaceScope.PHP) {
-                throw unexpected("scoped namespaces for PHP are not supported");
-            }
 
             String namespace;
             if (scope == NamespaceScope.SMALLTALK_CATEGORY) {
                 namespace = readSmalltalkIdentifier();
             } else {
                 namespace = readIdentifier();
+            }
+
+            if (scope == null) {
+                // TODO: Implement warnings
+                scope = NamespaceScope.UNKNOWN;
             }
 
             return NamespaceElement.builder(location)
