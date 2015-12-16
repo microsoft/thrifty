@@ -582,7 +582,7 @@ public final class ThriftyCodeGenerator {
 
                 if (isRedacted) {
                     toString.addStatement("sb.append(\"<REDACTED>\")");
-                } if (field.required()) {
+                } else if (field.required()) {
                     toString.addStatement("sb.append(this.$N)", field.name());
                 } else {
                     toString.addStatement("sb.append(this.$1N == null ? \"null\" : this.$1N)", field.name());
