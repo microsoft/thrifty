@@ -505,7 +505,7 @@ public final class ThriftParser {
 
         func.params(readFieldList(')', true));
 
-        char next = peekChar(false);
+        char next = peekCharSameLine();
         if (next == 't') {
             word = readWord();
 
@@ -608,16 +608,47 @@ public final class ThriftParser {
         return c;
     }
 
+    /**
+     * Returns the next non-whitespace, non-comment character, without
+     * consuming it.
+     */
     private char peekChar() {
         return peekChar(true);
     }
 
+    /**
+     * Returns the next non-whitespace character, optionally skipping over
+     * comments, without consuming the returned character.
+     *
+     * @param skipComments {@code true} to consume and ignore comments.
+     */
     private char peekChar(boolean skipComments) {
         skipWhitespace(skipComments);
         if (pos == data.length) {
             throw unexpected("unexpected end of file");
         }
         return data[pos];
+    }
+
+    /**
+     * Skips non-newline whitespace characters, returning either
+     * the first non-whitespace character on the current line or the first
+     * newline character encountered.
+     *
+     * When this method returns, {@link #pos} is positioned at the returned
+     * character.
+     */
+    private char peekCharSameLine() {
+        while (pos < data.length) {
+            char c = data[pos];
+            if (c == ' ' || c == '\t') {
+                pos++;
+            } else {
+                return c;
+            }
+        }
+
+        throw unexpected("Unexpected end of input");
     }
 
     private String readTrailingDoc(String doc, boolean consumeSeparator) {

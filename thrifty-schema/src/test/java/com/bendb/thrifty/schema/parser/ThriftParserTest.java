@@ -3,8 +3,11 @@ package com.bendb.thrifty.schema.parser;
 import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.common.collect.ImmutableList;
+import okio.Okio;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -490,5 +493,15 @@ public class ThriftParserTest {
         assertThat(v, is(notNullValue()));
         assertThat(v.kind(), is(ConstValueElement.Kind.INTEGER));
         assertThat((Long) v.value(), is(1L));
+    }
+
+    @Test
+    public void canParseOfficialTestCase() throws Exception {
+        ClassLoader classLoader = getClass().getClassLoader();
+        InputStream stream = classLoader.getResourceAsStream("cases/TestThrift.thrift");
+        String thrift = Okio.buffer(Okio.source(stream)).readUtf8();
+        Location location = Location.get("cases", "TestThrift.thrift");
+
+        ThriftParser.parse(location, thrift);
     }
 }
