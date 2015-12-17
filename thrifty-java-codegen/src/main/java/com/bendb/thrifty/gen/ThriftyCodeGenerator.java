@@ -898,7 +898,15 @@ public final class ThriftyCodeGenerator {
                     if (value.kind() == ConstValueElement.Kind.INTEGER) {
                         member = enumType.findMemberById(value.getAsInt());
                     } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                        member = enumType.findMemberByName(value.getAsString());
+                        String id = value.getAsString();
+
+                        // Remove the enum name prefix, assuming it is present
+                        int ix = id.lastIndexOf('.');
+                        if (ix != -1) {
+                            id = id.substring(ix + 1);
+                        }
+
+                        member = enumType.findMemberByName(id);
                     } else {
                         throw new AssertionError(
                                 "Constant value kind " + value.kind() + " is not possibly an enum; validation bug");

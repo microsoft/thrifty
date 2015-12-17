@@ -4,12 +4,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * An object that can resolve the types of typdefs, struct fields, and service
@@ -319,7 +321,39 @@ class Linker {
 
     @Nullable
     Named lookupSymbol(String symbol) {
-        return program.symbols().get(symbol);
+        Named named = program.symbols().get(symbol);
+        if (named == null && symbol.indexOf('.') != -1) {
+            // 'symbol' may be a qualified name for an included type
+            ThriftType type = typesByName.get(symbol);
+            if (type != null) {
+                String name = type.name();
+                for (Program includedProgram : program.includes()) {
+                    named = includedProgram.symbols().get(name);
+                    if (named != null) {
+                        break;
+                    }
+                }
+            }
+        }
+        return named;
+    }
+
+    @Nullable
+    Named lookupSymbol(ThriftType type) {
+        Queue<Program> ps = new ArrayDeque<>(1);
+        ps.add(program);
+
+        while (!ps.isEmpty()) {
+            Program p = ps.remove();
+            Named named = p.symbols().get(type.name());
+            if (named != null) {
+                return named;
+            }
+
+            ps.addAll(p.includes());
+        }
+
+        return null;
     }
 
     void addError(String error) {

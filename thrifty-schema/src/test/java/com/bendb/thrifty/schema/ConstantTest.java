@@ -144,9 +144,10 @@ public class ConstantTest {
         when(et.type()).thenReturn(tt);
         when(et.members()).thenReturn(members.build());
 
+        when(linker.lookupSymbol(tt)).thenReturn(et);
         when(linker.lookupSymbol("TestEnum")).thenReturn(et);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "TEST"), tt);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.TEST"), tt);
     }
 
     @Test
@@ -163,7 +164,7 @@ public class ConstantTest {
         when(linker.lookupSymbol("TestEnum")).thenReturn(et);
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "NON_MEMBER"), tt);
+            Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.NON_MEMBER"), tt);
             fail("Non-member identifier should fail");
         } catch (IllegalStateException ignored) {
         }

@@ -203,7 +203,7 @@ public class Constant extends Named {
     static class EnumValidator implements ConstValueValidator {
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
-            Named named = linker.lookupSymbol(expected.name());
+            Named named = linker.lookupSymbol(expected);
             if (named instanceof EnumType) {
                 EnumType et = (EnumType) named;
 
@@ -217,12 +217,24 @@ public class Constant extends Named {
                     throw new IllegalStateException("'" + id + "' is not a valid value for " + et.name());
                 } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                     String id = (String) value.value();
-                    for (EnumType.Member member : et.members()) {
-                        if (member.name().equals(id)) {
-                            return;
+
+                    int ix = id.lastIndexOf('.');
+                    if (ix != -1) {
+                        String typeName = id.substring(0, ix);
+                        String memberName = id.substring(ix + 1);
+
+                        Named namedType = linker.lookupSymbol(typeName);
+                        if (namedType != null && namedType.type().equals(expected)) {
+                            for (EnumType.Member member : et.members()) {
+                                if (member.name().equals(memberName)) {
+                                    return;
+                                }
+                            }
                         }
                     }
-                    throw new IllegalStateException("'" + id + "' is not a member of enum type " + et.name());
+
+                    throw new IllegalStateException(
+                            "'" + id + "' is not a member of enum type " + et.name() + ": members=" + et.members());
                 } else {
                     throw new IllegalStateException("bad enum literal: " + value.value());
                 }

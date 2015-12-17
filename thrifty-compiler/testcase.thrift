@@ -23,8 +23,8 @@ struct Email {
 }
 
 struct Wtf {
-  1: required map<EmailAddress, ReceiptStatus> data = {"foo@bar.com": 0, "baz@quux.com": READ}
-  2: required list<map<EmailAddress, set<ReceiptStatus>>> crazy = [{"ben@thrifty.org": [UNSENT, SENT]}]
+  1: required map<EmailAddress, ReceiptStatus> data = {"foo@bar.com": 0, "baz@quux.com": ReceiptStatus.READ}
+  2: required list<map<EmailAddress, set<ReceiptStatus>>> crazy = [{"ben@thrifty.org": [1, 2]}]
 }
 
 struct NestedLists {

@@ -84,5 +84,10 @@ public class EnumType extends Named {
         public boolean hasJavadoc() {
             return JavadocUtil.hasJavadoc(this);
         }
+
+        @Override
+        public String toString() {
+            return name();
+        }
     }
 }

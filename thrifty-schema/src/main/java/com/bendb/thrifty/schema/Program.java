@@ -205,25 +205,16 @@ public final class Program {
 
         Preconditions.checkState(this.includedPrograms == null, "Included programs already resolved");
 
-        LinkedHashMap<String, Named> symbolMap = new LinkedHashMap<>();
         ImmutableList.Builder<Program> includes = ImmutableList.builder();
         for (String thriftImport : thriftIncludes) {
             Program included = loader.resolveIncludedProgram(location(), thriftImport);
             included.loadIncludedPrograms(loader, visited);
             includes.add(included);
-
-            for (Map.Entry<String, Named> entry : included.symbols.entrySet()) {
-                String symbol = entry.getKey();
-                Named value = entry.getValue();
-
-                Named oldValue = symbolMap.put(symbol, value);
-                if (oldValue != null) {
-                    throw duplicateSymbol(symbol, oldValue, value);
-                }
-            }
         }
+
         this.includedPrograms = includes.build();
 
+        LinkedHashMap<String, Named> symbolMap = new LinkedHashMap<>();
         for (Named named : names()) {
             Named oldValue = symbolMap.put(named.name(), named);
             if (oldValue != null) {

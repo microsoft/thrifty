@@ -8,6 +8,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.sameInstance;
@@ -177,7 +178,7 @@ public class LoaderTest {
                 "namespace java com.bendb.thrifty.test.crazyIncludes\n" +
                 "\n" +
                 "struct B {\n" +
-                "  1: a.A a = ONE\n" +
+                "  1: a.A a = a.A.ONE\n" +
                 "}";
 
         String c = "include '" + f2.getCanonicalPath() + "'\n" +
@@ -283,8 +284,8 @@ public class LoaderTest {
                 "typedef string EmailAddress\n" +
                 "\n" +
                 "struct Wtf {\n" +
-                "  1: required map<EmailAddress, ReceiptStatus> data = {\"foo@bar.com\": 0, \"baz@quux.com\": READ}\n" +
-                "  2: required list<map<EmailAddress, set<ReceiptStatus>>> crazy = [{\"ben@thrifty.org\": [UNSENT, SENT]}]\n" +
+                "  1: required map<EmailAddress, ReceiptStatus> data = {\"foo@bar.com\": 0, \"baz@quux.com\": ReceiptStatus.READ}\n" +
+                "  2: required list<map<EmailAddress, set<ReceiptStatus>>> crazy = [{\"ben@thrifty.org\": [ReceiptStatus.UNSENT, ReceiptStatus.SENT]}]\n" +
                 "}\n" +
                 "\n" +
                 "enum ReceiptStatus {\n" +
@@ -323,6 +324,17 @@ public class LoaderTest {
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("Failed to resolve type Undefined"));
         }
+    }
+
+    @Test
+    public void canLoadAndLinkOfficialTestThrift() throws Exception {
+        URL url = getClass().getClassLoader().getResource("cases/TestThrift.thrift");
+        File file = new File(url.getFile());
+
+        Loader loader = new Loader();
+        loader.addThriftFile(file.getAbsolutePath());
+
+        loader.load();
     }
 
     private static void writeTo(File file, String content) throws IOException {
