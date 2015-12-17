@@ -8,6 +8,7 @@ import com.bendb.thrifty.protocol.ListMetadata;
 import com.bendb.thrifty.protocol.MapMetadata;
 import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.protocol.SetMetadata;
+import com.bendb.thrifty.service.ServiceMethodCallback;
 import com.bendb.thrifty.util.ProtocolUtil;
 import com.google.common.collect.ImmutableMap;
 import com.squareup.javapoet.ClassName;
@@ -58,6 +59,8 @@ final class TypeNames {
 
     static final ClassName NOT_NULL = ClassName.get("android.support.annotation", "NonNull");
     static final ClassName NULLABLE = ClassName.get("android.support.annotation", "Nullable");
+
+    static final ClassName SERVICE_CALLBACK = ClassName.get(ServiceMethodCallback.class);
 
     /**
      * A mapping of {@link TType} constant values to their Java names.

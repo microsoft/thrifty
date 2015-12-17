@@ -8,6 +8,8 @@ import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.Named;
 import com.bendb.thrifty.schema.NamespaceScope;
 import com.bendb.thrifty.schema.Schema;
+import com.bendb.thrifty.schema.Service;
+import com.bendb.thrifty.schema.ServiceMethod;
 import com.bendb.thrifty.schema.StructType;
 import com.bendb.thrifty.schema.ThriftType;
 import com.bendb.thrifty.schema.parser.ConstValueElement;
@@ -161,7 +163,11 @@ public final class ThriftyCodeGenerator {
             writer.write(file);
         }
 
-        // TODO: Services
+        for (Service service : schema.services()) {
+            TypeSpec spec = buildService(service);
+            JavaFile file = assembleJavaFile(service, spec);
+            writer.write(file);
+        }
     }
 
     private JavaFile assembleJavaFile(Named named, TypeSpec spec) {
@@ -950,6 +956,63 @@ public final class ThriftyCodeGenerator {
                 return null;
             }
         });
+    }
+
+    TypeSpec buildService(Service service) {
+        TypeSpec.Builder serviceSpec = TypeSpec.interfaceBuilder(service.name())
+                .addModifiers(Modifier.PUBLIC);
+
+        if (!Strings.isNullOrEmpty(service.documentation())) {
+            serviceSpec.addJavadoc(service.documentation());
+        }
+
+        if (service.extendsService() != null) {
+            ThriftType superType = service.extendsService().getTrueType();
+            TypeName superTypeName = typeResolver.getJavaClass(superType);
+            serviceSpec.addSuperinterface(superTypeName);
+        }
+
+        for (ServiceMethod method : service.methods()) {
+            NameAllocator allocator = new NameAllocator();
+            int tag = 0;
+
+            MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(method.name())
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
+
+            if (method.hasJavadoc()) {
+                methodBuilder.addJavadoc(method.documentation());
+            }
+
+            for (Field field : method.paramTypes()) {
+                String name = allocator.newName(field.name(), ++tag);
+                ThriftType paramType = field.type().getTrueType();
+                TypeName paramTypeName = typeResolver.getJavaClass(paramType);
+
+                methodBuilder.addParameter(paramTypeName, name);
+
+            }
+
+            if (!method.oneWay()) {
+                String name = allocator.newName("callback", ++tag);
+
+                ThriftType returnType = method.returnType().or(ThriftType.VOID);
+                TypeName returnTypeName;
+                if (returnType == ThriftType.VOID) {
+                    returnTypeName = TypeName.VOID.box();
+                } else {
+                    returnTypeName = typeResolver.getJavaClass(returnType.getTrueType());
+                }
+
+                TypeName callbackInterfaceName = ParameterizedTypeName.get(
+                        TypeNames.SERVICE_CALLBACK, returnTypeName);
+
+                methodBuilder.addParameter(callbackInterfaceName, name);
+            }
+
+            serviceSpec.addMethod(methodBuilder.build());
+        }
+
+        return serviceSpec.build();
     }
 
     private static AnnotationSpec fieldAnnotation(Field field) {
