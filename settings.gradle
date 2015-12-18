@@ -4,3 +4,6 @@ include 'thrifty-runtime'
 include 'thrifty-java-codegen'
 include 'thrifty-gradle-plugin'
 include 'thrifty-compiler'
+include 'thrifty-example-postprocessor'
+include 'thrifty-compiler-plugins'
+

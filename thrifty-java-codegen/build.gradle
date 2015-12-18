@@ -3,6 +3,7 @@ description = 'Converts Thrifty Schemas into Java source files'
 dependencies {
     compile project(":thrifty-schema")
     compile project(":thrifty-runtime")
+    compile project(":thrifty-compiler-plugins")
     compile libraries.okio
     compile libraries.javaPoet
 

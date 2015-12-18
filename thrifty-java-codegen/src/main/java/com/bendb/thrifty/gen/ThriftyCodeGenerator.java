@@ -30,6 +30,7 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import com.bendb.thrifty.compiler.spi.TypeProcessor;
 
 import javax.lang.model.element.Modifier;
 import java.io.File;

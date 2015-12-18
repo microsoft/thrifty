@@ -1,5 +1,6 @@
 package com.bendb.thrifty.compiler;
 
+import com.bendb.thrifty.compiler.spi.TypeProcessor;
 import com.bendb.thrifty.gen.ThriftyCodeGenerator;
 import com.bendb.thrifty.schema.Loader;
 import com.bendb.thrifty.schema.Schema;
@@ -162,6 +163,12 @@ public class ThriftyCompiler {
 
         if (mapTypeName != null) {
             gen = gen.withMapType(mapTypeName);
+        }
+
+        TypeProcessorService svc = TypeProcessorService.getInstance();
+        TypeProcessor processor = svc.get();
+        if (processor != null) {
+            gen = gen.usingTypeProcessor(processor);
         }
 
         gen.emitAndroidAnnotations(emitNullabilityAnnotations);
