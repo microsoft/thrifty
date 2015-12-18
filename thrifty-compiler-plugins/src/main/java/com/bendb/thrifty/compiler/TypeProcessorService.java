@@ -36,7 +36,7 @@ public final class TypeProcessorService {
 
             if (iter.hasNext()) {
                 System.err.println("Multiple TypeProcessors found; using "
-                        + processor.getClass().getTypeName());
+                        + processor.getClass().getName());
             }
         }
 
