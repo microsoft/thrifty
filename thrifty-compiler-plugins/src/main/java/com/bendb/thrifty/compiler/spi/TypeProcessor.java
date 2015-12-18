@@ -30,9 +30,14 @@ import com.squareup.javapoet.TypeSpec;
  */
 public interface TypeProcessor {
     /**
+     * Processes and returns a given type.
      *
-     * @param type
-     * @return
+     * <p>The given {@code type} will have been generated from compiled Thrift
+     * files, and will not have been written to disk.  It can be returned
+     * unaltered, or a modified copy can be returned.
+     *
+     * @param type a {@link TypeSpec} generated based on Thrift IDL.
+     * @return a (possibly modified) {@link TypeSpec} to be written to disk.
      */
     TypeSpec process(TypeSpec type);
 }
