@@ -1,5 +1,6 @@
 package com.bendb.thrifty.gen;
 
+import com.bendb.thrifty.TType;
 import com.bendb.thrifty.ThriftField;
 import com.bendb.thrifty.schema.Constant;
 import com.bendb.thrifty.schema.EnumType;
@@ -456,6 +457,12 @@ public final class ThriftyCodeGenerator {
             final String name = field.name();
             final ThriftType tt = field.type().getTrueType();
             byte typeCode = typeResolver.getTypeCode(tt);
+
+            // enums are i32 on the wire
+            if (typeCode == TType.ENUM) {
+                typeCode = TType.I32;
+            }
+
             String typeCodeName = TypeNames.getTypeCodeName(typeCode);
 
             // Write
