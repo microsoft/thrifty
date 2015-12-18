@@ -57,6 +57,7 @@ public final class ThriftyCodeGenerator {
 
     private final TypeResolver typeResolver = new TypeResolver();
     private final Schema schema;
+    private TypeProcessor typeProcessor;
     private boolean emitAndroidAnnotations;
 
     public ThriftyCodeGenerator(Schema schema) {
@@ -101,6 +102,11 @@ public final class ThriftyCodeGenerator {
 
     public ThriftyCodeGenerator emitAndroidAnnotations(boolean shouldEmit) {
         emitAndroidAnnotations = shouldEmit;
+        return this;
+    }
+
+    public ThriftyCodeGenerator usingTypeProcessor(TypeProcessor typeProcessor) {
+        this.typeProcessor = typeProcessor;
         return this;
     }
 
@@ -185,6 +191,10 @@ public final class ThriftyCodeGenerator {
     }
 
     private JavaFile assembleJavaFile(String packageName, TypeSpec spec, Location location) {
+        if (typeProcessor != null) {
+            spec = typeProcessor.process(spec);
+        }
+
         JavaFile.Builder file = JavaFile.builder(packageName, spec)
                 .skipJavaLangImports(true)
                 .addFileComment(FILE_COMMENT + DATE_FORMATTER.print(System.currentTimeMillis()));
