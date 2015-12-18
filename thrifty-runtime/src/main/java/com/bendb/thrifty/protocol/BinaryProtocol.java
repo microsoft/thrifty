@@ -71,7 +71,7 @@ public class BinaryProtocol extends Protocol {
     @Override
     public void writeMessageBegin(String name, byte typeId, int seqId) throws IOException {
         if (strictWrite) {
-            int version = VERSION_1 | typeId;
+            int version = VERSION_1 | (typeId & 0xFF);
             writeI32(version);
             writeString(name);
             writeI32(seqId);

@@ -61,6 +61,9 @@ public final class ProtocolUtil {
                 }
                 protocol.readMapEnd();
             break;
+
+            default:
+                throw new AssertionError("Unrecognized TType value: " + typeCode);
         }
     }
 }

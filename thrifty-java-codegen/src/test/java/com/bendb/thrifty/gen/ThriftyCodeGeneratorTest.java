@@ -68,7 +68,6 @@ public class ThriftyCodeGeneratorTest {
 
     @Test
     public void structGeneration() throws Exception {
-        Location loc = Location.get("", "");
         String thrift = "" +
                 "namespace java com.test.struct\n" +
                 "\n" +
@@ -130,7 +129,7 @@ public class ThriftyCodeGeneratorTest {
     }
 
     private void write(File file, String text) throws IOException {
-        PrintWriter writer = new PrintWriter(file);
+        PrintWriter writer = new PrintWriter(file, "UTF-8");
         BufferedWriter buf = new BufferedWriter(writer);
         try {
             buf.write(text);
