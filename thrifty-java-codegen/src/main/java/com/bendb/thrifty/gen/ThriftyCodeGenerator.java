@@ -32,6 +32,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import com.bendb.thrifty.compiler.spi.TypeProcessor;
 
+import javax.annotation.Nullable;
 import javax.lang.model.element.Modifier;
 import java.io.File;
 import java.io.IOException;
@@ -115,7 +116,9 @@ public final class ThriftyCodeGenerator {
         generate(new FileWriter() {
             @Override
             public void write(JavaFile file) throws IOException {
-                file.writeTo(directory);
+                if (file != null) {
+                    file.writeTo(directory);
+                }
             }
         });
     }
@@ -124,13 +127,15 @@ public final class ThriftyCodeGenerator {
         generate(new FileWriter() {
             @Override
             public void write(JavaFile file) throws IOException {
-                file.writeTo(appendable);
+                if (file != null) {
+                    file.writeTo(appendable);
+                }
             }
         });
     }
 
     private interface FileWriter {
-        void write(JavaFile file) throws IOException;
+        void write(@Nullable JavaFile file) throws IOException;
     }
 
     private void generate(FileWriter writer) throws IOException {
@@ -178,6 +183,7 @@ public final class ThriftyCodeGenerator {
         }
     }
 
+    @Nullable
     private JavaFile assembleJavaFile(Named named, TypeSpec spec) {
         String packageName = named.getNamespaceFor(NamespaceScope.JAVA);
         if (Strings.isNullOrEmpty(packageName)) {
@@ -187,13 +193,18 @@ public final class ThriftyCodeGenerator {
         return assembleJavaFile(packageName, spec, named.location());
     }
 
+    @Nullable
     private JavaFile assembleJavaFile(String packageName, TypeSpec spec) {
         return assembleJavaFile(packageName, spec, null);
     }
 
+    @Nullable
     private JavaFile assembleJavaFile(String packageName, TypeSpec spec, Location location) {
         if (typeProcessor != null) {
             spec = typeProcessor.process(spec);
+            if (spec == null) {
+                return null;
+            }
         }
 
         JavaFile.Builder file = JavaFile.builder(packageName, spec)

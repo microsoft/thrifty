@@ -36,8 +36,12 @@ public interface TypeProcessor {
      * files, and will not have been written to disk.  It can be returned
      * unaltered, or a modified copy can be returned.
      *
+     * <p>Finally, if {@code null} is returned, then no file will be generated.
+     * This can be used to selectively suppress types, e.g. if it is known that
+     * it will be unused.
+     *
      * @param type a {@link TypeSpec} generated based on Thrift IDL.
-     * @return a (possibly modified) {@link TypeSpec} to be written to disk.
+     * @return a (possibly modified) {@link TypeSpec} to be written to disk
      */
     TypeSpec process(TypeSpec type);
 }
