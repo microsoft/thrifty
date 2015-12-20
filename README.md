@@ -6,46 +6,37 @@ Thrifty
 [![Build Status](https://travis-ci.org/benjamin-bader/thrifty.svg?branch=master)](https://travis-ci.org/benjamin-bader/thrifty)
 
 Thrift is super cool, with a nifty interface definition language from which to generate types and RPC implementations.
-Unfortunately for Android devs, the canonical implementation generates very verbose and method-heavy Java code.
+Unfortunately for Android devs, the canonical implementation generates very verbose and method-heavy Java code, in a manner
+that is not very Proguard-friendly.
 
-Like Wire for Protocol Buffers, Thrifty does away with getters and setters in favor of public final fields.  It
+Like Wire for Protocol Buffers, Thrifty does away with getters and setters (and is-set and set-is-setters) in favor of public final fields.  It
 maintains the core abstractions like Transport and Protocol, but saves on methods by only generating TupleProtocol-compatible
 adapters if configured to do so (not yet implemented).
 
-It it currently completely nonfunctional - in no way, shape, or form is this project usable or useful.  WIP.
+Code generation for everything but services is complete.  If you are not using services, Thrifty is usable today for serializing
+and deserializing Thrifts.  Services are coming as soon as runtime support is ironed out.
 
 ### Usage
 
 In `build.gradle`:
 
 ```groovy
-buildscript {
-  repositories {
-    mavenCentral()
-
-    // or, for snapshot builds:
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
-  }
-
-  dependencies {
-    classpath 'com.bendb.thrifty:thrifty-gradle-plugin:0.1.0-SNAPSHOT'
-  }
-}
-
-apply plugin: 'com.bendb.thrifty'
-
-thrifty {
-  searchPath '../inc/thrift'
-  thrift '../inc/thrift/MyService.thrift'
-}
-
 repositories {
   mavenCentral()
+
+  // For snapshot builds
+  maven { url https://oss.sonatype.org/content/repositories/snapshots' }
 }
 
 dependencies {
   compile 'com.bendb.thrifty:thrifty-runtime:0.1.0-SNAPSHOT'
 }
+```
+
+On the command line:
+
+```bash
+java -jar thrifty-compiler.jar --out=path/to/output file_one.thrift file_two.thrift file_n.thrift
 ```
 
 ### Building
@@ -70,7 +61,7 @@ You will need to have valid Sonatype Nexus OSS credentials, as well as a valid *
 
 ### Credit
 
-Inspired by and borrowing from Square's Wire project, particularly the parser architecture
+Inspired by and adapted from Square's Wire project
 Certain utilities borrowed (TType, BinaryProtcol) from the official Apache Thrift implementation
 
 -------
