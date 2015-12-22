@@ -120,7 +120,7 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
 
     @Override
     public Void visitEnum(ThriftType userType) {
-        write.addStatement("$N.writeI32($L.code)", proto, nameStack.peek());
+        write.addStatement("$N.writeI32($L.value)", proto, nameStack.peek());
         return null;
     }
 

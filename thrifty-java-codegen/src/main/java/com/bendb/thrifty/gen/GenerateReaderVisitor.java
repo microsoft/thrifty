@@ -116,7 +116,7 @@ final class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     public Void visitEnum(ThriftType userType) {
         String target = nameStack.peek();
         String qualifiedJavaName = getFullyQualifiedJavaName(userType);
-        read.addStatement("$1L $2N = $1L.fromCode(protocol.readI32())", qualifiedJavaName, target);
+        read.addStatement("$1L $2N = $1L.findByValue(protocol.readI32())", qualifiedJavaName, target);
         return null;
     }
 

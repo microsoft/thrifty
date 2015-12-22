@@ -1072,21 +1072,21 @@ public final class ThriftyCodeGenerator {
 
         TypeSpec.Builder builder = TypeSpec.enumBuilder(type.name())
                 .addModifiers(Modifier.PUBLIC)
-                .addField(int.class, "code", Modifier.PUBLIC, Modifier.FINAL)
+                .addField(int.class, "value", Modifier.PUBLIC, Modifier.FINAL)
                 .addMethod(MethodSpec.constructorBuilder()
-                        .addParameter(int.class, "code")
-                        .addStatement("this.$N = $N", "code", "code")
+                        .addParameter(int.class, "value")
+                        .addStatement("this.$N = $N", "value", "value")
                         .build());
 
         if (type.hasJavadoc()) {
             builder.addJavadoc(type.documentation());
         }
 
-        MethodSpec.Builder fromCodeMethod = MethodSpec.methodBuilder("fromCode")
+        MethodSpec.Builder fromCodeMethod = MethodSpec.methodBuilder("findByValue")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(enumClassName)
-                .addParameter(int.class, "code")
-                .beginControlFlow("switch (code)");
+                .addParameter(int.class, "value")
+                .beginControlFlow("switch (value)");
 
         for (EnumType.Member member : type.members()) {
             String name = member.name();
