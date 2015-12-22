@@ -1,0 +1,14 @@
+Thrifty
+Copyright 2015 Benjamin Bader
+
+This software contains code derived from Square's Wire project (https://github.com/square/wire),
+Apache's Thrift project (https://github.com/apache/thrift), and KeepSafe's Dexcount project
+(https://github.com/keepsafe/dexcount-gradle-plugin), all available under the Apache 2.0 license.
+
+The `thrifty-schema` submodule is based on the analogous `wire-schema` submodule from Wire,
+and `Location.java` is copyright Square, Inc.
+
+The files `TType.java`, `TMessageType.java`, `SimpleJsonProtocol.java` and `ProtocolUtil.java`
+are partially copyright the Apache Thrift Authors, as is the test file `TestThrift.thrift`.
+
+The file `mvn-gradle-push.gradle` is also copyright KeepSafe Software and Chris Banes.
