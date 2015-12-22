@@ -60,6 +60,16 @@ public final class Loader {
 
     private Map<String, Program> loadedPrograms;
 
+    private FieldNamingPolicy fieldNamingPolicy;
+
+    public Loader() {
+        this(FieldNamingPolicy.DEFAULT);
+    }
+
+    public Loader(FieldNamingPolicy policy) {
+        this.fieldNamingPolicy = policy;
+    }
+
     public Loader addThriftFile(String file) {
         Preconditions.checkNotNull(file, "file");
         thriftFiles.add(file);
@@ -105,7 +115,7 @@ public final class Loader {
             if (!file.exists()) throw new AssertionError(
                     "WTF, we have a parsed ThriftFileElement with a non-existing location");
             if (!file.isAbsolute()) throw new AssertionError("WTF, we have a non-canonical path");
-            Program program = new Program(fileElement);
+            Program program = new Program(fileElement, fieldNamingPolicy);
             loadedPrograms.put(file.getCanonicalPath(), program);
         }
 

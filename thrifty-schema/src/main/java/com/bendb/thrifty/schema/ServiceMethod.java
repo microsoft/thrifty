@@ -19,13 +19,13 @@ public final class ServiceMethod {
 
         ImmutableList.Builder<Field> params = ImmutableList.builder();
         for (FieldElement field : element.params()) {
-            params.add(new Field(field));
+            params.add(new Field(field, FieldNamingPolicy.DEFAULT));
         }
         this.paramTypes = params.build();
 
         ImmutableList.Builder<Field> exceptions = ImmutableList.builder();
         for (FieldElement field : element.exceptions()) {
-            exceptions.add(new Field(field));
+            exceptions.add(new Field(field, FieldNamingPolicy.DEFAULT));
         }
         this.exceptionTypes = exceptions.build();
     }

@@ -13,13 +13,13 @@ const map<string, list<i32>> DUMB_CONSTANT = {
 }
 
 struct Email {
-  1: required EmailAddress from,
-  2: optional list<EmailAddress> to,
-  3: optional list<EmailAddress> cc,
-  4: optional list<EmailAddress> bcc,
-  5: optional string subject,
-  6: optional string body,
-  7: required list<Attachment> attachments = []
+  1: required EmailAddress From,
+  2: optional list<EmailAddress> To,
+  3: optional list<EmailAddress> CC,
+  4: optional list<EmailAddress> BCC,
+  5: optional string Subject,
+  6: optional string Body,
+  7: required list<Attachment> Attachments = []
 }
 
 struct Wtf {

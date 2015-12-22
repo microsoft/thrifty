@@ -2,7 +2,6 @@ package com.bendb.thrifty.schema;
 
 import com.bendb.thrifty.schema.parser.FieldElement;
 import com.bendb.thrifty.schema.parser.StructElement;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
 import java.util.LinkedHashMap;
@@ -13,15 +12,18 @@ public class StructType extends Named {
     private final ThriftType type;
     private final ImmutableList<Field> fields;
 
-    @VisibleForTesting
-    public StructType(StructElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
+    StructType(
+            StructElement element,
+            ThriftType type,
+            Map<NamespaceScope, String> namespaces,
+            FieldNamingPolicy fieldNamingPolicy) {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
 
         ImmutableList.Builder<Field> fieldsBuilder = ImmutableList.builder();
         for (FieldElement fieldElement : element.fields()) {
-            fieldsBuilder.add(new Field(fieldElement));
+            fieldsBuilder.add(new Field(fieldElement, fieldNamingPolicy));
         }
         this.fields = fieldsBuilder.build();
     }

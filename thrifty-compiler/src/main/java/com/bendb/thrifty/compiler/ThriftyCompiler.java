@@ -2,6 +2,7 @@ package com.bendb.thrifty.compiler;
 
 import com.bendb.thrifty.compiler.spi.TypeProcessor;
 import com.bendb.thrifty.gen.ThriftyCodeGenerator;
+import com.bendb.thrifty.schema.FieldNamingPolicy;
 import com.bendb.thrifty.schema.Loader;
 import com.bendb.thrifty.schema.Schema;
 
@@ -53,6 +54,7 @@ public class ThriftyCompiler {
     private static final String SET_TYPE_PREFIX = "--set-type=";
     private static final String MAP_TYPE_PREFIX = "--map-type=";
     private static final String NULLABILITY_ARG = "--use-android-annotations";
+    private static final String JAVA_NAMES_ARG = "--use-java-style-names";
 
     private File outputDirectory;
     private List<String> thriftFiles = new ArrayList<>();
@@ -61,6 +63,7 @@ public class ThriftyCompiler {
     private String setTypeName;
     private String mapTypeName;
     private boolean emitNullabilityAnnotations = false;
+    private FieldNamingPolicy fieldNamingPolicy = FieldNamingPolicy.DEFAULT;
 
     public static void main(String[] args) {
         try {
@@ -96,6 +99,8 @@ public class ThriftyCompiler {
                 compiler.setMapType(typename);
             } else if (arg.trim().equals(NULLABILITY_ARG)) {
                 compiler.emitNullabilityAnnotations = true;
+            } else if (arg.trim().equals(JAVA_NAMES_ARG)) {
+                compiler.fieldNamingPolicy = FieldNamingPolicy.JAVA;
             } else if (arg.startsWith("-")) {
                 throw new IllegalArgumentException("Unrecognized argument: " + arg);
             } else {
@@ -141,7 +146,7 @@ public class ThriftyCompiler {
     }
 
     public void compile() throws IOException {
-        Loader loader = new Loader();
+        Loader loader = new Loader(fieldNamingPolicy);
         for (String thriftFile : thriftFiles) {
             loader.addThriftFile(thriftFile);
         }

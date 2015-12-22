@@ -3,10 +3,11 @@ package com.bendb.thrifty.schema;
 /**
  * Controls the style of names generated for fields.
  */
-abstract class FieldNamingPolicy {
+public abstract class FieldNamingPolicy {
     public abstract String apply(String name);
 
-    protected FieldNamingPolicy() {}
+    public FieldNamingPolicy() {
+    }
 
     /**
      * The default policy is to leave names unaltered from their definition in Thrift IDL.

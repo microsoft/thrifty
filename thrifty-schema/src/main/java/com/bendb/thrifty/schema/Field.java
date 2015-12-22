@@ -7,12 +7,14 @@ import javax.annotation.Nullable;
 
 public final class Field {
     private final FieldElement element;
+    private final FieldNamingPolicy fieldNamingPolicy;
     private ThriftType type;
 
     private transient String javaName;
 
-    Field(FieldElement element) {
+    Field(FieldElement element, FieldNamingPolicy fieldNamingPolicy) {
         this.element = element;
+        this.fieldNamingPolicy = fieldNamingPolicy;
     }
 
     public int id() {
@@ -27,11 +29,7 @@ public final class Field {
 
     public String name() {
         if (javaName == null) {
-            String name = element.name();
-            if (Character.isUpperCase(name.charAt(0))) {
-                name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-            }
-            javaName = name;
+            javaName = fieldNamingPolicy.apply(element.name());
         }
         return javaName;
     }

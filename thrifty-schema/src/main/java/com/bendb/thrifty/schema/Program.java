@@ -37,7 +37,7 @@ public final class Program {
     private ImmutableList<Program> includedPrograms;
     private ImmutableMap<String, Named> symbols;
 
-    Program(ThriftFileElement element) {
+    Program(ThriftFileElement element, FieldNamingPolicy fieldNamingPolicy) {
         this.element = element;
 
         ImmutableMap.Builder<NamespaceScope, String> ns = ImmutableMap.builder();
@@ -63,7 +63,8 @@ public final class Program {
             StructType t = new StructType(
                     structElement,
                     ThriftType.get(structElement.name(), namespaces),
-                    namespaces);
+                    namespaces,
+                    fieldNamingPolicy);
             structs.add(t);
         }
         this.structs = structs.build();
@@ -96,7 +97,8 @@ public final class Program {
             StructType u = new StructType(
                     structElement,
                     ThriftType.get(structElement.name(), namespaces),
-                    namespaces);
+                    namespaces,
+                    fieldNamingPolicy);
             unions.add(u);
         }
         this.unions = unions.build();
@@ -106,7 +108,8 @@ public final class Program {
             StructType u = new StructType(
                     structElement,
                     ThriftType.get(structElement.name(), namespaces),
-                    namespaces);
+                    namespaces,
+                    fieldNamingPolicy);
             exceptions.add(u);
         }
         this.exceptions = exceptions.build();
