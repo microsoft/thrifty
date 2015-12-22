@@ -245,7 +245,7 @@ public final class ThriftParser {
             } else {
                 //noinspection ConstantConditions
                 value = member.value();
-                nextId = Math.max(nextId, value) + 1;
+                nextId = value + 1;
             }
 
             if (!ids.add(value)) {

@@ -504,4 +504,73 @@ public class ThriftParserTest {
 
         ThriftParser.parse(location, thrift);
     }
+
+    @Test
+    public void bareEnums() throws Exception {
+        String thrift = "enum Enum {\n" +
+                "  FOO,\n" +
+                "  BAR\n" +
+                "}";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get("", ""), thrift);
+        EnumElement anEnum = file.enums().get(0);
+        assertThat(anEnum.name(), is("Enum"));
+        assertThat(anEnum.members().size(), is(2));
+
+        EnumMemberElement member = anEnum.members().get(0);
+        assertThat(member.name(), is("FOO"));
+        assertThat(member.value(), is(0));
+
+        member = anEnum.members().get(1);
+        assertThat(member.name(), is("BAR"));
+        assertThat(member.value(), is(1));
+    }
+
+    @Test
+    public void enumWithLargeGaps() throws Exception {
+        String thrift = "enum Gaps {\n" +
+                "  SMALL = 10,\n" +
+                "  MEDIUM = 100,\n" +
+                "  ALSO_MEDIUM,\n" +
+                "  LARGE = 5000\n" +
+                "}";
+
+        ThriftFileElement file = ThriftParser.parse(Location.get("", ""), thrift);
+        EnumElement anEnum = file.enums().get(0);
+        assertThat(anEnum.name(), is("Gaps"));
+        assertThat(anEnum.members().size(), is(4));
+
+        List<EnumMemberElement> members = anEnum.members();
+        EnumMemberElement member = members.get(0);
+        assertThat(member.name(), is("SMALL"));
+        assertThat(member.value(), is(10));
+
+        member = members.get(1);
+        assertThat(member.name(), is("MEDIUM"));
+        assertThat(member.value(), is(100));
+
+        member = members.get(2);
+        assertThat(member.name(), is("ALSO_MEDIUM"));
+        assertThat(member.value(), is(101));
+
+        member = members.get(3);
+        assertThat(member.name(), is("LARGE"));
+        assertThat(member.value(), is(5000));
+    }
+
+    @Test
+    public void defaultValuesCanClash() throws Exception {
+        String thrift = "enum Enum {\n" +
+                "  FOO = 5,\n" +
+                "  BAR = 4,\n" +
+                "  BAZ\n" +
+                "}";
+
+        try {
+            ThriftParser.parse(Location.get("", ""), thrift);
+            fail();
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("duplicate enum value"));
+        }
+    }
 }
