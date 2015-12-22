@@ -22,6 +22,7 @@
 package com.bendb.thrifty.protocol;
 
 import com.bendb.thrifty.TType;
+import com.bendb.thrifty.transport.Transport;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.ByteString;
@@ -53,6 +54,10 @@ public class BinaryProtocol extends Protocol {
 
     private boolean strictRead;
     private boolean strictWrite;
+
+    public BinaryProtocol(Transport transport) {
+        this(transport.source(), transport.sink());
+    }
 
     public BinaryProtocol(BufferedSource source, BufferedSink sink) {
         this(source, sink, -1);

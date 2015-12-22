@@ -1,18 +1,28 @@
 package com.bendb.thrifty.protocol;
 
+import com.bendb.thrifty.transport.Transport;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.ByteString;
 
+import java.io.Closeable;
 import java.io.IOException;
 
-public abstract class Protocol {
+public abstract class Protocol implements Closeable {
+    private final Transport transport;
     protected final BufferedSource source;
     protected final BufferedSink sink;
+
+    protected Protocol(Transport transport) {
+        this.transport = transport;
+        this.source = transport.source();
+        this.sink = transport.sink();
+    }
 
     protected Protocol(BufferedSource source, BufferedSink sink) {
         if (source == null) throw new NullPointerException("source");
         if (sink == null) throw new NullPointerException("sink");
+        this.transport = null;
         this.source = source;
         this.sink = sink;
     }
@@ -103,7 +113,21 @@ public abstract class Protocol {
 
     //////////////
 
+    public void flush() throws IOException {
+        sink.flush();
+    }
+
     public void reset() {
         // to be implemented by children as needed
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (this.transport != null) {
+            this.transport.close();
+        }
+
+        this.source.close();
+        this.sink.close();
     }
 }
