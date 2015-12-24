@@ -102,22 +102,4 @@ public class Schema {
         }
         throw new NoSuchElementException("No enum type matching " + type.name());
     }
-
-    public EnumType findEnumByName(String name) {
-        for (EnumType enumType : enums) {
-            if (enumType.name().equals(name)) {
-                return enumType;
-            }
-        }
-        throw new NoSuchElementException();
-    }
-
-    public StructType findExceptionByType(ThriftType type) {
-        for (StructType exception : exceptions) {
-            if (exception.type().equals(type)) {
-                return exception;
-            }
-        }
-        throw new NoSuchElementException("No exception type matching " + type.name());
-    }
 }
