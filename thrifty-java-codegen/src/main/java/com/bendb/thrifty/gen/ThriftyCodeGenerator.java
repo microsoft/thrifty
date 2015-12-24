@@ -25,10 +25,8 @@ import com.bendb.thrifty.schema.Named;
 import com.bendb.thrifty.schema.NamespaceScope;
 import com.bendb.thrifty.schema.Schema;
 import com.bendb.thrifty.schema.Service;
-import com.bendb.thrifty.schema.ServiceMethod;
 import com.bendb.thrifty.schema.StructType;
 import com.bendb.thrifty.schema.ThriftType;
-import com.bendb.thrifty.schema.parser.ConstValueElement;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
@@ -55,9 +53,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -74,6 +70,8 @@ public final class ThriftyCodeGenerator {
 
     private final TypeResolver typeResolver = new TypeResolver();
     private final Schema schema;
+    private final ConstantBuilder constantBuilder;
+    private final ServiceBuilder serviceBuilder;
     private TypeProcessor typeProcessor;
     private boolean emitAndroidAnnotations;
 
@@ -100,6 +98,9 @@ public final class ThriftyCodeGenerator {
         typeResolver.setListClass(listClassName);
         typeResolver.setSetClass(setClassName);
         typeResolver.setMapClass(mapClassName);
+
+        constantBuilder = new ConstantBuilder(typeResolver, schema);
+        serviceBuilder = new ServiceBuilder(typeResolver, constantBuilder);
     }
 
     public ThriftyCodeGenerator withListType(String listClassName) {
@@ -192,8 +193,12 @@ public final class ThriftyCodeGenerator {
         }
 
         for (Service service : schema.services()) {
-            TypeSpec spec = buildService(service);
+            TypeSpec spec = serviceBuilder.buildServiceInterface(service);
             JavaFile file = assembleJavaFile(service, spec);
+            writer.write(file);
+
+            spec = serviceBuilder.buildService(service, spec);
+            file = assembleJavaFile(service, spec);
             writer.write(file);
         }
     }
@@ -370,7 +375,7 @@ public final class ThriftyCodeGenerator {
 
             if (field.defaultValue() != null) {
                 CodeBlock.Builder initializer = CodeBlock.builder();
-                generateFieldInitializer(
+                constantBuilder.generateFieldInitializer(
                         initializer,
                         allocator,
                         tempNameId,
@@ -455,7 +460,7 @@ public final class ThriftyCodeGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addParameter(structClassName, "struct")
-                .addException(IOException.class);
+                .addException(TypeNames.IO_EXCEPTION);
 
         final MethodSpec.Builder read = MethodSpec.methodBuilder("read")
                 .addAnnotation(Override.class)
@@ -463,14 +468,14 @@ public final class ThriftyCodeGenerator {
                 .returns(typeResolver.getJavaClass(structType.type()))
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addParameter(builderClassName, "builder")
-                .addException(IOException.class);
+                .addException(TypeNames.IO_EXCEPTION);
 
         final MethodSpec readHelper = MethodSpec.methodBuilder("read")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(typeResolver.getJavaClass(structType.type()))
                 .addParameter(TypeNames.PROTOCOL, "protocol")
-                .addException(IOException.class)
+                .addException(TypeNames.IO_EXCEPTION)
                 .addStatement("return read(protocol, new $T())", builderClassName)
                 .build();
 
@@ -686,13 +691,13 @@ public final class ThriftyCodeGenerator {
             type.accept(new SimpleVisitor<Void>() {
                 @Override
                 public Void visitBuiltin(ThriftType builtinType) {
-                    field.initializer(renderConstValue(null, allocator, scope, type, constant.value()));
+                    field.initializer(constantBuilder.renderConstValue(null, allocator, scope, type, constant.value()));
                     return null;
                 }
 
                 @Override
                 public Void visitEnum(ThriftType userType) {
-                    field.initializer(renderConstValue(null, allocator, scope, type, constant.value()));
+                    field.initializer(constantBuilder.renderConstValue(null, allocator, scope, type, constant.value()));
                     return null;
                 }
 
@@ -728,7 +733,14 @@ public final class ThriftyCodeGenerator {
 
                 private void initCollection(String tempName, String unmodifiableMethod) {
                     tempName += scope.incrementAndGet();
-                    generateFieldInitializer(staticInit, allocator, scope, tempName, type, constant.value(), true);
+                    constantBuilder.generateFieldInitializer(
+                            staticInit,
+                            allocator,
+                            scope,
+                            tempName,
+                            type,
+                            constant.value(),
+                            true);
                     staticInit.addStatement("$N = $T.$L($N)",
                             constant.name(),
                             TypeNames.COLLECTIONS,
@@ -757,314 +769,6 @@ public final class ThriftyCodeGenerator {
         }
 
         return builder.build();
-    }
-
-    @SuppressWarnings("unchecked")
-    private void generateFieldInitializer(
-            final CodeBlock.Builder initializer,
-            final NameAllocator allocator,
-            final AtomicInteger scope,
-            final String name,
-            final ThriftType tt,
-            final ConstValueElement value,
-            final boolean needsDeclaration) {
-
-        tt.getTrueType().accept(new SimpleVisitor<Void>() {
-            @Override
-            public Void visitBuiltin(ThriftType builtinType) {
-                CodeBlock init = renderConstValue(initializer, allocator, scope, tt, value);
-                initializer.addStatement("$L = $L", name, init);
-                return null;
-            }
-
-            @Override
-            public Void visitEnum(ThriftType userType) {
-                CodeBlock item = renderConstValue(initializer, allocator, scope, tt, value);
-
-                initializer.addStatement("$L = $L", name, item);
-                return null;
-            }
-
-            @Override
-            public Void visitList(ThriftType.ListType listType) {
-                List<ConstValueElement> list = (List<ConstValueElement>) value.value();
-                ThriftType elementType = listType.elementType().getTrueType();
-                TypeName elementTypeName = typeResolver.getJavaClass(elementType);
-                TypeName genericName = ParameterizedTypeName.get(TypeNames.LIST, elementTypeName);
-                TypeName listImplName = typeResolver.listOf(elementTypeName);
-                generateSingleElementCollection(elementType, genericName, listImplName, list);
-                return null;
-            }
-
-            @Override
-            public Void visitSet(ThriftType.SetType setType) {
-                List<ConstValueElement> set = (List<ConstValueElement>) value.value();
-                ThriftType elementType = setType.elementType().getTrueType();
-                TypeName elementTypeName = typeResolver.getJavaClass(elementType);
-                TypeName genericName = ParameterizedTypeName.get(TypeNames.SET, elementTypeName);
-                TypeName setImplName = typeResolver.setOf(elementTypeName);
-                generateSingleElementCollection(elementType, genericName, setImplName, set);
-                return null;
-            }
-
-            private void generateSingleElementCollection(
-                    ThriftType elementType,
-                    TypeName genericName,
-                    TypeName collectionImplName,
-                    List<ConstValueElement> values) {
-                if (needsDeclaration) {
-                    initializer.addStatement("$T $N = new $T()",
-                            genericName, name, collectionImplName);
-                } else {
-                    initializer.addStatement("$N = new $T()", name, collectionImplName);
-                }
-
-                for (ConstValueElement element : values) {
-                    CodeBlock elementName = renderConstValue(initializer, allocator, scope, elementType, element);
-                    initializer.addStatement("$N.add($L)", name, elementName);
-                }
-            }
-
-            @Override
-            public Void visitMap(ThriftType.MapType mapType) {
-                Map<ConstValueElement, ConstValueElement> map =
-                        (Map<ConstValueElement, ConstValueElement>) value.value();
-                ThriftType keyType = mapType.keyType().getTrueType();
-                ThriftType valueType = mapType.valueType().getTrueType();
-
-                TypeName keyTypeName = typeResolver.getJavaClass(keyType);
-                TypeName valueTypeName = typeResolver.getJavaClass(valueType);
-                TypeName mapImplName = typeResolver.mapOf(keyTypeName, valueTypeName);
-
-                if (needsDeclaration) {
-                    initializer.addStatement("$T $N = new $T()",
-                            ParameterizedTypeName.get(TypeNames.MAP, keyTypeName, valueTypeName),
-                            name,
-                            mapImplName);
-                } else {
-                    initializer.addStatement("$N = new $T()", name, mapImplName);
-                }
-
-                for (Map.Entry<ConstValueElement, ConstValueElement> entry : map.entrySet()) {
-                    CodeBlock keyName = renderConstValue(initializer, allocator, scope, keyType, entry.getKey());
-                    CodeBlock valueName = renderConstValue(initializer, allocator, scope, valueType, entry.getValue());
-                    initializer.addStatement("$N.put($L, $L)", name, keyName, valueName);
-                }
-                return null;
-            }
-
-            @Override
-            public Void visitUserType(ThriftType userType) {
-                // TODO: this
-                throw new UnsupportedOperationException("struct-type default values are not yet implemented");
-            }
-
-            @Override
-            public Void visitTypedef(ThriftType.TypedefType typedefType) {
-                throw new AssertionError("Should not be possible!");
-            }
-        });
-    }
-
-    private CodeBlock renderConstValue(
-            final CodeBlock.Builder block,
-            final NameAllocator allocator,
-            final AtomicInteger scope,
-            final ThriftType type,
-            final ConstValueElement value) {
-        // TODO: Emit references to constants if kind == IDENTIFIER and it identifies an appropriately-typed const
-        return type.accept(new ThriftType.Visitor<CodeBlock>() {
-            @Override
-            public CodeBlock visitBool() {
-                String name;
-                if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                    name = "true".equals(value.value()) ? "true" : "false";
-                } else if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    name = ((Long) value.value()) == 0L ? "false" : "true";
-                } else {
-                    throw new AssertionError("Invalid boolean constant: " + value.value() + " at " + value.location());
-                }
-
-                return CodeBlock.builder().add(name).build();
-            }
-
-            @Override
-            public CodeBlock visitByte() {
-                return CodeBlock.builder().add("(byte) $L", value.getAsInt()).build();
-            }
-
-            @Override
-            public CodeBlock visitI16() {
-                return CodeBlock.builder().add("(short) $L", value.getAsInt()).build();
-            }
-
-            @Override
-            public CodeBlock visitI32() {
-                return CodeBlock.builder().add("$L", value.getAsInt()).build();
-            }
-
-            @Override
-            public CodeBlock visitI64() {
-                return CodeBlock.builder().add("$L", value.getAsLong()).build();
-            }
-
-            @Override
-            public CodeBlock visitDouble() {
-                return CodeBlock.builder().add("(double) $L", value.getAsDouble()).build();
-            }
-
-            @Override
-            public CodeBlock visitString() {
-                return CodeBlock.builder().add("$S", value.getAsString()).build();
-            }
-
-            @Override
-            public CodeBlock visitBinary() {
-                throw new UnsupportedOperationException("Binary literals are not supported");
-            }
-
-            @Override
-            public CodeBlock visitVoid() {
-                throw new AssertionError("Void literals are meaningless, what are you even doing");
-            }
-
-            @Override
-            public CodeBlock visitEnum(final ThriftType tt) {
-                EnumType enumType;
-                try {
-                    enumType = schema.findEnumByType(tt);
-                } catch (NoSuchElementException e) {
-                    throw new AssertionError("Missing enum type: " + tt.name());
-                }
-
-                EnumType.Member member;
-                try {
-                    if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                        member = enumType.findMemberById(value.getAsInt());
-                    } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                        String id = value.getAsString();
-
-                        // Remove the enum name prefix, assuming it is present
-                        int ix = id.lastIndexOf('.');
-                        if (ix != -1) {
-                            id = id.substring(ix + 1);
-                        }
-
-                        member = enumType.findMemberByName(id);
-                    } else {
-                        throw new AssertionError(
-                                "Constant value kind " + value.kind() + " is not possibly an enum; validation bug");
-                    }
-                } catch (NoSuchElementException e) {
-                    throw new IllegalStateException(
-                            "No enum member in " + enumType.name() + " with value " + value.value());
-                }
-
-                return CodeBlock.builder()
-                        .add("$T.$L", typeResolver.getJavaClass(tt), member.name())
-                        .build();
-            }
-
-            @Override
-            public CodeBlock visitList(ThriftType.ListType listType) {
-                if (value.getAsList().isEmpty()) {
-                    return CodeBlock.builder().add("$T.emptyList()", TypeNames.COLLECTIONS).build();
-                }
-                return visitCollection(listType, "list", "unmodifiableList");
-            }
-
-            @Override
-            public CodeBlock visitSet(ThriftType.SetType setType) {
-                if (value.getAsList().isEmpty()) {
-                    return CodeBlock.builder().add("$T.emptySet()", TypeNames.COLLECTIONS).build();
-                }
-                return visitCollection(setType, "set", "unmodifiableSet");
-            }
-
-            @Override
-            public CodeBlock visitMap(ThriftType.MapType mapType) {
-                if (value.getAsMap().isEmpty()) {
-                    return CodeBlock.builder().add("$T.emptyMap()", TypeNames.COLLECTIONS).build();
-                }
-                return visitCollection(mapType, "map", "unmodifiableMap");
-            }
-
-            private CodeBlock visitCollection(
-                    ThriftType type,
-                    String tempName,
-                    String method) {
-                String name = allocator.newName(tempName, scope.getAndIncrement());
-                generateFieldInitializer(block, allocator, scope, name, type, value, true);
-                return CodeBlock.builder().add("$T.$L($N)", TypeNames.COLLECTIONS, method, name).build();
-            }
-
-            @Override
-            public CodeBlock visitUserType(ThriftType userType) {
-                throw new IllegalStateException("nested structs not implemented");
-            }
-
-            @Override
-            public CodeBlock visitTypedef(ThriftType.TypedefType typedefType) {
-                return null;
-            }
-        });
-    }
-
-    TypeSpec buildService(Service service) {
-        TypeSpec.Builder serviceSpec = TypeSpec.interfaceBuilder(service.name())
-                .addModifiers(Modifier.PUBLIC);
-
-        if (!Strings.isNullOrEmpty(service.documentation())) {
-            serviceSpec.addJavadoc(service.documentation());
-        }
-
-        if (service.extendsService() != null) {
-            ThriftType superType = service.extendsService().getTrueType();
-            TypeName superTypeName = typeResolver.getJavaClass(superType);
-            serviceSpec.addSuperinterface(superTypeName);
-        }
-
-        for (ServiceMethod method : service.methods()) {
-            NameAllocator allocator = new NameAllocator();
-            int tag = 0;
-
-            MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(method.name())
-                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
-
-            if (method.hasJavadoc()) {
-                methodBuilder.addJavadoc(method.documentation());
-            }
-
-            for (Field field : method.paramTypes()) {
-                String name = allocator.newName(field.name(), ++tag);
-                ThriftType paramType = field.type().getTrueType();
-                TypeName paramTypeName = typeResolver.getJavaClass(paramType);
-
-                methodBuilder.addParameter(paramTypeName, name);
-
-            }
-
-            if (!method.oneWay()) {
-                String name = allocator.newName("callback", ++tag);
-
-                ThriftType returnType = method.returnType().or(ThriftType.VOID);
-                TypeName returnTypeName;
-                if (returnType == ThriftType.VOID) {
-                    returnTypeName = TypeName.VOID.box();
-                } else {
-                    returnTypeName = typeResolver.getJavaClass(returnType.getTrueType());
-                }
-
-                TypeName callbackInterfaceName = ParameterizedTypeName.get(
-                        TypeNames.SERVICE_CALLBACK, returnTypeName);
-
-                methodBuilder.addParameter(callbackInterfaceName, name);
-            }
-
-            serviceSpec.addMethod(methodBuilder.build());
-        }
-
-        return serviceSpec.build();
     }
 
     private static AnnotationSpec fieldAnnotation(Field field) {

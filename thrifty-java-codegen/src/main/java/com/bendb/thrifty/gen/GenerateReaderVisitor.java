@@ -38,22 +38,28 @@ import java.util.Deque;
  * in scope named "protocol" and "builder", representing the connection and
  * the struct builder.
  */
-final class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
+class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     private Deque<String> nameStack = new ArrayDeque<>();
     private TypeResolver resolver;
     private NameAllocator nameAllocator;
     private MethodSpec.Builder read;
-    private Field field;
+    private String fieldName;
+    private ThriftType fieldType;
     private int scope;
 
     GenerateReaderVisitor(TypeResolver resolver, MethodSpec.Builder read, Field field) {
+        this(resolver, read, field.name(), field.type().getTrueType());
+    }
+
+    GenerateReaderVisitor(TypeResolver resolver, MethodSpec.Builder read, String fieldName, ThriftType fieldType) {
         this.resolver = resolver;
         this.read = read;
-        this.field = field;
+        this.fieldName = fieldName;
+        this.fieldType = fieldType;
     }
 
     public void generate() {
-        byte fieldTypeCode = resolver.getTypeCode(field.type());
+        byte fieldTypeCode = resolver.getTypeCode(fieldType);
         if (fieldTypeCode == TType.ENUM) {
             // Enums are I32 on the wire
             fieldTypeCode = TType.I32;
@@ -61,17 +67,20 @@ final class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
         String codeName = TypeNames.getTypeCodeName(fieldTypeCode);
         read.beginControlFlow("if (field.typeId == $T.$L)", TypeNames.TTYPE, codeName);
 
-        // something
         nameStack.push("value");
-        field.type().getTrueType().accept(this);
+        fieldType.accept(this);
         nameStack.pop();
 
-        read.addStatement("builder.$N(value)", field.name());
+        useReadValue("value");
 
         read.nextControlFlow("else");
         read.addStatement("$T.skip(protocol, field.typeId)", TypeNames.PROTO_UTIL);
         read.endControlFlow();
 
+    }
+
+    protected void useReadValue(String localName) {
+        read.addStatement("builder.$N($N)", fieldName, localName);
     }
 
     @Override
