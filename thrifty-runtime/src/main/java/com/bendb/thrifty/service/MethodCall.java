@@ -29,8 +29,6 @@ public abstract class MethodCall<T> {
     protected final byte callTypeId;
     protected final ServiceMethodCallback<T> callback;
 
-    int sequenceId;
-
     public MethodCall(
             String name,
             byte callTypeId,

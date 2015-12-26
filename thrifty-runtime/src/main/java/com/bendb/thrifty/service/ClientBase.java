@@ -21,15 +21,16 @@ import com.bendb.thrifty.protocol.Protocol;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.ProtocolException;
-import java.util.HashMap;
+import java.io.InterruptedIOException;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Implements a basic service client that executes methods asynchronously.
@@ -47,12 +48,16 @@ public class ClientBase implements Closeable {
         void onError(Throwable error);
     }
 
-    private final Map<Integer, MethodCall<?>> calls = new HashMap<>();
     private final AtomicInteger seqId = new AtomicInteger(0);
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
 
     private final Queue<MethodCall<?>> outbox = new LinkedList<>();
+    private final Queue<MethodCall<?>> inbox = new LinkedList<>();
+
+    private final Lock lock = new ReentrantLock();
+    private final Condition hasQueuedData = lock.newCondition();
+    private final Condition waitingForReply = lock.newCondition();
 
     private final Protocol protocol;
     private final Listener listener;
@@ -74,14 +79,19 @@ public class ClientBase implements Closeable {
 
     protected void enqueue(MethodCall<?> methodCall) throws IOException {
         if (!running.get()) {
-            throw new IOException("Cannot write to a closed service client");
+            throw new IllegalStateException("Cannot write to a closed service client");
         }
 
-        methodCall.sequenceId = seqId.incrementAndGet();
+        lock.lock();
+        try {
+            if (!running.get()) {
+                throw new IllegalStateException("Cannot write to a closed service client");
+            }
 
-        synchronized (outbox) {
             outbox.add(methodCall);
-            outbox.notify();
+            hasQueuedData.signal();
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -95,14 +105,19 @@ public class ClientBase implements Closeable {
             return;
         }
 
+        lock.lock();
+        try {
+            outbox.clear();
+            inbox.clear();
+
+            waitingForReply.signalAll();
+            hasQueuedData.signalAll();
+        } finally {
+            lock.unlock();
+        }
+
         reader.interrupt();
         writer.interrupt();
-
-        outbox.notifyAll();
-        calls.notifyAll();
-
-        outbox.clear();
-        calls.clear();
 
         try {
             protocol.close();
@@ -116,6 +131,10 @@ public class ClientBase implements Closeable {
             // nope
         }
 
+        // Listener callbacks need to be synchronous - we have just
+        // shut down our executor.  If we rearranged this method, it
+        // wouldn't make a difference - the executor would still have
+        // been shut down
         if (error != null) {
             listener.onError(error);
         } else {
@@ -130,8 +149,10 @@ public class ClientBase implements Closeable {
             while (running.get()) {
                 try {
                     act();
-                } catch (InterruptedException e) {
-                    // Either we were closed, in which case transition normally
+                } catch (InterruptedIOException | InterruptedException e) {
+                    // Either we were closed, in which case transition normally,
+                    // or we were interrupted for some mysterious reason, in which
+                    // case just keep on truckin'.
                 } catch (Exception e) {
                     error = e;
                     break;
@@ -149,31 +170,29 @@ public class ClientBase implements Closeable {
     }
 
     private class WriterThread extends RunLoop {
+        @SuppressWarnings("Duplicates")
         @Override
         void act() throws Exception {
-            MethodCall call;
-            synchronized (outbox) {
-                while (outbox.isEmpty()) {
-                    outbox.wait();
-                }
-                call = outbox.remove();
-            }
+            final MethodCall call;
 
-            if (!running.get()) {
-                return;
+            lock.lock();
+            try {
+                while (outbox.isEmpty()) {
+                    hasQueuedData.await();
+
+                    if (!running.get()) {
+                        return;
+                    }
+                }
+
+                call = outbox.remove();
+            } finally {
+                lock.unlock();
             }
 
             boolean isOneWay = call.callTypeId == TMessageType.ONEWAY;
 
-            // Stash the call by its sequence ID, if we expect that it will
-            // have a response.
-            if (!isOneWay) {
-                synchronized (calls) {
-                    calls.put(call.sequenceId, call);
-                }
-            }
-
-            protocol.writeMessageBegin(call.name, call.callTypeId, call.sequenceId);
+            protocol.writeMessageBegin(call.name, call.callTypeId, seqId.incrementAndGet());
             call.send(protocol);
             protocol.writeMessageEnd();
 
@@ -182,8 +201,12 @@ public class ClientBase implements Closeable {
             // to improve latency, only flush if there are no more queued
             // method calls.
             boolean hasMoreCalls;
-            synchronized (outbox) {
+
+            lock.lock();
+            try {
                 hasMoreCalls = !outbox.isEmpty();
+            } finally {
+                lock.unlock();
             }
 
             if (!hasMoreCalls) {
@@ -194,61 +217,90 @@ public class ClientBase implements Closeable {
                 // null is always safe to pass here - oneway methods
                 // are guaranteed to be Void anyways.
                 //noinspection unchecked
-                call.callback.onSuccess(null);
+                complete(call, null);
+            } else {
+                lock.lock();
+                try {
+                    inbox.add(call);
+                    waitingForReply.signal();
+                } finally {
+                    lock.unlock();
+                }
             }
         }
     }
 
     private class ReaderThread extends RunLoop {
+        @SuppressWarnings("Duplicates")
         @Override
         void act() throws Exception {
+            final MethodCall call;
+
+            lock.lock();
+            try {
+                while (inbox.isEmpty()) {
+                    waitingForReply.await();
+                    if (!running.get()) {
+                        return;
+                    }
+                }
+
+                call = inbox.remove();
+            } finally {
+                lock.unlock();
+            }
+
             MessageMetadata metadata = protocol.readMessageBegin();
 
-            final MethodCall call;
-            synchronized (calls) {
-                call = calls.remove(metadata.seqId);
-            }
-
-            if (call == null || !call.name.equals(metadata.name)) {
-                throw new ThriftException(ThriftException.Kind.BAD_SEQUENCE_ID, "Out-of-order response");
-            }
-
             if (metadata.type == TMessageType.EXCEPTION) {
-                fail(call, ThriftException.read(protocol));
-            } else if (metadata.type == TMessageType.REPLY) {
-                try {
-                    Object result = call.receive(protocol, metadata);
-                    complete(call, result);
-                } catch (Exception e) {
-                    fail(call, e);
-                }
-            } else {
-                ThriftException e = new ThriftException(
+                ThriftException e = ThriftException.read(protocol);
+                fail(call, e);
+                protocol.readMessageEnd();
+            } else if (metadata.type != TMessageType.REPLY) {
+                throw new ThriftException(
                         ThriftException.Kind.INVALID_MESSAGE_TYPE,
                         "Invalid message type: " + metadata.type);
-                fail(call, e);
             }
 
-            protocol.readMessageEnd();
-        }
+            if (metadata.seqId != seqId.get()) {
+                throw new ThriftException(
+                        ThriftException.Kind.BAD_SEQUENCE_ID,
+                        "Out-of-order response");
+            }
 
-        private void complete(final MethodCall call, final Object result) {
-            callbackExecutor.submit(new Runnable() {
-                @SuppressWarnings("unchecked")
-                @Override
-                public void run() {
-                    call.callback.onSuccess(result);
-                }
-            });
-        }
+            if (!metadata.name.equals(call.name)) {
+                throw new ThriftException(
+                        ThriftException.Kind.WRONG_METHOD_NAME,
+                        "Unexpected method name in reply; expected " + call.name
+                                + " but received " + metadata.name);
+            }
 
-        private void fail(final MethodCall<?> call, final Throwable error) {
-            callbackExecutor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    call.callback.onError(error);
-                }
-            });
+            try {
+                complete(call, call.receive(protocol, metadata));
+            } catch (Exception e) {
+                fail(call, e);
+            } finally {
+                protocol.readMessageEnd();
+            }
         }
+    }
+
+    private void complete(final MethodCall call, final Object result) {
+        callbackExecutor.submit(new Runnable() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public void run() {
+                call.callback.onSuccess(result);
+            }
+        });
+    }
+
+    private void fail(final MethodCall<?> call, final Throwable error) {
+        callbackExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                call.callback.onError(error);
+            }
+        });
     }
 }

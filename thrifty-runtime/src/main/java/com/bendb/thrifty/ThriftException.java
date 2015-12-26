@@ -7,17 +7,52 @@ import com.bendb.thrifty.util.ProtocolUtil;
 import java.io.IOException;
 
 /**
- * Represents
+ * Represents a Thrift protocol-level error.
  */
 public class ThriftException extends RuntimeException {
+    /**
+     * Identifies kinds of protocol violation.
+     */
     public enum Kind {
+        /**
+         * An unspecified or unexpected error.
+         */
         UNKNOWN(0),
+
+        /**
+         * The server does not understand the message received.
+         */
         UNKNOWN_METHOD(1),
+
+        /**
+         * The message type ID was not expected.  This would indicate
+         * a bug in generated code.
+         */
         INVALID_MESSAGE_TYPE(2),
+
+        /**
+         * The server replied with an unexpected method name for the given
+         * sequence ID.  Indicates a probable client-side bug.
+         */
         WRONG_METHOD_NAME(3),
+
+        /**
+         * The server replied with an unrecognized sequence ID.  Indicates
+         * a probable client-side bug.
+         */
         BAD_SEQUENCE_ID(4),
+
+        /**
+         * The server reply did not contain the expected result.  Indicates
+         * a probable schema-version mismatch, or a server bug.
+         */
         MISSING_RESULT(5),
+
+        /**
+         * The server experienced an unexpected error.
+         */
         INTERNAL_ERROR(6),
+
         PROTOCOL_ERROR(7),
         INVALID_TRANSFORM(8),
         INVALID_PROTOCOL(9),

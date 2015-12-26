@@ -15,6 +15,7 @@
  */
 package com.bendb.thrifty.gen;
 
+import com.bendb.thrifty.TType;
 import com.bendb.thrifty.ThriftException;
 import com.bendb.thrifty.schema.Field;
 import com.bendb.thrifty.schema.NamespaceScope;
@@ -255,6 +256,11 @@ final class ServiceBuilder {
             final String fieldName = field.name();
             final ThriftType tt = field.type().getTrueType();
             byte typeCode = typeResolver.getTypeCode(tt);
+
+            // Enums are written/read as i32
+            if (typeCode == TType.ENUM) {
+                typeCode = TType.I32;
+            }
 
             if (optional) {
                 send.beginControlFlow("if (this.$L != null)", fieldName);
