@@ -19,14 +19,17 @@ import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.common.collect.ImmutableList;
 import okio.Okio;
+
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -40,7 +43,7 @@ public class ThriftParserTest {
                 "php_namespace 'single_quoted_namespace'\n" +
                 "php_namespace \"double_quoted_namespace\"";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "namespaces.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "namespaces.thrift"));
 
         assertThat(file.namespaces().size(), is(5));
         assertThat(file.namespaces().get(0).scope(), is(NamespaceScope.JAVA));
@@ -68,7 +71,7 @@ public class ThriftParserTest {
                 "\n" +
                 "namespace * bendb";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "includes.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "includes.thrift"));
 
         assertThat(file.includes().size(), is(3));
         assertThat(file.namespaces().size(), is(1));
@@ -90,7 +93,7 @@ public class ThriftParserTest {
                 "typedef string MyString\n" +
                 "typedef binary PrivateKey\n";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "typedefs.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "typedefs.thrift"));
 
         assertThat(file.typedefs().get(0).oldName(), is("i32"));
         assertThat(file.typedefs().get(0).newName(), is("MyInt"));
@@ -109,7 +112,7 @@ public class ThriftParserTest {
                 "typedef set<string> Names\n" +
                 "typedef map < i16,set<binary > > BlobMap\n";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "containerTypedefs.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "containerTypedefs.thrift"));
 
         TypedefElement typedef = file.typedefs().get(0);
         assertThat(typedef.oldName(), is("list<i32>"));
@@ -127,7 +130,7 @@ public class ThriftParserTest {
     @Test
     public void emptyStruct() {
         String thrift = "struct Empty {}";
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "empty.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "empty.thrift"));
 
         assertThat(file.structs().get(0).name(), is("Empty"));
         assertThat(file.structs().get(0).type(), is(StructElement.Type.STRUCT));
@@ -143,7 +146,7 @@ public class ThriftParserTest {
                 "  2: required string bar   // and has trailing doc\n" +
                 "}";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "simple.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "simple.thrift"));
         assertThat(file.structs().get(0).name(), is("Simple"));
         assertThat(file.structs().get(0).type(), is(StructElement.Type.STRUCT));
 
@@ -171,7 +174,7 @@ public class ThriftParserTest {
                 "  3: optional binary knr;      /** K&R-style **/\n" +
                 "}";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "trailing.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "trailing.thrift"));
         StructElement doc = file.structs().get(0);
 
         assertThat(doc.fields().get(0).documentation(), is("cpp-style\n"));
@@ -232,7 +235,7 @@ public class ThriftParserTest {
                 "15: required i64 requiredIdWithSemicolon;\n" +
                 "}";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "weird.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "weird.thrift"));
 
         StructElement struct = file.structs().get(0);
         ImmutableList<FieldElement> fields = struct.fields();
@@ -291,7 +294,7 @@ public class ThriftParserTest {
                 "  oneway BarResult bar() throws (1:FooException foo, 2:BarException bar)\n" +
                 "}";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "simpleService.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "simpleService.thrift"));
         ServiceElement svc = file.services().get(0);
 
         ImmutableList<FunctionElement> functions = svc.functions();
@@ -333,7 +336,7 @@ public class ThriftParserTest {
                 "  4: i32 bar\n" +
                 "}\n";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "union.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "union.thrift"));
         StructElement union = file.unions().get(0);
 
         assertThat(union.name(), is("Normal"));
@@ -394,7 +397,7 @@ public class ThriftParserTest {
                 "  4: i16 quux\n" +
                 "}";
 
-        ThriftFileElement element = ThriftParser.parse(Location.get("", "unionWithDefault.thrift"), thrift);
+        ThriftFileElement element = parse(thrift, Location.get("", "unionWithDefault.thrift"));
         StructElement u = element.unions().get(0);
 
         assertThat(u.name(), is("Default"));
@@ -430,7 +433,7 @@ public class ThriftParserTest {
     @Test
     public void simpleConst() {
         String thrift = "const i64 DefaultStatusCode = 200";
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "simpleConst.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "simpleConst.thrift"));
         ConstElement c = file.constants().get(0);
 
         assertThat(c.name(), is("DefaultStatusCode"));
@@ -442,7 +445,7 @@ public class ThriftParserTest {
     @Test
     public void listConst() {
         String thrift = "const list<string> Names = [\"foo\" \"bar\", \"baz\"; \"quux\"]";
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "listConst.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "listConst.thrift"));
         ConstElement c = file.constants().get(0);
 
         assertThat(c.name(), is("Names"));
@@ -467,7 +470,7 @@ public class ThriftParserTest {
                 "  \"baz\": \"quux\";\n" +
                 "}";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", "mapConst.thrift"), thrift);
+        ThriftFileElement file = parse(thrift, Location.get("", "mapConst.thrift"));
         ConstElement c = file.constants().get(0);
 
         assertThat(c.name(), is("Headers"));
@@ -497,7 +500,7 @@ public class ThriftParserTest {
                 "  100: i32 num = 1\n" +
                 "}";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", ""), thrift);
+        ThriftFileElement file = parse(thrift);
         StructElement s = file.structs().get(0);
         FieldElement f = s.fields().get(0);
         assertThat(f.fieldId(), is(100));
@@ -527,7 +530,7 @@ public class ThriftParserTest {
                 "  BAR\n" +
                 "}";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", ""), thrift);
+        ThriftFileElement file = parse(thrift);
         EnumElement anEnum = file.enums().get(0);
         assertThat(anEnum.name(), is("Enum"));
         assertThat(anEnum.members().size(), is(2));
@@ -550,7 +553,7 @@ public class ThriftParserTest {
                 "  LARGE = 5000\n" +
                 "}";
 
-        ThriftFileElement file = ThriftParser.parse(Location.get("", ""), thrift);
+        ThriftFileElement file = parse(thrift);
         EnumElement anEnum = file.enums().get(0);
         assertThat(anEnum.name(), is("Gaps"));
         assertThat(anEnum.members().size(), is(4));
@@ -588,4 +591,210 @@ public class ThriftParserTest {
             assertThat(e.getMessage(), containsString("duplicate enum value"));
         }
     }
+
+    @Test
+    public void annotationsOnNamespaces() throws Exception {
+        String thrift = "namespace java com.test (foo = 'bar')";
+        ThriftFileElement file = parse(thrift);
+        NamespaceElement ns = file.namespaces().get(0);
+
+        AnnotationElement ann = ns.annotations();
+        assertNotNull(ann);
+        assertThat(ann.values().get("foo"), is("bar"));
+    }
+
+    @Test
+    public void annotationsOnTypedefs() throws Exception {
+        String thrift = "namespace java com.test\n" +
+                "\n" +
+                "typedef i32 StatusCode (boxed = 'false');";
+
+        ThriftFileElement file = parse(thrift);
+        TypedefElement typedef = file.typedefs().get(0);
+        AnnotationElement ann = typedef.annotations();
+
+        assertNotNull(ann);
+        assertThat(ann.get("boxed"), is("false"));
+    }
+
+    @Test
+    public void annotationsOnEnums() throws Exception {
+        String thrift = "enum Foo {} (bar = 'baz')";
+        ThriftFileElement file = parse(thrift);
+        EnumElement e = file.enums().get(0);
+        AnnotationElement ann = e.annotations();
+
+        assertNotNull(ann);
+        assertThat(ann.values().get("bar"), is("baz"));
+    }
+
+    @Test
+    @SuppressWarnings("ConstantConditions")
+    public void annotationsOnEnumMembers() throws Exception {
+        String thrift = "" +
+                "enum Foo {\n" +
+                "  BAR (bar = 'abar'),\n" +
+                "  BAZ = 1 (baz = 'abaz'),\n" +
+                "  QUX (qux = 'aqux')\n" +
+                "  WOO\n" +
+                "}";
+
+        ThriftFileElement file = parse(thrift);
+
+        EnumElement anEnum = file.enums().get(0);
+        EnumMemberElement bar = anEnum.members().get(0);
+        EnumMemberElement baz = anEnum.members().get(1);
+        EnumMemberElement qux = anEnum.members().get(2);
+        EnumMemberElement woo = anEnum.members().get(3);
+
+        assertThat(bar.annotations().get("bar"), is("abar"));
+        assertThat(baz.annotations().get("baz"), is("abaz"));
+        assertThat(qux.annotations().get("qux"), is("aqux"));
+        assertNull(woo.annotations());
+    }
+
+    @Test
+    public void annotationsOnServices() throws Exception {
+        String thrift = "" +
+                "service Svc {" +
+                "  void foo(1: i32 bar)" +
+                "} (async = 'true', java.races = 'false')";
+        ThriftFileElement file = parse(thrift);
+        ServiceElement svc = file.services().get(0);
+        AnnotationElement ann = svc.annotations();
+
+        assertNotNull(ann);
+        assertThat(ann.size(), is(2));
+        assertThat(ann.get("async"), is("true"));
+        assertThat(ann.get("java.races"), is("false"));
+    }
+
+    @Test
+    public void annotationsOnFunctions() throws Exception {
+        String thrift = "service Svc {\n" +
+                "  void nothrow() (test = 'a'),\n" +
+                "  void nosep() (test = 'b')\n" +
+                "  i32 hasThrow() throws(1: string what) (test = 'c');\n" +
+                "}";
+
+        ThriftFileElement file = parse(thrift);
+        ServiceElement svc = file.services().get(0);
+        AnnotationElement a = svc.functions().get(0).annotations();
+        AnnotationElement b = svc.functions().get(1).annotations();
+        AnnotationElement c = svc.functions().get(2).annotations();
+
+        assertNotNull(a);
+        assertNotNull(b);
+        assertNotNull(c);
+
+        assertThat(a.get("test"), is("a"));
+        assertThat(b.get("test"), is("b"));
+        assertThat(c.get("test"), is("c"));
+    }
+
+    @Test
+    public void annotationsOnStructs() throws Exception {
+        String thrift = "" +
+                "struct Str {\n" +
+                "  1: i32 hi,\n" +
+                "  2: optional string there,\n" +
+                "} (layout = 'sequential')";
+
+        ThriftFileElement file = parse(thrift);
+        StructElement struct = file.structs().get(0);
+        AnnotationElement ann = struct.annotations();
+
+        assertNotNull(ann);
+        assertThat(ann.get("layout"), is("sequential"));
+    }
+
+    @Test
+    public void annotationsOnUnions() throws Exception {
+        String thrift = "" +
+                "union Union {\n" +
+                "  1: i32 hi,\n" +
+                "  2: optional string there,\n" +
+                "} (layout = 'padded')";
+
+        ThriftFileElement file = parse(thrift);
+        StructElement union = file.unions().get(0);
+        AnnotationElement ann = union.annotations();
+
+        assertNotNull(ann);
+        assertThat(ann.get("layout"), is("padded"));
+    }
+
+    @Test
+    public void annotationsOnExceptions() throws Exception {
+        String thrift = "" +
+                "exception Exception {\n" +
+                "  1: required i32 boom,\n" +
+                "} (java.runtime_exception)";
+
+        ThriftFileElement file = parse(thrift);
+        StructElement exception = file.exceptions().get(0);
+        AnnotationElement ann = exception.annotations();
+
+        assertNotNull(ann);
+        assertThat(ann.get("java.runtime_exception"), is("true"));
+    }
+
+    @Test
+    public void annotationsOnFields() {
+        String thrift = "struct Str {\n" +
+                "  1: i32 what (what = 'what'),\n" +
+                "  2: binary data (compression = 'zlib') // doc\n" +
+                "  3: optional i8 bits (synonym = 'byte')\n" +
+                "}";
+
+        ThriftFileElement file = parse(thrift);
+        StructElement struct = file.structs().get(0);
+
+        AnnotationElement anno = struct.fields().get(0).annotations();
+        assertNotNull(anno);
+        assertThat(anno.get("what"), is("what"));
+
+        anno = struct.fields().get(1).annotations();
+        assertNotNull(anno);
+        assertThat(anno.get("compression"), is("zlib"));
+
+        anno = struct.fields().get(2).annotations();
+        assertNotNull(anno);
+        assertThat(anno.get("synonym"), is("byte"));
+    }
+
+    @Test
+    @Ignore("Not yet implemented - requires a TypeElement, thus further design needed.")
+    public void annotationsOnFieldTypes() {
+        String thrift = "struct Str {\n" +
+                "  1: map<string, i32> (python.immutable) foo\n" +
+                "}";
+
+        ThriftFileElement file = parse(thrift);
+        StructElement struct = file.structs().get(0);
+        FieldElement field = struct.fields().get(0);
+        AnnotationElement anno = field.typeAnnotations();
+
+        assertNotNull(anno);
+        assertThat(anno.get("python.immutable"), is("true"));
+    }
+
+    @Test
+    public void annotationsOnConsecutiveDefinitions() throws Exception {
+        String thrift = "" +
+                "namespace java com.foo.bar (ns = 'ok')\n" +
+                "enum Foo {} (enumAnno = 'yep')\n" +
+                "";
+
+        parse(thrift);
+    }
+    
+    private static ThriftFileElement parse(String thrift) {
+        return parse(thrift, Location.get("", ""));
+    }
+
+    private static ThriftFileElement parse(String thrift, Location location) {
+        return ThriftParser.parse(location, thrift);
+    }
+
 }
