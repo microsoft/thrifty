@@ -19,6 +19,8 @@ import com.bendb.thrifty.schema.Location;
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
+import javax.annotation.Nullable;
+
 @AutoValue
 public abstract class FunctionElement {
     public static Builder builder(Location location) {
@@ -41,6 +43,7 @@ public abstract class FunctionElement {
     public abstract String name();
     public abstract ImmutableList<FieldElement> params();
     public abstract ImmutableList<FieldElement> exceptions();
+    @Nullable public abstract AnnotationElement annotations();
 
     FunctionElement() { }
 
@@ -53,6 +56,7 @@ public abstract class FunctionElement {
         Builder name(String name);
         Builder params(ImmutableList<FieldElement> params);
         Builder exceptions(ImmutableList<FieldElement> params);
+        Builder annotations(AnnotationElement annotations);
 
         FunctionElement build();
     }

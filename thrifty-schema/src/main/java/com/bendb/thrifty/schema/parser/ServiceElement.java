@@ -28,6 +28,7 @@ public abstract class ServiceElement {
     public abstract String name();
     @Nullable public abstract String extendsServiceName();
     public abstract ImmutableList<FunctionElement> functions();
+    @Nullable public abstract AnnotationElement annotations();
 
     ServiceElement() { }
 
@@ -45,6 +46,7 @@ public abstract class ServiceElement {
         Builder name(String name);
         Builder extendsServiceName(String serviceName);
         Builder functions(ImmutableList<FunctionElement> functions);
+        Builder annotations(AnnotationElement annotations);
 
         ServiceElement build();
     }

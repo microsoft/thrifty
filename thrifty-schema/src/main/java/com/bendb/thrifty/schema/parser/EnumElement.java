@@ -19,12 +19,15 @@ import com.bendb.thrifty.schema.Location;
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
+import javax.annotation.Nullable;
+
 @AutoValue
 public abstract class EnumElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract String name();
     public abstract ImmutableList<EnumMemberElement> members();
+    @Nullable public abstract AnnotationElement annotations();
 
     EnumElement() { }
 
@@ -40,6 +43,7 @@ public abstract class EnumElement {
         Builder documentation(String documentation);
         Builder name(String name);
         Builder members(ImmutableList<EnumMemberElement> members);
+        Builder annotations(AnnotationElement annotations);
 
         EnumElement build();
     }

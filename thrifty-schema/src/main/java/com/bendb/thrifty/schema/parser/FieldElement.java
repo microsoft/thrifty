@@ -42,6 +42,7 @@ public abstract class FieldElement {
     public abstract String type();
     public abstract String name();
     @Nullable public abstract ConstValueElement constValue();
+    @Nullable public abstract AnnotationElement annotations();
 
     FieldElement() { }
 
@@ -54,6 +55,7 @@ public abstract class FieldElement {
         Builder type(String type);
         Builder name(String name);
         Builder constValue(ConstValueElement constValue);
+        Builder annotations(AnnotationElement annotations);
 
         FieldElement build();
     }

@@ -19,17 +19,23 @@ import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.auto.value.AutoValue;
 
+import javax.annotation.Nullable;
+
 @AutoValue
 public abstract class NamespaceElement {
     public abstract Location location();
     public abstract NamespaceScope scope();
     public abstract String namespace();
 
+    @Nullable
+    public abstract AnnotationElement annotations();
+
     NamespaceElement() { }
 
     public static Builder builder(Location location) {
         return new AutoValue_NamespaceElement.Builder()
-                .location(location);
+                .location(location)
+                .annotations(null);
     }
 
     @AutoValue.Builder
@@ -37,6 +43,7 @@ public abstract class NamespaceElement {
         Builder location(Location location);
         Builder scope(NamespaceScope scope);
         Builder namespace(String namespace);
+        Builder annotations(AnnotationElement annotations);
 
         NamespaceElement build();
     }

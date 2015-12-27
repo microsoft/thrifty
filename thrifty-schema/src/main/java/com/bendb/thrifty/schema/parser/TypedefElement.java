@@ -29,6 +29,9 @@ public abstract class TypedefElement {
     public abstract String newName();
 
     @Nullable
+    public abstract AnnotationElement annotations();
+
+    @Nullable
     public abstract ThriftType resolvedType();
 
     public boolean needsResolution() {
@@ -55,6 +58,7 @@ public abstract class TypedefElement {
         Builder documentation(String documentation);
         Builder oldName(String oldName);
         Builder newName(String newName);
+        Builder annotations(AnnotationElement annotations);
         Builder resolvedType(ThriftType type);
 
         TypedefElement build();

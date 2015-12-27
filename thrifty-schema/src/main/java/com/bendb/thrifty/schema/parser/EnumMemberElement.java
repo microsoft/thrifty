@@ -26,6 +26,7 @@ public abstract class EnumMemberElement {
     public abstract String documentation();
     public abstract String name();
     @Nullable public abstract Integer value();
+    @Nullable public abstract AnnotationElement annotations();
 
     public static Builder builder(Location location) {
         return new AutoValue_EnumMemberElement.Builder()
@@ -47,6 +48,7 @@ public abstract class EnumMemberElement {
         Builder documentation(String documentation);
         Builder name(String name);
         Builder value(Integer value);
+        Builder annotations(AnnotationElement annotations);
 
         EnumMemberElement build();
     }
