@@ -16,7 +16,6 @@
 package com.bendb.thrifty.schema;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
@@ -47,59 +46,6 @@ public abstract class Named {
 
     public boolean hasJavadoc() {
         return JavadocUtil.hasJavadoc(this);
-    }
-
-    /**
-     * Checks if a given {@link Named} has a name conflict with this instance.
-     *
-     * <p>
-     * A name conflict exists if both items have the same {@link #name()}
-     * and at least one namespace whose scope and name are equal.  Alternately,
-     * a conflict exists if both items have the same name and no namespaces.
-     * </p>
-     * @param other the potentially-conflicting thrift element.
-     * @return {@code true} if there is a conflict, otherwise {@code false}.
-     */
-    public boolean conflictsWith(Named other) {
-        if (name.equals(other.name)) {
-            if (namespaces.isEmpty() && other.namespaces.isEmpty()) {
-                return true;
-            }
-
-            for (Map.Entry<NamespaceScope, String> entry : other.namespaces.entrySet()) {
-                String ours = namespaces.get(entry.getKey());
-                if (ours != null && ours.equals(entry.getValue())) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Gets a list of all of this element's fully-qualified names.
-     *
-     * A fully-qualified name is a string of the form {@code "[scope]:[namespace]/[name]"}.
-     * It
-     * @return
-     */
-    public ImmutableList<String> getAllNames() {
-        if (namespaces.isEmpty()) {
-            return ImmutableList.of(name);
-        }
-
-        ImmutableList.Builder<String> builder = ImmutableList.builder();
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<NamespaceScope, String> entry : namespaces.entrySet()) {
-            sb.append(entry.getKey().name());
-            sb.append(":");
-            sb.append(entry.getValue());
-            sb.append("/");
-            sb.append(name);
-            builder.add(sb.toString());
-            sb.setLength(0);
-        }
-        return builder.build();
     }
 
     /**

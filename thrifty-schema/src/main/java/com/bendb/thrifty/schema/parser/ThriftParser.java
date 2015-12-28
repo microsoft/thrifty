@@ -27,6 +27,8 @@ import com.google.common.collect.Sets;
 
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 public final class ThriftParser {
     private final Location location;
     private final char[] data;
@@ -49,9 +51,9 @@ public final class ThriftParser {
     /**
      * Parse the given Thrift {@code text}, using the given {@code location}
      * to anchor parsed elements withing the file.
-     * @param location
-     * @param text
-     * @return
+     * @param location the {@link Location} of the data being parsed.
+     * @param text the text to be parsed.
+     * @return a representation of the parsed Thrift data.
      */
     public static ThriftFileElement parse(Location location, String text) {
         return new ThriftParser(location, text.toCharArray()).readThriftData();
@@ -142,9 +144,12 @@ public final class ThriftParser {
                 scope = NamespaceScope.UNKNOWN;
             }
 
+            AnnotationElement ann = readAnnotations();
+
             return NamespaceElement.builder(location)
                     .scope(scope)
                     .namespace(namespace)
+                    .annotations(ann)
                     .build();
         }
 
@@ -177,13 +182,17 @@ public final class ThriftParser {
 
         if ("typedef".equals(word)) {
             ++declCount;
-            String oldType = readTypeName();
+            TypeElement oldType = readTypeName();
             String newName = readWord();
+            AnnotationElement annotations = readAnnotations();
+
+            doc = readTrailingDoc(doc, true);
 
             return TypedefElement.builder(location)
                     .documentation(formatJavadoc(doc))
-                    .oldName(oldType)
+                    .oldType(oldType)
                     .newName(newName)
+                    .annotations(annotations)
                     .build();
         }
 
@@ -259,6 +268,7 @@ public final class ThriftParser {
                 .documentation(formatJavadoc(documentation))
                 .name(name)
                 .members(members.build())
+                .annotations(readAnnotations())
                 .build();
     }
 
@@ -275,17 +285,20 @@ public final class ThriftParser {
             value = readInt();
         }
 
+        AnnotationElement annotation = readAnnotations();
+
         doc = readTrailingDoc(doc, true);
 
         return EnumMemberElement.builder(location)
                 .documentation(formatJavadoc(doc))
                 .name(name)
                 .value(value)
+                .annotations(annotation)
                 .build();
     }
 
     private ConstElement readConst(Location location, String documentation) {
-        String typeName = readTypeName();
+        TypeElement typeName = readTypeName();
         String name = readIdentifier();
 
         if (readChar() != '=') {
@@ -341,12 +354,14 @@ public final class ThriftParser {
         }
 
         ImmutableList<FieldElement> fields = readFieldList('}', false);
+        AnnotationElement annotations = readAnnotations();
 
         return StructElement.builder(location)
                 .documentation(formatJavadoc(documentation))
                 .type(type)
                 .name(name)
                 .fields(fields)
+                .annotations(annotations)
                 .build();
     }
 
@@ -420,10 +435,10 @@ public final class ThriftParser {
             field.fieldId(fieldId);
         }
 
-        String typeName = readTypeName();
+        TypeElement typeName = readTypeName();
 
-        if ("required".equals(typeName) || "optional".equals(typeName)) {
-            field.required("required".equals(typeName));
+        if ("required".equals(typeName.name()) || "optional".equals(typeName.name())) {
+            field.required("required".equals(typeName.name()));
             typeName = readTypeName();
         }
 
@@ -436,6 +451,9 @@ public final class ThriftParser {
             field.constValue(readConstValue());
         }
 
+        AnnotationElement annotations = readAnnotations();
+        field.annotations(annotations);
+
         doc = readTrailingDoc(doc, true);
         if (JavadocUtil.isNonEmptyJavadoc(doc)) {
             field.documentation(formatJavadoc(doc));
@@ -446,7 +464,7 @@ public final class ThriftParser {
 
     private ServiceElement readService(Location location, String doc) {
         String name = readIdentifier();
-        String extendsName = null;
+        TypeElement extendsType = null;
 
         if (peekChar() == 'e') {
             String word = readWord();
@@ -454,7 +472,15 @@ public final class ThriftParser {
                 throw unexpected("unexpected token: " + word);
             }
 
-            extendsName = readIdentifier();
+            extendsType = readTypeName();
+
+            if (extendsType == null) {
+                throw unexpected("expected a type name");
+            }
+
+            if (!(extendsType instanceof ScalarTypeElement)) {
+                throw unexpected("services cannot extend collections");
+            }
         }
 
         if (readChar() != '{') {
@@ -462,12 +488,14 @@ public final class ThriftParser {
         }
 
         ImmutableList<FunctionElement> functions = readFunctionList();
+        AnnotationElement annotations = readAnnotations();
 
         return ServiceElement.builder(location)
                 .documentation(formatJavadoc(doc))
                 .name(name)
-                .extendsServiceName(extendsName)
+                .extendsService(extendsType)
                 .functions(functions)
+                .annotations(annotations)
                 .build();
     }
 
@@ -490,13 +518,13 @@ public final class ThriftParser {
         FunctionElement.Builder func = FunctionElement.builder(location)
                 .documentation(formatJavadoc(functionDoc));
 
-        String word = readTypeName();
-        if ("oneway".equals(word)) {
+        TypeElement returnType = readTypeName();
+        if ("oneway".equals(returnType.name())) {
             func.oneWay(true);
-            word = readTypeName();
+            returnType = readTypeName();
         }
 
-        func.returnType(word);
+        func.returnType(returnType);
         func.name(readIdentifier());
 
         if (readChar() != '(') {
@@ -507,7 +535,7 @@ public final class ThriftParser {
 
         char next = peekCharSameLine();
         if (next == 't') {
-            word = readWord();
+            String word = readWord();
 
             if (!"throws".equals(word)) {
                 throw unexpected("unexpected token in function definition: " + word);
@@ -519,6 +547,9 @@ public final class ThriftParser {
 
             func.exceptions(readFieldList(')', false));
         }
+
+        AnnotationElement annotations = readAnnotations();
+        func.annotations(annotations);
 
         functionDoc = readTrailingDoc(functionDoc, true);
         if (JavadocUtil.isNonEmptyJavadoc(functionDoc)) {
@@ -600,6 +631,55 @@ public final class ThriftParser {
 
         String id = readIdentifier();
         return ConstValueElement.identifier(location, id);
+    }
+
+    @Nullable
+    private AnnotationElement readAnnotations() {
+        while (pos < data.length) {
+            char c = data[pos];
+            if (c == ' ' || c == '\t') {
+                ++pos;
+            } else {
+                break;
+            }
+        }
+
+        if (pos == data.length) {
+            return null;
+        }
+
+        char c = data[pos];
+        if (c != '(') {
+            return null;
+        }
+
+        Location loc = location();
+        readChar();
+
+        ImmutableMap.Builder<String, String> values = ImmutableMap.builder();
+        while (pos < data.length) {
+            c = data[pos];
+            if (c == ')') {
+                ++pos;
+                return AnnotationElement.create(loc, values.build());
+            }
+
+            String name = readIdentifier();
+            String value = "true";
+            if (peekChar() == '=') {
+                readChar();
+                value = readLiteral();
+            }
+
+            c = peekChar();
+            if (c == ',' || c == ';') {
+                readChar();
+            }
+
+            values.put(name, value);
+        }
+
+        throw unexpected("unexpected end of input");
     }
 
     private char readChar() {
@@ -817,17 +897,22 @@ public final class ThriftParser {
         throw unexpected("unterminated string");
     }
 
-    private String readTypeName() {
+    private TypeElement readTypeName() {
+        Location loc = location();
         String name = readWord();
         if ("list".equals(name) || "set".equals(name)) {
             if (readChar() != '<') {
                 throw unexpected("missing type parameter");
             }
-            String param = readTypeName();
+            TypeElement param = readTypeName();
             if (readChar() != '>') {
                 throw unexpected("missing closing '>' in parameter list");
             }
-            return name + "<" + param + ">";
+
+            AnnotationElement annotations = readAnnotations();
+            return "list".equals(name)
+                    ? TypeElement.list(loc, param, annotations)
+                    : TypeElement.set(loc, param, annotations);
         }
 
         if ("map".equals(name)) {
@@ -835,20 +920,22 @@ public final class ThriftParser {
                 throw unexpected("missing type parameter list");
             }
 
-            String keyType = readTypeName();
+            TypeElement keyType = readTypeName();
             if (readChar() != ',') {
                 throw unexpected("invalid map-type parameter list");
             }
 
-            String valueType = readTypeName();
+            TypeElement valueType = readTypeName();
             if (readChar() != '>') {
                 throw unexpected("missing closing '>' in parameter list");
             }
 
-            return "map<" + keyType + ", " + valueType + ">";
+            AnnotationElement annotations = readAnnotations();
+
+            return TypeElement.map(loc, keyType, valueType, annotations);
         }
 
-        return name;
+        return TypeElement.scalar(loc, name, readAnnotations());
     }
 
     private String readNamespaceScope() {

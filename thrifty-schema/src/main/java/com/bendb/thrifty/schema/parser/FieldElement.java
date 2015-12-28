@@ -39,9 +39,10 @@ public abstract class FieldElement {
     public abstract String documentation();
     @Nullable public abstract Integer fieldId();
     public abstract boolean required();
-    public abstract String type();
+    public abstract TypeElement type();
     public abstract String name();
     @Nullable public abstract ConstValueElement constValue();
+    @Nullable public abstract AnnotationElement annotations();
 
     FieldElement() { }
 
@@ -51,9 +52,10 @@ public abstract class FieldElement {
         Builder documentation(String documentation);
         Builder fieldId(Integer fieldId);
         Builder required(boolean required);
-        Builder type(String type);
+        Builder type(TypeElement type);
         Builder name(String name);
         Builder constValue(ConstValueElement constValue);
+        Builder annotations(AnnotationElement annotations);
 
         FieldElement build();
     }

@@ -74,7 +74,7 @@ public final class ServiceMethod {
     }
 
     void link(Linker linker) {
-        if (element.returnType().equals("void")) {
+        if (element.returnType().name().equals("void")) {
             returnType = ThriftType.VOID;
         } else {
             returnType = linker.resolveType(element.returnType());

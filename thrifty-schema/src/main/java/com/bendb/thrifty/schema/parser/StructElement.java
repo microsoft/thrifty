@@ -19,6 +19,8 @@ import com.bendb.thrifty.schema.Location;
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
+import javax.annotation.Nullable;
+
 /**
  * Represents one of the three aggregate Thrift declarations: struct, union, or exception.
  */
@@ -29,6 +31,8 @@ public abstract class StructElement {
     public abstract Type type();
     public abstract String name();
     public abstract ImmutableList<FieldElement> fields();
+    @Nullable
+    public abstract AnnotationElement annotations();
 
     public static Builder builder(Location location) {
         return new AutoValue_StructElement.Builder()
@@ -45,6 +49,7 @@ public abstract class StructElement {
         Builder type(Type type);
         Builder name(String name);
         Builder fields(ImmutableList<FieldElement> fields);
+        Builder annotations(AnnotationElement annotations);
 
         StructElement build();
     }

@@ -45,7 +45,7 @@ public final class Typedef extends Named {
     }
 
     public String oldName() {
-        return element.oldName();
+        return element.oldType().name();
     }
 
     public ThriftType oldType() {
@@ -53,7 +53,7 @@ public final class Typedef extends Named {
     }
 
     boolean link(Linker linker) {
-        oldType = linker.resolveType(element.oldName());
+        oldType = linker.resolveType(element.oldType());
         type = ThriftType.typedefOf(oldType, element.newName());
         return true;
     }

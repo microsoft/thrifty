@@ -86,8 +86,9 @@ public abstract class ThriftType {
      * of ThriftParser.  In particular, it is assumed that collection
      * types are already validated.
      *
-     * @param name
-     * @return
+     * @param name the name of the type.
+     * @param namespaces all defined namespaces for this type.
+     * @return a {@link ThriftType} representing the given typename.
      */
     public static ThriftType get(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
         ThriftType t = BUILTINS.get(name);
