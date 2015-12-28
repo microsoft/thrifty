@@ -153,14 +153,14 @@ public class ThriftParserTest {
         FieldElement first = file.structs().get(0).fields().get(0);
         assertThat(first.documentation(), is("This field is optional\n"));
         assertThat(first.fieldId(), is(1));
-        assertThat(first.type(), is("i32"));
+        assertThat(first.type().name(), is("i32"));
         assertThat(first.required(), is(false));
         assertThat(first.name(), is("foo"));
 
         FieldElement second = file.structs().get(0).fields().get(1);
         assertThat(second.fieldId(), is(2));
         assertThat(second.documentation(), is("This next field is required\nand has trailing doc\n"));
-        assertThat(second.type(), is("string"));
+        assertThat(second.type().name(), is("string"));
         assertThat(second.required(), is(true));
         assertThat(second.name(), is("bar"));
     }
@@ -244,23 +244,23 @@ public class ThriftParserTest {
 
         FieldElement field = fields.get(0);
         assertThat(field.name(), is("minimal"));
-        assertThat(field.type(), is("byte"));
+        assertThat(field.type().name(), is("byte"));
         assertThat(field.fieldId(), is(1));
 
         field = fields.get(1);
         assertThat(field.name(), is("minimalWithSeparator"));
-        assertThat(field.type(), is("byte"));
+        assertThat(field.type().name(), is("byte"));
         assertThat(field.fieldId(), is(2));
 
         field = fields.get(8);
         assertThat(field.name(), is("optionalWithSemicolon"));
-        assertThat(field.type(), is("i16"));
+        assertThat(field.type().name(), is("i16"));
         assertThat(field.required(), is(false));
         assertThat(field.fieldId(), is(9));
 
         field = fields.get(14);
         assertThat(field.name(), is("requiredIdWithSemicolon"));
-        assertThat(field.type(), is("i64"));
+        assertThat(field.type().name(), is("i64"));
         assertThat(field.required(), is(true));
         assertThat(field.fieldId(), is(15));
     }
@@ -301,30 +301,30 @@ public class ThriftParserTest {
 
         FunctionElement f = functions.get(0);
         assertThat(f.name(), is("foo"));
-        assertThat(f.returnType(), is("FooResult"));
+        assertThat(f.returnType().name(), is("FooResult"));
         assertThat(f.params().get(0).name(), is("request"));
-        assertThat(f.params().get(0).type(), is("FooRequest"));
+        assertThat(f.params().get(0).type().name(), is("FooRequest"));
         assertThat(f.params().get(0).fieldId(), is(1));
         assertThat(f.params().get(0).required(), is(true));
 
         assertThat(f.params().get(1).name(), is("meta"));
-        assertThat(f.params().get(1).type(), is("FooMeta"));
+        assertThat(f.params().get(1).type().name(), is("FooMeta"));
         assertThat(f.params().get(1).fieldId(), is(2));
         assertThat(f.params().get(1).required(), is(false));
 
         f = functions.get(1);
         assertThat(f.name(), is("bar"));
-        assertThat(f.returnType(), is("BarResult"));
+        assertThat(f.returnType().name(), is("BarResult"));
         assertThat(f.oneWay(), is(true));
         assertThat(f.params().size(), is(0));
 
         ImmutableList<FieldElement> exns = f.exceptions();
         assertThat(exns.get(0).name(), is("foo"));
-        assertThat(exns.get(0).type(), is("FooException"));
+        assertThat(exns.get(0).type().name(), is("FooException"));
         assertThat(exns.get(0).fieldId(), is(1));
 
         assertThat(exns.get(1).name(), is("bar"));
-        assertThat(exns.get(1).type(), is("BarException"));
+        assertThat(exns.get(1).type().name(), is("BarException"));
         assertThat(exns.get(1).fieldId(), is(2));
     }
 
@@ -345,13 +345,13 @@ public class ThriftParserTest {
         FieldElement f = union.fields().get(0);
         assertThat(f.fieldId(), is(2));
         assertThat(f.name(), is("foo"));
-        assertThat(f.type(), is("i16"));
+        assertThat(f.type().name(), is("i16"));
         assertThat(f.required(), is(false));
 
         f = union.fields().get(1);
         assertThat(f.fieldId(), is(4));
         assertThat(f.name(), is("bar"));
-        assertThat(f.type(), is("i32"));
+        assertThat(f.type().name(), is("i32"));
         assertThat(f.required(), is(false));
     }
 
@@ -408,25 +408,25 @@ public class ThriftParserTest {
         FieldElement f = fields.get(0);
         assertThat(f.name(), is("foo"));
         assertThat(f.fieldId(), is(1));
-        assertThat(f.type(), is("i16"));
+        assertThat(f.type().name(), is("i16"));
         assertThat(f.constValue(), is(nullValue()));
 
         f = fields.get(1);
         assertThat(f.name(), is("bar"));
         assertThat(f.fieldId(), is(2));
-        assertThat(f.type(), is("i16"));
+        assertThat(f.type().name(), is("i16"));
         assertThat(f.constValue(), is(nullValue()));
 
         f = fields.get(2);
         assertThat(f.name(), is("baz"));
         assertThat(f.fieldId(), is(3));
-        assertThat(f.type(), is("i16"));
+        assertThat(f.type().name(), is("i16"));
         assertThat((Long) f.constValue().value(), is(0xFFFL));
 
         f = fields.get(3);
         assertThat(f.name(), is("quux"));
         assertThat(f.fieldId(), is(4));
-        assertThat(f.type(), is("i16"));
+        assertThat(f.type().name(), is("i16"));
         assertThat(f.constValue(), is(nullValue()));
     }
 
@@ -437,7 +437,7 @@ public class ThriftParserTest {
         ConstElement c = file.constants().get(0);
 
         assertThat(c.name(), is("DefaultStatusCode"));
-        assertThat(c.type(), is("i64"));
+        assertThat(c.type().name(), is("i64"));
         assertThat(c.value().kind(), is(ConstValueElement.Kind.INTEGER));
         assertThat((Long) c.value().value(), is(200L));
     }
@@ -449,7 +449,7 @@ public class ThriftParserTest {
         ConstElement c = file.constants().get(0);
 
         assertThat(c.name(), is("Names"));
-        assertThat(c.type(), is("list<string>"));
+        assertThat(c.type().name(), is("list<string>"));
 
         ConstValueElement value = c.value();
         assertThat(value.kind(), is(ConstValueElement.Kind.LIST));
@@ -474,7 +474,7 @@ public class ThriftParserTest {
         ConstElement c = file.constants().get(0);
 
         assertThat(c.name(), is("Headers"));
-        assertThat(c.type(), is("map<string, string>"));
+        assertThat(c.type().name(), is("map<string, string>"));
 
         ConstValueElement value = c.value();
         assertThat(value.kind(), is(ConstValueElement.Kind.MAP));
@@ -505,7 +505,7 @@ public class ThriftParserTest {
         FieldElement f = s.fields().get(0);
         assertThat(f.fieldId(), is(100));
         assertThat(f.name(), is("num"));
-        assertThat(f.type(), is("i32"));
+        assertThat(f.type().name(), is("i32"));
 
         ConstValueElement v = f.constValue();
         assertThat(v, is(notNullValue()));
@@ -764,7 +764,6 @@ public class ThriftParserTest {
     }
 
     @Test
-    @Ignore("Not yet implemented - requires a TypeElement, thus further design needed.")
     public void annotationsOnFieldTypes() {
         String thrift = "struct Str {\n" +
                 "  1: map<string, i32> (python.immutable) foo\n" +
@@ -773,7 +772,7 @@ public class ThriftParserTest {
         ThriftFileElement file = parse(thrift);
         StructElement struct = file.structs().get(0);
         FieldElement field = struct.fields().get(0);
-        AnnotationElement anno = field.typeAnnotations();
+        AnnotationElement anno = field.type().annotations();
 
         assertNotNull(anno);
         assertThat(anno.get("python.immutable"), is("true"));

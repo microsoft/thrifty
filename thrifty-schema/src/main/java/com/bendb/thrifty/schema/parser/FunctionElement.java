@@ -39,7 +39,7 @@ public abstract class FunctionElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract boolean oneWay();
-    public abstract String returnType();
+    public abstract TypeElement returnType();
     public abstract String name();
     public abstract ImmutableList<FieldElement> params();
     public abstract ImmutableList<FieldElement> exceptions();
@@ -52,7 +52,7 @@ public abstract class FunctionElement {
         Builder location(Location location);
         Builder documentation(String documentation);
         Builder oneWay(boolean oneWay);
-        Builder returnType(String returnType);
+        Builder returnType(TypeElement returnType);
         Builder name(String name);
         Builder params(ImmutableList<FieldElement> params);
         Builder exceptions(ImmutableList<FieldElement> params);

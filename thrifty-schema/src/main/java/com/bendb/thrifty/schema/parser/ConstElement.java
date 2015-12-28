@@ -22,7 +22,7 @@ import com.google.auto.value.AutoValue;
 public abstract class ConstElement {
     public abstract Location location();
     public abstract String documentation();
-    public abstract String type();
+    public abstract TypeElement type();
     public abstract String name();
     public abstract ConstValueElement value();
 
@@ -38,7 +38,7 @@ public abstract class ConstElement {
     public interface Builder {
         Builder location(Location location);
         Builder documentation(String documentation);
-        Builder type(String type);
+        Builder type(TypeElement type);
         Builder name(String name);
         Builder value(ConstValueElement value);
 

@@ -182,7 +182,7 @@ public final class ThriftParser {
 
         if ("typedef".equals(word)) {
             ++declCount;
-            String oldType = readTypeName();
+            String oldType = readTypeName().name();
             String newName = readWord();
             AnnotationElement annotations = readAnnotations();
 
@@ -298,7 +298,7 @@ public final class ThriftParser {
     }
 
     private ConstElement readConst(Location location, String documentation) {
-        String typeName = readTypeName();
+        TypeElement typeName = readTypeName();
         String name = readIdentifier();
 
         if (readChar() != '=') {
@@ -435,10 +435,10 @@ public final class ThriftParser {
             field.fieldId(fieldId);
         }
 
-        String typeName = readTypeName();
+        TypeElement typeName = readTypeName();
 
-        if ("required".equals(typeName) || "optional".equals(typeName)) {
-            field.required("required".equals(typeName));
+        if ("required".equals(typeName.name()) || "optional".equals(typeName.name())) {
+            field.required("required".equals(typeName.name()));
             typeName = readTypeName();
         }
 
@@ -510,13 +510,13 @@ public final class ThriftParser {
         FunctionElement.Builder func = FunctionElement.builder(location)
                 .documentation(formatJavadoc(functionDoc));
 
-        String word = readTypeName();
-        if ("oneway".equals(word)) {
+        TypeElement returnType = readTypeName();
+        if ("oneway".equals(returnType.name())) {
             func.oneWay(true);
-            word = readTypeName();
+            returnType = readTypeName();
         }
 
-        func.returnType(word);
+        func.returnType(returnType);
         func.name(readIdentifier());
 
         if (readChar() != '(') {
@@ -527,7 +527,7 @@ public final class ThriftParser {
 
         char next = peekCharSameLine();
         if (next == 't') {
-            word = readWord();
+            String word = readWord();
 
             if (!"throws".equals(word)) {
                 throw unexpected("unexpected token in function definition: " + word);
@@ -889,17 +889,22 @@ public final class ThriftParser {
         throw unexpected("unterminated string");
     }
 
-    private String readTypeName() {
+    private TypeElement readTypeName() {
+        Location loc = location();
         String name = readWord();
         if ("list".equals(name) || "set".equals(name)) {
             if (readChar() != '<') {
                 throw unexpected("missing type parameter");
             }
-            String param = readTypeName();
+            TypeElement param = readTypeName();
             if (readChar() != '>') {
                 throw unexpected("missing closing '>' in parameter list");
             }
-            return name + "<" + param + ">";
+
+            AnnotationElement annotations = readAnnotations();
+            return "list".equals(name)
+                    ? TypeElement.list(loc, param, annotations)
+                    : TypeElement.set(loc, param, annotations);
         }
 
         if ("map".equals(name)) {
@@ -907,20 +912,22 @@ public final class ThriftParser {
                 throw unexpected("missing type parameter list");
             }
 
-            String keyType = readTypeName();
+            TypeElement keyType = readTypeName();
             if (readChar() != ',') {
                 throw unexpected("invalid map-type parameter list");
             }
 
-            String valueType = readTypeName();
+            TypeElement valueType = readTypeName();
             if (readChar() != '>') {
                 throw unexpected("missing closing '>' in parameter list");
             }
 
-            return "map<" + keyType + ", " + valueType + ">";
+            AnnotationElement annotations = readAnnotations();
+
+            return TypeElement.map(loc, keyType, valueType, annotations);
         }
 
-        return name;
+        return TypeElement.scalar(loc, name, readAnnotations());
     }
 
     private String readNamespaceScope() {

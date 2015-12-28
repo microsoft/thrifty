@@ -50,7 +50,7 @@ public class Constant extends Named {
     }
 
     void link(Linker linker) {
-        this.type = linker.resolveType(element.type());
+        this.type = linker.resolveType(element.type().name());
     }
 
     void validate(Linker linker) {
