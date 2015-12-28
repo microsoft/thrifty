@@ -42,23 +42,35 @@ public class ThriftParserTest {
                 "php_namespace 'single_quoted_namespace'\n" +
                 "php_namespace \"double_quoted_namespace\"";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "namespaces.thrift"));
+        Location location = Location.get("", "namespaces.thrift");
+        ThriftFileElement file = parse(thrift, location);
 
-        assertThat(file.namespaces().size(), is(5));
-        assertThat(file.namespaces().get(0).scope(), is(NamespaceScope.JAVA));
-        assertThat(file.namespaces().get(0).namespace(), is("com.bendb.thrifty.parser"));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .namespaces(ImmutableList.<NamespaceElement>builder()
+                        .add(NamespaceElement.builder(location.at(1, 1))
+                                .scope(NamespaceScope.JAVA)
+                                .namespace("com.bendb.thrifty.parser")
+                                .build())
+                        .add(NamespaceElement.builder(location.at(2, 1))
+                                .scope(NamespaceScope.CPP)
+                                .namespace("bendb.thrifty")
+                                .build())
+                        .add(NamespaceElement.builder(location.at(3, 1))
+                                .scope(NamespaceScope.ALL)
+                                .namespace("bendb.thrifty")
+                                .build())
+                        .add(NamespaceElement.builder(location.at(4, 1))
+                                .scope(NamespaceScope.PHP)
+                                .namespace("single_quoted_namespace")
+                                .build())
+                        .add(NamespaceElement.builder(location.at(5, 1))
+                                .scope(NamespaceScope.PHP)
+                                .namespace("double_quoted_namespace")
+                                .build())
+                        .build())
+                .build();
 
-        assertThat(file.namespaces().get(1).scope(), is(NamespaceScope.CPP));
-        assertThat(file.namespaces().get(1).namespace(), is("bendb.thrifty"));
-
-        assertThat(file.namespaces().get(2).scope(), is(NamespaceScope.ALL));
-        assertThat(file.namespaces().get(2).namespace(), is("bendb.thrifty"));
-
-        assertThat(file.namespaces().get(3).scope(), is(NamespaceScope.PHP));
-        assertThat(file.namespaces().get(3).namespace(), is("single_quoted_namespace"));
-
-        assertThat(file.namespaces().get(4).scope(), is(NamespaceScope.PHP));
-        assertThat(file.namespaces().get(4).namespace(), is("double_quoted_namespace"));
+        assertThat(file, equalTo(expected));
     }
 
     @Test
@@ -70,19 +82,22 @@ public class ThriftParserTest {
                 "\n" +
                 "namespace * bendb";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "includes.thrift"));
+        Location location = Location.get("", "includes.thrift");
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .includes(ImmutableList.<IncludeElement>builder()
+                        .add(IncludeElement.create(location.at(1, 1), false, "inc/common.thrift"))
+                        .add(IncludeElement.create(location.at(2, 1), false, ".././parent.thrift"))
+                        .add(IncludeElement.create(location.at(3, 1), true, "inc/boost.hpp"))
+                        .build())
+                .namespaces(ImmutableList.<NamespaceElement>builder()
+                        .add(NamespaceElement.builder(location.at(5, 1))
+                                .scope(NamespaceScope.ALL)
+                                .namespace("bendb")
+                                .build())
+                        .build())
+                .build();
 
-        assertThat(file.includes().size(), is(3));
-        assertThat(file.namespaces().size(), is(1));
-
-        assertThat(file.includes().get(0).path(), is("inc/common.thrift"));
-        assertThat(file.includes().get(0).isCpp(), is(false));
-
-        assertThat(file.includes().get(1).path(), is(".././parent.thrift"));
-        assertThat(file.includes().get(1).isCpp(), is(false));
-
-        assertThat(file.includes().get(2).path(), is("inc/boost.hpp"));
-        assertThat(file.includes().get(2).isCpp(), is(true));
+        assertThat(ThriftParser.parse(location, thrift), equalTo(expected));
     }
 
     @Test
@@ -92,16 +107,26 @@ public class ThriftParserTest {
                 "typedef string MyString\n" +
                 "typedef binary PrivateKey\n";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "typedefs.thrift"));
+        Location location = Location.get("", "typedefs.thrift");
 
-        assertThat(file.typedefs().get(0).oldType().name(), is("i32"));
-        assertThat(file.typedefs().get(0).newName(), is("MyInt"));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .typedefs(ImmutableList.<TypedefElement>builder()
+                        .add(TypedefElement.builder(location.at(1, 1))
+                                .oldType(TypeElement.scalar(location.at(1, 9), "i32", null))
+                                .newName("MyInt")
+                                .build())
+                        .add(TypedefElement.builder(location.at(2, 1))
+                                .oldType(TypeElement.scalar(location.at(2, 9), "string", null))
+                                .newName("MyString")
+                                .build())
+                        .add(TypedefElement.builder(location.at(3, 1))
+                                .oldType(TypeElement.scalar(location.at(3, 9), "binary", null))
+                                .newName("PrivateKey")
+                                .build())
+                        .build())
+                .build();
 
-        assertThat(file.typedefs().get(1).oldType().name(), is("string"));
-        assertThat(file.typedefs().get(1).newName(), is("MyString"));
-
-        assertThat(file.typedefs().get(2).oldType().name(), is("binary"));
-        assertThat(file.typedefs().get(2).newName(), is("PrivateKey"));
+        assertThat(parse(thrift, location), equalTo(expected));
     }
 
     @Test
@@ -111,19 +136,38 @@ public class ThriftParserTest {
                 "typedef set<string> Names\n" +
                 "typedef map < i16,set<binary > > BlobMap\n";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "containerTypedefs.thrift"));
+        Location location = Location.get("", "containerTypedefs.thrift");
 
-        TypedefElement typedef = file.typedefs().get(0);
-        assertThat(typedef.oldType().name(), is("list<i32>"));
-        assertThat(typedef.newName(), is("IntList"));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .typedefs(ImmutableList.<TypedefElement>builder()
+                        .add(TypedefElement.builder(location.at(1, 1))
+                                .oldType(TypeElement.list(
+                                        location.at(1, 9),
+                                        TypeElement.scalar(location.at(1, 14), "i32", null), null))
+                                .newName("IntList")
+                                .build())
+                        .add(TypedefElement.builder(location.at(2, 1))
+                                .oldType(TypeElement.set(
+                                        location.at(2, 9),
+                                        TypeElement.scalar(location.at(2, 13), "string", null),
+                                        null))
+                                .newName("Names")
+                                .build())
+                        .add(TypedefElement.builder(location.at(3, 1))
+                                .oldType(TypeElement.map(
+                                        location.at(3, 9),
+                                        TypeElement.scalar(location.at(3, 15), "i16", null),
+                                        TypeElement.set(
+                                                location.at(3, 19),
+                                                TypeElement.scalar(location.at(3, 23), "binary", null),
+                                                null),
+                                        null))
+                                .newName("BlobMap")
+                                .build())
+                        .build())
+                .build();
 
-        typedef = file.typedefs().get(1);
-        assertThat(typedef.oldType().name(), is("set<string>"));
-        assertThat(typedef.newName(), is("Names"));
-
-        typedef = file.typedefs().get(2);
-        assertThat(typedef.oldType().name(), is("map<i16, set<binary>>"));
-        assertThat(typedef.newName(), is("BlobMap"));
+        assertThat(parse(thrift, location), equalTo(expected));
     }
 
     @Test

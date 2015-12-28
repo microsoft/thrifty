@@ -898,6 +898,7 @@ public final class ThriftParser {
     }
 
     private TypeElement readTypeName() {
+        skipWhitespace(false);
         Location loc = location();
         String name = readWord();
         if ("list".equals(name) || "set".equals(name)) {
@@ -1136,6 +1137,9 @@ public final class ThriftParser {
     }
 
     private static String formatJavadoc(String doc) {
+        if (Strings.isNullOrEmpty(doc)) {
+            return doc;
+        }
         return doc.endsWith("\n") ? doc : doc + "\n";
     }
 
