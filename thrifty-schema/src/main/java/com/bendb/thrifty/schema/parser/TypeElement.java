@@ -15,15 +15,25 @@ public abstract class TypeElement {
         return ScalarTypeElement.create(location, name, annotations);
     }
 
-    public static TypeElement list(Location location, TypeElement elementType, AnnotationElement annotations) {
+    public static TypeElement list(
+            Location location,
+            TypeElement elementType,
+            AnnotationElement annotations) {
         return ListTypeElement.create(location, elementType, annotations);
     }
 
-    public static TypeElement set(Location location, TypeElement elementType, AnnotationElement annotations) {
+    public static TypeElement set(
+            Location location,
+            TypeElement elementType,
+            AnnotationElement annotations) {
         return SetTypeElement.create(location, elementType, annotations);
     }
 
-    public static TypeElement map(Location location, TypeElement key, TypeElement value, AnnotationElement annotations) {
+    public static TypeElement map(
+            Location location,
+            TypeElement key,
+            TypeElement value,
+            AnnotationElement annotations) {
         return MapTypeElement.create(location, key, value, annotations);
     }
 }

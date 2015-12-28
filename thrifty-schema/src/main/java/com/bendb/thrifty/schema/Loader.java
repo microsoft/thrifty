@@ -235,9 +235,9 @@ public final class Loader {
      * 2. The current working location, if given
      * 3. The include path, in the order given.
      *
-     * @param path
-     * @param currentLocation
-     * @return
+     * @param path a relative or absolute path to the file being sought.
+     * @param currentLocation the current working directory.
+     * @return the first matching file on the search path, or {@code null}.
      */
     private File findFirstExisting(String path, @Nullable  Location currentLocation) {
         if (isAbsolutePath(path)) {

@@ -51,9 +51,9 @@ public final class ThriftParser {
     /**
      * Parse the given Thrift {@code text}, using the given {@code location}
      * to anchor parsed elements withing the file.
-     * @param location
-     * @param text
-     * @return
+     * @param location the {@link Location} of the data being parsed.
+     * @param text the text to be parsed.
+     * @return a representation of the parsed Thrift data.
      */
     public static ThriftFileElement parse(Location location, String text) {
         return new ThriftParser(location, text.toCharArray()).readThriftData();
