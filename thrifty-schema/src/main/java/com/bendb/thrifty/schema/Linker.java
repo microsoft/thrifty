@@ -299,6 +299,15 @@ class Linker {
             return tt;
         }
 
+        // NOTE:
+        // TypeElement -> ThriftType resolution currently destroys any type-level
+        // annotations.  We rely (nb: do we?) on types with identical names being
+        // de-duplicated, which makes annotating single instances of a type problematic.
+        // Luckily the only case I know of where this feature is useful in the Apache
+        // implementation is the 'python.immutable' annotation for Python codegen,
+        // which is not a concern.  Conceivably we could make use of type-annotations
+        // to control e.g. collection implementation, but we can worry about that
+        // in the future, if at all.
         if (type instanceof ListTypeElement) {
             ThriftType elementType = resolveType(((ListTypeElement) type).elementType());
             ThriftType listType = ThriftType.list(elementType);
