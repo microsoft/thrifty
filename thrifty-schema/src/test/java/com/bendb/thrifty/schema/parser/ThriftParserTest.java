@@ -20,7 +20,6 @@ import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.common.collect.ImmutableList;
 import okio.Okio;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.InputStream;
@@ -95,13 +94,13 @@ public class ThriftParserTest {
 
         ThriftFileElement file = parse(thrift, Location.get("", "typedefs.thrift"));
 
-        assertThat(file.typedefs().get(0).oldName(), is("i32"));
+        assertThat(file.typedefs().get(0).oldType().name(), is("i32"));
         assertThat(file.typedefs().get(0).newName(), is("MyInt"));
 
-        assertThat(file.typedefs().get(1).oldName(), is("string"));
+        assertThat(file.typedefs().get(1).oldType().name(), is("string"));
         assertThat(file.typedefs().get(1).newName(), is("MyString"));
 
-        assertThat(file.typedefs().get(2).oldName(), is("binary"));
+        assertThat(file.typedefs().get(2).oldType().name(), is("binary"));
         assertThat(file.typedefs().get(2).newName(), is("PrivateKey"));
     }
 
@@ -115,15 +114,15 @@ public class ThriftParserTest {
         ThriftFileElement file = parse(thrift, Location.get("", "containerTypedefs.thrift"));
 
         TypedefElement typedef = file.typedefs().get(0);
-        assertThat(typedef.oldName(), is("list<i32>"));
+        assertThat(typedef.oldType().name(), is("list<i32>"));
         assertThat(typedef.newName(), is("IntList"));
 
         typedef = file.typedefs().get(1);
-        assertThat(typedef.oldName(), is("set<string>"));
+        assertThat(typedef.oldType().name(), is("set<string>"));
         assertThat(typedef.newName(), is("Names"));
 
         typedef = file.typedefs().get(2);
-        assertThat(typedef.oldName(), is("map<i16, set<binary>>"));
+        assertThat(typedef.oldType().name(), is("map<i16, set<binary>>"));
         assertThat(typedef.newName(), is("BlobMap"));
     }
 

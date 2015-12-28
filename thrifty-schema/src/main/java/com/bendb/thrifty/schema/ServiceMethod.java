@@ -77,7 +77,7 @@ public final class ServiceMethod {
         if (element.returnType().name().equals("void")) {
             returnType = ThriftType.VOID;
         } else {
-            returnType = linker.resolveType(element.returnType().name());
+            returnType = linker.resolveType(element.returnType());
         }
 
         for (Field field : paramTypes) {

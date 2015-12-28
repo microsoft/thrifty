@@ -182,7 +182,7 @@ public final class ThriftParser {
 
         if ("typedef".equals(word)) {
             ++declCount;
-            String oldType = readTypeName().name();
+            TypeElement oldType = readTypeName();
             String newName = readWord();
             AnnotationElement annotations = readAnnotations();
 
@@ -190,7 +190,7 @@ public final class ThriftParser {
 
             return TypedefElement.builder(location)
                     .documentation(formatJavadoc(doc))
-                    .oldName(oldType)
+                    .oldType(oldType)
                     .newName(newName)
                     .annotations(annotations)
                     .build();
@@ -464,7 +464,7 @@ public final class ThriftParser {
 
     private ServiceElement readService(Location location, String doc) {
         String name = readIdentifier();
-        String extendsName = null;
+        TypeElement extendsType = null;
 
         if (peekChar() == 'e') {
             String word = readWord();
@@ -472,7 +472,15 @@ public final class ThriftParser {
                 throw unexpected("unexpected token: " + word);
             }
 
-            extendsName = readIdentifier();
+            extendsType = readTypeName();
+
+            if (extendsType == null) {
+                throw unexpected("expected a type name");
+            }
+
+            if (!(extendsType instanceof ScalarTypeElement)) {
+                throw unexpected("services cannot extend collections");
+            }
         }
 
         if (readChar() != '{') {
@@ -485,7 +493,7 @@ public final class ThriftParser {
         return ServiceElement.builder(location)
                 .documentation(formatJavadoc(doc))
                 .name(name)
-                .extendsServiceName(extendsName)
+                .extendsService(extendsType)
                 .functions(functions)
                 .annotations(annotations)
                 .build();

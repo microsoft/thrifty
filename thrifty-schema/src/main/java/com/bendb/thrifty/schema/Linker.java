@@ -15,6 +15,12 @@
  */
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.ListTypeElement;
+import com.bendb.thrifty.schema.parser.MapTypeElement;
+import com.bendb.thrifty.schema.parser.ScalarTypeElement;
+import com.bendb.thrifty.schema.parser.SetTypeElement;
+import com.bendb.thrifty.schema.parser.TypeElement;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -287,51 +293,42 @@ class Linker {
     }
 
     @Nonnull
-    ThriftType resolveType(String type) {
-        ThriftType tt = typesByName.get(type);
+    ThriftType resolveType(TypeElement type) {
+        ThriftType tt = typesByName.get(type.name());
         if (tt != null) {
             return tt;
         }
 
-        if (type.startsWith("list<")) {
-            String elementTypeName = type.substring(5, type.length() - 1).trim();
-            ThriftType elementType = resolveType(elementTypeName);
+        if (type instanceof ListTypeElement) {
+            ThriftType elementType = resolveType(((ListTypeElement) type).elementType());
             ThriftType listType = ThriftType.list(elementType);
-            typesByName.put(type, listType);
+            typesByName.put(type.name(), listType);
             return listType;
-        }
-
-        if (type.startsWith("set<")) {
-            String elementTypeName = type.substring(4, type.length() - 1).trim();
-            ThriftType elementType = resolveType(elementTypeName);
+        } else if (type instanceof SetTypeElement) {
+            ThriftType elementType = resolveType(((SetTypeElement) type).elementType());
             ThriftType setType = ThriftType.set(elementType);
-            typesByName.put(type, setType);
+            typesByName.put(type.name(), setType);
             return setType;
-        }
+        } else if (type instanceof MapTypeElement) {
+            MapTypeElement element = (MapTypeElement) type;
+            ThriftType keyType = resolveType(element.keyType());
+            ThriftType valueType = resolveType(element.valueType());
+            ThriftType mapType = ThriftType.map(keyType, valueType);
+            typesByName.put(type.name(), mapType);
+            return mapType;
+        } else if (type instanceof ScalarTypeElement) {
+            tt = ThriftType.get(
+                    type.name(),
+                    Collections.<NamespaceScope, String>emptyMap()); // Any map will do
 
-        if (type.startsWith("map<")) {
-            String[] elementTypeNames = type.substring(4, type.length() - 1)
-                    .trim()
-                    .split(",", 2);
-            if (elementTypeNames.length != 2) {
-                // At this point, container type names should have already
-                // been verified.
-                throw new AssertionError("Malformed map type name: " + type);
+            if (tt.isBuiltin()) {
+                return tt;
             }
 
-            ThriftType keyType = resolveType(elementTypeNames[0].trim());
-            ThriftType valueType = resolveType(elementTypeNames[1].trim());
-            ThriftType mapType = ThriftType.map(keyType, valueType);
-            typesByName.put(mapType.name(), mapType);
-            return mapType;
+            throw new LinkFailureException(type.name());
+        } else {
+            throw new AssertionError("Unexpected TypeElement: " + type.getClass());
         }
-
-        tt = ThriftType.get(type, Collections.<NamespaceScope, String>emptyMap()); // Any map will do
-        if (tt.isBuiltin()) {
-            return tt;
-        }
-
-        throw new LinkFailureException(type);
     }
 
     @Nullable
@@ -381,15 +378,6 @@ class Linker {
 
         LinkFailureException(String message) {
             super(message);
-        }
-    }
-
-    private static class TypedefResolutionException extends LinkFailureException {
-        final String name;
-
-        TypedefResolutionException(String name) {
-            super("Failed to resolve type: " + name);
-            this.name = name;
         }
     }
 }

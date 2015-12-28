@@ -16,7 +16,6 @@
 package com.bendb.thrifty.schema.parser;
 
 import com.bendb.thrifty.schema.Location;
-import com.bendb.thrifty.schema.ThriftType;
 import com.google.auto.value.AutoValue;
 
 import javax.annotation.Nullable;
@@ -25,24 +24,11 @@ import javax.annotation.Nullable;
 public abstract class TypedefElement {
     public abstract Location location();
     public abstract String documentation();
-    public abstract String oldName();
+    public abstract TypeElement oldType();
     public abstract String newName();
 
     @Nullable
     public abstract AnnotationElement annotations();
-
-    @Nullable
-    public abstract ThriftType resolvedType();
-
-    public boolean needsResolution() {
-        return resolvedType() == null;
-    }
-
-    public TypedefElement withType(ThriftType type) {
-        return new AutoValue_TypedefElement.Builder(this)
-                .resolvedType(type)
-                .build();
-    }
 
     TypedefElement() { }
 
@@ -56,10 +42,9 @@ public abstract class TypedefElement {
     public interface Builder {
         Builder location(Location location);
         Builder documentation(String documentation);
-        Builder oldName(String oldName);
+        Builder oldType(TypeElement oldType);
         Builder newName(String newName);
         Builder annotations(AnnotationElement annotations);
-        Builder resolvedType(ThriftType type);
 
         TypedefElement build();
     }

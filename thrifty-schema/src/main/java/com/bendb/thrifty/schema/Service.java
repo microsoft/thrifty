@@ -17,7 +17,7 @@ package com.bendb.thrifty.schema;
 
 import com.bendb.thrifty.schema.parser.FunctionElement;
 import com.bendb.thrifty.schema.parser.ServiceElement;
-import com.google.common.base.Strings;
+import com.bendb.thrifty.schema.parser.TypeElement;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Map;
@@ -33,11 +33,6 @@ public final class Service extends Named {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
-
-        String extendsServiceName = element.extendsServiceName();
-        if (extendsServiceName != null) {
-            this.extendsService = ThriftType.get(extendsServiceName, namespaces);
-        }
 
         ImmutableList.Builder<ServiceMethod> methods = ImmutableList.builder();
         for (FunctionElement functionElement : element.functions()) {
@@ -70,9 +65,9 @@ public final class Service extends Named {
     }
 
     void link(Linker linker) {
-        String extendsName = element.extendsServiceName();
-        if (!Strings.isNullOrEmpty(extendsName)) {
-            extendsService = linker.resolveType(extendsName);
+        TypeElement extendsType = element.extendsService();
+        if (extendsType != null) {
+            extendsService = linker.resolveType(extendsType);
             // TODO: Validate that this is actually a service type
         }
 

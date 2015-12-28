@@ -83,7 +83,7 @@ public final class Field {
     }
 
     void link(Linker linker) {
-        type = linker.resolveType(element.type().name());
+        type = linker.resolveType(element.type());
     }
 
     void validate(Linker linker) {
