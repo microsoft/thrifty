@@ -15,21 +15,31 @@
  */
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.AnnotationElement;
 import com.bendb.thrifty.schema.parser.ConstValueElement;
 import com.bendb.thrifty.schema.parser.FieldElement;
+import com.google.common.collect.ImmutableMap;
 
 import javax.annotation.Nullable;
 
 public final class Field {
     private final FieldElement element;
     private final FieldNamingPolicy fieldNamingPolicy;
+    private final ImmutableMap<String, String> annotations;
     private ThriftType type;
 
-    private transient String javaName;
+    private String javaName;
 
     Field(FieldElement element, FieldNamingPolicy fieldNamingPolicy) {
         this.element = element;
         this.fieldNamingPolicy = fieldNamingPolicy;
+
+        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
+        AnnotationElement anno = element.annotations();
+        if (anno != null) {
+            annotationBuilder.putAll(anno.values());
+        }
+        this.annotations = annotationBuilder.build();
     }
 
     public int id() {
@@ -67,6 +77,10 @@ public final class Field {
 
     public ThriftType type() {
         return type;
+    }
+
+    public ImmutableMap<String, String> annotations() {
+        return annotations;
     }
 
     void setType(ThriftType type) {

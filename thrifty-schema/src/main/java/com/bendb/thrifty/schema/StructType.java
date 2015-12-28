@@ -15,9 +15,11 @@
  */
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.AnnotationElement;
 import com.bendb.thrifty.schema.parser.FieldElement;
 import com.bendb.thrifty.schema.parser.StructElement;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,6 +28,7 @@ public class StructType extends Named {
     private final StructElement element;
     private final ThriftType type;
     private final ImmutableList<Field> fields;
+    private final ImmutableMap<String, String> annotations;
 
     StructType(
             StructElement element,
@@ -41,6 +44,13 @@ public class StructType extends Named {
             fieldsBuilder.add(new Field(fieldElement, fieldNamingPolicy));
         }
         this.fields = fieldsBuilder.build();
+
+        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
+        AnnotationElement anno = element.annotations();
+        if (anno != null) {
+            annotationBuilder.putAll(anno.values());
+        }
+        this.annotations = annotationBuilder.build();
     }
 
     @Override
@@ -60,6 +70,10 @@ public class StructType extends Named {
 
     public ImmutableList<Field> fields() {
         return fields;
+    }
+
+    public ImmutableMap<String, String> annotations() {
+        return annotations;
     }
 
     public boolean isStruct() {

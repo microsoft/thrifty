@@ -15,10 +15,12 @@
  */
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.AnnotationElement;
 import com.bendb.thrifty.schema.parser.EnumElement;
 import com.bendb.thrifty.schema.parser.EnumMemberElement;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -27,6 +29,7 @@ public class EnumType extends Named {
     private final EnumElement element;
     private final ThriftType type;
     private final ImmutableList<Member> members;
+    private final ImmutableMap<String, String> annotations;
 
     @VisibleForTesting
     public EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
@@ -39,6 +42,13 @@ public class EnumType extends Named {
             membersBuilder.add(new Member(memberElement));
         }
         this.members = membersBuilder.build();
+
+        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
+        AnnotationElement anno = element.annotations();
+        if (anno != null) {
+            annotationBuilder.putAll(anno.values());
+        }
+        this.annotations = annotationBuilder.build();
     }
 
     public String documentation() {
@@ -57,6 +67,10 @@ public class EnumType extends Named {
     @Override
     public ThriftType type() {
         return type;
+    }
+
+    public ImmutableMap<String, String> annotations() {
+        return annotations;
     }
 
     public Member findMemberByName(String name) {
@@ -79,9 +93,17 @@ public class EnumType extends Named {
 
     public static final class Member {
         private final EnumMemberElement element;
+        private final ImmutableMap<String, String> annotations;
 
         Member(EnumMemberElement element) {
             this.element = element;
+
+            ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
+            AnnotationElement anno = element.annotations();
+            if (anno != null) {
+                annotationBuilder.putAll(anno.values());
+            }
+            this.annotations = annotationBuilder.build();
         }
 
         public String name() {
@@ -94,6 +116,10 @@ public class EnumType extends Named {
 
         public String documentation() {
             return element.documentation();
+        }
+
+        public ImmutableMap<String, String> annotations() {
+            return annotations;
         }
 
         public boolean hasJavadoc() {

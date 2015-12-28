@@ -15,10 +15,12 @@
  */
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.AnnotationElement;
 import com.bendb.thrifty.schema.parser.FunctionElement;
 import com.bendb.thrifty.schema.parser.ServiceElement;
 import com.bendb.thrifty.schema.parser.TypeElement;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
@@ -26,6 +28,7 @@ public final class Service extends Named {
     private final ServiceElement element;
     private final ImmutableList<ServiceMethod> methods;
     private final ThriftType type;
+    private final ImmutableMap<String, String> annotations;
 
     private ThriftType extendsService;
 
@@ -40,6 +43,13 @@ public final class Service extends Named {
             methods.add(method);
         }
         this.methods = methods.build();
+
+        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
+        AnnotationElement anno = element.annotations();
+        if (anno != null) {
+            annotationBuilder.putAll(anno.values());
+        }
+        this.annotations = annotationBuilder.build();
     }
 
     @Override
@@ -62,6 +72,10 @@ public final class Service extends Named {
 
     public ThriftType extendsService() {
         return extendsService;
+    }
+
+    public ImmutableMap<String, String> annotations() {
+        return annotations;
     }
 
     void link(Linker linker) {

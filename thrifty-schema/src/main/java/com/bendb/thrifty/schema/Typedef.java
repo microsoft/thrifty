@@ -15,18 +15,28 @@
  */
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.AnnotationElement;
 import com.bendb.thrifty.schema.parser.TypedefElement;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
 public final class Typedef extends Named {
     private final TypedefElement element;
+    private final ImmutableMap<String, String> annotations;
     private ThriftType oldType;
     private ThriftType type;
 
     Typedef(TypedefElement element, Map<NamespaceScope, String> namespaces) {
         super(element.newName(), namespaces);
         this.element = element;
+
+        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
+        AnnotationElement anno = element.annotations();
+        if (anno != null) {
+            annotationBuilder.putAll(anno.values());
+        }
+        this.annotations = annotationBuilder.build();
     }
 
     @Override
@@ -50,6 +60,10 @@ public final class Typedef extends Named {
 
     public ThriftType oldType() {
         return oldType;
+    }
+
+    public ImmutableMap<String, String> annotations() {
+        return annotations;
     }
 
     boolean link(Linker linker) {

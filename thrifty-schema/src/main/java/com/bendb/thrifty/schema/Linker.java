@@ -76,7 +76,7 @@ class Linker {
             registerDeclaredTypes();
 
             // Next, figure out what types typedefs are aliasing.
-            resolveTypdefs();
+            resolveTypedefs();
 
             // At this point, all types defined
             linkConstants();
@@ -162,7 +162,7 @@ class Linker {
         }
     }
 
-    private void resolveTypdefs() {
+    private void resolveTypedefs() {
         // The strategy for resolving typedefs is:
         // Make a list of typedefs, then loop through it.  If the typedef is
         // successfully linked (i.e. its alias is resolvable), then remove it

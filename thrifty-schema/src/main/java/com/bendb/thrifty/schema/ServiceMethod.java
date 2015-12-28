@@ -15,19 +15,22 @@
  */
 package com.bendb.thrifty.schema;
 
+import com.bendb.thrifty.schema.parser.AnnotationElement;
 import com.bendb.thrifty.schema.parser.FieldElement;
 import com.bendb.thrifty.schema.parser.FunctionElement;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 
 public final class ServiceMethod {
     private final FunctionElement element;
+    private final ImmutableList<Field> paramTypes;
+    private final ImmutableList<Field> exceptionTypes;
+    private final ImmutableMap<String, String> annotations;
 
     private ThriftType returnType;
-    private ImmutableList<Field> paramTypes;
-    private ImmutableList<Field> exceptionTypes;
 
     public ServiceMethod(FunctionElement element) {
         this.element = element;
@@ -43,6 +46,13 @@ public final class ServiceMethod {
             exceptions.add(new Field(field, FieldNamingPolicy.DEFAULT));
         }
         this.exceptionTypes = exceptions.build();
+
+        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
+        AnnotationElement anno = element.annotations();
+        if (anno != null) {
+            annotationBuilder.putAll(anno.values());
+        }
+        this.annotations = annotationBuilder.build();
     }
 
     public String documentation() {
@@ -71,6 +81,10 @@ public final class ServiceMethod {
 
     public List<Field> exceptionTypes() {
         return exceptionTypes;
+    }
+
+    public ImmutableMap<String, String> annotations() {
+        return annotations;
     }
 
     void link(Linker linker) {
