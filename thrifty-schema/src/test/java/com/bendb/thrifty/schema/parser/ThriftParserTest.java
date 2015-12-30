@@ -18,19 +18,16 @@ package com.bendb.thrifty.schema.parser;
 import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.NamespaceScope;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import okio.Okio;
 
 import org.junit.Test;
 
 import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
+import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class ThriftParserTest {
     @Test
@@ -173,11 +170,19 @@ public class ThriftParserTest {
     @Test
     public void emptyStruct() {
         String thrift = "struct Empty {}";
-        ThriftFileElement file = parse(thrift, Location.get("", "empty.thrift"));
+        Location location = Location.get("", "empty.thrift");
 
-        assertThat(file.structs().get(0).name(), is("Empty"));
-        assertThat(file.structs().get(0).type(), is(StructElement.Type.STRUCT));
-        assertThat(file.structs().get(0).fields().size(), is(0));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .structs(ImmutableList.<StructElement>builder()
+                        .add(StructElement.builder(location.at(1, 1))
+                                .name("Empty")
+                                .type(StructElement.Type.STRUCT)
+                                .fields(ImmutableList.<FieldElement>of())
+                                .build())
+                        .build())
+                .build();
+
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
@@ -189,40 +194,81 @@ public class ThriftParserTest {
                 "  2: required string bar   // and has trailing doc\n" +
                 "}";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "simple.thrift"));
-        assertThat(file.structs().get(0).name(), is("Simple"));
-        assertThat(file.structs().get(0).type(), is(StructElement.Type.STRUCT));
+        Location location = Location.get("", "simple.thrift");
 
-        FieldElement first = file.structs().get(0).fields().get(0);
-        assertThat(first.documentation(), is("This field is optional\n"));
-        assertThat(first.fieldId(), is(1));
-        assertThat(first.type().name(), is("i32"));
-        assertThat(first.required(), is(false));
-        assertThat(first.name(), is("foo"));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .structs(ImmutableList.<StructElement>builder()
+                        .add(StructElement.builder(location.at(1, 1))
+                                .name("Simple")
+                                .type(StructElement.Type.STRUCT)
+                                .fields(ImmutableList.<FieldElement>builder()
+                                        .add(FieldElement.builder(location.at(3, 3))
+                                                .name("foo")
+                                                .fieldId(1)
+                                                .required(false)
+                                                .type(TypeElement.scalar(location.at(3, 5), "i32", null))
+                                                .documentation("This field is optional\n")
+                                                .build())
+                                        .add(FieldElement.builder(location.at(5, 3))
+                                                .name("bar")
+                                                .fieldId(2)
+                                                .required(true)
+                                                .type(TypeElement.scalar(location.at(5, 15), "string", null))
+                                                .documentation("This next field is required\nand has trailing doc\n")
+                                                .build())
+                                        .build())
+                                .build())
+                        .build())
+                .build();
 
-        FieldElement second = file.structs().get(0).fields().get(1);
-        assertThat(second.fieldId(), is(2));
-        assertThat(second.documentation(), is("This next field is required\nand has trailing doc\n"));
-        assertThat(second.type().name(), is("string"));
-        assertThat(second.required(), is(true));
-        assertThat(second.name(), is("bar"));
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
     public void trailingFieldDoc() {
-        String thrift = "// This struct demonstrates trailing comments\n" +
-                "struct TrailingDoc {" +
+        String thrift = "" +
+                "// This struct demonstrates trailing comments\n" +
+                "struct TrailingDoc {\n" +
                 "  1: required string standard, // cpp-style\n" +
                 "  2: required string python,    # py-style\n" +
                 "  3: optional binary knr;      /** K&R-style **/\n" +
                 "}";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "trailing.thrift"));
-        StructElement doc = file.structs().get(0);
+        Location location = Location.get("", "trailing.thrift");
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .structs(ImmutableList.<StructElement>builder()
+                        .add(StructElement.builder(location.at(2, 1))
+                                .documentation("This struct demonstrates trailing comments\n")
+                                .name("TrailingDoc")
+                                .type(StructElement.Type.STRUCT)
+                                .fields(ImmutableList.<FieldElement>builder()
+                                        .add(FieldElement.builder(location.at(3, 3))
+                                                .fieldId(1)
+                                                .required(true)
+                                                .type(TypeElement.scalar(location.at(3, 15), "string", null))
+                                                .name("standard")
+                                                .documentation("cpp-style\n")
+                                                .build())
+                                        .add(FieldElement.builder(location.at(4, 3))
+                                                .fieldId(2)
+                                                .required(true)
+                                                .type(TypeElement.scalar(location.at(4, 15), "string", null))
+                                                .name("python")
+                                                .documentation("py-style\n")
+                                                .build())
+                                        .add(FieldElement.builder(location.at(5, 3))
+                                                .fieldId(3)
+                                                .required(false)
+                                                .type(TypeElement.scalar(location.at(5, 15), "binary", null))
+                                                .name("knr")
+                                                .documentation("* K&R-style *\n")
+                                                .build())
+                                        .build())
+                                .build())
+                        .build())
+                .build();
 
-        assertThat(doc.fields().get(0).documentation(), is("cpp-style\n"));
-        assertThat(doc.fields().get(1).documentation(), is("py-style\n"));
-        assertThat(doc.fields().get(2).documentation(), is("* K&R-style *\n"));
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
@@ -233,7 +279,7 @@ public class ThriftParserTest {
                 "}";
 
         try {
-            ThriftParser.parse(Location.get("", "duplicateIds.thrift"), thrift);
+            parse(thrift, Location.get("", "duplicateIds.thrift"));
             fail("Structs with duplicate field IDs should fail to parse");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("duplicate field ID:"));
@@ -249,9 +295,7 @@ public class ThriftParserTest {
                 "}";
 
         try {
-            ThriftParser.parse(
-                    Location.get("", "duplicateImplicitIds.thrift"),
-                    thrift);
+            parse(thrift, Location.get("", "duplicateImplicitIds.thrift"));
             fail("Structs with duplicate implicit field IDs should fail to parse");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("duplicate field ID: 1"));
@@ -263,7 +307,7 @@ public class ThriftParserTest {
         String thrift = "struct WeirdButLegal {\n" +
                 "byte minimal\n" +
                 "byte minimalWithSeparator,\n" +
-                "byte minimalWithOtherSeparator,\n" +
+                "byte minimalWithOtherSeparator;\n" +
                 "required byte required\n" +
                 "required byte requiredWithComma,\n" +
                 "required byte requiredWithSemicolon;\n" +
@@ -278,34 +322,110 @@ public class ThriftParserTest {
                 "15: required i64 requiredIdWithSemicolon;\n" +
                 "}";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "weird.thrift"));
+        Location location = Location.get("", "weird.thrift");
 
-        StructElement struct = file.structs().get(0);
-        ImmutableList<FieldElement> fields = struct.fields();
+        StructElement expectedStruct = StructElement.builder(location.at(1, 1))
+                .name("WeirdButLegal")
+                .type(StructElement.Type.STRUCT)
+                .fields(ImmutableList.<FieldElement>builder()
+                        .add(FieldElement.builder(location.at(2, 1))
+                                .fieldId(1)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(2, 1), "byte", null))
+                                .name("minimal")
+                                .build())
+                        .add(FieldElement.builder(location.at(3, 1))
+                                .fieldId(2)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(3, 1), "byte", null))
+                                .name("minimalWithSeparator")
+                                .build())
+                        .add(FieldElement.builder(location.at(4, 1))
+                                .fieldId(3)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(4, 1), "byte", null))
+                                .name("minimalWithOtherSeparator")
+                                .build())
+                        .add(FieldElement.builder(location.at(5, 1))
+                                .fieldId(4)
+                                .required(true)
+                                .type(TypeElement.scalar(location.at(5, 10), "byte", null))
+                                .name("required")
+                                .build())
+                        .add(FieldElement.builder(location.at(6, 1))
+                                .fieldId(5)
+                                .required(true)
+                                .type(TypeElement.scalar(location.at(6, 10), "byte", null))
+                                .name("requiredWithComma")
+                                .build())
+                        .add(FieldElement.builder(location.at(7, 1))
+                                .fieldId(6)
+                                .required(true)
+                                .type(TypeElement.scalar(location.at(7, 10), "byte", null))
+                                .name("requiredWithSemicolon")
+                                .build())
+                        .add(FieldElement.builder(location.at(8, 1))
+                                .fieldId(7)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(8, 10), "i16", null))
+                                .name("optional")
+                                .build())
+                        .add(FieldElement.builder(location.at(9, 1))
+                                .fieldId(8)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(9, 10), "i16", null))
+                                .name("optionalWithComma")
+                                .build())
+                        .add(FieldElement.builder(location.at(10, 1))
+                                .fieldId(9)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(10, 10), "i16", null))
+                                .name("optionalWithSemicolon")
+                                .build())
+                        .add(FieldElement.builder(location.at(11, 1))
+                                .fieldId(10)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(11, 5), "i32", null))
+                                .name("implicitOptional")
+                                .build())
+                        .add(FieldElement.builder(location.at(12, 1))
+                                .fieldId(11)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(12, 5), "i32", null))
+                                .name("implicitOptionalWithComma")
+                                .build())
+                        .add(FieldElement.builder(location.at(13, 1))
+                                .fieldId(12)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(13, 5), "i32", null))
+                                .name("implicitOptionalWithSemicolon")
+                                .build())
+                        .add(FieldElement.builder(location.at(14, 1))
+                                .fieldId(13)
+                                .required(true)
+                                .type(TypeElement.scalar(location.at(14, 14), "i64", null))
+                                .name("requiredId")
+                                .build())
+                        .add(FieldElement.builder(location.at(15, 1))
+                                .fieldId(14)
+                                .required(true)
+                                .type(TypeElement.scalar(location.at(15, 14), "i64", null))
+                                .name("requiredIdWithComma")
+                                .build())
+                        .add(FieldElement.builder(location.at(16, 1))
+                                .fieldId(15)
+                                .required(true)
+                                .type(TypeElement.scalar(location.at(16, 14), "i64", null))
+                                .name("requiredIdWithSemicolon")
+                                .build())
+                        .build())
+                .build();
 
-        assertThat(fields.size(), is(15));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .structs(ImmutableList.of(expectedStruct))
+                .build();
 
-        FieldElement field = fields.get(0);
-        assertThat(field.name(), is("minimal"));
-        assertThat(field.type().name(), is("byte"));
-        assertThat(field.fieldId(), is(1));
-
-        field = fields.get(1);
-        assertThat(field.name(), is("minimalWithSeparator"));
-        assertThat(field.type().name(), is("byte"));
-        assertThat(field.fieldId(), is(2));
-
-        field = fields.get(8);
-        assertThat(field.name(), is("optionalWithSemicolon"));
-        assertThat(field.type().name(), is("i16"));
-        assertThat(field.required(), is(false));
-        assertThat(field.fieldId(), is(9));
-
-        field = fields.get(14);
-        assertThat(field.name(), is("requiredIdWithSemicolon"));
-        assertThat(field.type().name(), is("i64"));
-        assertThat(field.required(), is(true));
-        assertThat(field.fieldId(), is(15));
+        assertThat(parse(thrift, location), equalTo(expected));
     }
 
     @Test
@@ -322,7 +442,7 @@ public class ThriftParserTest {
                 "  0: option i64 stillNope\n" +
                 "}";
         try {
-            ThriftParser.parse(Location.get("", ""), thrift);
+            parse(thrift);
             fail("Should not parse a struct with a zero field ID");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("field ID must be greater than zero"));
@@ -331,71 +451,96 @@ public class ThriftParserTest {
 
     @Test
     public void services() {
-        String thrift = "\n" +
+        // NOTE: the service defined below is *not a legal Thrift service*.
+        //       'oneway' functions must return void, and may not throw.
+        //       We don't do this level of semantic validation here.
+        String thrift = "" +
                 "service Svc {\n" +
                 "  FooResult foo(1:FooRequest request, 2: optional FooMeta meta)\n" +
                 "  oneway BarResult bar() throws (1:FooException foo, 2:BarException bar)\n" +
                 "}";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "simpleService.thrift"));
-        ServiceElement svc = file.services().get(0);
+        Location location = Location.get("", "simpleService.thrift");
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .services(ImmutableList.of(ServiceElement.builder(location.at(1, 1))
+                        .name("Svc")
+                        .functions(ImmutableList.<FunctionElement>builder()
+                                .add(FunctionElement.builder(location.at(2, 3))
+                                        .name("foo")
+                                        .returnType(TypeElement.scalar(location.at(2, 3), "FooResult", null))
+                                        .oneWay(false)
+                                        .params(ImmutableList.<FieldElement>builder()
+                                                .add(FieldElement.builder(location.at(2, 17))
+                                                        .fieldId(1)
+                                                        .required(true)
+                                                        .name("request")
+                                                        .type(TypeElement.scalar(location.at(2, 19), "FooRequest", null))
+                                                        .build())
+                                                .add(FieldElement.builder(location.at(2, 39))
+                                                        .fieldId(2)
+                                                        .required(false)
+                                                        .name("meta")
+                                                        .type(TypeElement.scalar(location.at(2, 51), "FooMeta", null))
+                                                        .build())
+                                                .build())
+                                        .build())
+                                .add(FunctionElement.builder(location.at(3, 3))
+                                        .name("bar")
+                                        .oneWay(true)
+                                        .returnType(TypeElement.scalar(location.at(3, 10), "BarResult", null))
+                                        .exceptions(ImmutableList.<FieldElement>builder()
+                                                .add(FieldElement.builder(location.at(3, 34))
+                                                        .fieldId(1)
+                                                        .name("foo")
+                                                        .required(false)
+                                                        .type(TypeElement.scalar(location.at(3, 36), "FooException", null))
+                                                        .build())
+                                                .add(FieldElement.builder(location.at(3, 54))
+                                                        .fieldId(2)
+                                                        .name("bar")
+                                                        .required(false)
+                                                        .type(TypeElement.scalar(location.at(3, 56), "BarException", null))
+                                                        .build())
+                                                .build())
+                                        .build())
+                                .build())
+                        .build()))
+                .build();
 
-        ImmutableList<FunctionElement> functions = svc.functions();
-
-        FunctionElement f = functions.get(0);
-        assertThat(f.name(), is("foo"));
-        assertThat(f.returnType().name(), is("FooResult"));
-        assertThat(f.params().get(0).name(), is("request"));
-        assertThat(f.params().get(0).type().name(), is("FooRequest"));
-        assertThat(f.params().get(0).fieldId(), is(1));
-        assertThat(f.params().get(0).required(), is(true));
-
-        assertThat(f.params().get(1).name(), is("meta"));
-        assertThat(f.params().get(1).type().name(), is("FooMeta"));
-        assertThat(f.params().get(1).fieldId(), is(2));
-        assertThat(f.params().get(1).required(), is(false));
-
-        f = functions.get(1);
-        assertThat(f.name(), is("bar"));
-        assertThat(f.returnType().name(), is("BarResult"));
-        assertThat(f.oneWay(), is(true));
-        assertThat(f.params().size(), is(0));
-
-        ImmutableList<FieldElement> exns = f.exceptions();
-        assertThat(exns.get(0).name(), is("foo"));
-        assertThat(exns.get(0).type().name(), is("FooException"));
-        assertThat(exns.get(0).fieldId(), is(1));
-
-        assertThat(exns.get(1).name(), is("bar"));
-        assertThat(exns.get(1).type().name(), is("BarException"));
-        assertThat(exns.get(1).fieldId(), is(2));
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
     public void unions() {
-        String thrift = "\n" +
+        String thrift = "" +
                 "union Normal {\n" +
                 "  2: i16 foo,\n" +
                 "  4: i32 bar\n" +
                 "}\n";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "union.thrift"));
-        StructElement union = file.unions().get(0);
+        Location location = Location.get("", "union.thrift");
 
-        assertThat(union.name(), is("Normal"));
-        assertThat(union.fields().size(), is(2));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .unions(ImmutableList.of(StructElement.builder(location.at(1, 1))
+                        .name("Normal")
+                        .type(StructElement.Type.UNION)
+                        .fields(ImmutableList.<FieldElement>builder()
+                                .add(FieldElement.builder(location.at(2, 3))
+                                        .fieldId(2)
+                                        .required(false)
+                                        .name("foo")
+                                        .type(TypeElement.scalar(location.at(2, 6), "i16", null))
+                                        .build())
+                                .add(FieldElement.builder(location.at(3, 3))
+                                        .fieldId(4)
+                                        .required(false)
+                                        .name("bar")
+                                        .type(TypeElement.scalar(location.at(3, 6), "i32", null))
+                                        .build())
+                                .build())
+                        .build())).build();
 
-        FieldElement f = union.fields().get(0);
-        assertThat(f.fieldId(), is(2));
-        assertThat(f.name(), is("foo"));
-        assertThat(f.type().name(), is("i16"));
-        assertThat(f.required(), is(false));
-
-        f = union.fields().get(1);
-        assertThat(f.fieldId(), is(4));
-        assertThat(f.name(), is("bar"));
-        assertThat(f.type().name(), is("i32"));
-        assertThat(f.required(), is(false));
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
@@ -407,7 +552,7 @@ public class ThriftParserTest {
                 "}\n";
 
         try {
-            ThriftParser.parse(Location.get("", "unionWithRequired.thrift"), thrift);
+            parse(thrift, Location.get("", "unionWithRequired.thrift"));
             fail("Union cannot have a required field");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("unions cannot have required fields"));
@@ -423,7 +568,7 @@ public class ThriftParserTest {
                 "}\n";
 
         try {
-            ThriftParser.parse(Location.get("", "unionWithRequired.thrift"), thrift);
+            parse(thrift, Location.get("", "unionWithRequired.thrift"));
             fail("Union cannot have a more than one default value");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("unions can have at most one default value"));
@@ -432,7 +577,7 @@ public class ThriftParserTest {
 
     @Test
     public void unionsCanHaveOneDefaultValue() {
-        String thrift = "\n" +
+        String thrift = "" +
                 "union Default {\n" +
                 "  1: i16 foo,\n" +
                 "  2: i16 bar,\n" +
@@ -440,69 +585,86 @@ public class ThriftParserTest {
                 "  4: i16 quux\n" +
                 "}";
 
-        ThriftFileElement element = parse(thrift, Location.get("", "unionWithDefault.thrift"));
-        StructElement u = element.unions().get(0);
+        Location location = Location.get("", "unionWithDefault.thrift");
 
-        assertThat(u.name(), is("Default"));
-        assertThat(u.fields().size(), is(4));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .unions(ImmutableList.of(StructElement.builder(location.at(1, 1))
+                        .name("Default")
+                        .type(StructElement.Type.UNION)
+                        .fields(ImmutableList.<FieldElement>builder()
+                                .add(FieldElement.builder(location.at(2, 3))
+                                        .fieldId(1)
+                                        .name("foo")
+                                        .required(false)
+                                        .type(TypeElement.scalar(location.at(2, 6), "i16", null))
+                                        .build())
+                                .add(FieldElement.builder(location.at(3, 3))
+                                        .fieldId(2)
+                                        .name("bar")
+                                        .required(false)
+                                        .type(TypeElement.scalar(location.at(3, 6), "i16", null))
+                                        .build())
+                                .add(FieldElement.builder(location.at(4, 3))
+                                        .fieldId(3)
+                                        .name("baz")
+                                        .required(false)
+                                        .type(TypeElement.scalar(location.at(4, 6), "i16", null))
+                                        .constValue(ConstValueElement.integer(location.at(4, 16), 0xFFF))
+                                        .build())
+                                .add(FieldElement.builder(location.at(5, 3))
+                                        .fieldId(4)
+                                        .name("quux")
+                                        .required(false)
+                                        .type(TypeElement.scalar(location.at(5, 6), "i16", null))
+                                        .build())
+                                .build())
+                        .build()))
+                .build();
 
-        ImmutableList<FieldElement> fields = u.fields();
-
-        FieldElement f = fields.get(0);
-        assertThat(f.name(), is("foo"));
-        assertThat(f.fieldId(), is(1));
-        assertThat(f.type().name(), is("i16"));
-        assertThat(f.constValue(), is(nullValue()));
-
-        f = fields.get(1);
-        assertThat(f.name(), is("bar"));
-        assertThat(f.fieldId(), is(2));
-        assertThat(f.type().name(), is("i16"));
-        assertThat(f.constValue(), is(nullValue()));
-
-        f = fields.get(2);
-        assertThat(f.name(), is("baz"));
-        assertThat(f.fieldId(), is(3));
-        assertThat(f.type().name(), is("i16"));
-        assertThat((Long) f.constValue().value(), is(0xFFFL));
-
-        f = fields.get(3);
-        assertThat(f.name(), is("quux"));
-        assertThat(f.fieldId(), is(4));
-        assertThat(f.type().name(), is("i16"));
-        assertThat(f.constValue(), is(nullValue()));
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
     public void simpleConst() {
         String thrift = "const i64 DefaultStatusCode = 200";
-        ThriftFileElement file = parse(thrift, Location.get("", "simpleConst.thrift"));
-        ConstElement c = file.constants().get(0);
+        Location location = Location.get("", "simpleConst.thrift");
 
-        assertThat(c.name(), is("DefaultStatusCode"));
-        assertThat(c.type().name(), is("i64"));
-        assertThat(c.value().kind(), is(ConstValueElement.Kind.INTEGER));
-        assertThat((Long) c.value().value(), is(200L));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .constants(ImmutableList.of(ConstElement.builder(location.at(1, 1))
+                        .name("DefaultStatusCode")
+                        .type(TypeElement.scalar(location.at(1, 7), "i64", null))
+                        .value(ConstValueElement.integer(location.at(1, 31), 200))
+                        .build()))
+                .build();
+
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
     public void listConst() {
         String thrift = "const list<string> Names = [\"foo\" \"bar\", \"baz\"; \"quux\"]";
-        ThriftFileElement file = parse(thrift, Location.get("", "listConst.thrift"));
-        ConstElement c = file.constants().get(0);
+        Location location = Location.get("", "listConst.thrift");
 
-        assertThat(c.name(), is("Names"));
-        assertThat(c.type().name(), is("list<string>"));
+        ConstElement element = ConstElement.builder(location.at(1, 1))
+                .name("Names")
+                .type(TypeElement.list(
+                        location.at(1, 7),
+                        TypeElement.scalar(location.at(1, 12), "string", null),
+                        null))
+                .value(ConstValueElement.list(
+                        location.at(1, 28),
+                        Arrays.asList(
+                                ConstValueElement.literal(location.at(1, 29), "foo"),
+                                ConstValueElement.literal(location.at(1, 35), "bar"),
+                                ConstValueElement.literal(location.at(1, 42), "baz"),
+                                ConstValueElement.literal(location.at(1, 49), "quux"))))
+                .build();
 
-        ConstValueElement value = c.value();
-        assertThat(value.kind(), is(ConstValueElement.Kind.LIST));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .constants(ImmutableList.of(element))
+                .build();
 
-        List<ConstValueElement> list = (List<ConstValueElement>) value.value();
-        assertThat(list.size(), is(4));
-        assertThat((String) list.get(0).value(), is("foo"));
-        assertThat((String) list.get(1).value(), is("bar"));
-        assertThat((String) list.get(2).value(), is("baz"));
-        assertThat((String) list.get(3).value(), is("quux"));
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
@@ -513,28 +675,28 @@ public class ThriftParserTest {
                 "  \"baz\": \"quux\";\n" +
                 "}";
 
-        ThriftFileElement file = parse(thrift, Location.get("", "mapConst.thrift"));
-        ConstElement c = file.constants().get(0);
+        Location location = Location.get("", "mapConst.thrift");
+        ConstElement mapConst = ConstElement.builder(location.at(1, 1))
+                .name("Headers")
+                .type(TypeElement.map(
+                        location.at(1, 7),
+                        TypeElement.scalar(location.at(1, 11), "string", null),
+                        TypeElement.scalar(location.at(1, 19), "string", null),
+                        null))
+                .value(ConstValueElement.map(location.at(1, 37),
+                        ImmutableMap.of(
+                                ConstValueElement.literal(location.at(2, 3), "foo"),
+                                ConstValueElement.literal(location.at(2, 10), "bar"),
 
-        assertThat(c.name(), is("Headers"));
-        assertThat(c.type().name(), is("map<string, string>"));
+                                ConstValueElement.literal(location.at(3, 3), "baz"),
+                                ConstValueElement.literal(location.at(3, 10), "quux"))))
+                .build();
 
-        ConstValueElement value = c.value();
-        assertThat(value.kind(), is(ConstValueElement.Kind.MAP));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .constants(ImmutableList.of(mapConst))
+                .build();
 
-        Map<ConstValueElement, ConstValueElement> values = (Map<ConstValueElement, ConstValueElement>) value.value();
-        assertThat(values.size(), is(2));
-
-        for (Map.Entry<ConstValueElement, ConstValueElement> entry : values.entrySet()) {
-            String key = (String) entry.getKey().value();
-            if (key.equals("foo")) {
-                assertThat((String) entry.getValue().value(), is("bar"));
-            } else if (key.equals("baz")) {
-                assertThat((String) entry.getValue().value(), is("quux"));
-            } else {
-                fail("unexpected key value: " + key);
-            }
-        }
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
@@ -543,17 +705,23 @@ public class ThriftParserTest {
                 "  100: i32 num = 1\n" +
                 "}";
 
-        ThriftFileElement file = parse(thrift);
-        StructElement s = file.structs().get(0);
-        FieldElement f = s.fields().get(0);
-        assertThat(f.fieldId(), is(100));
-        assertThat(f.name(), is("num"));
-        assertThat(f.type().name(), is("i32"));
+        Location location = Location.get("", "structWithConstValue.thrift");
 
-        ConstValueElement v = f.constValue();
-        assertThat(v, is(notNullValue()));
-        assertThat(v.kind(), is(ConstValueElement.Kind.INTEGER));
-        assertThat((Long) v.value(), is(1L));
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .structs(ImmutableList.of(StructElement.builder(location.at(1, 1))
+                        .name("Foo")
+                        .type(StructElement.Type.STRUCT)
+                        .fields(ImmutableList.of(FieldElement.builder(location.at(2, 3))
+                                .fieldId(100)
+                                .required(false)
+                                .type(TypeElement.scalar(location.at(2, 8), "i32", null))
+                                .name("num")
+                                .constValue(ConstValueElement.integer(location.at(2, 18), 1))
+                                .build()))
+                        .build()))
+                .build();
+
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
@@ -563,7 +731,8 @@ public class ThriftParserTest {
         String thrift = Okio.buffer(Okio.source(stream)).readUtf8();
         Location location = Location.get("cases", "TestThrift.thrift");
 
-        ThriftParser.parse(location, thrift);
+        // Not crashing is good enough here.  We'll be more strict with this file in the loader test.
+        parse(thrift, location);
     }
 
     @Test
@@ -573,18 +742,24 @@ public class ThriftParserTest {
                 "  BAR\n" +
                 "}";
 
-        ThriftFileElement file = parse(thrift);
-        EnumElement anEnum = file.enums().get(0);
-        assertThat(anEnum.name(), is("Enum"));
-        assertThat(anEnum.members().size(), is(2));
+        Location location = Location.get("", "bareEnums.thrift");
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .enums(ImmutableList.of(EnumElement.builder(location.at(1, 1))
+                        .name("Enum")
+                        .members(ImmutableList.<EnumMemberElement>builder()
+                                .add(EnumMemberElement.builder(location.at(2, 3))
+                                        .name("FOO")
+                                        .value(0)
+                                        .build())
+                                .add(EnumMemberElement.builder(location.at(3, 3))
+                                        .name("BAR")
+                                        .value(1)
+                                        .build())
+                                .build())
+                        .build()))
+                .build();
 
-        EnumMemberElement member = anEnum.members().get(0);
-        assertThat(member.name(), is("FOO"));
-        assertThat(member.value(), is(0));
-
-        member = anEnum.members().get(1);
-        assertThat(member.name(), is("BAR"));
-        assertThat(member.value(), is(1));
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
@@ -596,27 +771,32 @@ public class ThriftParserTest {
                 "  LARGE = 5000\n" +
                 "}";
 
-        ThriftFileElement file = parse(thrift);
-        EnumElement anEnum = file.enums().get(0);
-        assertThat(anEnum.name(), is("Gaps"));
-        assertThat(anEnum.members().size(), is(4));
+        Location location = Location.get("", "enumWithLargeGaps.thrift");
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .enums(ImmutableList.of(EnumElement.builder(location.at(1, 1))
+                        .name("Gaps")
+                        .members(ImmutableList.<EnumMemberElement>builder()
+                                .add(EnumMemberElement.builder(location.at(2, 3))
+                                        .name("SMALL")
+                                        .value(10)
+                                        .build())
+                                .add(EnumMemberElement.builder(location.at(3, 3))
+                                        .name("MEDIUM")
+                                        .value(100)
+                                        .build())
+                                .add(EnumMemberElement.builder(location.at(4, 3))
+                                        .name("ALSO_MEDIUM")
+                                        .value(101)
+                                        .build())
+                                .add(EnumMemberElement.builder(location.at(5, 3))
+                                        .name("LARGE")
+                                        .value(5000)
+                                        .build())
+                                .build())
+                        .build()))
+                .build();
 
-        List<EnumMemberElement> members = anEnum.members();
-        EnumMemberElement member = members.get(0);
-        assertThat(member.name(), is("SMALL"));
-        assertThat(member.value(), is(10));
-
-        member = members.get(1);
-        assertThat(member.name(), is("MEDIUM"));
-        assertThat(member.value(), is(100));
-
-        member = members.get(2);
-        assertThat(member.name(), is("ALSO_MEDIUM"));
-        assertThat(member.value(), is(101));
-
-        member = members.get(3);
-        assertThat(member.name(), is("LARGE"));
-        assertThat(member.value(), is(5000));
+        assertThat(parse(thrift, location), is(expected));
     }
 
     @Test
@@ -628,7 +808,7 @@ public class ThriftParserTest {
                 "}";
 
         try {
-            ThriftParser.parse(Location.get("", ""), thrift);
+            parse(thrift);
             fail();
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("duplicate enum value"));

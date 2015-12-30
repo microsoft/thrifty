@@ -560,7 +560,7 @@ public final class ThriftParser {
     }
 
     private ConstValueElement readConstValue() {
-        //throw unexpected("const values are not yet implemented");
+        skipWhitespace(false);
         Location location = location();
         char c = peekChar(false);
         if (c == '"' || c == '\'') {
