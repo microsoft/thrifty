@@ -166,13 +166,13 @@ public class ClientBase implements Closeable {
             }
         }
 
-        abstract void act() throws Exception;
+        protected abstract void act() throws Exception;
     }
 
     private class WriterThread extends RunLoop {
         @SuppressWarnings("Duplicates")
         @Override
-        void act() throws Exception {
+        protected void act() throws Exception {
             final MethodCall call;
 
             lock.lock();
@@ -233,7 +233,7 @@ public class ClientBase implements Closeable {
     private class ReaderThread extends RunLoop {
         @SuppressWarnings("Duplicates")
         @Override
-        void act() throws Exception {
+        protected void act() throws Exception {
             final MethodCall call;
 
             lock.lock();
