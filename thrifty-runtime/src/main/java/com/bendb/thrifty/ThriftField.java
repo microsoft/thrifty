@@ -30,5 +30,6 @@ import java.lang.annotation.Target;
 public @interface ThriftField {
     short fieldId();
     boolean isRequired() default false;
+    boolean isOptional() default false;
     String typedefName() default "";
 }
