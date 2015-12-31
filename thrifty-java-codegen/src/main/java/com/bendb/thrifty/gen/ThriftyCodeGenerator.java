@@ -495,7 +495,7 @@ public final class ThriftyCodeGenerator {
         }
 
         for (Field field : structType.fields()) {
-            boolean optional = !field.required();
+            boolean optional = !field.required(); // could also be default, but same-same to us.
             final String name = field.name();
             final ThriftType tt = field.type().getTrueType();
             byte typeCode = typeResolver.getTypeCode(tt);

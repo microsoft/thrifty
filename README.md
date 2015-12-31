@@ -41,6 +41,17 @@ On the command line:
 java -jar thrifty-compiler.jar --out=path/to/output file_one.thrift file_two.thrift file_n.thrift
 ```
 
+### Differences with Apache Thrift
+
+Thrifty is 100% compatible with Apache Thrift services.
+
+The major differences are:
+
+- Thrifty structs are immutable.
+- Thrifty structs are always valid, once built via a builder.
+- Fields that are neither required nor optional (i.e. "default") are treated as optional; a struct with an unset default field may still be serialized.
+- TupleProtocol is unsupported at present
+
 ### Building
 
 ```bash
