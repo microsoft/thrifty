@@ -16,6 +16,7 @@
 package com.bendb.thrifty.schema.parser;
 
 import com.bendb.thrifty.schema.Location;
+import com.bendb.thrifty.schema.Requiredness;
 import com.google.auto.value.AutoValue;
 
 import javax.annotation.Nullable;
@@ -26,7 +27,7 @@ public abstract class FieldElement {
         return new AutoValue_FieldElement.Builder()
                 .location(location)
                 .documentation("")
-                .required(false);
+                .requiredness(Requiredness.DEFAULT);
     }
 
     public FieldElement withId(int fieldId) {
@@ -38,7 +39,7 @@ public abstract class FieldElement {
     public abstract Location location();
     public abstract String documentation();
     @Nullable public abstract Integer fieldId();
-    public abstract boolean required();
+    public abstract Requiredness requiredness();
     public abstract TypeElement type();
     public abstract String name();
     @Nullable public abstract ConstValueElement constValue();
@@ -51,7 +52,7 @@ public abstract class FieldElement {
         Builder location(Location location);
         Builder documentation(String documentation);
         Builder fieldId(Integer fieldId);
-        Builder required(boolean required);
+        Builder requiredness(Requiredness requiredness);
         Builder type(TypeElement type);
         Builder name(String name);
         Builder constValue(ConstValueElement constValue);

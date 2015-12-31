@@ -60,7 +60,7 @@ public final class Field {
     }
 
     public boolean required() {
-        return element.required();
+        return element.requiredness() == Requiredness.REQUIRED;
     }
 
     public String documentation() {

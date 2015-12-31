@@ -19,6 +19,7 @@ package com.bendb.thrifty.schema.parser;
 import com.bendb.thrifty.schema.JavadocUtil;
 import com.bendb.thrifty.schema.Location;
 import com.bendb.thrifty.schema.NamespaceScope;
+import com.bendb.thrifty.schema.Requiredness;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -327,7 +328,7 @@ public final class ThriftParser {
         StructElement element = readAggregateType(location, documentation, StructElement.Type.UNION);
         boolean hasDefaultField = false;
         for (FieldElement field : element.fields()) {
-            if (field.required()) {
+            if (field.requiredness() == Requiredness.REQUIRED) {
                 throw unexpected("unions cannot have required fields: " + field.name());
             }
 
@@ -413,8 +414,7 @@ public final class ThriftParser {
         }
 
         FieldElement.Builder field = FieldElement.builder(location())
-                .documentation(formatJavadoc(doc))
-                .required(requiredByDefault);
+                .documentation(formatJavadoc(doc));
 
         if ((data[pos] >= '0' && data[pos] <= '9') || data[pos] == '-') {
             Integer fieldId;
@@ -437,11 +437,19 @@ public final class ThriftParser {
 
         TypeElement typeName = readTypeName();
 
-        if ("required".equals(typeName.name()) || "optional".equals(typeName.name())) {
-            field.required("required".equals(typeName.name()));
+        Requiredness requiredness = requiredByDefault
+                ? Requiredness.REQUIRED
+                : Requiredness.DEFAULT;
+
+        if ("required".equals(typeName.name())) {
+            requiredness = Requiredness.REQUIRED;
+            typeName = readTypeName();
+        } else if ("optional".equals(typeName.name())) {
+            requiredness = Requiredness.OPTIONAL;
             typeName = readTypeName();
         }
 
+        field.requiredness(requiredness);
         field.type(typeName);
         field.name(readIdentifier());
 
