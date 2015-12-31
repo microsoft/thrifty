@@ -63,6 +63,10 @@ public final class Field {
         return element.requiredness() == Requiredness.REQUIRED;
     }
 
+    public boolean optional() {
+        return element.requiredness() == Requiredness.OPTIONAL;
+    }
+
     public String documentation() {
         return element.documentation();
     }
