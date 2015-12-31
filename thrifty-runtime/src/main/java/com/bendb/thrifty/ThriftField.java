@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
  */
 @Documented
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.SOURCE)
 public @interface ThriftField {
     short fieldId();
     boolean isRequired() default false;
