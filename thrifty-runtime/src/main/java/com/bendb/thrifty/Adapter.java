@@ -27,7 +27,7 @@ import java.io.IOException;
  */
 public interface Adapter<T, B extends StructBuilder<T>> {
     /**
-     * Reads a new instane of {@link T} from the given {@code protocol}.
+     * Reads a new instance of {@link T} from the given {@code protocol}.
      *
      * @param protocol the protocol from which to read
      * @return an instance of {@link T} populated with the data just read.

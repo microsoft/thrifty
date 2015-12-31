@@ -100,15 +100,6 @@ public class Schema {
                 return enumType;
             }
         }
-        throw new NoSuchElementException();
-    }
-
-    public EnumType findEnumByName(String name) {
-        for (EnumType enumType : enums) {
-            if (enumType.name().equals(name)) {
-                return enumType;
-            }
-        }
-        throw new NoSuchElementException();
+        throw new NoSuchElementException("No enum type matching " + type.name());
     }
 }

@@ -18,18 +18,24 @@ package com.bendb.thrifty.gen;
 import com.bendb.thrifty.Adapter;
 import com.bendb.thrifty.StructBuilder;
 import com.bendb.thrifty.TType;
+import com.bendb.thrifty.ThriftException;
 import com.bendb.thrifty.protocol.FieldMetadata;
 import com.bendb.thrifty.protocol.ListMetadata;
 import com.bendb.thrifty.protocol.MapMetadata;
+import com.bendb.thrifty.protocol.MessageMetadata;
 import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.protocol.SetMetadata;
+import com.bendb.thrifty.service.ClientBase;
+import com.bendb.thrifty.service.MethodCall;
 import com.bendb.thrifty.service.ServiceMethodCallback;
+import com.bendb.thrifty.service.TMessageType;
 import com.bendb.thrifty.util.ProtocolUtil;
 import com.google.common.collect.ImmutableMap;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import okio.ByteString;
 
+import java.io.IOException;
 import java.net.ProtocolException;
 import java.util.Collections;
 import java.util.List;
@@ -65,17 +71,27 @@ final class TypeNames {
     static final ClassName PROTOCOL = ClassName.get(Protocol.class);
     static final ClassName PROTO_UTIL = ClassName.get(ProtocolUtil.class);
     static final ClassName PROTOCOL_EXCEPTION = ClassName.get(ProtocolException.class);
+    static final ClassName IO_EXCEPTION = ClassName.get(IOException.class);
+    static final ClassName EXCEPTION = ClassName.get(Exception.class);
     static final ClassName TTYPE = ClassName.get(TType.class);
+    static final ClassName TMESSAGE_TYPE = ClassName.get(TMessageType.class);
+
+    static final ClassName THRIFT_EXCEPTION = ClassName.get(ThriftException.class);
+    static final ClassName THRIFT_EXCEPTION_KIND = ClassName.get(ThriftException.Kind.class);
 
     static final ClassName BUILDER = ClassName.get(StructBuilder.class);
     static final ClassName ADAPTER = ClassName.get(Adapter.class);
 
     static final ClassName FIELD_METADATA = ClassName.get(FieldMetadata.class);
+    static final ClassName MESSAGE_METADATA = ClassName.get(MessageMetadata.class);
 
     static final ClassName NOT_NULL = ClassName.get("android.support.annotation", "NonNull");
     static final ClassName NULLABLE = ClassName.get("android.support.annotation", "Nullable");
 
     static final ClassName SERVICE_CALLBACK = ClassName.get(ServiceMethodCallback.class);
+    static final ClassName SERVICE_CLIENT_BASE = ClassName.get(ClientBase.class);
+    static final ClassName SERVICE_CLIENT_LISTENER = ClassName.get(ClientBase.Listener.class);
+    static final ClassName SERVICE_METHOD_CALL = ClassName.get(MethodCall.class);
 
     /**
      * A mapping of {@link TType} constant values to their Java names.
