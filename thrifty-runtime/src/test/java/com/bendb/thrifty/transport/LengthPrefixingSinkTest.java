@@ -15,7 +15,6 @@
  */
 package com.bendb.thrifty.transport;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.ProtocolException;
@@ -23,17 +22,20 @@ import java.net.ProtocolException;
 import okio.Buffer;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeThat;
 
-/**
- * @author bendb
- */
 public class LengthPrefixingSinkTest {
     @Test
-    @Ignore("This is flapping in CI, thanks to oomkiller")
     public void doesNotEncodeNegativeLength() throws Exception {
+        assumeThat(
+                "Don't run this in Travis-CI; it angers the oomkiller",
+                System.getenv("TRAVIS"), not(equalTo("true")));
+
         byte[] data = new byte[1024 * 1024];
         int iterations = Integer.MAX_VALUE / data.length + 1;
 
