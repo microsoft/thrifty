@@ -65,8 +65,7 @@ final class ServiceBuilder {
             int tag = 0;
 
             MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(method.name())
-                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                    .addException(TypeNames.IO_EXCEPTION);
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT);
 
             if (method.hasJavadoc()) {
                 methodBuilder.addJavadoc(method.documentation());
