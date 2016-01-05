@@ -20,4 +20,5 @@ dependencies {
     compile libraries.okio
 
     testCompile libraries.testing
+    testCompile project(':thrifty-compiler')
 }
