@@ -59,13 +59,14 @@ public class ClientBase implements Closeable {
         void onTransportClosed();
 
         /**
-         * Invoked when a client-level error has occured.
+         * Invoked when a client-level error has occurred.
          *
          * <p>This generally indicates a connectivity or protocol error,
          * and is distinct from errors returned as part of normal service
          * operation.
          *
-         * <p>Errors generally result in the client being closed.
+         * <p>The client is guaranteed to have been closed and shut down
+         * by the time this method is invoked.
          *
          * @param error the throwable instance representing the error.
          */

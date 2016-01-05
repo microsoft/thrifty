@@ -27,7 +27,6 @@ import org.apache.thrift.TException;
 
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +80,7 @@ public class ThriftTestHandler implements ThriftTest.Iface {
 
     @Override
     public double testDouble(double thing) throws TException {
-        out.printf("testDouble(%f)", thing);
+        out.printf("testDouble(%f)\n", thing);
         return thing;
     }
 

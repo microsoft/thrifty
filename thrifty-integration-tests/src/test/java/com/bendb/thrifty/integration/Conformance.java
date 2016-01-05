@@ -401,7 +401,7 @@ public class Conformance {
 
             @Override
             public void onError(Throwable error) {
-
+                throw new AssertionError(error);
             }
         });
     }

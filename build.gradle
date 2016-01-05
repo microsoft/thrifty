@@ -77,6 +77,15 @@ subprojects { sp ->
         archives javadocJar
         archives sourcesJar
     }
+
+    test {
+        testLogging {
+            events "failed"
+            exceptionFormat "short"
+            showExceptions true
+            showCauses true
+        }
+    }
 }
 
 afterEvaluate {
