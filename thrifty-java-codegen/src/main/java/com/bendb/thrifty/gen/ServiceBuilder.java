@@ -105,6 +105,7 @@ final class ServiceBuilder {
         String packageName = service.getNamespaceFor(NamespaceScope.JAVA);
         TypeName interfaceTypeName = ClassName.get(packageName, serviceInterface.name);
         TypeSpec.Builder builder = TypeSpec.classBuilder(service.name() + "Client")
+                .addModifiers(Modifier.PUBLIC)
                 .superclass(TypeNames.SERVICE_CLIENT_BASE)
                 .addSuperinterface(interfaceTypeName);
 

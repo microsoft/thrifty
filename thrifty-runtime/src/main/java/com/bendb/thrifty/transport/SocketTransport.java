@@ -122,7 +122,7 @@ public class SocketTransport extends Transport {
         socket.setKeepAlive(true);
         socket.setSoTimeout(readTimeout);
 
-        socket.connect(InetSocketAddress.createUnresolved(host, port), connectTimeout);
+        socket.connect(new InetSocketAddress(host, port), connectTimeout);
 
         source = Okio.buffer(Okio.source(socket));
         sink = Okio.buffer(Okio.sink(socket));

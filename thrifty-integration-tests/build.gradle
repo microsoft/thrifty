@@ -1,0 +1,40 @@
+dependencies {
+    compile project(':thrifty-compiler')
+
+    testCompile project(':thrifty-runtime')
+    testCompile project(':thrifty-test-server')
+
+    testCompile 'junit:junit:4.11'
+}
+
+sourceSets {
+    test {
+        java.srcDirs += ['build/generated-src/thrifty']
+    }
+}
+
+jar {
+    doFirst {
+        from(configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }) {
+            exclude 'META-INF/services/*'
+        }
+    }
+
+    manifest {
+        attributes("Main-Class": "com.bendb.thrifty.compiler.ThriftyCompiler")
+    }
+}
+
+task compileTestThrift(type: Exec) {
+    def jarTask = project.tasks['jar'] as Jar
+
+    dependsOn jarTask
+
+    executable 'java'
+    args('-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/generated-src/thrifty", "$projectDir/ClientThriftTest.thrift")
+}
+
+tasks['compileTestJava'].dependsOn compileTestThrift
+tasks['javadoc'].configure {
+    exclude '**/generated-src/**'
+}

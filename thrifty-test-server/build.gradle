@@ -1,0 +1,12 @@
+dependencies {
+    compile group: 'junit', name: 'junit', version: '4.11'
+    compile 'org.apache.thrift:libthrift:0.9.3'
+}
+
+// Apache codegen has tons of Javadoc errors (so does Thrifty's, but eh
+tasks['javadoc'].configure {
+    exclude '**/test/gen/**'
+}
+
+// Ditto for checkstyle violations - though I think Thrifty does a little better here ;)
+tasks['checkstyleMain'].enabled = false

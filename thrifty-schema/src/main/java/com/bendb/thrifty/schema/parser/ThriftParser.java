@@ -167,7 +167,7 @@ public final class ThriftParser {
         }
 
         if ("include".equals(word)) {
-            String path = readLiteral();
+            String path = readLiteral(false); // Don't process escapes, Windows paths will fail to resolve.
             return IncludeElement.create(location, false, path);
         }
 
@@ -842,6 +842,10 @@ public final class ThriftParser {
     }
 
     private String readLiteral() {
+        return readLiteral(true);
+    }
+
+    private String readLiteral(boolean processEscapes) {
         skipWhitespace(true);
         char quote = readChar();
         if (quote != '"' && quote != '\'') {
@@ -855,7 +859,7 @@ public final class ThriftParser {
                 return sb.toString();
             }
 
-            if (c == '\\') {
+            if (c == '\\' && processEscapes) {
                 if (pos == data.length) {
                     throw unexpected("Unexpected end of input");
                 }
