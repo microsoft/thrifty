@@ -14,9 +14,9 @@ sourceSets {
 }
 
 jar {
-    from {
-        (configurations.runtime).collect() {
-            it.isDirectory() ? it : zipTree(it)
+    doFirst {
+        from(configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }) {
+            exclude 'META-INF/services/*'
         }
     }
 

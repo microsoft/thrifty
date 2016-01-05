@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2015 Benjamin Bader
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.bendb.thrifty.testing;
 
 import com.bendb.thrifty.test.gen.ThriftTest;
@@ -12,7 +27,8 @@ import org.junit.runners.model.Statement;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class TestServer implements TestRule {
     private final ServerProtocol protocol;
@@ -29,20 +45,30 @@ public class TestServer implements TestRule {
                 throw new AssertionError("Invalid protocol value: " + protocol);
         }
 
+        ThriftTestHandler handler = new ThriftTestHandler(System.out);
+        ThriftTest.Processor<ThriftTestHandler> processor = new ThriftTest.Processor<>(handler);
         TServer.Args args = new TServer.Args(serverSocket)
                 .protocolFactory(factory)
-                .processor(new ThriftTest.Processor<>(new ThriftTestHandler(System.out)));
+                .processor(processor);
 
         server = new TSimpleServer(args);
 
+        final CountDownLatch latch = new CountDownLatch(1);
         serverThread = new Thread(new Runnable() {
             @Override
             public void run() {
+                latch.countDown();
                 server.serve();
             }
         });
 
         serverThread.start();
+
+        try {
+            latch.await(100, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException ignored) {
+            // continue
+        }
     }
 
     public TestServer() {
@@ -53,8 +79,12 @@ public class TestServer implements TestRule {
         this.protocol = protocol;
     }
 
-    public SocketAddress address() {
-        return serverSocket.getServerSocket().getLocalSocketAddress();
+    public String host() {
+        return serverSocket.getServerSocket().getInetAddress().getHostName();
+    }
+
+    public int port() {
+        return serverSocket.getServerSocket().getLocalPort();
     }
 
     @Override
@@ -75,7 +105,7 @@ public class TestServer implements TestRule {
     }
 
     private void initSocket() throws Exception {
-        InetAddress localhost = InetAddress.getLocalHost();
+        InetAddress localhost = InetAddress.getByName("localhost");
         InetSocketAddress socketAddress = new InetSocketAddress(localhost, 0);
         TServerSocket.ServerSocketTransportArgs args = new TServerSocket.ServerSocketTransportArgs()
                 .bindAddr(socketAddress);
