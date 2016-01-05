@@ -22,7 +22,9 @@ import com.bendb.thrifty.protocol.Protocol;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,17 +45,64 @@ import java.util.concurrent.locks.ReentrantLock;
  * objects appropriately.
  */
 public class ClientBase implements Closeable {
+    /**
+     * Exposes important events in the client's lifecycle.
+     */
     public interface Listener {
+        /**
+         * Invoked when the client connection has been closed.
+         *
+         * <p>After invocation, the client is no longer usable.  All subsequent
+         * method call attempts will result in an immediate exception on the
+         * calling thread.
+         */
         void onTransportClosed();
+
+        /**
+         * Invoked when a client-level error has occured.
+         *
+         * <p>This generally indicates a connectivity or protocol error,
+         * and is distinct from errors returned as part of normal service
+         * operation.
+         *
+         * <p>Errors generally result in the client being closed.
+         *
+         * @param error the throwable instance representing the error.
+         */
         void onError(Throwable error);
     }
 
+    /**
+     * A sequence ID generator; contains the most-recently-used
+     * sequence ID (or zero, if no calls have been made).
+     */
     private final AtomicInteger seqId = new AtomicInteger(0);
+
+    /**
+     * A flag indicating whether the client is active and connected.
+     */
     private final AtomicBoolean running = new AtomicBoolean(true);
+
+    /**
+     * A single-thread executor on which to invoke method callbacks.
+     *
+     * <p>I expect that we'll revisit this design choice; it guarantees
+     * that method responses won't race each other, but arguably that's
+     * a higher-level concern, and this does feel a bit heavy-handed.
+     */
     private final ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
 
+    /**
+     * A queue of method calls waiting to be sent to the server.
+     */
     private final Queue<MethodCall<?>> outbox = new LinkedList<>();
-    private final Queue<MethodCall<?>> inbox = new LinkedList<>();
+
+    /**
+     * A map of method calls awaiting response from the server,
+     * indexed by the sequence ID generated when the call was
+     * sent.
+     */
+    private final Map<Integer, MethodCall> inbox = new HashMap<>();
 
     private final Lock lock = new ReentrantLock();
     private final Condition hasQueuedData = lock.newCondition();
@@ -77,7 +126,13 @@ public class ClientBase implements Closeable {
         reader.start();
     }
 
-    protected void enqueue(MethodCall<?> methodCall) throws IOException {
+    /**
+     * When invoked by a derived instance, places the given call in a queue to
+     * be sent to the server.
+     *
+     * @param methodCall the remote method call to be invoked
+     */
+    protected void enqueue(MethodCall<?> methodCall) {
         if (!running.get()) {
             throw new IllegalStateException("Cannot write to a closed service client");
         }
@@ -166,13 +221,13 @@ public class ClientBase implements Closeable {
             }
         }
 
-        protected abstract void act() throws Exception;
+        abstract void act() throws Exception;
     }
 
     private class WriterThread extends RunLoop {
         @SuppressWarnings("Duplicates")
         @Override
-        protected void act() throws Exception {
+        void act() throws Exception {
             final MethodCall call;
 
             lock.lock();
@@ -191,8 +246,9 @@ public class ClientBase implements Closeable {
             }
 
             boolean isOneWay = call.callTypeId == TMessageType.ONEWAY;
+            int sid = seqId.incrementAndGet();
 
-            protocol.writeMessageBegin(call.name, call.callTypeId, seqId.incrementAndGet());
+            protocol.writeMessageBegin(call.name, call.callTypeId, sid);
             call.send(protocol);
             protocol.writeMessageEnd();
 
@@ -221,7 +277,10 @@ public class ClientBase implements Closeable {
             } else {
                 lock.lock();
                 try {
-                    inbox.add(call);
+                    MethodCall<?> oldCall = inbox.put(sid, call);
+                    if (oldCall != null) {
+                        throw new IllegalStateException("Reused sequence ID! (id=" + sid + ")");
+                    }
                     waitingForReply.signal();
                 } finally {
                     lock.unlock();
@@ -233,24 +292,22 @@ public class ClientBase implements Closeable {
     private class ReaderThread extends RunLoop {
         @SuppressWarnings("Duplicates")
         @Override
-        protected void act() throws Exception {
-            final MethodCall call;
+        void act() throws Exception {
+            MessageMetadata metadata = protocol.readMessageBegin();
 
+            MethodCall call;
             lock.lock();
             try {
-                while (inbox.isEmpty()) {
-                    waitingForReply.await();
-                    if (!running.get()) {
-                        return;
-                    }
-                }
-
-                call = inbox.remove();
+                call = inbox.remove(metadata.seqId);
             } finally {
                 lock.unlock();
             }
 
-            MessageMetadata metadata = protocol.readMessageBegin();
+            if (call == null) {
+                throw new ThriftException(
+                        ThriftException.Kind.BAD_SEQUENCE_ID,
+                        "Unrecognized sequence ID");
+            }
 
             if (metadata.type == TMessageType.EXCEPTION) {
                 ThriftException e = ThriftException.read(protocol);
