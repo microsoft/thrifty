@@ -15,6 +15,7 @@
  */
 package com.bendb.thrifty.transport;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.ProtocolException;
@@ -31,6 +32,7 @@ import static org.junit.Assert.fail;
  */
 public class LengthPrefixingSinkTest {
     @Test
+    @Ignore("This is flapping in CI, thanks to oomkiller")
     public void doesNotEncodeNegativeLength() throws Exception {
         byte[] data = new byte[1024 * 1024];
         int iterations = Integer.MAX_VALUE / data.length + 1;

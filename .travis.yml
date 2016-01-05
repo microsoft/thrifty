@@ -1,19 +1,6 @@
 language: java
 sudo: false
 
-before_script:
-  - service postgresql stop || true
-  - service mysql stop || true
-  - service memcached stop || true
-  - service bootlogd stop || true
-  - service elasticsearch stop || true
-  - service mongodb stop || true
-  - service neo4j stop || true
-  - service cassandra stop || true
-  - service riak stop || true
-  - service rsync stop || true
-  - service x11-common stop || true
-
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -f $HOME/.gradle/caches/2.8/plugin-resolution/cache.properties.lock
