@@ -35,3 +35,6 @@ task compileTestThrift(type: Exec) {
 }
 
 tasks['compileTestJava'].dependsOn compileTestThrift
+tasks['javadoc'].configure {
+    exclude '**/generated-src/**'
+}
