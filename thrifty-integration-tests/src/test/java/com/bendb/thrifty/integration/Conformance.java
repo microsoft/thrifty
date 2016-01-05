@@ -15,6 +15,7 @@
  */
 package com.bendb.thrifty.integration;
 
+import com.bendb.thrifty.integration.gen.Numberz;
 import com.bendb.thrifty.integration.gen.ThriftTestClient;
 import com.bendb.thrifty.integration.gen.Xtruct;
 import com.bendb.thrifty.integration.gen.Xtruct2;
@@ -23,12 +24,19 @@ import com.bendb.thrifty.service.ClientBase;
 import com.bendb.thrifty.testing.TestServer;
 import com.bendb.thrifty.transport.SocketTransport;
 
+import okio.ByteString;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -50,6 +58,7 @@ public class Conformance {
 
     private SocketTransport transport;
     private BinaryProtocol protocol;
+    private ThriftTestClient client;
 
     @Before
     public void setup() throws Exception {
@@ -60,6 +69,7 @@ public class Conformance {
 
         transport.connect();
         protocol = new BinaryProtocol(transport);
+        client = createClient();
     }
 
     @After
@@ -76,9 +86,75 @@ public class Conformance {
     }
 
     @Test
-    public void testStruct() throws Throwable {
-        ThriftTestClient client = createClient();
+    public void testVoid() throws Throwable {
+        AssertingCallback<Void> callback = new AssertingCallback<>();
+        client.testVoid(callback);
 
+        assertThat(callback.getResult(), is(nullValue()));
+    }
+
+    @Test
+    public void testBool() throws Throwable {
+        AssertingCallback<Boolean> callback = new AssertingCallback<>();
+        client.testBool(Boolean.TRUE, callback);
+
+        assertThat(callback.getResult(), is(Boolean.TRUE));
+    }
+
+    @Test
+    public void testByte() throws Throwable {
+        AssertingCallback<Byte> callback = new AssertingCallback<>();
+        client.testByte((byte) 200, callback);
+
+        assertThat(callback.getResult(), is((byte) 200));
+    }
+
+    @Test
+    public void testI32() throws Throwable {
+        AssertingCallback<Integer> callback = new AssertingCallback<>();
+        client.testI32(404, callback);
+
+        assertThat(callback.getResult(), is(404));
+    }
+
+    @Test
+    public void testI64() throws Throwable {
+        AssertingCallback<Long> callback = new AssertingCallback<>();
+        client.testI64(Long.MAX_VALUE, callback);
+
+        assertThat(callback.getResult(), is(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void testDouble() throws Throwable {
+        AssertingCallback<Double> callback = new AssertingCallback<>();
+        client.testDouble(Math.PI, callback);
+
+        assertThat(callback.getResult(), is(Math.PI));
+    }
+
+    @Test
+    public void testBinary() throws Throwable {
+        ByteString binary = ByteString.encodeUtf8("Peace on Earth and Thrift for all mankind");
+
+        AssertingCallback<ByteString> callback = new AssertingCallback<>();
+        client.testBinary(binary, callback);
+
+        assertThat(callback.getResult(), equalTo(binary));
+    }
+
+    @Test
+    public void testEnum() throws Throwable {
+        Numberz argument = Numberz.EIGHT;
+
+        AssertingCallback<Numberz> callback = new AssertingCallback<>();
+        client.testEnum(argument, callback);
+
+        assertThat(callback.getResult(), equalTo(Numberz.EIGHT));
+    }
+
+    @Test
+    public void testStruct() throws Throwable {
         Xtruct xtruct = new Xtruct.Builder()
                 .byte_thing((byte) 1)
                 .i32_thing(2)
@@ -89,14 +165,11 @@ public class Conformance {
         AssertingCallback<Xtruct> callback = new AssertingCallback<>();
         client.testStruct(xtruct, callback);
 
-        callback.await();
         assertThat(callback.getResult(), equalTo(xtruct));
     }
 
     @Test
     public void testNest() throws Throwable {
-        ThriftTestClient client = createClient();
-
         Xtruct xtruct = new Xtruct.Builder()
                 .byte_thing((byte) 1)
                 .i32_thing(2)
@@ -114,9 +187,33 @@ public class Conformance {
 
         client.testNest(nest, callback);
 
-        callback.await();
-
         assertThat(callback.getResult(), equalTo(nest));
+    }
+
+    @Test
+    public void testMap() throws Throwable {
+        Map<Integer, Integer> argument = new HashMap<>();
+        argument.put(1, 2);
+        argument.put(3, 4);
+        argument.put(7, 8);
+
+        AssertingCallback<Map<Integer, Integer>> callback = new AssertingCallback<>();
+        client.testMap(argument, callback);
+
+        assertThat(callback.getResult(), equalTo(argument));
+    }
+
+    @Test
+    public void testStringMap() throws Throwable {
+        Map<String, String> argument = new HashMap<>();
+        argument.put("foo", "bar");
+        argument.put("baz", "quux");
+        argument.put("one", "more");
+
+        AssertingCallback<Map<String, String>> callback = new AssertingCallback<>();
+        client.testStringMap(argument, callback);
+
+        assertThat(callback.getResult(), equalTo(argument));
     }
 
     private ThriftTestClient createClient() {

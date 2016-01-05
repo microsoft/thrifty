@@ -27,6 +27,8 @@ import org.apache.thrift.TException;
 
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -108,44 +110,90 @@ public class ThriftTestHandler implements ThriftTest.Iface {
 
     @Override
     public Map<Integer, Integer> testMap(Map<Integer, Integer> thing) throws TException {
-        out.printf("testMap(%s)\n", thing.toString());
+        out.printf("testMap(\"%s\")\n", thing.toString());
         return thing;
     }
 
     @Override
     public Map<String, String> testStringMap(Map<String, String> thing) throws TException {
-        out.printf("testStringMap(%s)\n", thing);
+        out.printf("testStringMap(\"%s\")\n", thing);
         return thing;
     }
 
     @Override
     public Set<Integer> testSet(Set<Integer> thing) throws TException {
-        return null;
+        out.printf("testSet(\"%s\")\n", thing);
+        return thing;
     }
 
     @Override
     public List<Integer> testList(List<Integer> thing) throws TException {
-        return null;
+        out.printf("testList(\"%s\")\n", thing);
+        return thing;
     }
 
     @Override
     public Numberz testEnum(Numberz thing) throws TException {
-        return null;
+        out.printf("testEnum(%d)\n", thing.getValue());
+        return thing;
     }
 
     @Override
     public long testTypedef(long thing) throws TException {
-        return 0;
+        out.printf("testTypedef(%d)\n", thing);
+        return thing;
     }
 
     @Override
     public Map<Integer, Map<Integer, Integer>> testMapMap(int hello) throws TException {
-        return null;
+        out.printf("testMapMap(%d)\n", hello);
+
+        // {-4 => {-4 => -4, -3 => -3, -2 => -2, -1 => -1, }, 4 => {1 => 1, 2 => 2, 3 => 3, 4 => 4, }, }
+        Map<Integer, Map<Integer, Integer>> result = new LinkedHashMap<>();
+        Map<Integer, Integer> first = new LinkedHashMap<>();
+        Map<Integer, Integer> second = new LinkedHashMap<>();
+
+        first.put(-4, -4);
+        first.put(-3, -3);
+        first.put(-2, -2);
+        first.put(-1, -1);
+
+        second.put(1, 1);
+        second.put(2, 2);
+        second.put(3, 3);
+        second.put(4, 4);
+
+        result.put(-4, first);
+        result.put(4, second);
+
+        return result;
     }
 
     @Override
     public Map<Long, Map<Numberz, Insanity>> testInsanity(Insanity argument) throws TException {
-        return null;
+        out.printf("testInsanity(\"{%s}\")\n", argument);
+
+        /*
+         *   { 1 => { 2 => argument,
+         *            3 => argument,
+         *          },
+         *     2 => { 6 => <empty Insanity struct>, },
+         *   }
+         */
+
+        Map<Long, Map<Numberz, Insanity>> result = new LinkedHashMap<>();
+        Map<Numberz, Insanity> first = new LinkedHashMap<>();
+        Map<Numberz, Insanity> second = new LinkedHashMap<>();
+
+        first.put(Numberz.TWO, argument);
+        first.put(Numberz.THREE, argument);
+
+        second.put(Numberz.SIX, new Insanity());
+
+        result.put(1L, first);
+        result.put(2L, second);
+
+        return result;
     }
 
     @Override
