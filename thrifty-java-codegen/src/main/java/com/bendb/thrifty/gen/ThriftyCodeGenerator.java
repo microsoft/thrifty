@@ -547,6 +547,7 @@ public final class ThriftyCodeGenerator {
 
         read.addStatement("protocol.readFieldEnd()");
         read.endControlFlow(); // end while
+        read.addStatement("protocol.readStructEnd()");
         read.addStatement("return builder.build()");
 
         return TypeSpec.classBuilder(structType.name() + "Adapter")
