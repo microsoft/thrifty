@@ -371,8 +371,8 @@ public class CompactProtocol extends Protocol {
         int size = readVarint32();
         byte keyAndValueTypes = size == 0 ? 0 : readByte();
 
-        byte keyType = CompactTypes.compactToTtype((byte) (keyAndValueTypes >> 4));
-        byte valueType = CompactTypes.compactToTtype((byte) (keyAndValueTypes & 15));
+        byte keyType = CompactTypes.compactToTtype((byte) ((keyAndValueTypes >> 4) & 0x0F));
+        byte valueType = CompactTypes.compactToTtype((byte) (keyAndValueTypes & 0x0F));
 
         return new MapMetadata(keyType, valueType, size);
     }
