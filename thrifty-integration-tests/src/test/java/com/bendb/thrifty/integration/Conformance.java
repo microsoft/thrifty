@@ -15,8 +15,12 @@
  */
 package com.bendb.thrifty.integration;
 
+import com.bendb.thrifty.ThriftException;
+import com.bendb.thrifty.integration.gen.Insanity;
 import com.bendb.thrifty.integration.gen.Numberz;
 import com.bendb.thrifty.integration.gen.ThriftTestClient;
+import com.bendb.thrifty.integration.gen.Xception;
+import com.bendb.thrifty.integration.gen.Xception2;
 import com.bendb.thrifty.integration.gen.Xtruct;
 import com.bendb.thrifty.integration.gen.Xtruct2;
 import com.bendb.thrifty.protocol.BinaryProtocol;
@@ -24,19 +28,24 @@ import com.bendb.thrifty.service.ClientBase;
 import com.bendb.thrifty.testing.TestServer;
 import com.bendb.thrifty.transport.SocketTransport;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import okio.ByteString;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -74,6 +83,11 @@ public class Conformance {
 
     @After
     public void teardown() throws Exception {
+        if (client != null) {
+            client.close();
+            client = null;
+        }
+
         if (protocol != null) {
             protocol.close();
             protocol = null;
@@ -144,16 +158,6 @@ public class Conformance {
     }
 
     @Test
-    public void testEnum() throws Throwable {
-        Numberz argument = Numberz.EIGHT;
-
-        AssertingCallback<Numberz> callback = new AssertingCallback<>();
-        client.testEnum(argument, callback);
-
-        assertThat(callback.getResult(), equalTo(Numberz.EIGHT));
-    }
-
-    @Test
     public void testStruct() throws Throwable {
         Xtruct xtruct = new Xtruct.Builder()
                 .byte_thing((byte) 1)
@@ -214,6 +218,178 @@ public class Conformance {
         client.testStringMap(argument, callback);
 
         assertThat(callback.getResult(), equalTo(argument));
+    }
+
+    @Test
+    public void testSet() throws Throwable {
+        Set<Integer> set = new LinkedHashSet<>();
+        set.add(1);
+        set.add(2);
+        set.add(3);
+        set.add(4);
+        set.add(5);
+
+        AssertingCallback<Set<Integer>> callback = new AssertingCallback<>();
+        client.testSet(set, callback);
+
+        assertThat(callback.getResult(), equalTo(set));
+    }
+
+    @Test
+    public void testList() throws Throwable {
+        List<Integer> list = Arrays.asList(10, 9, 8, 7, 6, 5, 4, 3, 2, 1);
+
+        AssertingCallback<List<Integer>> callback = new AssertingCallback<>();
+        client.testList(list, callback);
+
+        assertThat(callback.getResult(), equalTo(list));
+    }
+
+    @Test
+    public void testEnum() throws Throwable {
+        Numberz argument = Numberz.EIGHT;
+
+        AssertingCallback<Numberz> callback = new AssertingCallback<>();
+        client.testEnum(argument, callback);
+
+        assertThat(callback.getResult(), equalTo(Numberz.EIGHT));
+    }
+
+    @Test
+    public void testTypedef() throws Throwable {
+        AssertingCallback<Long> callback = new AssertingCallback<>();
+        client.testTypedef(Long.MIN_VALUE, callback);
+
+        assertThat(callback.getResult(), equalTo(Long.MIN_VALUE));
+    }
+
+    @Test
+    public void testMapMap() throws Throwable {
+        AssertingCallback<Map<Integer, Map<Integer, Integer>>> callback = new AssertingCallback<>();
+        client.testMapMap(Integer.MAX_VALUE, callback);
+
+        Map<Integer, Map<Integer, Integer>> expected = ImmutableMap.<Integer, Map<Integer, Integer>>builder()
+                .put(-4, ImmutableMap.<Integer, Integer>builder()
+                        .put(-4, -4)
+                        .put(-3, -3)
+                        .put(-2, -2)
+                        .put(-1, -1)
+                        .build())
+                .put(4, ImmutableMap.<Integer, Integer>builder()
+                        .put(1, 1)
+                        .put(2, 2)
+                        .put(3, 3)
+                        .put(4, 4)
+                        .build())
+                .build();
+
+        assertThat(callback.getResult(), equalTo(expected));
+    }
+
+    @Test
+    public void testInsanity() throws Throwable {
+        Insanity empty = new Insanity.Builder().build();
+        Insanity argument = new Insanity.Builder()
+                .userMap(ImmutableMap.of(Numberz.ONE, 10L, Numberz.TWO, 20L, Numberz.THREE, 40L))
+                .xtructs(ImmutableList.of(new Xtruct.Builder()
+                        .byte_thing((byte) 18)
+                        .i32_thing(37)
+                        .i64_thing(101L)
+                        .string_thing("what")
+                        .build()))
+                .build();
+
+        Map<Long, Map<Numberz, Insanity>> expected = ImmutableMap.<Long, Map<Numberz, Insanity>>builder()
+                .put(1L, ImmutableMap.of(Numberz.TWO, argument, Numberz.THREE, argument))
+                .put(2L, ImmutableMap.of(Numberz.SIX, empty))
+                .build();
+
+        AssertingCallback<Map<Long, Map<Numberz, Insanity>>> callback = new AssertingCallback<>();
+        client.testInsanity(argument, callback);
+
+        assertThat(callback.getResult(), equalTo(expected));
+    }
+
+    @Test
+    public void testMulti() throws Throwable {
+        Xtruct expected = new Xtruct.Builder()
+                .string_thing("Hello2")
+                .byte_thing((byte) 9)
+                .i32_thing(11)
+                .i64_thing(13L)
+                .build();
+
+        AssertingCallback<Xtruct> callback = new AssertingCallback<>();
+        client.testMulti((byte) 9, 11, 13L, ImmutableMap.of((short) 10, "Hello"), Numberz.THREE, 5L, callback);
+
+        assertThat(callback.getResult(), equalTo(expected));
+    }
+
+    @Test
+    public void testExceptionNormalError() throws Throwable {
+        AssertingCallback<Void> callback = new AssertingCallback<>();
+        client.testException("Xception", callback);
+
+        Throwable error = callback.getError();
+        assertThat(error, instanceOf(Xception.class));
+
+        Xception e = (Xception) error;
+        assertThat(e.errorCode, equalTo(1001));
+        assertThat(e.message, equalTo("Xception"));
+    }
+
+    @Test
+    public void testExceptionInternalError() throws Throwable {
+        AssertingCallback<Void> callback = new AssertingCallback<>();
+        client.testException("TException", callback);
+
+        Throwable error = callback.getError();
+        assertThat(error, instanceOf(ThriftException.class));
+
+        ThriftException e = (ThriftException) error;
+        assertThat(e.kind, is(ThriftException.Kind.INTERNAL_ERROR));
+    }
+
+    @Test
+    public void testMultiExceptionNoError() throws Throwable {
+        AssertingCallback<Xtruct> callback = new AssertingCallback<>();
+        client.testMultiException("Normal", "Hi there", callback);
+
+        Xtruct actual = callback.getResult();
+
+        // Note: We aren't asserting against an expected value because the members
+        //       of the result are unspecified besides 'string_thing', and Thrift
+        //       implementations differ on whether to return unset primitive values,
+        //       depending on options set during codegen.
+        assertThat(actual.string_thing, equalTo("Hi there"));
+    }
+
+    @Test
+    public void testMultiExceptionErrorOne() throws Throwable {
+        AssertingCallback<Xtruct> callback = new AssertingCallback<>();
+        client.testMultiException("Xception", "nope", callback);
+
+        Throwable expected = new Xception.Builder()
+                .errorCode(1001)
+                .message("This is an Xception")
+                .build();
+
+        assertThat(callback.getError(), equalTo(expected));
+    }
+
+    @Test
+    public void testMultiExceptionErrorTwo() throws Throwable {
+        AssertingCallback<Xtruct> callback = new AssertingCallback<>();
+        client.testMultiException("Xception2", "nope", callback);
+
+        Xception2 error = (Xception2) callback.getError();
+
+        // Note: We aren't asserting against an expected value because the members
+        //       of 'struct_thing' are unspecified besides 'string_thing', and Thrift
+        //       implementations differ on whether to return unset primitive values,
+        //       depending on options set during codegen.
+        assertThat(error.errorCode, equalTo(2002));
+        assertThat(error.struct_thing.string_thing, equalTo("This is an Xception2"));
     }
 
     private ThriftTestClient createClient() {

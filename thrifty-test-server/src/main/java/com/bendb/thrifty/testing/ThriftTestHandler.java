@@ -198,17 +198,35 @@ public class ThriftTestHandler implements ThriftTest.Iface {
 
     @Override
     public Xtruct testMulti(byte arg0, int arg1, long arg2, Map<Short, String> arg3, Numberz arg4, long arg5) throws TException {
-        return null;
+        out.println("testMulti()");
+        return new Xtruct("Hello2", arg0, arg1, arg2);
     }
 
     @Override
     public void testException(String arg) throws Xception, TException {
-
+        out.printf("testException(%s)\n", arg);
+        if ("TException".equals(arg)) {
+            throw new TException();
+        } else if ("Xception".equals(arg)) {
+            throw new Xception(1001, "Xception");
+        }
     }
 
     @Override
     public Xtruct testMultiException(String arg0, String arg1) throws Xception, Xception2, TException {
-        return null;
+        out.printf("testMultiException(%s, %s)\n", arg0, arg1);
+
+        if ("Xception".equals(arg0)) {
+            throw new Xception(1001, "This is an Xception");
+        } else if ("Xception2".equals(arg0)) {
+            Xtruct xtruct = new Xtruct().setString_thing("This is an Xception2");
+            xtruct.unsetByte_thing();
+            xtruct.unsetI32_thing();
+            xtruct.unsetI64_thing();
+            throw new Xception2(2002, xtruct);
+        }
+
+        return new Xtruct().setString_thing(arg1);
     }
 
     @Override
