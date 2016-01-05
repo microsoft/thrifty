@@ -15,7 +15,14 @@
  */
 package com.bendb.thrifty.testing;
 
-public enum ServerProtocol {
-    BINARY,
-    COMPACT,
+public enum ServerTransport {
+    /**
+     * A standard blocking socket transport, i.e. TServerTransport.
+     */
+    BLOCKING,
+
+    /**
+     * A framed, non-blocking server socket,i.e. TNonblockingServerTransport.
+     */
+    NON_BLOCKING
 }

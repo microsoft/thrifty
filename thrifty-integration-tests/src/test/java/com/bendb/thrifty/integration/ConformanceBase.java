@@ -25,6 +25,8 @@ import com.bendb.thrifty.integration.gen.Xtruct;
 import com.bendb.thrifty.integration.gen.Xtruct2;
 import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.service.ClientBase;
+import com.bendb.thrifty.testing.ServerProtocol;
+import com.bendb.thrifty.testing.ServerTransport;
 import com.bendb.thrifty.testing.TestServer;
 import com.bendb.thrifty.transport.SocketTransport;
 
@@ -65,7 +67,9 @@ public abstract class ConformanceBase {
     private ThriftTestClient client;
 
     public ConformanceBase() {
-        testServer = new TestServer();
+        ServerTransport serverTransport = getServerTransport();
+        ServerProtocol serverProtocol = getServerProtocol();
+        testServer = new TestServer(serverProtocol, serverTransport);
     }
 
     @Before
@@ -91,6 +95,17 @@ public abstract class ConformanceBase {
             }
         });
     }
+
+    /**
+     * Specifies the kind of transport (blocking or non-blocking) for the
+     * test server.
+     */
+    protected abstract ServerTransport getServerTransport();
+
+    /**
+     * Specifies which Thrift protocol the test server will use.
+     */
+    protected abstract ServerProtocol getServerProtocol();
 
     protected abstract Transport decorate(Transport transport);
 
