@@ -44,14 +44,6 @@ public class AssertingCallback<T> implements ServiceMethodCallback<T> {
         latch.countDown();
     }
 
-    public void await() {
-        try {
-            latch.await(2000, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            throw new AssertionError("Client callback timed out after 2 seconds");
-        }
-    }
-
     public T getResult() throws Throwable {
         await();
 
@@ -63,6 +55,19 @@ public class AssertingCallback<T> implements ServiceMethodCallback<T> {
     }
 
     public Throwable getError() {
+        await();
+
         return error;
+    }
+
+    private void await() {
+        try {
+            if (!latch.await(2000, TimeUnit.MILLISECONDS)) {
+                throw new AssertionError("Client callback timed out after 2 seconds");
+            }
+
+        } catch (InterruptedException e) {
+            throw new AssertionError(e);
+        }
     }
 }
