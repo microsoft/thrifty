@@ -1,6 +1,5 @@
 language: java
 sudo: false
-install: echo "'./gradlew check' will install dependencies for us"
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
