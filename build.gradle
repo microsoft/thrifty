@@ -81,7 +81,8 @@ subprojects { sp ->
     test {
         testLogging {
             events "failed"
-            exceptionFormat "short"
+            exceptionFormat "full"
+            showStackTraces true
             showExceptions true
             showCauses true
         }
