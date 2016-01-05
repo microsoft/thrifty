@@ -342,6 +342,7 @@ final class ServiceBuilder {
             }.generate();
 
             recv.endControlFlow();
+            recv.addStatement("break");
         }
 
         recv.addStatement("default: $T.skip(protocol, field.typeId); break", TypeNames.PROTO_UTIL);
