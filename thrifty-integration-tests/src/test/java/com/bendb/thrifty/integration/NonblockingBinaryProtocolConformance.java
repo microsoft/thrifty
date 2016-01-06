@@ -19,7 +19,7 @@ public class NonblockingBinaryProtocolConformance extends ConformanceBase {
     }
 
     @Override
-    protected Transport decorate(Transport transport) {
+    protected Transport decorateTransport(Transport transport) {
         // non-blocking servers require framing
         return new FramedTransport(transport);
     }

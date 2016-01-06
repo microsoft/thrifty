@@ -19,7 +19,7 @@ public class NonblockingCompactProtocolConformance extends ConformanceBase {
     }
 
     @Override
-    protected Transport decorate(Transport transport) {
+    protected Transport decorateTransport(Transport transport) {
         return new FramedTransport(transport);
     }
 

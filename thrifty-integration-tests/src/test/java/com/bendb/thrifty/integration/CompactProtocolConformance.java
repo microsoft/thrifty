@@ -18,11 +18,6 @@ public class CompactProtocolConformance extends ConformanceBase {
     }
 
     @Override
-    protected Transport decorate(Transport transport) {
-        return transport;
-    }
-
-    @Override
     protected Protocol createProtocol(Transport transport) {
         return new CompactProtocol(transport);
     }

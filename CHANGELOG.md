@@ -1,6 +1,7 @@
 0.2.0 (unreleased)
 ------------------
 
+- Add CompactProtocol implementation
 - Add integration test suite
 - Add service-client code generation
 - Add service-client runtime implementation

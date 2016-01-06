@@ -18,11 +18,6 @@ public class BinaryProtocolConformance extends ConformanceBase {
     }
 
     @Override
-    protected Transport decorate(Transport transport) {
-        return transport;
-    }
-
-    @Override
     protected Protocol createProtocol(Transport transport) {
         return new BinaryProtocol(transport);
     }
