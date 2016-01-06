@@ -58,7 +58,7 @@ one or more target languages (e.g. Java), where it can be used as-is to invoke R
 
 Thrifty is an alternate implementation of Thrift targeted at Android usage.  Its benefits over the standard Apache
 implementation are its greatly reduced method count and its increased type-safety.  By generating immutable classes
-that are validated before construction, consuming code is guaranteed that
+that are validated before construction, consuming code doesn't have to constantly check if required data is set or not.
 
 #### Interface Definition Language
 
@@ -306,7 +306,7 @@ Query query = new Query.Builder()
     .build();
 
 // RPC clients are asynchronous and callback-based
-client.search(query, new ServiceMethodCallback<List<SearchResult>() {
+client.search(query, new ServiceMethodCallback<List<SearchResult>>() {
     @Override
     public void onSuccess(List<SearchResult> response) {
         // yay
