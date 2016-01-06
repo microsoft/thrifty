@@ -85,7 +85,7 @@ service Google {
 }
 ```
 
-For the authoritative source on Thrift IDL, [Thrift: The Missing Guide][https://diwakergupta.github.io/thrift-missing-guide/] is an excellent introduction.
+For the authoritative source on Thrift IDL, [Thrift: The Missing Guide](https://diwakergupta.github.io/thrift-missing-guide/) is an excellent introduction.
 
 #### Generating Code
 
@@ -110,6 +110,7 @@ The latter looks like this:
 ```java
 package com.foo.bar;
 
+import android.support.annotation.NonNull;
 import com.bendb.thrifty.Adapter;
 import com.bendb.thrifty.StructBuilder;
 import com.bendb.thrifty.TType;
@@ -130,6 +131,7 @@ public final class SearchResult {
       fieldId = 1,
       isRequired = true
   )
+  @NonNull
   public final String url;
 
   /**
@@ -139,6 +141,7 @@ public final class SearchResult {
       fieldId = 2,
       isRequired = true
   )
+  @NonNull
   public final List<String> keywords;
 
   /**
@@ -148,6 +151,7 @@ public final class SearchResult {
       fieldId = 3,
       isRequired = true
   )
+  @NonNull
   public final Long lastUpdatedMillis;
 
   private SearchResult(Builder builder) {
