@@ -634,7 +634,7 @@ public final class ThriftyCodeGenerator {
             int index = 0;
             for (Field field : struct.fields()) {
                 boolean isLast = ++index == struct.fields().size();
-                boolean isRedacted = REDACTED_PATTERN.matcher(field.documentation()).find();
+                boolean isRedacted = field.annotations().containsKey("redacted") || REDACTED_PATTERN.matcher(field.documentation()).find();
                 toString.addStatement("sb.append($S)", field.name() + "=");
 
                 if (isRedacted) {
