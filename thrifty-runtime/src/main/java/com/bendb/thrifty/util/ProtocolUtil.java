@@ -43,7 +43,7 @@ public final class ProtocolUtil {
                 protocol.readStructBegin();
                 while (true) {
                     FieldMetadata fieldMetadata = protocol.readFieldBegin();
-                    if (fieldMetadata.typeId != TType.STOP) {
+                    if (fieldMetadata.typeId == TType.STOP) {
                         break;
                     }
                     skip(protocol, fieldMetadata.typeId);
