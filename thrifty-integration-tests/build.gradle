@@ -7,6 +7,8 @@ dependencies {
     testCompile 'junit:junit:4.11'
 }
 
+uploadArchives.enabled = false
+
 sourceSets {
     test {
         java.srcDirs += ['build/generated-src/thrifty']
