@@ -1,4 +1,4 @@
-Unreleased
+0.1.2 (released 14 January 2016)
 
 - Demote AssertionError to ProtocolExeception in ProtocolUtil#skip() for unknown TType values.
 
