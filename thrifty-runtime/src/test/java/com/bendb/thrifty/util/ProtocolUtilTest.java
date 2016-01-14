@@ -8,6 +8,7 @@ import okio.ByteString;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.net.ProtocolException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
@@ -132,5 +134,27 @@ public class ProtocolUtilTest {
         ProtocolUtil.skip(protocol, TType.LIST);
 
         assertThat(buffer.size(), is(0L));
+    }
+
+    @Test
+    public void throwsProtocolExceptionOnUnknownTTypeValue() throws Exception {
+        Buffer buffer = new Buffer();
+        BinaryProtocol protocol = new BinaryProtocol(buffer, buffer);
+        protocol.writeStructBegin("Test");
+        protocol.writeFieldBegin("num", 1, TType.I32);
+        protocol.writeI32(2);
+        protocol.writeFieldEnd();
+        protocol.writeFieldBegin("invalid_ttype", 2, (byte) 84);
+        protocol.writeString("shouldn't get here");
+        protocol.writeFieldEnd();
+        protocol.writeFieldStop();
+        protocol.writeStructEnd();
+
+        try {
+            ProtocolUtil.skip(protocol, TType.STRUCT);
+            fail();
+        } catch (ProtocolException ignored) {
+            assertThat(ignored.getMessage(), equalTo("Unrecognized TType value: 84"));
+        }
     }
 }

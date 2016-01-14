@@ -1,4 +1,8 @@
-0.2.0 (unreleased)
+Unreleased
+
+- Demote AssertionError to ProtocolExeception in ProtocolUtil#skip() for unknown TType values.
+
+0.1.1 (released 6 January 2016)
 ------------------
 
 - Add CompactProtocol implementation

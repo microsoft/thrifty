@@ -23,6 +23,7 @@ import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.protocol.SetMetadata;
 
 import java.io.IOException;
+import java.net.ProtocolException;
 
 public final class ProtocolUtil {
     private ProtocolUtil() {
@@ -78,7 +79,7 @@ public final class ProtocolUtil {
             break;
 
             default:
-                throw new AssertionError("Unrecognized TType value: " + typeCode);
+                throw new ProtocolException("Unrecognized TType value: " + typeCode);
         }
     }
 }
