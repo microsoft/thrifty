@@ -5,6 +5,7 @@ local.properties
 .git/
 
 *.iml
+.DS_Store
 
 # Gradle AutoValue plugin deposits generated sources in roots named "auto-value"
 auto-value/
