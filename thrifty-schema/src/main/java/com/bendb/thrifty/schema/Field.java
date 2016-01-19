@@ -52,6 +52,10 @@ public final class Field {
         return id;
     }
 
+    public String thriftName() {
+        return element.name();
+    }
+
     public String name() {
         if (javaName == null) {
             javaName = fieldNamingPolicy.apply(element.name());

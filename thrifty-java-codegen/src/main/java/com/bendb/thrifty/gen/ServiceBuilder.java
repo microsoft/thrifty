@@ -253,7 +253,6 @@ final class ServiceBuilder {
 
         for (Field field : method.paramTypes()) {
             boolean optional = !field.required();
-            final String fieldName = field.name();
             final ThriftType tt = field.type().getTrueType();
             byte typeCode = typeResolver.getTypeCode(tt);
 
@@ -263,11 +262,11 @@ final class ServiceBuilder {
             }
 
             if (optional) {
-                send.beginControlFlow("if (this.$L != null)", fieldName);
+                send.beginControlFlow("if (this.$L != null)", field.name());
             }
 
             send.addStatement("protocol.writeFieldBegin($S, $L, $T.$L)",
-                    fieldName,
+                    field.thriftName(),
                     field.id(),
                     TypeNames.TTYPE,
                     TypeNames.getTypeCodeName(typeCode));

@@ -496,7 +496,6 @@ public final class ThriftyCodeGenerator {
 
         for (Field field : structType.fields()) {
             boolean optional = !field.required(); // could also be default, but same-same to us.
-            final String name = field.name();
             final ThriftType tt = field.type().getTrueType();
             byte typeCode = typeResolver.getTypeCode(tt);
 
@@ -509,12 +508,12 @@ public final class ThriftyCodeGenerator {
 
             // Write
             if (optional) {
-                write.beginControlFlow("if (struct.$N != null)", name);
+                write.beginControlFlow("if (struct.$N != null)", field.name());
             }
 
             write.addStatement(
                     "protocol.writeFieldBegin($S, $L, $T.$L)",
-                    name,
+                    field.thriftName(),
                     field.id(),
                     TypeNames.TTYPE,
                     typeCodeName);
