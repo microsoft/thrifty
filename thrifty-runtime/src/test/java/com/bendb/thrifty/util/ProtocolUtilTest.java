@@ -2,6 +2,7 @@ package com.bendb.thrifty.util;
 
 import com.bendb.thrifty.TType;
 import com.bendb.thrifty.protocol.BinaryProtocol;
+import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.protocol.Xtruct;
 import okio.Buffer;
 import okio.ByteString;
@@ -20,15 +21,21 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class ProtocolUtilTest {
     private Buffer buffer;
     private BinaryProtocol protocol;
 
+    private Protocol mockProtocol;
+
     @Before
     public void setup() {
         buffer = new Buffer();
         protocol = new BinaryProtocol(buffer, buffer);
+        mockProtocol = mock(Protocol.class);
     }
 
     @Test
@@ -156,5 +163,54 @@ public class ProtocolUtilTest {
         } catch (ProtocolException ignored) {
             assertThat(ignored.getMessage(), equalTo("Unrecognized TType value: 84"));
         }
+    }
+
+    @Test
+    public void skipsBools() throws Exception {
+        ProtocolUtil.skip(mockProtocol, TType.BOOL);
+        verify(mockProtocol).readBool();
+        verifyNoMoreInteractions(mockProtocol);
+    }
+
+    @Test
+    public void skipsBytes() throws Exception {
+        ProtocolUtil.skip(mockProtocol, TType.BYTE);
+        verify(mockProtocol).readByte();
+        verifyNoMoreInteractions(mockProtocol);
+    }
+
+    @Test
+    public void skipsShorts() throws Exception {
+        ProtocolUtil.skip(mockProtocol, TType.I16);
+        verify(mockProtocol).readI16();
+        verifyNoMoreInteractions(mockProtocol);
+    }
+
+    @Test
+    public void skipsInts() throws Exception {
+        ProtocolUtil.skip(mockProtocol, TType.I32);
+        verify(mockProtocol).readI32();
+        verifyNoMoreInteractions(mockProtocol);
+    }
+
+    @Test
+    public void skipsLongs() throws Exception {
+        ProtocolUtil.skip(mockProtocol, TType.I64);
+        verify(mockProtocol).readI64();
+        verifyNoMoreInteractions(mockProtocol);
+    }
+
+    @Test
+    public void skipsDoubles() throws Exception {
+        ProtocolUtil.skip(mockProtocol, TType.DOUBLE);
+        verify(mockProtocol).readDouble();
+        verifyNoMoreInteractions(mockProtocol);
+    }
+
+    @Test
+    public void skipsStrings() throws Exception {
+        ProtocolUtil.skip(mockProtocol, TType.STRING);
+        verify(mockProtocol).readString();
+        verifyNoMoreInteractions(mockProtocol);
     }
 }
