@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Benjamin Bader
+ * Copyright (C) 2015-2016 Benjamin Bader
  * Copyright (C) 2015 Square, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

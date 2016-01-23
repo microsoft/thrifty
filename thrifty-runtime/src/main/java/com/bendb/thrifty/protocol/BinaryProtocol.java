@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Benjamin Bader
+ * Copyright (C) 2015-2016 Benjamin Bader
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file

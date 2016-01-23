@@ -347,4 +347,4 @@ An equal debt is owed to Facebook and Apache for developing and opening Thrift t
 
 -------
 
-Copyright © 2015 Benjamin Bader
+Copyright © 2015-2016 Benjamin Bader
