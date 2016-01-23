@@ -44,7 +44,6 @@ public final class ThriftParser {
     private final ImmutableList.Builder<TypedefElement> typedefs = ImmutableList.builder();
 
     private boolean readingHeaders = true;
-    private int declCount = 0;
     private int pos;
     private int line;
     private int lineStart;
@@ -177,12 +176,10 @@ public final class ThriftParser {
         }
 
         if ("const".equals(word)) {
-            ++declCount;
             return readConst(location, doc);
         }
 
         if ("typedef".equals(word)) {
-            ++declCount;
             TypeElement oldType = readTypeName();
             String newName = readWord();
             AnnotationElement annotations = readAnnotations();
@@ -198,7 +195,6 @@ public final class ThriftParser {
         }
 
         if ("enum".equals(word)) {
-            ++declCount;
             return readEnum(location, doc);
         }
 
@@ -207,22 +203,18 @@ public final class ThriftParser {
         }
 
         if ("struct".equals(word)) {
-            ++declCount;
             return readStruct(location, doc);
         }
 
         if ("union".equals(word)) {
-            ++declCount;
             return readUnion(location, doc);
         }
 
         if ("exception".equals(word)) {
-            ++declCount;
             return readException(location, doc);
         }
 
         if ("service".equals(word)) {
-            ++declCount;
             return readService(location, doc);
         }
 
