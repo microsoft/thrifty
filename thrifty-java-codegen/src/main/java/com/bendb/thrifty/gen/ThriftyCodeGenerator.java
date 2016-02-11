@@ -657,7 +657,7 @@ public final class ThriftyCodeGenerator {
 
             toString.addStatement("return sb.toString()");
         } else {
-            toString.addStatement("return $S{}", struct.name());
+            toString.addStatement("return $S", struct.name() + "{}");
         }
 
         return toString.build();
