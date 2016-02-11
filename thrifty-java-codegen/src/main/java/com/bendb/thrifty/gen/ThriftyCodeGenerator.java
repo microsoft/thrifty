@@ -619,7 +619,9 @@ public final class ThriftyCodeGenerator {
         return hashCode.build();
     }
 
-    private static final Pattern REDACTED_PATTERN = Pattern.compile("\\W@redacted\\W");
+    private static final Pattern REDACTED_PATTERN = Pattern.compile(
+            "\\W@redacted\\W", Pattern.CASE_INSENSITIVE);
+
     private MethodSpec buildToStringFor(StructType struct) {
         MethodSpec.Builder toString = MethodSpec.methodBuilder("toString")
                 .addAnnotation(Override.class)
