@@ -647,15 +647,15 @@ public final class ThriftyCodeGenerator {
                 }
 
                 if (isLast) {
-                    toString.addStatement("sb.append(\"\\n}\")");
+                    toString.addStatement("sb.append(\"}\")");
                 } else {
-                    toString.addStatement("sb.append(\",\\n  \")");
+                    toString.addStatement("sb.append(\", \")");
                 }
             }
 
             toString.addStatement("return sb.toString()");
         } else {
-            toString.addStatement("return $S", struct.name() + "{}");
+            toString.addStatement("return $S{}", struct.name());
         }
 
         return toString.build();
