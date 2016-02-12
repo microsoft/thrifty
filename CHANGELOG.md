@@ -1,4 +1,11 @@
+0.1.3 (released 12 February 2016)
+---------------------------------
+
+- Alter generated 'toString' so that it outputs one single line
+- Make '@redacted' annotation detection case-insensitive
+
 0.1.2 (released 14 January 2016)
+--------------------------------
 
 - Demote AssertionError to ProtocolExeception in ProtocolUtil#skip() for unknown TType values.
 

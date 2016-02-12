@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-  compile 'com.bendb.thrifty:thrifty-runtime:0.1.2'
+  compile 'com.bendb.thrifty:thrifty-runtime:0.1.3'
 }
 ```
 
