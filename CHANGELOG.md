@@ -1,3 +1,8 @@
+0.1.4 (released 16 February 2016)
+---------------------------------
+
+- Fix new bug in generated 'toString'
+
 0.1.3 (released 12 February 2016)
 ---------------------------------
 
