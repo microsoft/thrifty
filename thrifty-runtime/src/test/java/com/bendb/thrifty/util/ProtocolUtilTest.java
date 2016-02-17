@@ -19,6 +19,7 @@ import com.bendb.thrifty.TType;
 import com.bendb.thrifty.protocol.BinaryProtocol;
 import com.bendb.thrifty.protocol.Protocol;
 import com.bendb.thrifty.protocol.Xtruct;
+import com.bendb.thrifty.transport.BufferTransport;
 import okio.Buffer;
 import okio.ByteString;
 import org.junit.Before;
@@ -49,7 +50,7 @@ public class ProtocolUtilTest {
     @Before
     public void setup() {
         buffer = new Buffer();
-        protocol = new BinaryProtocol(buffer, buffer);
+        protocol = new BinaryProtocol(new BufferTransport(buffer));
         mockProtocol = mock(Protocol.class);
     }
 
@@ -161,7 +162,7 @@ public class ProtocolUtilTest {
     @Test
     public void throwsProtocolExceptionOnUnknownTTypeValue() throws Exception {
         Buffer buffer = new Buffer();
-        BinaryProtocol protocol = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol protocol = new BinaryProtocol(new BufferTransport(buffer));
         protocol.writeStructBegin("Test");
         protocol.writeFieldBegin("num", 1, TType.I32);
         protocol.writeI32(2);

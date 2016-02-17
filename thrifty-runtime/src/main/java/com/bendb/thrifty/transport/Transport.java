@@ -15,13 +15,17 @@
  */
 package com.bendb.thrifty.transport;
 
-import okio.BufferedSink;
-import okio.BufferedSource;
-
 import java.io.Closeable;
+import java.io.IOException;
 
 public abstract class Transport implements Closeable {
-    public abstract BufferedSource source();
+    public abstract int read(byte[] buffer, int offset, int count) throws IOException;
 
-    public abstract BufferedSink sink();
+    public void write(byte[] data) throws IOException {
+        write(data, 0, data.length);
+    }
+
+    public abstract void write(byte[] buffer, int offset, int count) throws IOException;
+
+    public abstract void flush() throws IOException;
 }

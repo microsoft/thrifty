@@ -16,6 +16,7 @@
 package com.bendb.thrifty.protocol;
 
 import com.bendb.thrifty.TType;
+import com.bendb.thrifty.transport.BufferTransport;
 import com.bendb.thrifty.util.ProtocolUtil;
 import okio.Buffer;
 import okio.ByteString;
@@ -37,7 +38,7 @@ public class BinaryProtocolTest {
         buffer.writeInt(3);
         buffer.writeUtf8("foo");
 
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer));
         assertThat(proto.readString(), is("foo"));
     }
 
@@ -47,7 +48,7 @@ public class BinaryProtocolTest {
         buffer.writeInt(13);
         buffer.writeUtf8("foobarbazquux");
 
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer, 12);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer), 12);
 
         try {
             proto.readString();
@@ -63,7 +64,7 @@ public class BinaryProtocolTest {
         buffer.writeInt(4);
         buffer.writeUtf8("abcd");
 
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer));
         assertThat(proto.readBinary(), equalTo(ByteString.encodeUtf8("abcd")));
     }
 
@@ -73,7 +74,7 @@ public class BinaryProtocolTest {
         buffer.writeInt(6);
         buffer.writeUtf8("kaboom");
 
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer, 4);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer), 4);
         try {
             proto.readBinary();
             fail();
@@ -85,7 +86,7 @@ public class BinaryProtocolTest {
     @Test
     public void writeByte() throws Exception {
         Buffer buffer = new Buffer();
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer));
 
         proto.writeByte((byte) 127);
         assertThat(buffer.readByte(), equalTo((byte) 127));
@@ -94,7 +95,7 @@ public class BinaryProtocolTest {
     @Test
     public void writeI16() throws Exception {
         Buffer buffer = new Buffer();
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer));
 
         proto.writeI16(Short.MAX_VALUE);
         assertThat(buffer.readShort(), equalTo(Short.MAX_VALUE));
@@ -108,7 +109,7 @@ public class BinaryProtocolTest {
     @Test
     public void writeI32() throws Exception {
         Buffer buffer = new Buffer();
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer));
 
         proto.writeI32(0xFF0F00FF);
         assertThat(buffer.readInt(), equalTo(0xFF0F00FF));
@@ -117,7 +118,7 @@ public class BinaryProtocolTest {
     @Test
     public void writeI64() throws Exception {
         Buffer buffer = new Buffer();
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer));
 
         proto.writeI64(0x12345678);
         assertThat(buffer.readLong(), equalTo(0x12345678L));
@@ -126,7 +127,7 @@ public class BinaryProtocolTest {
     @Test
     public void writeDouble() throws Exception {
         Buffer buffer = new Buffer();
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer));
 
         // Doubles go on the wire as the 8-byte blobs from
         // Double#doubleToLongBits().
@@ -137,7 +138,7 @@ public class BinaryProtocolTest {
     @Test
     public void writeString() throws Exception {
         Buffer buffer = new Buffer();
-        BinaryProtocol proto = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol proto = new BinaryProtocol(new BufferTransport(buffer));
 
         proto.writeString("here is a string");
         assertThat(buffer.readInt(), equalTo(16));
@@ -173,7 +174,7 @@ public class BinaryProtocolTest {
         ByteString binaryData = ByteString.decodeHex(payload);
         Buffer buffer = new Buffer();
         buffer.write(binaryData);
-        BinaryProtocol protocol = new BinaryProtocol(buffer, buffer);
+        BinaryProtocol protocol = new BinaryProtocol(new BufferTransport(buffer));
         read(protocol);
     }
 

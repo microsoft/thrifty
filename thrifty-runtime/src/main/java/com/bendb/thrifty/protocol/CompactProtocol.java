@@ -40,14 +40,18 @@ package com.bendb.thrifty.protocol;
 
 import com.bendb.thrifty.TType;
 import com.bendb.thrifty.transport.Transport;
-import okio.Buffer;
-import okio.BufferedSink;
-import okio.BufferedSource;
 import okio.ByteString;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.ProtocolException;
 
+/**
+ * An implementation of the Thrift compact binary protocol.
+ *
+ * <p>Instances of this class are <em>not</em> threadsafe.
+ */
 public class CompactProtocol extends Protocol {
 
     // Constants, as defined in TCompactProtocol.java
@@ -72,6 +76,8 @@ public class CompactProtocol extends Protocol {
     // the `readBool` call.
     private byte booleanFieldType = -1;
 
+    private final byte[] buffer = new byte[16];
+
     // Keep track of the most-recently-written fields,
     // used for delta-encoding.
     private ShortStack writingFields = new ShortStack();
@@ -84,14 +90,10 @@ public class CompactProtocol extends Protocol {
         super(transport);
     }
 
-    public CompactProtocol(BufferedSource source, BufferedSink sink) {
-        super(source, sink);
-    }
-
     @Override
     public void writeMessageBegin(String name, byte typeId, int seqId) throws IOException {
-        sink.writeByte(PROTOCOL_ID);
-        sink.writeByte((VERSION & VERSION_MASK) | ((typeId << TYPE_SHIFT_AMOUNT) & TYPE_MASK));
+        writeByte(PROTOCOL_ID);
+        writeByte((byte) ((VERSION & VERSION_MASK) | ((typeId << TYPE_SHIFT_AMOUNT) & TYPE_MASK)));
         writeVarint32(seqId);
         writeString(name);
     }
@@ -127,7 +129,7 @@ public class CompactProtocol extends Protocol {
     private void writeFieldBegin(int fieldId, byte compactTypeId) throws IOException {
         // Can we delta-encode the field ID?
         if (fieldId > lastWritingField && fieldId - lastWritingField <= 15) {
-            sink.writeByte((fieldId - lastWritingField) << 4 | compactTypeId);
+            writeByte((byte) ((fieldId - lastWritingField) << 4 | compactTypeId));
         } else {
             writeByte(compactTypeId);
             writeI16((short) fieldId);
@@ -195,13 +197,14 @@ public class CompactProtocol extends Protocol {
             booleanFieldId = -1;
         } else {
             // We are not writing a field - just write the value directly.
-            sink.writeByte(compactValue);
+            writeByte(compactValue);
         }
     }
 
     @Override
     public void writeByte(byte b) throws IOException {
-        sink.writeByte(b);
+        buffer[0] = b;
+        transport.write(buffer, 0, 1);
     }
 
     @Override
@@ -221,61 +224,79 @@ public class CompactProtocol extends Protocol {
 
     @Override
     public void writeDouble(double dub) throws IOException {
-        long doubleBits = Double.doubleToLongBits(dub);
-        sink.writeLongLe(doubleBits);
+        long bits = Double.doubleToLongBits(dub);
+
+        // Doubles get written out in little-endian order
+        buffer[0] = (byte)  (bits         & 0xFFL);
+        buffer[1] = (byte) ((bits >>>  8) & 0xFFL);
+        buffer[2] = (byte) ((bits >>> 16) & 0xFFL);
+        buffer[3] = (byte) ((bits >>> 24) & 0xFFL);
+        buffer[4] = (byte) ((bits >>> 32) & 0xFFL);
+        buffer[5] = (byte) ((bits >>> 40) & 0xFFL);
+        buffer[6] = (byte) ((bits >>> 48) & 0xFFL);
+        buffer[7] = (byte) ((bits >>> 56) & 0xFFL);
+
+        transport.write(buffer, 0, 8);
     }
 
     @Override
     public void writeString(String str) throws IOException {
-        Buffer buffer = new Buffer();
-        buffer.writeUtf8(str);
+        try {
+            byte[] bytes = str.getBytes("UTF-8");
 
-        if (buffer.size() > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("How did you even get a string this big");
+            writeVarint32(bytes.length);
+            transport.write(bytes);
+        } catch (UnsupportedEncodingException e) {
+            throw new AssertionError(e);
         }
-
-        writeVarint32((int) buffer.size());
-        sink.writeAll(buffer);
     }
 
     @Override
     public void writeBinary(ByteString buf) throws IOException {
         writeVarint32(buf.size());
-        sink.write(buf);
+        transport.write(buf.toByteArray());
     }
 
     private void writeVectorBegin(byte typeId, int size) throws IOException {
         byte compactId = CompactTypes.ttypeToCompact(typeId);
         if (size <= 14) {
-            sink.writeByte((size << 4) | compactId);
+            writeByte((byte) ((size << 4) | compactId));
         } else {
-            sink.writeByte(0xF0 | compactId);
+            writeByte((byte) (0xF0 | compactId));
             writeVarint32(size);
         }
     }
 
     private void writeVarint32(int n) throws IOException {
-        while (true) {
+        for (int i = 0; i < buffer.length; ++i) {
             if ((n & ~0x7F) == 0x00) {
-                sink.writeByte(n);
+                buffer[i] = (byte) n;
+                transport.write(buffer, 0, i + 1);
                 return;
             } else {
-                sink.writeByte((n & 0x7F) | 0x80);
+                buffer[i] = (byte) ((n & 0x7F) | 0x80);
                 n >>>= 7;
             }
         }
+
+        // Unpossible
+        throw new IllegalArgumentException("Cannot represent " + n + " as a varint in 16 bytes or less");
     }
 
     private void writeVarint64(long n) throws IOException {
-        while (true) {
+        for (int i = 0; i < buffer.length; ++i) {
             if ((n & ~0x7FL) == 0x00L) {
-                sink.writeByte((int) n);
+                buffer[i] = (byte) n;
+                transport.write(buffer, 0, i + 1);
                 return;
             } else {
-                sink.writeByte((byte) ((n & 0x7F) | 0x80));
+                buffer[i] = (byte) ((n & 0x7F) | 0x80);
                 n >>>= 7;
             }
         }
+
+        // Unpossible
+        throw new IllegalArgumentException("Cannot represent " + n + " as a varint in 16 bytes or less");
     }
 
     /**
@@ -431,7 +452,8 @@ public class CompactProtocol extends Protocol {
 
     @Override
     public byte readByte() throws IOException {
-        return source.readByte();
+        readFully(buffer, 1);
+        return buffer[0];
     }
 
     @Override
@@ -451,31 +473,54 @@ public class CompactProtocol extends Protocol {
 
     @Override
     public double readDouble() throws IOException {
-        long bits = source.readLongLe();
+        readFully(buffer, 8);
+
+        long bits =  (buffer[0] & 0xFFL)
+                  | ((buffer[1] & 0xFFL) <<  8)
+                  | ((buffer[2] & 0xFFL) << 16)
+                  | ((buffer[3] & 0xFFL) << 24)
+                  | ((buffer[4] & 0xFFL) << 32)
+                  | ((buffer[5] & 0xFFL) << 40)
+                  | ((buffer[6] & 0xFFL) << 48)
+                  | ((buffer[7] & 0xFFL) << 56);
+
         return Double.longBitsToDouble(bits);
     }
 
     @Override
     public String readString() throws IOException {
         int length = readVarint32();
-        return length == 0
-                ? ""
-                : source.readUtf8(length);
+        if (length == 0) {
+            return "";
+        }
+
+        byte[] bytes = new byte[length];
+        readFully(bytes, length);
+
+        try {
+            return new String(bytes, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new AssertionError(e);
+        }
     }
 
     @Override
     public ByteString readBinary() throws IOException {
         int length = readVarint32();
-        return length == 0
-                ? ByteString.EMPTY
-                : source.readByteString(length);
+        if (length == 0) {
+            return ByteString.EMPTY;
+        }
+
+        byte[] bytes = new byte[length];
+        readFully(bytes, length);
+        return ByteString.of(bytes);
     }
 
     private int readVarint32() throws IOException {
         int result = 0;
         int shift = 0;
         while (true) {
-            byte b = source.readByte();
+            byte b = readByte();
             result |= (b & 0x7F) << shift;
             if ((b & 0x80) != 0x80) {
                 return result;
@@ -488,7 +533,7 @@ public class CompactProtocol extends Protocol {
         long result = 0;
         int shift = 0;
         while (true) {
-            byte b = source.readByte();
+            byte b = readByte();
             result |= (long) (b & 0x7F) << shift;
             if ((b & 0x80) != 0x80) {
                 return result;
@@ -503,6 +548,19 @@ public class CompactProtocol extends Protocol {
 
     private static long zigZagToLong(long n) {
         return (n >>> 1) ^ -(n & 1);
+    }
+
+    private void readFully(byte[] buffer, int count) throws IOException {
+        int toRead = count;
+        int offset = 0;
+        while (toRead > 0) {
+            int read = transport.read(buffer, offset, toRead);
+            if (read == -1) {
+                throw new EOFException();
+            }
+            toRead -= read;
+            offset += read;
+        }
     }
 
     private static final class CompactTypes {

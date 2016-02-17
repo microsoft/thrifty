@@ -15,6 +15,7 @@
  */
 package com.bendb.thrifty.protocol;
 
+import com.bendb.thrifty.transport.BufferTransport;
 import okio.Buffer;
 import org.junit.Test;
 
@@ -27,7 +28,8 @@ public class CompactProtocolTest {
     @Test
     public void varint32() throws IOException {
         Buffer buffer = new Buffer();
-        CompactProtocol protocol = new CompactProtocol(buffer, buffer);
+        BufferTransport transport = new BufferTransport(buffer);
+        CompactProtocol protocol = new CompactProtocol(transport);
 
         protocol.writeI32(0);
         assertThat(buffer.readByteArray(), equalTo(new byte[] { 0 }));
@@ -76,14 +78,16 @@ public class CompactProtocolTest {
                 .i32_thing(0xFFFF)
                 .i64_thing(0xFFFFFFFFL)
                 .string_thing("foo")
+                .double_thing(Math.PI)
                 .build();
 
         Buffer buffer = new Buffer();
-        CompactProtocol proto = new CompactProtocol(buffer, buffer);
+        BufferTransport transport = new BufferTransport(buffer);
+        CompactProtocol proto = new CompactProtocol(transport);
 
         Xtruct.ADAPTER.write(proto, xtruct);
 
-        Xtruct read = Xtruct.ADAPTER.read(new CompactProtocol(buffer, buffer));
+        Xtruct read = Xtruct.ADAPTER.read(new CompactProtocol(transport));
 
         assertThat(read, equalTo(xtruct));
     }

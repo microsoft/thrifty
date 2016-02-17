@@ -23,16 +23,17 @@ package com.bendb.thrifty.protocol;
 
 import com.bendb.thrifty.TType;
 import com.bendb.thrifty.transport.Transport;
-import okio.BufferedSink;
-import okio.BufferedSource;
 import okio.ByteString;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.ProtocolException;
 
 /**
  * An implementation of the simple Thrift binary protocol.
+ *
+ * <p>Instances of this class are <em>not</em> threadsafe.
  */
 public class BinaryProtocol extends Protocol {
     private static final int VERSION_MASK = 0xffff0000;
@@ -52,23 +53,24 @@ public class BinaryProtocol extends Protocol {
      */
     private final long containerLengthLimit;
 
+    /**
+     * A shared buffer for writing.
+     */
+    private final byte[] buffer = new byte[8];
+
     private boolean strictRead;
     private boolean strictWrite;
 
     public BinaryProtocol(Transport transport) {
-        this(transport.source(), transport.sink());
+        this(transport, -1, -1);
     }
 
-    public BinaryProtocol(BufferedSource source, BufferedSink sink) {
-        this(source, sink, -1);
+    public BinaryProtocol(Transport transport, int stringLengthLimit) {
+        this(transport, stringLengthLimit, -1);
     }
 
-    public BinaryProtocol(BufferedSource source, BufferedSink sink, int stringLengthLimit) {
-        this(source, sink, stringLengthLimit, -1);
-    }
-
-    public BinaryProtocol(BufferedSource source, BufferedSink sink, int stringLengthLimit, int containerLengthLimit) {
-        super(source, sink);
+    public BinaryProtocol(Transport transport, int stringLengthLimit, int containerLengthLimit) {
+        super(transport);
         this.stringLengthLimit = stringLengthLimit;
         this.containerLengthLimit = containerLengthLimit;
     }
@@ -152,22 +154,41 @@ public class BinaryProtocol extends Protocol {
 
     @Override
     public void writeByte(byte b) throws IOException {
-        sink.writeByte(b);
+        buffer[0] = b;
+
+        transport.write(buffer, 0, 1);
     }
 
     @Override
     public void writeI16(short i16) throws IOException {
-        sink.writeShort(i16);
+        buffer[0] = (byte) ((i16 >> 8) & 0xFF);
+        buffer[1] = (byte) (i16 & 0xFF);
+
+        transport.write(buffer, 0, 2);
     }
 
     @Override
     public void writeI32(int i32) throws IOException {
-        sink.writeInt(i32);
+        buffer[0] = (byte) ((i32 >> 24) & 0xFF);
+        buffer[1] = (byte) ((i32 >> 16) & 0xFF);
+        buffer[2] = (byte) ((i32 >>  8) & 0xFF);
+        buffer[3] = (byte)  (i32        & 0xFF);
+
+        transport.write(buffer, 0, 4);
     }
 
     @Override
     public void writeI64(long i64) throws IOException {
-        sink.writeLong(i64);
+        buffer[0] = (byte) ((i64 >> 56) & 0xFF);
+        buffer[1] = (byte) ((i64 >> 48) & 0xFF);
+        buffer[2] = (byte) ((i64 >> 40) & 0xFF);
+        buffer[3] = (byte) ((i64 >> 32) & 0xFF);
+        buffer[4] = (byte) ((i64 >> 24) & 0xFF);
+        buffer[5] = (byte) ((i64 >> 16) & 0xFF);
+        buffer[6] = (byte) ((i64 >>  8) & 0xFF);
+        buffer[7] = (byte)  (i64        & 0xFF);
+
+        transport.write(buffer, 0, 8);
     }
 
     @Override
@@ -180,7 +201,7 @@ public class BinaryProtocol extends Protocol {
         try {
             byte[] bs = str.getBytes("UTF-8");
             writeI32(bs.length);
-            sink.write(bs);
+            transport.write(bs);
         } catch (UnsupportedEncodingException e) {
             throw new AssertionError(e);
         }
@@ -189,7 +210,7 @@ public class BinaryProtocol extends Protocol {
     @Override
     public void writeBinary(ByteString buf) throws IOException {
         writeI32(buf.size());
-        sink.write(buf);
+        transport.write(buf.toByteArray());
     }
 
     //////////////////////
@@ -286,22 +307,39 @@ public class BinaryProtocol extends Protocol {
 
     @Override
     public byte readByte() throws IOException {
-        return source.readByte();
+        readFully(buffer, 1);
+        return buffer[0];
     }
 
     @Override
     public short readI16() throws IOException {
-        return source.readShort();
+        readFully(buffer, 2);
+        return (short) (((buffer[0] & 0xFF) << 8)
+                       | (buffer[1] & 0xFF));
     }
 
     @Override
     public int readI32() throws IOException {
-        return source.readInt();
+        readFully(buffer, 4);
+
+        return ((buffer[0] & 0xFF) << 24)
+             | ((buffer[1] & 0xFF) << 16)
+             | ((buffer[2] & 0xFF) <<  8)
+             |  (buffer[3] & 0xFF);
     }
 
     @Override
     public long readI64() throws IOException {
-        return source.readLong();
+        readFully(buffer, 8);
+
+        return ((buffer[0] & 0xFFL) << 56)
+             | ((buffer[1] & 0xFFL) << 48)
+             | ((buffer[2] & 0xFFL) << 40)
+             | ((buffer[3] & 0xFFL) << 32)
+             | ((buffer[4] & 0xFFL) << 24)
+             | ((buffer[5] & 0xFFL) << 16)
+             | ((buffer[6] & 0xFFL) <<  8)
+             |  (buffer[7] & 0xFFL);
     }
 
     @Override
@@ -315,7 +353,8 @@ public class BinaryProtocol extends Protocol {
         if (stringLengthLimit != -1 && sizeInBytes > stringLengthLimit) {
             throw new ProtocolException("String size limit exceeded");
         }
-        return source.readUtf8(sizeInBytes);
+
+        return readStringWithSize(sizeInBytes);
     }
 
     @Override
@@ -324,11 +363,27 @@ public class BinaryProtocol extends Protocol {
         if (stringLengthLimit != -1 && sizeInBytes > stringLengthLimit) {
             throw new ProtocolException("Binary size limit exceeded");
         }
-        return source.readByteString(sizeInBytes);
+        byte[] data = new byte[sizeInBytes];
+        readFully(data, data.length);
+        return ByteString.of(data);
     }
 
     private String readStringWithSize(int size) throws IOException {
-        ByteString bytes = source.readByteString(size);
-        return bytes.utf8();
+        byte[] encoded = new byte[size];
+        readFully(encoded, size);
+        return new String(encoded, "UTF-8");
+    }
+
+    private void readFully(byte[] buffer, int count) throws IOException {
+        int toRead = count;
+        int offset = 0;
+        while (toRead > 0) {
+            int read = transport.read(buffer, offset, toRead);
+            if (read == -1) {
+                throw new EOFException("Expected " + count + " bytes; got " + offset);
+            }
+            toRead -= read;
+            offset += read;
+        }
     }
 }
