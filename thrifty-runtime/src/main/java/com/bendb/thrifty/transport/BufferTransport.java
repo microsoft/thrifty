@@ -16,34 +16,37 @@
 package com.bendb.thrifty.transport;
 
 import okio.Buffer;
-import okio.BufferedSink;
-import okio.BufferedSource;
 
 import java.io.IOException;
 
 public class BufferTransport extends Transport {
-    public final Buffer buffer;
+    public final Buffer b;
 
     public BufferTransport() {
         this(new Buffer());
     }
 
     public BufferTransport(Buffer buffer) {
-        this.buffer = buffer;
+        this.b = buffer;
     }
 
     @Override
-    public BufferedSource source() {
-        return buffer;
+    public int read(byte[] buffer, int offset, int count) throws IOException {
+        return b.read(buffer, offset, count);
     }
 
     @Override
-    public BufferedSink sink() {
-        return buffer;
+    public void write(byte[] buffer, int offset, int count) throws IOException {
+        b.write(buffer, offset, count);
+    }
+
+    @Override
+    public void flush() throws IOException {
+        b.flush();
     }
 
     @Override
     public void close() throws IOException {
-        buffer.close();
+        b.close();
     }
 }

@@ -17,12 +17,13 @@ package com.bendb.thrifty.transport;
 
 import okio.BufferedSink;
 import okio.BufferedSource;
-import okio.Okio;
 import okio.Sink;
 import okio.Source;
 
 import javax.net.SocketFactory;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -36,6 +37,8 @@ public class SocketTransport extends Transport {
     private Socket socket;
     private BufferedSource source;
     private BufferedSink sink;
+    private InputStream inputStream;
+    private OutputStream outputStream;
 
     public static class Builder {
         private final String host;
@@ -103,13 +106,18 @@ public class SocketTransport extends Transport {
     }
 
     @Override
-    public BufferedSource source() {
-        return source;
+    public int read(byte[] buffer, int offset, int count) throws IOException {
+        return inputStream.read(buffer, offset, count);
     }
 
     @Override
-    public BufferedSink sink() {
-        return sink;
+    public void write(byte[] buffer, int offset, int count) throws IOException {
+        outputStream.write(buffer, offset, count);
+    }
+
+    @Override
+    public void flush() throws IOException {
+        outputStream.flush();
     }
 
     public void connect() throws IOException {
@@ -124,8 +132,8 @@ public class SocketTransport extends Transport {
 
         socket.connect(new InetSocketAddress(host, port), connectTimeout);
 
-        source = Okio.buffer(Okio.source(socket));
-        sink = Okio.buffer(Okio.sink(socket));
+        inputStream = socket.getInputStream();
+        outputStream = socket.getOutputStream();
     }
 
     @Override

@@ -16,30 +16,19 @@
 package com.bendb.thrifty.protocol;
 
 import com.bendb.thrifty.transport.Transport;
-import okio.BufferedSink;
-import okio.BufferedSource;
 import okio.ByteString;
 
 import java.io.Closeable;
 import java.io.IOException;
 
 public abstract class Protocol implements Closeable {
-    private final Transport transport;
-    protected final BufferedSource source;
-    protected final BufferedSink sink;
+    protected final Transport transport;
 
     protected Protocol(Transport transport) {
+        if (transport == null) {
+            throw new NullPointerException("transport");
+        }
         this.transport = transport;
-        this.source = transport.source();
-        this.sink = transport.sink();
-    }
-
-    protected Protocol(BufferedSource source, BufferedSink sink) {
-        if (source == null) throw new NullPointerException("source");
-        if (sink == null) throw new NullPointerException("sink");
-        this.transport = null;
-        this.source = source;
-        this.sink = sink;
     }
 
     public abstract void writeMessageBegin(String name, byte typeId, int seqId) throws IOException;
@@ -129,7 +118,7 @@ public abstract class Protocol implements Closeable {
     //////////////
 
     public void flush() throws IOException {
-        sink.flush();
+        transport.flush();
     }
 
     public void reset() {
@@ -138,11 +127,6 @@ public abstract class Protocol implements Closeable {
 
     @Override
     public void close() throws IOException {
-        if (this.transport != null) {
-            this.transport.close();
-        }
-
-        this.source.close();
-        this.sink.close();
+        this.transport.close();
     }
 }

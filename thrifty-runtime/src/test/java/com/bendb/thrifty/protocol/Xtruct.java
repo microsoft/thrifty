@@ -35,11 +35,18 @@ public final class Xtruct {
     )
     public final Long i64_thing;
 
+    @ThriftField(
+            fieldId = 13,
+            isRequired = false
+    )
+    public final Double double_thing;
+
     private Xtruct(Builder builder) {
         this.string_thing = builder.string_thing;
         this.byte_thing = builder.byte_thing;
         this.i32_thing = builder.i32_thing;
         this.i64_thing = builder.i64_thing;
+        this.double_thing = builder.double_thing;
     }
 
     @Override
@@ -51,7 +58,8 @@ public final class Xtruct {
         return (this.string_thing == that.string_thing || (this.string_thing != null && this.string_thing.equals(that.string_thing)))
                 && (this.byte_thing == that.byte_thing || (this.byte_thing != null && this.byte_thing.equals(that.byte_thing)))
                 && (this.i32_thing == that.i32_thing || (this.i32_thing != null && this.i32_thing.equals(that.i32_thing)))
-                && (this.i64_thing == that.i64_thing || (this.i64_thing != null && this.i64_thing.equals(that.i64_thing)));
+                && (this.i64_thing == that.i64_thing || (this.i64_thing != null && this.i64_thing.equals(that.i64_thing)))
+                && (this.double_thing == that.double_thing || (this.double_thing != null && this.double_thing.equals(that.double_thing)));
     }
 
     @Override
@@ -64,6 +72,8 @@ public final class Xtruct {
         code ^= (this.i32_thing == null) ? 0 : this.i32_thing.hashCode();
         code *= 0x811c9dc5;
         code ^= (this.i64_thing == null) ? 0 : this.i64_thing.hashCode();
+        code *= 0x811c9dc5;
+        code ^= (this.double_thing == null) ? 0 : this.double_thing.hashCode();
         code *= 0x811c9dc5;
         return code;
     }
@@ -83,6 +93,9 @@ public final class Xtruct {
         sb.append(",\n  ");
         sb.append("i64_thing=");
         sb.append(this.i64_thing == null ? "null" : this.i64_thing);
+        sb.append(",\n  ");
+        sb.append("double_thing=");
+        sb.append(this.double_thing == null ? "null" : this.double_thing);
         sb.append("\n}");
         return sb.toString();
     }
@@ -96,6 +109,8 @@ public final class Xtruct {
 
         private Long i64_thing;
 
+        private Double double_thing;
+
         public Builder() {
         }
 
@@ -104,6 +119,7 @@ public final class Xtruct {
             this.byte_thing = struct.byte_thing;
             this.i32_thing = struct.i32_thing;
             this.i64_thing = struct.i64_thing;
+            this.double_thing = struct.double_thing;
         }
 
         public Builder string_thing(String string_thing) {
@@ -126,6 +142,11 @@ public final class Xtruct {
             return this;
         }
 
+        public Builder double_thing(Double double_thing) {
+            this.double_thing = double_thing;
+            return this;
+        }
+
         @Override
         public Xtruct build() {
             return new Xtruct(this);
@@ -137,6 +158,7 @@ public final class Xtruct {
             this.byte_thing = null;
             this.i32_thing = null;
             this.i64_thing = null;
+            this.double_thing = null;
         }
     }
 
@@ -162,6 +184,11 @@ public final class Xtruct {
             if (struct.i64_thing != null) {
                 protocol.writeFieldBegin("i64_thing", 11, TType.I64);
                 protocol.writeI64(struct.i64_thing);
+                protocol.writeFieldEnd();
+            }
+            if (struct.double_thing != null) {
+                protocol.writeFieldBegin("double_thing", 13, TType.DOUBLE);
+                protocol.writeDouble(struct.double_thing);
                 protocol.writeFieldEnd();
             }
             protocol.writeFieldStop();
@@ -208,6 +235,15 @@ public final class Xtruct {
                         if (field.typeId == TType.I64) {
                             long value = protocol.readI64();
                             builder.i64_thing(value);
+                        } else {
+                            ProtocolUtil.skip(protocol, field.typeId);
+                        }
+                    }
+                    break;
+                    case 13: {
+                        if (field.typeId == TType.DOUBLE) {
+                            double value = protocol.readDouble();
+                            builder.double_thing(value);
                         } else {
                             ProtocolUtil.skip(protocol, field.typeId);
                         }
