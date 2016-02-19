@@ -15,10 +15,8 @@
  */
 package com.bendb.thrifty.transport;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.ProtocolException;
-
-import okio.Buffer;
 
 /**
  * A transport decorator that reads from and writes to the underlying transport
@@ -29,10 +27,10 @@ public class FramedTransport extends Transport {
     private final Transport inner;
 
     // Read state
-    private int remainingBytes = -1;
+    private int remainingBytes;
 
     // Write state
-    private Buffer pendingWrite;
+    private UnsafeByteArrayOutputStream pendingWrite;
 
     public FramedTransport(Transport inner) {
         this.inner = inner;
@@ -41,6 +39,7 @@ public class FramedTransport extends Transport {
     @Override
     public void close() throws IOException {
         inner.close();
+        pendingWrite = null;
     }
 
     @Override
@@ -66,7 +65,7 @@ public class FramedTransport extends Transport {
     @Override
     public void write(byte[] buffer, int offset, int count) throws IOException {
         if (pendingWrite == null) {
-            pendingWrite = new Buffer();
+            pendingWrite = new UnsafeByteArrayOutputStream(Math.max(count, 32));
         }
 
         pendingWrite.write(buffer, offset, count);
@@ -74,14 +73,7 @@ public class FramedTransport extends Transport {
 
     @Override
     public void flush() throws IOException {
-        if (pendingWrite == null) {
-            return;
-        }
-
-        long size = pendingWrite.size();
-        if (size > Integer.MAX_VALUE) {
-            throw new ProtocolException("Cannot write more than Integer.MAX_VALUE bytes in a single frame");
-        }
+        int size = pendingWrite == null ? 0 : pendingWrite.size();
 
         byte[] headerBytes = new byte[4];
         headerBytes[0] = (byte) ((size >> 24) & 0xFF);
@@ -90,6 +82,20 @@ public class FramedTransport extends Transport {
         headerBytes[3] = (byte)  (size        & 0xFF);
 
         inner.write(headerBytes);
-        inner.write(pendingWrite.readByteArray());
+
+        if (size > 0) {
+            inner.write(pendingWrite.getBuffer(), 0, size);
+            pendingWrite.reset();
+        }
+    }
+
+    private static class UnsafeByteArrayOutputStream extends ByteArrayOutputStream {
+        public UnsafeByteArrayOutputStream(int count) {
+            super(count);
+        }
+
+        public byte[] getBuffer() {
+            return buf;
+        }
     }
 }

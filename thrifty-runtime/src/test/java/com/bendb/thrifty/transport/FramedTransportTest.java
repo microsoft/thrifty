@@ -55,37 +55,6 @@ public class FramedTransportTest {
     }
 
     @Test
-    public void doesNotEncodeNegativeLength() throws Exception {
-        assumeThat(
-                "Don't run this in Travis-CI; it angers the oomkiller",
-                System.getenv("TRAVIS"), not(equalTo("true")));
-
-        byte[] data = new byte[1024 * 1024];
-        int iterations = Integer.MAX_VALUE / data.length + 1;
-
-        Buffer buffer = new Buffer();
-        FramedTransport transport = new FramedTransport(new BufferTransport(buffer));
-
-        try {
-            for (int i = 0; i < iterations; ++i) {
-                transport.write(data);
-            }
-        } catch (OutOfMemoryError ignored) {
-            // Failed to run - need moar RAM!
-            return;
-        }
-
-        try {
-            transport.flush();
-            fail();
-        } catch (ProtocolException expected) {
-            assertThat(
-                    expected.getMessage(),
-                    containsString("Cannot write more than Integer.MAX_VALUE"));
-        }
-    }
-
-    @Test
     public void flushedDataBeginsWithFrameLength() throws Exception {
         Buffer target = new Buffer();
         Buffer source = new Buffer();
