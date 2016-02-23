@@ -3,7 +3,7 @@ Thrifty
 
 "Thrift, but cheaper"
 
-[![Build Status](https://travis-ci.org/microsoft/thrifty.svg?branch=master)](https://travis-ci.org/microsoft/thrifty)
+[![Build Status](https://travis-ci.org/Microsoft/thrifty.svg?branch=master)](https://travis-ci.org/Microsoft/thrifty)
 
 Thrifty is an implementation of the Apache Thrift software stack for Android.
 
