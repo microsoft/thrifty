@@ -1,5 +1,5 @@
 Thrifty
-Copyright 2015-2016 Benjamin Bader
+Copyright (c) Microsoft Corporation
 
 This software contains code derived from Square's Wire project (https://github.com/square/wire),
 Apache's Thrift project (https://github.com/apache/thrift), and KeepSafe's Dexcount project

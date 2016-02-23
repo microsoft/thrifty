@@ -27,7 +27,7 @@
  * details.
  */
 
-namespace java com.bendb.thrifty.integration.gen
+namespace java com.microsoft.thrifty.integration.gen
 
 /**
  * Docstring!

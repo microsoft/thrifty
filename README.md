@@ -3,7 +3,7 @@ Thrifty
 
 "Thrift, but cheaper"
 
-[![Build Status](https://travis-ci.org/benjamin-bader/thrifty.svg?branch=master)](https://travis-ci.org/benjamin-bader/thrifty)
+[![Build Status](https://travis-ci.org/microsoft/thrifty.svg?branch=master)](https://travis-ci.org/microsoft/thrifty)
 
 Thrifty is an implementation of the Apache Thrift software stack for Android.
 
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-  compile 'com.bendb.thrifty:thrifty-runtime:0.1.3'
+  compile 'com.microsoft.thrifty:thrifty-runtime:0.2.0'
 }
 ```
 
@@ -111,14 +111,14 @@ The latter looks like this:
 package com.foo.bar;
 
 import android.support.annotation.NonNull;
-import com.bendb.thrifty.Adapter;
-import com.bendb.thrifty.StructBuilder;
-import com.bendb.thrifty.TType;
-import com.bendb.thrifty.ThriftField;
-import com.bendb.thrifty.protocol.FieldMetadata;
-import com.bendb.thrifty.protocol.ListMetadata;
-import com.bendb.thrifty.protocol.Protocol;
-import com.bendb.thrifty.util.ProtocolUtil;
+import com.microsoft.thrifty.Adapter;
+import com.microsoft.thrifty.StructBuilder;
+import com.microsoft.thrifty.TType;
+import com.microsoft.thrifty.ThriftField;
+import com.microsoft.thrifty.protocol.FieldMetadata;
+import com.microsoft.thrifty.protocol.ListMetadata;
+import com.microsoft.thrifty.protocol.Protocol;
+import com.microsoft.thrifty.util.ProtocolUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -332,14 +332,6 @@ client.search(query, new ServiceMethodCallback<List<SearchResult>>() {
 ./gradlew check
 ```
 
-### Deploying
-
-```bash
-./gradlew uploadArchives
-```
-
-You will need to have valid Sonatype Nexus OSS credentials, as well as a valid *and published* GPG signing key, configured in your local `gradle.properties` file.
-
 ### Thanks
 
 Thrifty owes an enormous debt to Square and the Wire team; without them, this project would not exist.  Thanks!
@@ -347,4 +339,4 @@ An equal debt is owed to Facebook and Apache for developing and opening Thrift t
 
 -------
 
-Copyright © 2015-2016 Benjamin Bader
+Copyright © Microsoft Corporation
