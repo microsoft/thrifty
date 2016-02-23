@@ -20,11 +20,11 @@ apply plugin: 'maven'
 apply plugin: 'signing'
 
 def getRepositoryUsername() {
-    return hasProperty('SONATYPE_NEXUS_USERNAME') ? SONATYPE_NEXUS_USERNAME : System.env.SONATYPE_NEXUS_USERNAME
+    return hasProperty('THRIFTY_SONATYPE_USERNAME') ? THRIFTY_SONATYPE_USERNAME : System.env.THRIFTY_SONATYPE_USERNAME
 }
 
 def getRepositoryPassword() {
-    return hasProperty('SONATYPE_NEXUS_PASSWORD') ? SONATYPE_NEXUS_PASSWORD : System.env.SONATYPE_NEXUS_PASSWORD
+    return hasProperty('THRIFTY_SONATYPE_PASSWORD') ? THRIFTY_SONATYPE_PASSWORD : System.env.THRIFTY_SONATYPE_PASSWORD
 }
 
 afterEvaluate { project ->
