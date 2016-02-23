@@ -1,4 +1,4 @@
-0.2.0 (Unreleased)
+0.2.0 (released 23 February 2016)
 ------------------
 
 - Re-design `Transport` to not use Okio, avoid potential threading issues therein
