@@ -1,8 +1,6 @@
 Thrifty
 =======
 
-"Thrift, but cheaper"
-
 [![Build Status](https://travis-ci.org/Microsoft/thrifty.svg?branch=master)](https://travis-ci.org/Microsoft/thrifty)
 
 Thrifty is an implementation of the Apache Thrift software stack for Android.
@@ -39,18 +37,37 @@ On the command line:
 java -jar thrifty-compiler.jar --out=path/to/output file_one.thrift file_two.thrift file_n.thrift
 ```
 
+### Building
+
+```bash
+./gradlew build
+```
+
+### Testing
+
+```bash
+./gradlew check
+```
+
+### Contributing
+
+We welcome contributions at all levels.  Contributions could be as simple as bug reports and feature suggestions,
+typo fixes, additional tests, bugfixes, even new features.  If you wish to contribute code, please be sure to read our
+[Contributing Guide](CONTRIBUTING.md).
+
 ### Differences with Apache Thrift
 
-Thrifty is 100% compatible with Apache Thrift services.
+Thrifty structs and clients are 100% compatible with Apache Thrift services.
 
 The major differences are:
 
 - Thrifty structs are immutable.
 - Thrifty structs are always valid, once built via a builder.
 - Fields that are neither required nor optional (i.e. "default") are treated as optional; a struct with an unset default field may still be serialized.
-- TupleProtocol and JsonProtocols are unsupported at present
+- TupleProtocol and JsonProtocols are unsupported at present.
+- Server-specific features from Apache's implementation are not duplicated in Thrifty.
 
-## Guide To Thrift and Thriftiness
+## Guide To Thrifty
 
 Thrift is a language-agnostic remote-procedure-call (RPC) definition toolkit.  Services, along with a rich set of
 structured data, are defined using the Thrift Interface Definition Language (IDL).  This IDL is then compiled into
@@ -85,7 +102,7 @@ service Google {
 }
 ```
 
-For the authoritative source on Thrift IDL, [Thrift: The Missing Guide](https://diwakergupta.github.io/thrift-missing-guide/) is an excellent introduction.
+For an authoritative source on Thrift IDL, [Thrift: The Missing Guide](https://diwakergupta.github.io/thrift-missing-guide/) is an excellent introduction.
 
 #### Generating Code
 
@@ -318,18 +335,6 @@ client.search(query, new ServiceMethodCallback<List<SearchResult>>() {
     }
 });
 
-```
-
-### Building
-
-```bash
-./gradlew build
-```
-
-### Testing
-
-```bash
-./gradlew check
 ```
 
 ### Thanks
