@@ -48,7 +48,7 @@ The major differences are:
 - Thrifty structs are immutable.
 - Thrifty structs are always valid, once built via a builder.
 - Fields that are neither required nor optional (i.e. "default") are treated as optional; a struct with an unset default field may still be serialized.
-- TupleProtocol is unsupported at present
+- TupleProtocol and JsonProtocols are unsupported at present
 
 ## Guide To Thrift and Thriftiness
 
