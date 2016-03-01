@@ -51,6 +51,8 @@ java -jar thrifty-compiler.jar --out=path/to/output file_one.thrift file_two.thr
 
 ### Contributing
 
+[![Join the chat at https://gitter.im/Microsoft/thrifty](https://badges.gitter.im/Microsoft/thrifty.svg)](https://gitter.im/Microsoft/thrifty?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 We welcome contributions at all levels.  Contributions could be as simple as bug reports and feature suggestions,
 typo fixes, additional tests, bugfixes, even new features.  If you wish to contribute code, please be sure to read our
 [Contributing Guide](CONTRIBUTING.md).
