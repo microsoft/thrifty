@@ -34,6 +34,7 @@ import com.microsoft.thrifty.schema.parser.StructElement;
 import com.microsoft.thrifty.schema.parser.ThriftFileElement;
 import com.microsoft.thrifty.schema.parser.TypedefElement;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
@@ -216,7 +217,7 @@ public final class Program {
      * @param loader
      * @param visited
      */
-    void loadIncludedPrograms(Loader loader, Set<Program> visited) {
+    void loadIncludedPrograms(Loader loader, Set<Program> visited) throws IOException {
         if (!visited.add(this)) {
             if (includedPrograms == null) {
                 throw new IllegalStateException("Circular include: " + location().path()
