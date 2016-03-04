@@ -385,3 +385,9 @@ struct StructB {
   1: optional StructA aa;
   2: required StructA ab;
 }
+
+struct CrayCray {
+  1: required list<list<list<i32>>> emptyList = [[]]
+  2: required list<set<set<i32>>> emptySet = [[]]
+  3: required list<list<map<i32, i32>>> emptyMap = [[]]
+}
