@@ -252,7 +252,8 @@ final class ConstantBuilder {
             @Override
             public CodeBlock visitList(ThriftType.ListType listType) {
                 if (value.getAsList().isEmpty()) {
-                    return CodeBlock.builder().add("$T.emptyList()", TypeNames.COLLECTIONS).build();
+                    TypeName elementType = typeResolver.getJavaClass(listType.elementType());
+                    return CodeBlock.builder().add("$T.<$T>emptyList()", TypeNames.COLLECTIONS, elementType).build();
                 }
                 return visitCollection(listType, "list", "unmodifiableList");
             }
@@ -260,7 +261,8 @@ final class ConstantBuilder {
             @Override
             public CodeBlock visitSet(ThriftType.SetType setType) {
                 if (value.getAsList().isEmpty()) {
-                    return CodeBlock.builder().add("$T.emptySet()", TypeNames.COLLECTIONS).build();
+                    TypeName elementType = typeResolver.getJavaClass(setType.elementType());
+                    return CodeBlock.builder().add("$T.<$T>emptySet()", TypeNames.COLLECTIONS, elementType).build();
                 }
                 return visitCollection(setType, "set", "unmodifiableSet");
             }
@@ -268,7 +270,11 @@ final class ConstantBuilder {
             @Override
             public CodeBlock visitMap(ThriftType.MapType mapType) {
                 if (value.getAsMap().isEmpty()) {
-                    return CodeBlock.builder().add("$T.emptyMap()", TypeNames.COLLECTIONS).build();
+                    TypeName keyType = typeResolver.getJavaClass(mapType.keyType());
+                    TypeName valueType = typeResolver.getJavaClass(mapType.valueType());
+                    return CodeBlock.builder()
+                            .add("$T.<$T, $T>emptyMap()", TypeNames.COLLECTIONS, keyType, valueType)
+                            .build();
                 }
                 return visitCollection(mapType, "map", "unmodifiableMap");
             }
