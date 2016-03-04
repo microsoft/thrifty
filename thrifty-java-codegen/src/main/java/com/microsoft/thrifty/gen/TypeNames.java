@@ -98,6 +98,10 @@ final class TypeNames {
     static final ClassName SERVICE_CLIENT_LISTENER = ClassName.get(ClientBase.Listener.class);
     static final ClassName SERVICE_METHOD_CALL = ClassName.get(MethodCall.class);
 
+    static final ClassName PARCEL = ClassName.get("android.os", "Parcel");
+    static final ClassName PARCELABLE = ClassName.get("android.os", "Parcelable");
+    static final ClassName PARCELABLE_CREATOR = ClassName.get("android.os", "Parcelable", "Creator");
+
     /**
      * A mapping of {@link TType} constant values to their Java names.
      */

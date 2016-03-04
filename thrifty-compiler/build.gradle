@@ -57,7 +57,7 @@ task compileTestCase(type: Exec) {
     dependsOn jarTask
 
     executable 'java'
-    args('-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/src/gen/java", "$projectDir/TestThrift.thrift")
+    args('-jar', jarTask.archivePath.absolutePath, "--parcelable" , "--out=$projectDir/build/src/gen/java", "$projectDir/TestThrift.thrift")
 }
 
 afterEvaluate {
