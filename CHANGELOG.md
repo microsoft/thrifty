@@ -1,3 +1,9 @@
+0.2.1 (unreleased)
+------------------
+
+- #4: Add automatic Parcelable implementation
+- #2: Fix nested-generic fields with default values
+
 0.2.0 (released 23 February 2016)
 ------------------
 

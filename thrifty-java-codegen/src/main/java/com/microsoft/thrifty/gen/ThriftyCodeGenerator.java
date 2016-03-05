@@ -38,6 +38,7 @@ import com.microsoft.thrifty.schema.Service;
 import com.microsoft.thrifty.schema.StructType;
 import com.microsoft.thrifty.schema.ThriftType;
 import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -79,6 +80,7 @@ public final class ThriftyCodeGenerator {
     private final ServiceBuilder serviceBuilder;
     private TypeProcessor typeProcessor;
     private boolean emitAndroidAnnotations;
+    private boolean emitParcelable;
 
     public ThriftyCodeGenerator(Schema schema) {
         this(
@@ -125,6 +127,11 @@ public final class ThriftyCodeGenerator {
 
     public ThriftyCodeGenerator emitAndroidAnnotations(boolean shouldEmit) {
         emitAndroidAnnotations = shouldEmit;
+        return this;
+    }
+
+    public ThriftyCodeGenerator emitParcelable(boolean emitParcelable) {
+        this.emitParcelable = emitParcelable;
         return this;
     }
 
@@ -262,6 +269,10 @@ public final class ThriftyCodeGenerator {
         TypeSpec builderSpec = builderFor(type, structTypeName, builderTypeName);
         TypeSpec adapterSpec = adapterFor(type, structTypeName, builderTypeName);
 
+        if (emitParcelable) {
+            generateParcelable(type, structTypeName, structBuilder);
+        }
+
         structBuilder.addType(builderSpec);
         structBuilder.addType(adapterSpec);
         structBuilder.addField(FieldSpec.builder(adapterSpec.superinterfaces.get(0), ADAPTER_FIELDNAME)
@@ -330,6 +341,68 @@ public final class ThriftyCodeGenerator {
         structBuilder.addMethod(buildToStringFor(type));
 
         return structBuilder.build();
+    }
+
+    private void generateParcelable(StructType structType, ClassName structName, TypeSpec.Builder structBuilder) {
+        structBuilder.addSuperinterface(TypeNames.PARCELABLE);
+
+        structBuilder.addField(FieldSpec.builder(ClassLoader.class, "CLASS_LOADER")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .initializer("$T.class.getClassLoader()", structName)
+                .build());
+
+        ParameterizedTypeName creatorType = ParameterizedTypeName.get(TypeNames.PARCELABLE_CREATOR, structName);
+        TypeSpec creator = TypeSpec.anonymousClassBuilder("")
+                .addSuperinterface(creatorType)
+                .addMethod(MethodSpec.methodBuilder("createFromParcel")
+                        .addAnnotation(Override.class)
+                        .addModifiers(Modifier.PUBLIC)
+                        .returns(structName)
+                        .addParameter(TypeNames.PARCEL, "source")
+                        .addStatement("return new $T(source)", structName)
+                        .build())
+                .addMethod(MethodSpec.methodBuilder("newArray")
+                        .addAnnotation(Override.class)
+                        .addModifiers(Modifier.PUBLIC)
+                        .returns(ArrayTypeName.of(structName))
+                        .addParameter(int.class, "size")
+                        .addStatement("return new $T[size]", structName)
+                        .build())
+                .build();
+
+        MethodSpec.Builder parcelCtor = MethodSpec.constructorBuilder()
+                .addParameter(TypeNames.PARCEL, "in")
+                .addModifiers(Modifier.PRIVATE);
+
+        MethodSpec.Builder parcelWriter = MethodSpec.methodBuilder("writeToParcel")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(TypeNames.PARCEL, "dest")
+                .addParameter(int.class, "flags");
+
+        for (Field field : structType.fields()) {
+            TypeName fieldType = typeResolver.getJavaClass(field.type().getTrueType());
+            parcelCtor.addStatement("this.$N = ($T) in.readValue(CLASS_LOADER)", field.name(), fieldType);
+
+            parcelWriter.addStatement("dest.writeValue(this.$N)", field.name());
+        }
+
+        FieldSpec creatorField = FieldSpec.builder(creatorType, "CREATOR")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                .initializer("$L", creator)
+                .build();
+
+        structBuilder
+                .addField(creatorField)
+                .addMethod(MethodSpec.methodBuilder("describeContents")
+                        .addAnnotation(Override.class)
+                        .addModifiers(Modifier.PUBLIC)
+                        .returns(int.class)
+                        .addStatement("return 0")
+                        .build())
+                .addMethod(parcelCtor.build())
+                .addMethod(parcelWriter.build());
+
     }
 
     private TypeSpec builderFor(

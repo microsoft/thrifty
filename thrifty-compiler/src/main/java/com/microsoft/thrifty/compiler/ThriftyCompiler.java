@@ -74,6 +74,7 @@ public class ThriftyCompiler {
     private static final String SET_TYPE_PREFIX = "--set-type=";
     private static final String MAP_TYPE_PREFIX = "--map-type=";
     private static final String NULLABILITY_ARG = "--use-android-annotations";
+    private static final String PARCELABLE_ARG = "--parcelable";
     private static final String JAVA_NAMES_ARG = "--use-java-style-names";
 
     private File outputDirectory;
@@ -83,6 +84,7 @@ public class ThriftyCompiler {
     private String setTypeName;
     private String mapTypeName;
     private boolean emitNullabilityAnnotations = false;
+    private boolean emitParcelable = false;
     private FieldNamingPolicy fieldNamingPolicy = FieldNamingPolicy.DEFAULT;
 
     public static void main(String[] args) {
@@ -119,6 +121,8 @@ public class ThriftyCompiler {
                 compiler.setMapType(typename);
             } else if (arg.trim().equals(NULLABILITY_ARG)) {
                 compiler.emitNullabilityAnnotations = true;
+            } else if (arg.trim().equals(PARCELABLE_ARG)) {
+                compiler.emitParcelable = true;
             } else if (arg.trim().equals(JAVA_NAMES_ARG)) {
                 compiler.fieldNamingPolicy = FieldNamingPolicy.JAVA;
             } else if (arg.startsWith("-")) {
@@ -197,6 +201,7 @@ public class ThriftyCompiler {
         }
 
         gen.emitAndroidAnnotations(emitNullabilityAnnotations);
+        gen.emitParcelable(emitParcelable);
 
         gen.generate(outputDirectory);
     }
