@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.base.Joiner;
 import okio.BufferedSink;
 import okio.Okio;
 import org.junit.Rule;
@@ -219,7 +220,7 @@ public class LoaderTest {
         loader.addThriftFile(f2.getAbsolutePath());
         loader.addThriftFile(f3.getAbsolutePath());
 
-        Schema schema = loader.load();
+        loader.load();
     }
 
     @Test
@@ -354,6 +355,35 @@ public class LoaderTest {
 
         Loader loader = new Loader();
         loader.addThriftFile(file.getAbsolutePath());
+
+        loader.load();
+    }
+
+    @Test
+    public void includesWithRelativePaths() throws Exception {
+        tempDir.newFolder("foo");
+        File f1 = tempDir.newFile("a.thrift");
+        File f2 = tempDir.newFile(Joiner.on(File.separatorChar).join("foo", "b.thrift"));
+
+        String a = "namespace java com.microsoft.thrifty.test.includesWithRelativePaths\n" +
+                "\n" +
+                "enum A {\n" +
+                "  ONE, TWO, THREE\n" +
+                "}";
+
+        String b = "include '" + f1.getCanonicalPath() + "'\n" +
+                "namespace java com.microsoft.thrifty.test.includesWithRelativePaths\n" +
+                "\n" +
+                "struct B {\n" +
+                "  1: a.A a = a.A.ONE\n" +
+                "}";
+
+        writeTo(f1, a);
+        writeTo(f2, b);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f1.getAbsolutePath());
+        loader.addThriftFile(f2.getAbsolutePath());
 
         loader.load();
     }
