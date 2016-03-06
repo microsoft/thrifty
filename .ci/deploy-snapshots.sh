@@ -40,5 +40,11 @@ then
   exit 1
 fi
 
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]
+then
+  echo "Pull request"
+  exit 1
+fi
+
 ./gradlew uploadArchives
 
