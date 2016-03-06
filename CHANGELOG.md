@@ -1,6 +1,7 @@
 0.2.1 (unreleased)
 ------------------
 
+- #7: Fix lookup of included constants during linking
 - #4: Add automatic Parcelable implementation
 - #2: Fix nested-generic fields with default values
 

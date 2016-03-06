@@ -208,7 +208,8 @@ public final class Program {
                 .append(unions)
                 .append(exceptions)
                 .append(services)
-                .append(typedefs);
+                .append(typedefs)
+                .append(constants);
     }
 
     /**
