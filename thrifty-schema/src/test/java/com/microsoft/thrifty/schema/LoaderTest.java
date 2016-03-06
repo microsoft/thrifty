@@ -184,6 +184,31 @@ public class LoaderTest {
     }
 
     @Test
+    public void includedConstants() throws Exception {
+        File producer = tempDir.newFile("p.thrift");
+        File consumer = tempDir.newFile("c.thrift");
+
+        String producerThrift = "" +
+                "const i32 foo = 10";
+
+        String consumerThrift = "" +
+                "include 'p.thrift'\n" +
+                "\n" +
+                "struct Bar {\n" +
+                "  1: required i32 field = p.foo\n" +
+                "}\n";
+
+        writeTo(producer, producerThrift);
+        writeTo(consumer, consumerThrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(producer.getAbsolutePath());
+        loader.addThriftFile(consumer.getAbsolutePath());
+
+        loader.load();
+    }
+
+    @Test
     public void crazyIncludes() throws Exception {
         File f1 = tempDir.newFile("a.thrift");
         File f2 = tempDir.newFile("b.thrift");
