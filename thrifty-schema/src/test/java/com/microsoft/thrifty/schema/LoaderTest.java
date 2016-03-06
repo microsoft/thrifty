@@ -361,9 +361,9 @@ public class LoaderTest {
 
     @Test
     public void includesWithRelativePaths() throws Exception {
-        tempDir.newFolder("foo");
+        tempDir.newFolder("b");
         File f1 = tempDir.newFile("a.thrift");
-        File f2 = tempDir.newFile(Joiner.on(File.separatorChar).join("foo", "b.thrift"));
+        File f2 = tempDir.newFile(Joiner.on(File.separatorChar).join("b", "b.thrift"));
 
         String a = "namespace java com.microsoft.thrifty.test.includesWithRelativePaths\n" +
                 "\n" +
@@ -371,7 +371,8 @@ public class LoaderTest {
                 "  ONE, TWO, THREE\n" +
                 "}";
 
-        String b = "include '" + f1.getCanonicalPath() + "'\n" +
+        String b = "include '../a.thrift'\n" +
+                "\n" +
                 "namespace java com.microsoft.thrifty.test.includesWithRelativePaths\n" +
                 "\n" +
                 "struct B {\n" +
