@@ -347,15 +347,19 @@ class Linker {
     @Nullable
     Named lookupSymbol(String symbol) {
         Named named = program.symbols().get(symbol);
-        if (named == null && symbol.indexOf('.') != -1) {
-            // 'symbol' may be a qualified name for an included type
-            ThriftType type = typesByName.get(symbol);
-            if (type != null) {
-                String name = type.name();
+        if (named == null) {
+            // Symbol may be a qualified name
+            int ix = symbol.indexOf('.');
+            if (ix != -1) {
+                String includeName = symbol.substring(0, ix);
+                String qualifiedName = symbol.substring(ix + 1);
+                String expectedPath = includeName + ".thrift";
                 for (Program includedProgram : program.includes()) {
-                    named = includedProgram.symbols().get(name);
-                    if (named != null) {
-                        break;
+                    if (includedProgram.location().path().equals(expectedPath)) {
+                        named = includedProgram.symbols().get(qualifiedName);
+                        if (named != null) {
+                            break;
+                        }
                     }
                 }
             }
