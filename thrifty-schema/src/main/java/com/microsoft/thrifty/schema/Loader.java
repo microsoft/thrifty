@@ -224,12 +224,16 @@ public final class Loader {
         }
     }
 
-    Program resolveIncludedProgram(Location currentPath, String importPath) {
+    Program resolveIncludedProgram(Location currentPath, String importPath) throws IOException {
         File resolved = findFirstExisting(importPath, currentPath);
         if (resolved == null) {
             throw new AssertionError("Included thrift file not found: " + importPath);
         }
-        return getAndCheck(resolved.getAbsolutePath());
+        try {
+            return getAndCheck(resolved.getCanonicalPath());
+        } catch (IOException e) {
+            throw new IOException("Failed to get canonical path for file " + resolved.getAbsolutePath(), e);
+        }
     }
 
     /**
