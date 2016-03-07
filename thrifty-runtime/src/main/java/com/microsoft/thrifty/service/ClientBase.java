@@ -26,18 +26,16 @@ import com.microsoft.thrifty.protocol.Protocol;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Implements a basic service client that executes methods asynchronously.
@@ -99,37 +97,21 @@ public class ClientBase implements Closeable {
     private final ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
 
     /**
-     * A queue of method calls waiting to be sent to the server.
+     * An unbounded queue holding RPC calls awaiting execution.
      */
-    private final Queue<MethodCall<?>> outbox = new LinkedList<>();
-
-    /**
-     * A map of method calls awaiting response from the server,
-     * indexed by the sequence ID generated when the call was
-     * sent.
-     */
-    private final Map<Integer, MethodCall> inbox = new HashMap<>();
-
-    private final Lock lock = new ReentrantLock();
-    private final Condition hasQueuedData = lock.newCondition();
-    private final Condition waitingForReply = lock.newCondition();
+    private final BlockingQueue<MethodCall<?>> pendingCalls = new LinkedBlockingQueue<>();
 
     private final Protocol protocol;
     private final Listener listener;
-    private final RunLoop writer;
-    private final RunLoop reader;
+    private final WorkerThread workerThread;
 
     protected ClientBase(Protocol protocol, Listener listener) {
         this.protocol = protocol;
         this.listener = listener;
-        this.writer = new WriterThread();
-        this.reader = new ReaderThread();
+        this.workerThread = new WorkerThread();
 
-        writer.setDaemon(true);
-        reader.setDaemon(true);
-
-        writer.start();
-        reader.start();
+        workerThread.setDaemon(true);
+        workerThread.start();
     }
 
     /**
@@ -143,16 +125,9 @@ public class ClientBase implements Closeable {
             throw new IllegalStateException("Cannot write to a closed service client");
         }
 
-        lock.lock();
-        try {
-            if (!running.get()) {
-                throw new IllegalStateException("Cannot write to a closed service client");
-            }
-
-            outbox.add(methodCall);
-            hasQueuedData.signal();
-        } finally {
-            lock.unlock();
+        if (!pendingCalls.offer(methodCall)) {
+            // This should never happen with an unbounded queue
+            throw new IllegalStateException("Call queue is full");
         }
     }
 
@@ -161,24 +136,12 @@ public class ClientBase implements Closeable {
         close(null);
     }
 
-    private void close(Throwable error) {
+    private void close(final Throwable error) {
         if (!running.compareAndSet(true, false)) {
             return;
         }
 
-        lock.lock();
-        try {
-            outbox.clear();
-            inbox.clear();
-
-            waitingForReply.signalAll();
-            hasQueuedData.signalAll();
-        } finally {
-            lock.unlock();
-        }
-
-        reader.interrupt();
-        writer.interrupt();
+        workerThread.interrupt();
 
         try {
             protocol.close();
@@ -186,35 +149,48 @@ public class ClientBase implements Closeable {
             // nope
         }
 
+        if (!pendingCalls.isEmpty()) {
+            List<MethodCall<?>> incompleteCalls = new ArrayList<>();
+            pendingCalls.drainTo(incompleteCalls);
+            CancellationException e = new CancellationException();
+            for (MethodCall<?> call : incompleteCalls) {
+                try {
+                    fail(call, e);
+                } catch (Exception ignored) {
+                    // nope
+                }
+            }
+        }
+
+        callbackExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                if (error != null) {
+                    listener.onError(error);
+                } else {
+                    listener.onTransportClosed();
+                }
+            }
+        });
+
         try {
+            // Shut down, but let queued tasks finish.
+            // Don't terminate!
             callbackExecutor.shutdown();
         } catch (Exception ignored) {
             // nope
         }
-
-        // Listener callbacks need to be synchronous - we have just
-        // shut down our executor.  If we rearranged this method, it
-        // wouldn't make a difference - the executor would still have
-        // been shut down
-        if (error != null) {
-            listener.onError(error);
-        } else {
-            listener.onTransportClosed();
-        }
     }
 
-    private abstract class RunLoop extends Thread {
+    @SuppressWarnings("unchecked")
+    private class WorkerThread extends Thread {
         @Override
         public void run() {
             Throwable error = null;
             while (running.get()) {
                 try {
-                    act();
-                } catch (InterruptedIOException | InterruptedException e) {
-                    // Either we were closed, in which case transition normally,
-                    // or we were interrupted for some mysterious reason, in which
-                    // case just keep on truckin'.
-                } catch (Exception e) {
+                    invokeRequest();
+                } catch (Throwable e) {
                     error = e;
                     break;
                 }
@@ -227,28 +203,17 @@ public class ClientBase implements Closeable {
             }
         }
 
-        abstract void act() throws Exception;
-    }
-
-    private class WriterThread extends RunLoop {
-        @SuppressWarnings("Duplicates")
-        @Override
-        void act() throws Exception {
-            final MethodCall call;
-
-            lock.lock();
-            try {
-                while (outbox.isEmpty()) {
-                    hasQueuedData.await();
-
-                    if (!running.get()) {
-                        return;
-                    }
+        private void invokeRequest() throws IOException, InterruptedException {
+            MethodCall<?> call = pendingCalls.take();
+            if (!running.get()) {
+                if (call != null) {
+                    fail(call, new CancellationException());
                 }
+                return;
+            }
 
-                call = outbox.remove();
-            } finally {
-                lock.unlock();
+            if (call == null) {
+                return;
             }
 
             boolean isOneWay = call.callTypeId == TMessageType.ONEWAY;
@@ -257,59 +222,17 @@ public class ClientBase implements Closeable {
             protocol.writeMessageBegin(call.name, call.callTypeId, sid);
             call.send(protocol);
             protocol.writeMessageEnd();
-
-            // Small messages may be lingering in a send buffer, but too
-            // many flushes are not good.  As a first guess at an heuristic
-            // to improve latency, only flush if there are no more queued
-            // method calls.
-            boolean hasMoreCalls;
-
-            lock.lock();
-            try {
-                hasMoreCalls = !outbox.isEmpty();
-            } finally {
-                lock.unlock();
-            }
-
-            if (!hasMoreCalls) {
-                protocol.flush();
-            }
+            protocol.flush();
 
             if (isOneWay) {
-                // null is always safe to pass here - oneway methods
-                // are guaranteed to be Void anyways.
-                //noinspection unchecked
+                // No response will be received
                 complete(call, null);
-            } else {
-                lock.lock();
-                try {
-                    MethodCall<?> oldCall = inbox.put(sid, call);
-                    if (oldCall != null) {
-                        throw new IllegalStateException("Reused sequence ID! (id=" + sid + ")");
-                    }
-                    waitingForReply.signal();
-                } finally {
-                    lock.unlock();
-                }
+                return;
             }
-        }
-    }
 
-    private class ReaderThread extends RunLoop {
-        @SuppressWarnings("Duplicates")
-        @Override
-        void act() throws Exception {
             MessageMetadata metadata = protocol.readMessageBegin();
 
-            MethodCall call;
-            lock.lock();
-            try {
-                call = inbox.remove(metadata.seqId);
-            } finally {
-                lock.unlock();
-            }
-
-            if (call == null) {
+            if (metadata.seqId != sid) {
                 throw new ThriftException(
                         ThriftException.Kind.BAD_SEQUENCE_ID,
                         "Unrecognized sequence ID");
@@ -338,12 +261,29 @@ public class ClientBase implements Closeable {
                                 + " but received " + metadata.name);
             }
 
+            Object result = null;
+            Exception error = null;
             try {
-                complete(call, call.receive(protocol, metadata));
+                result = call.receive(protocol, metadata);
             } catch (Exception e) {
-                fail(call, e);
-            } finally {
-                protocol.readMessageEnd();
+                error = e;
+            }
+
+            try {
+                if (error != null) {
+                    fail(call, error);
+                } else {
+                    complete(call, result);
+                }
+            } catch (RejectedExecutionException e) {
+                // The client has been closed out from underneath; as there will
+                // be no further use for this thread, no harm in running it
+                // synchronously.
+                if (error != null) {
+                    call.callback.onError(error);
+                } else {
+                    ((MethodCall) call).callback.onSuccess(result);
+                }
             }
         }
     }
