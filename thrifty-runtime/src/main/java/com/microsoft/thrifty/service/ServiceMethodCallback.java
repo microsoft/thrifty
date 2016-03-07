@@ -39,12 +39,26 @@ public interface ServiceMethodCallback<T> {
     /**
      * Invoked upon a failure to complete the call, for any reason.
      *
+     * <p>The {@code error} parameter will be one of:
+     * <ul>
+     *     <li>
+     *         An the exception declared in the service's Thrift IDL.
+     *     </li>
+     *     <li>
+     *         An {@link java.io.IOException} detailing an IO failure.
+     *     </li>
+     *     <li>
+     *         A {@link java.net.ProtocolException} if a malformed response is
+     *         received.
+     *     </li>
+     *     <li>
+     *         An {@link java.util.concurrent.CancellationException} if the
+     *         client is shut down before the method could be executed.
+     *     </li>
+     * </ul>
+     *
      * @param error The {@linkplain Throwable} instance indicating the cause of
-     *              failure.  It will be one of the declared exceptions of the
-     *              service method, <em>or</em> an {@link java.io.IOException}
-     *              detailing the IO failure, <em>or</em> a
-     *              {@link java.net.ProtocolException} if an incomprehensible
-     *              server response is received.
+     *              failure.
      */
     void onError(Throwable error);
 }
