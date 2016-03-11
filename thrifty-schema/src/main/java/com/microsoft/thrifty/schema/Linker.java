@@ -29,14 +29,12 @@ import com.microsoft.thrifty.schema.parser.TypeElement;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
-import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 
 /**
  * An object that can resolve the types of typdefs, struct fields, and service
@@ -369,20 +367,24 @@ class Linker {
 
     @Nullable
     Named lookupSymbol(ThriftType type) {
-        Queue<Program> ps = new ArrayDeque<>(1);
-        ps.add(program);
-
-        while (!ps.isEmpty()) {
-            Program p = ps.remove();
-            Named named = p.symbols().get(type.name());
-            if (named != null) {
-                return named;
+        // This differs from the above because, instead of a possibly-qualified
+        // name, we have a ThriftType that is not qualified, and wish to find
+        // its defining element.  It could feasibly be in this program, or in
+        // one of its direct inclusions.
+        //
+        // (Symbols from direct inclusions are available in IDL, but those from
+        // transitive inclusions are not).
+        Named named = program.symbols().get(type.name());
+        if (named == null) {
+            for (Program p : program.includes()) {
+                named = p.symbols().get(type.name());
+                if (named != null) {
+                    break;
+                }
             }
-
-            ps.addAll(p.includes());
         }
 
-        return null;
+        return named;
     }
 
     void addError(String error) {
