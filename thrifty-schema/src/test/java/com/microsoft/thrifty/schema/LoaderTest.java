@@ -179,8 +179,8 @@ public class LoaderTest {
         try {
             loader.load();
             fail();
-        } catch (IllegalStateException e) {
-            assertThat(e.getMessage(), containsString("Failed to resolve type TestEnum"));
+        } catch (LoadFailedException e) {
+            assertHasError(e, "Failed to resolve type 'TestEnum'");
         }
     }
 
@@ -265,8 +265,8 @@ public class LoaderTest {
                     .addThriftFile(f3.getAbsolutePath())
                     .load();
             fail("Circular includes should fail to load");
-        } catch (RuntimeException e) {
-            assertThat(e.getMessage(), containsString("Circular include"));
+        } catch (LoadFailedException e) {
+            assertHasError(e, "Circular include");
         }
     }
 
@@ -285,7 +285,8 @@ public class LoaderTest {
         try {
             loader.load();
             fail("Circular typedefs should fail to link");
-        } catch (RuntimeException ignored) {
+        } catch (LoadFailedException e) {
+            assertHasError(e, "Unresolvable typedef");
         }
     }
 
@@ -368,8 +369,8 @@ public class LoaderTest {
         try {
             loader.load();
             fail();
-        } catch (IllegalStateException e) {
-            assertThat(e.getMessage(), containsString("Failed to resolve type Undefined"));
+        } catch (LoadFailedException e) {
+            assertHasError(e, "Failed to resolve type 'Undefined'");
         }
     }
 
@@ -419,5 +420,14 @@ public class LoaderTest {
         sink.writeUtf8(content);
         sink.flush();
         sink.close();
+    }
+
+    private static void assertHasError(LoadFailedException exception, String expectedMessage) {
+        for (ErrorReporter.Report report : exception.errorReporter().reports()) {
+            if (report.message().contains(expectedMessage)) {
+                return;
+            }
+        }
+        throw new AssertionError("Expected a reported error containing '" + expectedMessage + "'");
     }
 }

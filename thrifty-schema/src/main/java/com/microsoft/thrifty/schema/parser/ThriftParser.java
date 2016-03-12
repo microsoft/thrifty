@@ -25,6 +25,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.microsoft.thrifty.schema.ErrorReporter;
 import com.microsoft.thrifty.schema.JavadocUtil;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.NamespaceScope;
@@ -51,6 +52,8 @@ public final class ThriftParser {
     private int line;
     private int lineStart;
 
+    private ErrorReporter errorReporter;
+
     /**
      * Parse the given Thrift {@code text}, using the given {@code location}
      * to anchor parsed elements withing the file.
@@ -59,7 +62,21 @@ public final class ThriftParser {
      * @return a representation of the parsed Thrift data.
      */
     public static ThriftFileElement parse(Location location, String text) {
-        return new ThriftParser(location, text.toCharArray()).readThriftData();
+        return parse(location, text, new ErrorReporter());
+    }
+
+    /**
+     * Parse the given Thrift {@code text}, using the given {@code location}
+     * to anchor parsed elements withing the file.
+     * @param location the {@link Location} of the data being parsed.
+     * @param text the text to be parsed.
+     * @param reporter an {@link ErrorReporter} to collect warnings.
+     * @return a representation of the parsed Thrift data.
+     */
+    public static ThriftFileElement parse(Location location, String text, ErrorReporter reporter) {
+        ThriftParser parser = new ThriftParser(location, text.toCharArray());
+        parser.errorReporter = reporter;
+        return parser.readThriftData();
     }
 
     private ThriftParser(Location location, char[] data) {
@@ -132,6 +149,7 @@ public final class ThriftParser {
         String word = readWord();
 
         if ("namespace".equals(word)) {
+            Location scopeNameLocation = location();
             String scopeName = readNamespaceScope();
             NamespaceScope scope = NamespaceScope.forThriftName(scopeName);
 
@@ -143,7 +161,7 @@ public final class ThriftParser {
             }
 
             if (scope == null) {
-                // TODO: Implement warnings
+                errorReporter.warn(scopeNameLocation, "Unknown namespace scope '" + scopeName + "'");
                 scope = NamespaceScope.UNKNOWN;
             }
 
@@ -1159,6 +1177,7 @@ public final class ThriftParser {
     }
 
     private RuntimeException unexpected(Location location, String message) {
+        errorReporter.error(location, message);
         throw new IllegalStateException(String.format("Syntax error in %s: %s", location, message));
     }
 }

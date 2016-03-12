@@ -69,7 +69,7 @@ public class Constant extends Named {
         try {
             validate(linker, value, type);
         } catch (IllegalStateException e) {
-            linker.addError(e.getMessage());
+            linker.addError(location(), e.getMessage());
         }
     }
 

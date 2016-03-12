@@ -108,13 +108,13 @@ public class StructType extends Named {
         for (Field field : fields) {
             Field dupe = fieldsById.put(field.id(), field);
             if (dupe != null) {
-                linker.addError(
+                linker.addError(dupe.location(),
                         "Duplicate field IDs: " + field.name() + " and " + dupe.name()
                         + " both have the same ID (" + field.id() + ")");
             }
 
             if (isUnion() && field.required()) {
-                linker.addError("Unions may not have required fields: " + field.name());
+                linker.addError(field.location(), "Unions may not have required fields: " + field.name());
             }
         }
     }

@@ -46,14 +46,16 @@ import java.util.Map;
 class Linker {
     private final LinkEnvironment environment;
     private final Program program;
+    private final ErrorReporter reporter;
     private final Map<String, ThriftType> typesByName = new LinkedHashMap<>();
 
     private boolean linking = false;
     private boolean linked = false;
 
-    Linker(LinkEnvironment environment, Program program) {
+    Linker(LinkEnvironment environment, Program program, ErrorReporter reporter) {
         this.environment = environment;
         this.program = program;
+        this.reporter = reporter;
     }
 
     void link() {
@@ -62,7 +64,7 @@ class Linker {
         }
 
         if (linking) {
-            environment.addError("Circular link detected; " + program.location().path() + " includes itself");
+            reporter.error(program.location(), "Circular link detected; file transitively includes itself.");
             return;
         }
 
@@ -88,7 +90,7 @@ class Linker {
             linkServices();
 
             // Only validate the schema if linking succeeded; no point otherwise.
-            if (!environment.hasErrors()) {
+            if (!reporter.hasError()) {
                 validateConstants();
                 validateStructs();
                 validateExceptions();
@@ -101,7 +103,6 @@ class Linker {
             // The relevant errors will have already been
             // added to the environment; just let the caller
             // handle them.
-            System.err.print("UNEXPECTED ERROR: " + ignored);
         } finally {
             linking = false;
         }
@@ -192,7 +193,7 @@ class Linker {
 
             if (!atLeastOneResolved) {
                 for (Typedef typedef : typedefs) {
-                    environment.addError("Unresolvable typedef '" + typedef.name() + "' at " + typedef.location());
+                    reporter.error(typedef.location(), "Unresolvable typedef '" + typedef.name() + "'");
                 }
                 break;
             }
@@ -208,8 +209,7 @@ class Linker {
             try {
                 constant.link(this);
             } catch (LinkFailureException e) {
-                environment.addError(
-                        "Failed to resolve type " + e.getMessage() + " referenced at " + constant.location());
+                reporter.error(constant.location(), "Failed to resolve type '" + e.getMessage() + "'");
             }
         }
     }
@@ -219,8 +219,7 @@ class Linker {
             try {
                 structType.link(this);
             } catch (LinkFailureException e) {
-                environment.addError(
-                        "Failed to resolve type " + e.getMessage() + " referenced at " + structType.location());
+                reporter.error(structType.location(), "Failed to resolve type '" + e.getMessage() + "'");
             }
         }
     }
@@ -230,8 +229,7 @@ class Linker {
             try {
                 union.link(this);
             } catch (LinkFailureException e) {
-                environment.addError(
-                        "Failed to resolve type " + e.getMessage() + " referenced at " + union.location());
+                reporter.error(union.location(), "Failed to resolve type " + e.getMessage() + "'");
             }
         }
     }
@@ -241,8 +239,7 @@ class Linker {
             try {
                 exception.link(this);
             } catch (LinkFailureException e) {
-                environment.addError(
-                        "Failed to resolve type " + e.getMessage() + " referenced at " + exception.location());
+                reporter.error(exception.location(), "Failed to resolve type " + e.getMessage() + "'");
             }
         }
     }
@@ -252,8 +249,7 @@ class Linker {
             try {
                 service.link(this);
             } catch (LinkFailureException e) {
-                environment.addError(
-                        "Failed to resolve type " + e.getMessage() + " referenced at " + service.location());
+                reporter.error(service.location(), "Failed to resolve type " + e.getMessage() + "'");
             }
         }
     }
@@ -263,7 +259,7 @@ class Linker {
             try {
                 constant.validate(this);
             } catch (IllegalStateException e) {
-                environment.addError(e.getMessage());
+                reporter.error(constant.location(), e.getMessage());
             }
         }
     }
@@ -387,8 +383,8 @@ class Linker {
         return named;
     }
 
-    void addError(String error) {
-        environment.addError(error);
+    void addError(Location location, String error) {
+        reporter.error(location, error);
     }
 
     private static class LinkFailureException extends RuntimeException {

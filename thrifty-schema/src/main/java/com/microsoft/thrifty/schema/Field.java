@@ -47,6 +47,10 @@ public final class Field {
         this.annotations = annotationBuilder.build();
     }
 
+    public Location location() {
+        return element.location();
+    }
+
     public int id() {
         Integer id = element.fieldId();
         if (id == null) {
@@ -116,7 +120,11 @@ public final class Field {
     void validate(Linker linker) {
         ConstValueElement value = element.constValue();
         if (value != null) {
-            Constant.validate(linker, value, type);
+            try {
+                Constant.validate(linker, value, type);
+            } catch (IllegalStateException e) {
+                linker.addError(value.location(), e.getMessage());
+            }
         }
     }
 }
