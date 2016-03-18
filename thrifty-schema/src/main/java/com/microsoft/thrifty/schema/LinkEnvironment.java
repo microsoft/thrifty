@@ -34,30 +34,44 @@ class LinkEnvironment {
      */
     private final Map<Program, Linker> linkers = new HashMap<>();
 
-    /**
-     * All errors encountered during linking.
-     */
-    private final List<String> errors = new ArrayList<>();
+    private final ErrorReporter errorReporter;
+
+    LinkEnvironment(ErrorReporter errorReporter) {
+        this.errorReporter = errorReporter;
+    }
 
     @Nonnull
     Linker getLinker(Program program) {
         Linker linker = linkers.get(program);
         if (linker == null) {
-            linker = new Linker(this, program);
+            linker = new Linker(this, program, errorReporter);
             linkers.put(program, linker);
         }
         return linker;
     }
 
-    void addError(String error) {
-        errors.add(error);
+    ErrorReporter reporter() {
+        return errorReporter;
     }
 
     boolean hasErrors() {
-        return errors.size() > 0;
+        return errorReporter.hasError();
     }
 
     public ImmutableList<String> getErrors() {
+        if (!hasErrors()) {
+            return ImmutableList.of();
+        }
+
+        ImmutableList<ErrorReporter.Report> reports = errorReporter.reports();
+        List<String> errors = new ArrayList<>(reports.size());
+
+        for (ErrorReporter.Report report : reports) {
+            String level = report.level().name();
+            String msg = level + ": " + report.message() + "(" + report.location() + ")";
+            errors.add(msg);
+        }
+
         return ImmutableList.copyOf(errors);
     }
 }

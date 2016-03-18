@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.schema;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -74,7 +73,9 @@ public final class Loader {
      */
     private final Deque<File> includePaths = new ArrayDeque<>();
 
-    private final LinkEnvironment environment = new LinkEnvironment();
+    private ErrorReporter errorReporter = new ErrorReporter();
+
+    private final LinkEnvironment environment = new LinkEnvironment(errorReporter);
 
     private volatile ImmutableList<Program> linkedPrograms;
 
@@ -103,10 +104,18 @@ public final class Loader {
         return this;
     }
 
-    public Schema load() throws IOException {
-        loadFromDisk();
-        linkPrograms();
-        return new Schema(loadedPrograms.values());
+    public Schema load() throws LoadFailedException {
+        try {
+            loadFromDisk();
+            linkPrograms();
+            return new Schema(loadedPrograms.values());
+        } catch (Exception e) {
+            throw new LoadFailedException(e, errorReporter);
+        }
+    }
+
+    ErrorReporter errorReporter() {
+        return errorReporter;
     }
 
     private void loadFromDisk() throws IOException {
@@ -198,8 +207,7 @@ public final class Loader {
             }
 
             if (environment.hasErrors()) {
-                String report = Joiner.on('\n').join(environment.getErrors());
-                throw new IllegalStateException(report);
+                throw new IllegalStateException("Linking failed");
             }
 
             linkedPrograms = ImmutableList.copyOf(loadedPrograms.values());
@@ -216,7 +224,7 @@ public final class Loader {
         try {
             Location location = Location.get(base.toString(), path);
             String data = Okio.buffer(source).readUtf8();
-            return ThriftParser.parse(location, data);
+            return ThriftParser.parse(location, data, errorReporter);
         } catch (IOException e) {
             throw new IOException("Failed to load " + path + " from " + base, e);
         } finally {

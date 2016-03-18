@@ -23,6 +23,7 @@ package com.microsoft.thrifty.compiler;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
 import com.microsoft.thrifty.gen.ThriftyCodeGenerator;
 import com.microsoft.thrifty.schema.FieldNamingPolicy;
+import com.microsoft.thrifty.schema.LoadFailedException;
 import com.microsoft.thrifty.schema.Loader;
 import com.microsoft.thrifty.schema.Schema;
 
@@ -179,7 +180,17 @@ public class ThriftyCompiler {
             loader.addIncludePath(new File(dir));
         }
 
-        Schema schema = loader.load();
+        Schema schema;
+        try {
+            schema = loader.load();
+        } catch (LoadFailedException e) {
+            for (String report : e.errorReporter().formattedReports()) {
+                System.out.println(report);
+            }
+
+            Runtime.getRuntime().exit(1);
+            return;
+        }
 
         ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
         if (listTypeName != null) {

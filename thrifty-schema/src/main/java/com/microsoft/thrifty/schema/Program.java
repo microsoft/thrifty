@@ -221,6 +221,7 @@ public final class Program {
     void loadIncludedPrograms(Loader loader, Set<Program> visited) throws IOException {
         if (!visited.add(this)) {
             if (includedPrograms == null) {
+                loader.errorReporter().error(location(), "Circular include; file includes itself transitively");
                 throw new IllegalStateException("Circular include: " + location().path()
                         + " includes itself transitively");
             }
