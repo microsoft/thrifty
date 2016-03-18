@@ -111,8 +111,17 @@ final class ServiceBuilder {
         TypeName interfaceTypeName = ClassName.get(packageName, serviceInterface.name);
         TypeSpec.Builder builder = TypeSpec.classBuilder(service.name() + "Client")
                 .addModifiers(Modifier.PUBLIC)
-                .superclass(TypeNames.SERVICE_CLIENT_BASE)
                 .addSuperinterface(interfaceTypeName);
+
+        if (service.extendsService() != null) {
+            ThriftType type = service.extendsService();
+            String typeName = type.name() + "Client";
+            String ns = type.getNamespace(NamespaceScope.JAVA);
+            TypeName javaClass = ClassName.get(ns, typeName);
+            builder.superclass(javaClass);
+        } else {
+            builder.superclass(TypeNames.SERVICE_CLIENT_BASE);
+        }
 
         builder.addMethod(MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)

@@ -391,3 +391,7 @@ struct CrayCray {
   2: required list<set<set<i32>>> emptySet = [[]]
   3: required list<list<map<i32, i32>>> emptyMap = [[]]
 }
+
+service ThirdService extends SecondService {
+    void bar();
+}
