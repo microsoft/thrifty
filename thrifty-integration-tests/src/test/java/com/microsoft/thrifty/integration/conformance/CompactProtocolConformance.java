@@ -18,15 +18,15 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-package com.microsoft.thrifty.integration;
+package com.microsoft.thrifty.integration.conformance;
 
-import com.microsoft.thrifty.protocol.BinaryProtocol;
+import com.microsoft.thrifty.protocol.CompactProtocol;
 import com.microsoft.thrifty.protocol.Protocol;
 import com.microsoft.thrifty.testing.ServerProtocol;
 import com.microsoft.thrifty.testing.ServerTransport;
 import com.microsoft.thrifty.transport.Transport;
 
-public class BinaryProtocolConformance extends ConformanceBase {
+public class CompactProtocolConformance extends ConformanceBase {
     @Override
     protected ServerTransport getServerTransport() {
         return ServerTransport.BLOCKING;
@@ -34,11 +34,11 @@ public class BinaryProtocolConformance extends ConformanceBase {
 
     @Override
     protected ServerProtocol getServerProtocol() {
-        return ServerProtocol.BINARY;
+        return ServerProtocol.COMPACT;
     }
 
     @Override
     protected Protocol createProtocol(Transport transport) {
-        return new BinaryProtocol(transport);
+        return new CompactProtocol(transport);
     }
 }

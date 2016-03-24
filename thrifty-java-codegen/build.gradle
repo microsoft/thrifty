@@ -30,4 +30,7 @@ dependencies {
     compile 'joda-time:joda-time:2.9.1'
 
     testCompile libraries.testing
+
+    testCompile 'com.google.truth:truth:0.28'
+    testCompile 'com.google.testing.compile:compile-testing:0.9'
 }

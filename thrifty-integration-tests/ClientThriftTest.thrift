@@ -395,3 +395,9 @@ struct CrayCray {
 service ThirdService extends SecondService {
     void bar();
 }
+
+struct HasRedaction {
+  1: required string one;
+  2: required string two (redacted);
+  3: required string three;
+}

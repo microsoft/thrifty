@@ -23,6 +23,7 @@ package com.microsoft.thrifty.gen;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
@@ -162,33 +163,39 @@ public final class ThriftyCodeGenerator {
         });
     }
 
-    private interface FileWriter {
-        void write(@Nullable JavaFile file) throws IOException;
-    }
+    public ImmutableList<JavaFile> generateTypes() {
+        ImmutableList.Builder<JavaFile> generatedTypes = ImmutableList.builder();
 
-    private void generate(FileWriter writer) throws IOException {
         for (EnumType type : schema.enums()) {
             TypeSpec spec = buildEnum(type);
             JavaFile file = assembleJavaFile(type, spec);
-            writer.write(file);
+            if (file != null) {
+                generatedTypes.add(file);
+            }
         }
 
-        for (StructType struct : schema.structs()) {
-            TypeSpec spec = buildStruct(struct);
-            JavaFile file = assembleJavaFile(struct, spec);
-            writer.write(file);
+        for (StructType type : schema.structs()) {
+            TypeSpec spec = buildStruct(type);
+            JavaFile file = assembleJavaFile(type, spec);
+            if (file != null) {
+                generatedTypes.add(file);
+            }
         }
 
-        for (StructType exception : schema.exceptions()) {
-            TypeSpec spec = buildStruct(exception);
-            JavaFile file = assembleJavaFile(exception, spec);
-            writer.write(file);
+        for (StructType type : schema.exceptions()) {
+            TypeSpec spec = buildStruct(type);
+            JavaFile file = assembleJavaFile(type, spec);
+            if (file != null) {
+                generatedTypes.add(file);
+            }
         }
 
-        for (StructType union : schema.unions()) {
-            TypeSpec spec = buildStruct(union);
-            JavaFile file = assembleJavaFile(union, spec);
-            writer.write(file);
+        for (StructType type : schema.unions()) {
+            TypeSpec spec = buildStruct(type);
+            JavaFile file = assembleJavaFile(type, spec);
+            if (file != null) {
+                generatedTypes.add(file);
+            }
         }
 
         Multimap<String, Constant> constantsByPackage = HashMultimap.create();
@@ -201,16 +208,36 @@ public final class ThriftyCodeGenerator {
             Collection<Constant> values = entry.getValue();
             TypeSpec spec = buildConst(values);
             JavaFile file = assembleJavaFile(packageName, spec);
-            writer.write(file);
+            if (file != null) {
+                generatedTypes.add(file);
+            }
         }
 
-        for (Service service : schema.services()) {
-            TypeSpec spec = serviceBuilder.buildServiceInterface(service);
-            JavaFile file = assembleJavaFile(service, spec);
-            writer.write(file);
+        for (Service type : schema.services()) {
+            TypeSpec spec = serviceBuilder.buildServiceInterface(type);
+            JavaFile file = assembleJavaFile(type, spec);
+            if (file == null) {
+                continue;
+            }
 
-            spec = serviceBuilder.buildService(service, spec);
-            file = assembleJavaFile(service, spec);
+            generatedTypes.add(file);
+
+            spec = serviceBuilder.buildService(type, spec);
+            file = assembleJavaFile(type, spec);
+            if (file != null) {
+                generatedTypes.add(file);
+            }
+        }
+
+        return generatedTypes.build();
+    }
+
+    private interface FileWriter {
+        void write(@Nullable JavaFile file) throws IOException;
+    }
+
+    private void generate(FileWriter writer) throws IOException {
+        for (JavaFile file : generateTypes()) {
             writer.write(file);
         }
     }
@@ -708,7 +735,7 @@ public final class ThriftyCodeGenerator {
 
         if (struct.fields().size() > 0) {
             toString.addStatement("$1T sb = new $1T()", TypeNames.STRING_BUILDER);
-            toString.addStatement("sb.append($S).append(\"{\")", struct.name());
+            toString.addStatement("sb.append($S)", struct.name() + "{");
 
             int index = 0;
             for (Field field : struct.fields()) {

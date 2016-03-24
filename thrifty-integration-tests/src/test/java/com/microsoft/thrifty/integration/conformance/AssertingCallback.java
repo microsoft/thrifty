@@ -18,7 +18,7 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-package com.microsoft.thrifty.integration;
+package com.microsoft.thrifty.integration.conformance;
 
 import com.microsoft.thrifty.service.ServiceMethodCallback;
 
