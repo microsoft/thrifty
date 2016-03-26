@@ -20,7 +20,8 @@
  */
 package com.microsoft.thrifty.transport;
 
-import java.io.ByteArrayOutputStream;
+import com.microsoft.thrifty.util.UnsafeByteArrayOutputStream;
+
 import java.io.IOException;
 
 /**
@@ -91,16 +92,6 @@ public class FramedTransport extends Transport {
         if (size > 0) {
             inner.write(pendingWrite.getBuffer(), 0, size);
             pendingWrite.reset();
-        }
-    }
-
-    private static class UnsafeByteArrayOutputStream extends ByteArrayOutputStream {
-        public UnsafeByteArrayOutputStream(int count) {
-            super(count);
-        }
-
-        public byte[] getBuffer() {
-            return buf;
         }
     }
 }

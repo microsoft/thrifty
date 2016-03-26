@@ -18,18 +18,21 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-description = 'Converts Thrifty Schemas into Java source files'
+package com.microsoft.thrifty.util;
 
-dependencies {
-    compile project(":thrifty-schema")
-    compile project(":thrifty-runtime")
-    compile project(":thrifty-compiler-plugins")
-    compile libraries.okio
-    compile libraries.javaPoet
+import java.io.ByteArrayOutputStream;
 
-    compile 'joda-time:joda-time:2.9.1'
+/**
+ * A {@link ByteArrayOutputStream} that exposes its internal backing byte
+ * array.  It is intended to reduce the number of memory copies made during
+ * serialization.  Use with extreme caution.
+ */
+public class UnsafeByteArrayOutputStream extends ByteArrayOutputStream {
+    public UnsafeByteArrayOutputStream(int count) {
+        super(count);
+    }
 
-    testCompile libraries.testing
-
-    testCompile 'com.google.testing.compile:compile-testing:0.9'
+    public byte[] getBuffer() {
+        return buf;
+    }
 }
