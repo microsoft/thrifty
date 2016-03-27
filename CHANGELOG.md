@@ -1,6 +1,8 @@
 0.2.1 (unreleased)
 ------------------
-
+- #25: Improve generated `toString()` methods
+- #24: Add SimpleJsonProtocol
+- #19: Fix codegen for services which inherit from other services
 - #5: Fix compilation with relative includes (e.g. `include '../common.thrift'`)
 - #7: Fix lookup of included constants during linking
 - #4: Add automatic Parcelable implementation
