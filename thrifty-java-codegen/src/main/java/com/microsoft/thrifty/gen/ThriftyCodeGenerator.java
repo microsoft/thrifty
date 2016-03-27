@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -727,43 +728,89 @@ public final class ThriftyCodeGenerator {
     private static final Pattern REDACTED_PATTERN = Pattern.compile(
             "\\W@redacted\\W", Pattern.CASE_INSENSITIVE);
 
+    /**
+     * Builds a #toString() method for the given struct.
+     *
+     * <p>The goal is to produce a method that performs as few string
+     * concatenations as possible.  To do so, we identify what would be
+     * consecutive constant strings (i.e. field name followed by '='),
+     * collapsing them into "chunks", then using the chunks to generate
+     * the actual code.
+     *
+     * <p>This approach, while more complicated to implement than naive
+     * StringBuilder usage, produces more-efficient and "more pleasing" code.
+     * Simple structs (e.g. one with only one field, which is redacted) end up
+     * with simple constants like {@code return "Foo{ssn=&lt;REDACTED&gt;}";}.
+     */
     private MethodSpec buildToStringFor(StructType struct) {
+        class Chunk {
+            static final int TYPE_STRING = 0;
+            static final int TYPE_CODE = 1;
+
+            final int type;
+            final String value;
+
+            Chunk(int type, String value) {
+                this.type = type;
+                this.value = value;
+            }
+        }
+
         MethodSpec.Builder toString = MethodSpec.methodBuilder("toString")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(String.class);
 
-        if (struct.fields().size() > 0) {
-            toString.addStatement("$1T sb = new $1T()", TypeNames.STRING_BUILDER);
-            toString.addStatement("sb.append($S)", struct.name() + "{");
+        List<Chunk> chunks = new ArrayList<>();
 
-            int index = 0;
-            for (Field field : struct.fields()) {
-                boolean isLast = ++index == struct.fields().size();
-                boolean isRedacted =
-                        field.annotations().containsKey("redacted")
-                        || REDACTED_PATTERN.matcher(field.documentation()).find();
-                toString.addStatement("sb.append($S)", field.name() + "=");
+        StringBuilder sb = new StringBuilder(struct.name()).append("{");
+        boolean appendedOneField = false;
+        for (Field field : struct.fields()) {
+            boolean isRedacted =
+                    field.annotations().containsKey("redacted")
+                    || REDACTED_PATTERN.matcher(field.documentation()).find();
 
-                if (isRedacted) {
-                    toString.addStatement("sb.append(\"<REDACTED>\")");
-                } else if (field.required()) {
-                    toString.addStatement("sb.append(this.$N)", field.name());
-                } else {
-                    toString.addStatement("sb.append(this.$1N == null ? \"null\" : this.$1N)", field.name());
-                }
-
-                if (isLast) {
-                    toString.addStatement("sb.append(\"}\")");
-                } else {
-                    toString.addStatement("sb.append(\", \")");
-                }
+            if (appendedOneField) {
+                sb.append(", ");
+            } else {
+                appendedOneField = true;
             }
 
-            toString.addStatement("return sb.toString()");
-        } else {
-            toString.addStatement("return $S", struct.name() + "{}");
+            sb.append(field.name()).append("=");
+
+            if (isRedacted) {
+                sb.append("<REDACTED>");
+            } else {
+                chunks.add(new Chunk(Chunk.TYPE_STRING, sb.toString()));
+                chunks.add(new Chunk(Chunk.TYPE_CODE, "this." + field.name()));
+
+                sb.setLength(0);
+            }
         }
+
+        sb.append("}");
+        chunks.add(new Chunk(Chunk.TYPE_STRING, sb.toString()));
+
+        CodeBlock.Builder block = CodeBlock.builder();
+        boolean firstChunk = true;
+        for (Chunk chunk : chunks) {
+            if (firstChunk) {
+                block.add("$[return ");
+                firstChunk = false;
+            } else {
+                block.add(" + ");
+            }
+
+            if (chunk.type == Chunk.TYPE_STRING) {
+                block.add("$S", chunk.value);
+            } else {
+                block.add("$L", chunk.value);
+            }
+        }
+
+        block.add(";$]\n");
+
+        toString.addCode(block.build());
 
         return toString.build();
     }
