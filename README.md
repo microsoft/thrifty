@@ -204,18 +204,7 @@ public final class SearchResult {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("SearchResult").append("{\n  ");
-    sb.append("url=");
-    sb.append(this.url);
-    sb.append(",\n  ");
-    sb.append("keywords=");
-    sb.append(this.keywords);
-    sb.append(",\n  ");
-    sb.append("lastUpdatedMillis=");
-    sb.append(this.lastUpdatedMillis);
-    sb.append("\n}");
-    return sb.toString();
+    return "SearchResult{url=" + this.url + ", keywords=" + this.keywords + ", lastUpdatedMillis=" + this.lastUpdatedMillis + "}";
   }
 
   public static final class Builder implements StructBuilder<SearchResult> {
