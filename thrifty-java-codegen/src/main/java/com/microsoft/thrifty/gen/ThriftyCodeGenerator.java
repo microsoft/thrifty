@@ -726,7 +726,7 @@ public final class ThriftyCodeGenerator {
     }
 
     private static final Pattern REDACTED_PATTERN = Pattern.compile(
-            "\\W@redacted\\W", Pattern.CASE_INSENSITIVE);
+            "@redacted", Pattern.CASE_INSENSITIVE);
 
     /**
      * Builds a #toString() method for the given struct.
