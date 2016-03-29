@@ -1,4 +1,4 @@
-0.2.1 (unreleased)
+0.2.1 (released 29 March 2016)
 ------------------
 - #25: Improve generated `toString()` methods
 - #24: Add SimpleJsonProtocol
