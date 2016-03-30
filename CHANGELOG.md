@@ -1,3 +1,6 @@
+0.2.2 (released 30 March 2016)
+- #26: Fix generated `toString()` for fields with `@redacted` doc comments
+
 0.2.1 (released 29 March 2016)
 ------------------
 - #25: Improve generated `toString()` methods
