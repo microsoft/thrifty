@@ -1,5 +1,6 @@
 package com.microsoft.thrifty.integration;
 
+import com.microsoft.thrifty.integration.gen.HasCommentBasedRedaction;
 import com.microsoft.thrifty.integration.gen.HasRedaction;
 import org.junit.Test;
 
@@ -21,5 +22,14 @@ public class RedactionTest {
         assertThat(hr.toString(), not(containsString("should-not-appear")));
         assertThat(hr.toString(), containsString("three=value-three"));
         assertThat(hr.two, is("should-not-appear"));
+    }
+
+    @Test
+    public void commentBasedRedaction() {
+        HasCommentBasedRedaction hcbr = new HasCommentBasedRedaction.Builder()
+                .foo("bar")
+                .build();
+
+        assertThat(hcbr.toString(), is("HasCommentBasedRedaction{foo=<REDACTED>}"));
     }
 }
