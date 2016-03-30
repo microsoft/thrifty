@@ -46,5 +46,11 @@ then
   exit 1
 fi
 
+if [ ! -z $(awk '/^VERSION=/ && !/SNAPSHOT$/' gradle.properties) ]
+then
+  echo "Not a snapshot"
+  exit 1
+fi
+
 ./gradlew uploadArchives
 
