@@ -401,3 +401,8 @@ struct HasRedaction {
   2: required string two (redacted);
   3: required string three;
 }
+
+struct HasCommentBasedRedaction {
+  /** @redacted */
+  1: required string foo;
+}
