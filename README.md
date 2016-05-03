@@ -3,7 +3,8 @@ Thrifty
 
 [![Build Status](https://travis-ci.org/Microsoft/thrifty.svg?branch=master)](https://travis-ci.org/Microsoft/thrifty) [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-Thrifty-green.svg?style=true)](https://android-arsenal.com/details/1/3227)
 
-Thrifty is an implementation of the Apache Thrift software stack for Android.
+Thrifty is an implementation of the Apache Thrift software stack for Android, which uses 1/4 of the method count taken by 
+the Apache Thrift compiler.
 
 Thrift is a widely-used cross-language service-definition software stack, with a nifty interface definition language
 from which to generate types and RPC implementations.  Unfortunately for Android devs, the canonical implementation
@@ -13,6 +14,9 @@ Like Square's Wire project for Protocol Buffers, Thrifty does away with getters 
 set-is-setters) in favor of public final fields.  It maintains some core abstractions like Transport and Protocol, but
 saves on methods by dispensing with Factories and server implementations and only generating code for the
 protocols you actually need.
+
+Thrifty was born in the Outlook for Android codebase; before Thrifty, generated thrift classes consumed 20,000 methods.
+After Thrifty, the thrift method count dropped to 5,000.
 
 ### Usage
 
@@ -295,7 +299,7 @@ for Android applications.
 
 #### Using Generated Code
 
-Given the example above, the code to invoke `WebService.get()` might be:
+Given the example above, the code to invoke `Google.search()` might be:
 
 ```java
 
@@ -327,6 +331,12 @@ client.search(query, new ServiceMethodCallback<List<SearchResult>>() {
 });
 
 ```
+
+### Extensibility
+
+Every project has its own requirements, and no one style of boilerplate can fill them all.  Thrifty offers a small but 
+powerful plugin model that you can implement, using the standard Java SPI mechanism, which will allow one to customize
+each generated Java class before it is written out to disk.  Read more about it in the [thrifty-compiler-plugins README](thrifty-compiler-plugins/README.md).  You can see a worked example in [thrifty-example-postprocessor](thrifty-example-postprocessor).
 
 ### Thanks
 
