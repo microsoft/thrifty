@@ -554,27 +554,44 @@ public final class ThriftParser {
 
         func.params(readFieldList(')', true));
 
+        boolean canHaveTrailingElements = true;
         char next = peekCharSameLine();
+
+        if (next == '\n' || next == '\r') {
+            canHaveTrailingElements = false;
+            next = peekChar(false);
+        }
+
         if (next == 't') {
-            String word = readWord();
+            String word = peekWord();
 
             if (!"throws".equals(word)) {
-                throw unexpected("unexpected token in function definition: " + word);
+                if (!canHaveTrailingElements) {
+                    // we've passed a newline and don't have 'throws' - assume a new
+                    // function definition.
+                    return func.build();
+                } else {
+                    throw unexpected("unexpected token in function definition: " + word);
+                }
             }
+            readWord();
 
             if (readChar() != '(') {
                 throw unexpected("expected a list of exception types after 'throws'");
             }
 
             func.exceptions(readFieldList(')', false));
+            canHaveTrailingElements = true;
         }
 
-        AnnotationElement annotations = readAnnotations();
-        func.annotations(annotations);
+        if (canHaveTrailingElements) {
+            AnnotationElement annotations = readAnnotations();
+            func.annotations(annotations);
 
-        functionDoc = readTrailingDoc(functionDoc, true);
-        if (JavadocUtil.isNonEmptyJavadoc(functionDoc)) {
-            func.documentation(formatJavadoc(functionDoc));
+            functionDoc = readTrailingDoc(functionDoc, true);
+            if (JavadocUtil.isNonEmptyJavadoc(functionDoc)) {
+                func.documentation(formatJavadoc(functionDoc));
+            }
         }
 
         return func.build();
@@ -1004,6 +1021,30 @@ public final class ThriftParser {
             throw unexpected("expected an identifier");
         }
         return new String(data, start, pos - start);
+    }
+
+    private String peekWord() {
+        int start = pos;
+        while (pos < data.length) {
+            char c = data[pos];
+            if ((c >= 'a' && c <= 'z')
+                    || (c >= 'A' && c <= 'Z')
+                    || (c >= '0' && c <= '9')
+                    || (c == '_')
+                    || (c == '-')
+                    || (c == '+')
+                    || (c == '.')) {
+                pos++;
+            } else {
+                break;
+            }
+        }
+        if (start == pos) {
+            throw unexpected("expected a word");
+        }
+        String result = new String(data, start, pos - start);
+        pos = start;
+        return result;
     }
 
     private String readWord() {
