@@ -516,6 +516,40 @@ public class ThriftParserTest {
     }
 
     @Test
+    public void serviceWithNewlineBeforeThrows() {
+        String thrift = "" +
+                "service Svc {\n" +
+                "  void foo()\n" +
+                "    throws (1: Blargh blah)\n" +
+                "  i32 bar()\n" +
+                "}";
+
+        Location loc = Location.get("", "services.thrift");
+        ThriftFileElement expected = ThriftFileElement.builder(loc)
+                .services(ImmutableList.of(ServiceElement.builder(loc.at(1, 1))
+                        .name("Svc")
+                        .functions(ImmutableList.of(
+                                FunctionElement.builder(loc.at(2, 3))
+                                        .name("foo")
+                                        .returnType(TypeElement.scalar(loc.at(2, 3), "void", null))
+                                        .exceptions(ImmutableList.of(FieldElement.builder(loc.at(3, 13))
+                                                .fieldId(1)
+                                                .name("blah")
+                                                .requiredness(Requiredness.DEFAULT)
+                                                .type(TypeElement.scalar(loc.at(3, 16), "Blargh", null))
+                                                .build()))
+                                        .build(),
+                                FunctionElement.builder(loc.at(4, 3))
+                                        .name("bar")
+                                        .returnType(TypeElement.scalar(loc.at(4, 3), "i32", null))
+                                        .build()))
+                        .build()))
+                .build();
+
+        assertThat(parse(thrift, loc), equalTo(expected));
+    }
+
+    @Test
     public void unions() {
         String thrift = "" +
                 "union Normal {\n" +
@@ -1012,6 +1046,21 @@ public class ThriftParserTest {
                 "namespace java com.foo.bar (ns = 'ok')\n" +
                 "enum Foo {} (enumAnno = 'yep')\n" +
                 "";
+
+        parse(thrift);
+    }
+
+    @Test
+    public void newlinesAreTricky() {
+        // We must take care not to confuse the return type of the second
+        // function with a possible 'throws' clause from the not-definitively-finished
+        // first function.
+        String thrift = "" +
+                "typedef i32 typeof_int\n" +
+                "service Stupid {\n" +
+                "  i32 foo()\n" +
+                "  typeof_int bar()\n" +
+                "}";
 
         parse(thrift);
     }
