@@ -90,6 +90,61 @@ public class ThriftyCodeGeneratorTest {
                 .compilesWithoutError();
     }
 
+    /**
+     * Tests for duplicate names of different ThriftTypes.
+     * Example: an enum and a constant can have the same name.
+     * @throws Exception
+     */
+    @Test
+    public void testDuplicateNamesDiffTypes() throws Exception {
+        String thrift = Joiner.on('\n').join(
+                "namespace java test",
+                "",
+                "const string Foo = \"foo\"",
+                "enum Foo {",
+                "  Bar",
+                "  Bar2",
+                "}");
+
+        Schema schema = parse("foobar.thrift", thrift);
+
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        ImmutableList<JavaFile> javaFiles = gen.generateTypes();
+
+        assertThat(javaFiles).hasSize(2);
+
+        assertAbout(javaSource())
+                .that(javaFiles.get(0).toJavaFileObject())
+                .compilesWithoutError();
+    }
+
+    /**
+     * Tests for case where a typedef enum is set to a constant.
+     * @throws Exception
+     */
+    @Test
+    public void testTypeDefEnumAsConstant() throws Exception {
+        String thrift = Joiner.on('\n').join(
+                "namespace java test",
+                "",
+                "enum Foo {",
+                "  Bar",
+                "  Bar2",
+                "} typedef Foo FooType",
+                "const FooType foo = Foo.Bar");
+
+        Schema schema = parse("typedef_enum.thrift", thrift);
+
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        ImmutableList<JavaFile> javaFiles = gen.generateTypes();
+
+        assertThat(javaFiles).hasSize(2);
+
+        assertAbout(javaSource())
+                .that(javaFiles.get(0).toJavaFileObject())
+                .compilesWithoutError();
+    }
+
     private Schema parse(String filename, String text) throws Exception {
         File file = tmp.newFile(filename);
         PrintWriter writer = new PrintWriter(file, "UTF-8");

@@ -289,7 +289,7 @@ public final class Program {
             symbolMap.put(enumName.name(), enumName);
         }
     }
-    
+
     private IllegalStateException duplicateSymbol(String symbol, Named oldValue, Named newValue) {
         throw new IllegalStateException(
                 "Duplicate symbols: '" + symbol + "' defined at "
