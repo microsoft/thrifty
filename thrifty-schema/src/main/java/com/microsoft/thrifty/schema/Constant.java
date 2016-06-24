@@ -258,6 +258,12 @@ public class Constant extends Named {
                 } else {
                     throw new IllegalStateException("bad enum literal: " + value.value());
                 }
+            } else if (named instanceof Typedef) {
+                Typedef td = (Typedef) named;
+                if (td.oldType().isEnum()) {
+                    return;
+                }
+                throw new IllegalStateException("Invalid type");
             } else if (named instanceof Constant) {
                 if (!named.type().getTrueType().equals(expected)) {
                     throw new IllegalStateException("Invalid type");

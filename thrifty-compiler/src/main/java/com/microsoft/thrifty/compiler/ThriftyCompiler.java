@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.compiler;
 
+import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
 import com.microsoft.thrifty.gen.ThriftyCodeGenerator;
 import com.microsoft.thrifty.schema.FieldNamingPolicy;
@@ -184,8 +185,14 @@ public class ThriftyCompiler {
         try {
             schema = loader.load();
         } catch (LoadFailedException e) {
-            for (String report : e.errorReporter().formattedReports()) {
-                System.out.println(report);
+            ImmutableList<String> errors = e.errorReporter().formattedReports();
+            // Without this, some errors don't get printed out and the program just exits with error 1
+            if (errors.isEmpty()) {
+                System.out.println(e.toString());
+            } else {
+                for (String report : errors) {
+                    System.out.println(report);
+                }
             }
 
             Runtime.getRuntime().exit(1);

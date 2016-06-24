@@ -35,7 +35,9 @@ import com.microsoft.thrifty.schema.parser.ThriftFileElement;
 import com.microsoft.thrifty.schema.parser.TypedefElement;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -240,16 +242,54 @@ public final class Program {
         this.includedPrograms = includes.build();
 
         LinkedHashMap<String, Named> symbolMap = new LinkedHashMap<>();
-        for (Named named : names()) {
-            Named oldValue = symbolMap.put(named.name(), named);
-            if (oldValue != null) {
-                throw duplicateSymbol(named.name(), oldValue, named);
-            }
-        }
+
+        // Some type-resolution subtlety eludes me.  I'd have thought that
+        // Iterable<EnumType> is castable to Iterable<Named> (inheritance),
+        // but the IDE claims otherwise.  So, instead create a temp list where each list's
+        // data will be copied into
+        List<Named> namedList = new ArrayList<>();
+
+        namedList.addAll(enums);
+        checkList(namedList, symbolMap);
+
+        namedList.clear();
+        namedList.addAll(structs);
+        checkList(namedList, symbolMap);
+
+        namedList.clear();
+        namedList.addAll(unions);
+        checkList(namedList, symbolMap);
+
+        namedList.clear();
+        namedList.addAll(exceptions);
+        checkList(namedList, symbolMap);
+
+        namedList.clear();
+        namedList.addAll(services);
+        checkList(namedList, symbolMap);
+
+        namedList.clear();
+        namedList.addAll(typedefs);
+        checkList(namedList, symbolMap);
+
+        namedList.clear();
+        namedList.addAll(constants);
+        checkList(namedList, symbolMap);
 
         this.symbols = ImmutableMap.copyOf(symbolMap);
     }
 
+    private void checkList(Iterable<Named> list, LinkedHashMap<String, Named> symbolMap) {
+        LinkedHashMap<String, Named> localMap = new LinkedHashMap<>();
+        for (Named enumName : list) {
+            Named oldValue = localMap.put(enumName.name(), enumName);
+            if (oldValue != null) {
+                throw duplicateSymbol(enumName.name(), oldValue, enumName);
+            }
+            symbolMap.put(enumName.name(), enumName);
+        }
+    }
+    
     private IllegalStateException duplicateSymbol(String symbol, Named oldValue, Named newValue) {
         throw new IllegalStateException(
                 "Duplicate symbols: '" + symbol + "' defined at "
