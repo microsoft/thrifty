@@ -20,7 +20,9 @@
  */
 package com.microsoft.thrifty.gen;
 
+import com.microsoft.thrifty.schema.Constant;
 import com.microsoft.thrifty.schema.EnumType;
+import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.Schema;
 import com.microsoft.thrifty.schema.ThriftType;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
@@ -38,7 +40,7 @@ final class ConstantBuilder {
     private final TypeResolver typeResolver;
     private final Schema schema;
 
-    public ConstantBuilder(TypeResolver typeResolver, Schema schema) {
+    ConstantBuilder(TypeResolver typeResolver, Schema schema) {
         this.typeResolver = typeResolver;
         this.schema = schema;
     }
@@ -156,119 +158,179 @@ final class ConstantBuilder {
             final AtomicInteger scope,
             final ThriftType type,
             final ConstValueElement value) {
-        // TODO: Emit references to constants if kind == IDENTIFIER and it identifies an appropriately-typed const
-        return type.accept(new ThriftType.Visitor<CodeBlock>() {
-            @Override
-            public CodeBlock visitBool() {
-                String name;
-                if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                    name = "true".equals(value.value()) ? "true" : "false";
-                } else if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    name = ((Long) value.value()) == 0L ? "false" : "true";
-                } else {
-                    throw new AssertionError("Invalid boolean constant: " + value.value() + " at " + value.location());
-                }
+        return type.accept(new ConstRenderingVisitor(block, allocator, scope, type, value));
+    }
 
-                return CodeBlock.builder().add(name).build();
+    private class ConstRenderingVisitor implements ThriftType.Visitor<CodeBlock> {
+        final CodeBlock.Builder block;
+        final NameAllocator allocator;
+        final AtomicInteger scope;
+        final ThriftType type;
+        final ConstValueElement value;
+
+        ConstRenderingVisitor(
+                CodeBlock.Builder block,
+                NameAllocator allocator,
+                AtomicInteger scope,
+                ThriftType type,
+                ConstValueElement value) {
+            this.block = block;
+            this.allocator = allocator;
+            this.scope = scope;
+            this.type = type;
+            this.value = value;
+        }
+
+        @Override
+        public CodeBlock visitBool() {
+            String name;
+            if (value.isIdentifier()
+                    && ("true".equals(value.getAsString()) || "false".equals(value.getAsString()))) {
+                name = "true".equals(value.value()) ? "true" : "false";
+            } else if (value.isInt()) {
+                name = ((Long) value.value()) == 0L ? "false" : "true";
+            } else {
+                return constantOrError("Invalid boolean constant");
             }
 
-            @Override
-            public CodeBlock visitByte() {
+            return CodeBlock.builder().add(name).build();
+        }
+
+        @Override
+        public CodeBlock visitByte() {
+            if (value.isInt()) {
                 return CodeBlock.builder().add("(byte) $L", value.getAsInt()).build();
+            } else {
+                return constantOrError("Invalid byte constant");
             }
+        }
 
-            @Override
-            public CodeBlock visitI16() {
+        @Override
+        public CodeBlock visitI16() {
+            if (value.isInt()) {
                 return CodeBlock.builder().add("(short) $L", value.getAsInt()).build();
+            } else {
+                return constantOrError("Invalid i16 constant");
             }
+        }
 
-            @Override
-            public CodeBlock visitI32() {
+        @Override
+        public CodeBlock visitI32() {
+            if (value.isInt()) {
                 return CodeBlock.builder().add("$L", value.getAsInt()).build();
+            } else {
+                return constantOrError("Invalid i32 constant");
             }
+        }
 
-            @Override
-            public CodeBlock visitI64() {
+        @Override
+        public CodeBlock visitI64() {
+            if (value.isInt()) {
                 return CodeBlock.builder().add("$L", value.getAsLong()).build();
+            } else {
+                return constantOrError("Invalid i64 constant");
             }
+        }
 
-            @Override
-            public CodeBlock visitDouble() {
+        @Override
+        public CodeBlock visitDouble() {
+            if (value.isInt() || value.isDouble()) {
                 return CodeBlock.builder().add("(double) $L", value.getAsDouble()).build();
+            } else {
+                return constantOrError("Invalid double constant");
             }
+        }
 
-            @Override
-            public CodeBlock visitString() {
+        @Override
+        public CodeBlock visitString() {
+            if (value.isString()) {
                 return CodeBlock.builder().add("$S", value.getAsString()).build();
+            } else {
+                return constantOrError("Invalid string constant");
+            }
+        }
+
+        @Override
+        public CodeBlock visitBinary() {
+            throw new UnsupportedOperationException("Binary literals are not supported");
+        }
+
+        @Override
+        public CodeBlock visitVoid() {
+            throw new AssertionError("Void literals are meaningless, what are you even doing");
+        }
+
+        @Override
+        public CodeBlock visitEnum(final ThriftType tt) {
+            EnumType enumType;
+            try {
+                enumType = schema.findEnumByType(tt);
+            } catch (NoSuchElementException e) {
+                throw new AssertionError("Missing enum type: " + tt.name());
             }
 
-            @Override
-            public CodeBlock visitBinary() {
-                throw new UnsupportedOperationException("Binary literals are not supported");
-            }
+            // TODO(ben): Figure out how to handle const references
+            EnumType.Member member;
+            try {
+                if (value.kind() == ConstValueElement.Kind.INTEGER) {
+                    member = enumType.findMemberById(value.getAsInt());
+                } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
+                    String id = value.getAsString();
 
-            @Override
-            public CodeBlock visitVoid() {
-                throw new AssertionError("Void literals are meaningless, what are you even doing");
-            }
-
-            @Override
-            public CodeBlock visitEnum(final ThriftType tt) {
-                EnumType enumType;
-                try {
-                    enumType = schema.findEnumByType(tt);
-                } catch (NoSuchElementException e) {
-                    throw new AssertionError("Missing enum type: " + tt.name());
-                }
-
-                EnumType.Member member;
-                try {
-                    if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                        member = enumType.findMemberById(value.getAsInt());
-                    } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                        String id = value.getAsString();
-
-                        // Remove the enum name prefix, assuming it is present
-                        int ix = id.lastIndexOf('.');
-                        if (ix != -1) {
-                            id = id.substring(ix + 1);
-                        }
-
-                        member = enumType.findMemberByName(id);
-                    } else {
-                        throw new AssertionError(
-                                "Constant value kind " + value.kind() + " is not possibly an enum; validation bug");
+                    // Remove the enum name prefix, assuming it is present
+                    int ix = id.lastIndexOf('.');
+                    if (ix != -1) {
+                        id = id.substring(ix + 1);
                     }
-                } catch (NoSuchElementException e) {
-                    throw new IllegalStateException(
-                            "No enum member in " + enumType.name() + " with value " + value.value());
-                }
 
-                return CodeBlock.builder()
-                        .add("$T.$L", typeResolver.getJavaClass(tt), member.name())
-                        .build();
+                    member = enumType.findMemberByName(id);
+                } else {
+                    throw new AssertionError(
+                            "Constant value kind " + value.kind() + " is not possibly an enum; validation bug");
+                }
+            } catch (NoSuchElementException e) {
+                throw new IllegalStateException(
+                        "No enum member in " + enumType.name() + " with value " + value.value());
             }
 
-            @Override
-            public CodeBlock visitList(ThriftType.ListType listType) {
+            return CodeBlock.builder()
+                    .add("$T.$L", typeResolver.getJavaClass(tt), member.name())
+                    .build();
+        }
+
+        @Override
+        public CodeBlock visitList(ThriftType.ListType listType) {
+            if (value.isList()) {
                 if (value.getAsList().isEmpty()) {
                     TypeName elementType = typeResolver.getJavaClass(listType.elementType());
-                    return CodeBlock.builder().add("$T.<$T>emptyList()", TypeNames.COLLECTIONS, elementType).build();
+                    return CodeBlock.builder()
+                            .add("$T.<$T>emptyList()", TypeNames.COLLECTIONS, elementType)
+                            .build();
                 }
                 return visitCollection(listType, "list", "unmodifiableList");
+            } else {
+                return constantOrError("Invalid list constant");
             }
+        }
 
-            @Override
-            public CodeBlock visitSet(ThriftType.SetType setType) {
+        @Override
+        public CodeBlock visitSet(ThriftType.SetType setType) {
+            if (value.isList()) { // not a typo; ConstantValueElement.Kind.LIST covers lists and sets.
                 if (value.getAsList().isEmpty()) {
                     TypeName elementType = typeResolver.getJavaClass(setType.elementType());
-                    return CodeBlock.builder().add("$T.<$T>emptySet()", TypeNames.COLLECTIONS, elementType).build();
+                    return CodeBlock.builder()
+                            .add("$T.<$T>emptySet()", TypeNames.COLLECTIONS, elementType)
+                            .build();
                 }
                 return visitCollection(setType, "set", "unmodifiableSet");
+            } else {
+                return constantOrError("Invalid set constant");
             }
+        }
 
-            @Override
-            public CodeBlock visitMap(ThriftType.MapType mapType) {
+        @Override
+        public CodeBlock visitMap(ThriftType.MapType mapType) {
+            if (value.isMap()) {
                 if (value.getAsMap().isEmpty()) {
                     TypeName keyType = typeResolver.getJavaClass(mapType.keyType());
                     TypeName valueType = typeResolver.getJavaClass(mapType.valueType());
@@ -277,26 +339,69 @@ final class ConstantBuilder {
                             .build();
                 }
                 return visitCollection(mapType, "map", "unmodifiableMap");
+            } else {
+                return constantOrError("Invalid map constant");
+            }
+        }
+
+        private CodeBlock visitCollection(
+                ThriftType type,
+                String tempName,
+                String method) {
+            String name = allocator.newName(tempName, scope.getAndIncrement());
+            generateFieldInitializer(block, allocator, scope, name, type, value, true);
+            return CodeBlock.builder().add("$T.$L($N)", TypeNames.COLLECTIONS, method, name).build();
+        }
+
+        @Override
+        public CodeBlock visitUserType(ThriftType userType) {
+            throw new IllegalStateException("nested structs not implemented");
+        }
+
+        @Override
+        public CodeBlock visitTypedef(ThriftType.TypedefType typedefType) {
+            return null;
+        }
+
+        private CodeBlock constantOrError(String error) {
+            error += ": " + value.value() + " at " + value.location();
+
+            if (!value.isIdentifier()) {
+                throw new IllegalStateException(error);
             }
 
-            private CodeBlock visitCollection(
-                    ThriftType type,
-                    String tempName,
-                    String method) {
-                String name = allocator.newName(tempName, scope.getAndIncrement());
-                generateFieldInitializer(block, allocator, scope, name, type, value, true);
-                return CodeBlock.builder().add("$T.$L($N)", TypeNames.COLLECTIONS, method, name).build();
+            ThriftType expectedType = type.getTrueType();
+
+            String name = value.getAsString();
+            String expectedProgram = null;
+            int ix = name.indexOf('.');
+            if (ix != -1) {
+                expectedProgram = name.substring(0, ix);
+                name = name.substring(ix + 1);
             }
 
-            @Override
-            public CodeBlock visitUserType(ThriftType userType) {
-                throw new IllegalStateException("nested structs not implemented");
+            for (Constant constant : schema.constants()) {
+                if (!constant.name().equals(name)) {
+                    continue;
+                }
+
+                ThriftType constantType = constant.type().getTrueType();
+                if (!constantType.equals(expectedType)) {
+                    continue;
+                }
+
+                // TODO(ben): Think of a more systematic way to know what Program owns
+                //            a thrift element - pointer-to-parent, probably.
+                String programName = constant.location().getProgramName();
+                if (expectedProgram != null && !programName.equals(expectedProgram)) {
+                    continue;
+                }
+
+                String packageName = constant.getNamespaceFor(NamespaceScope.JAVA);
+                return CodeBlock.builder().add(packageName + ".Constants." + name).build();
             }
 
-            @Override
-            public CodeBlock visitTypedef(ThriftType.TypedefType typedefType) {
-                return null;
-            }
-        });
+            throw new IllegalStateException(error);
+        }
     }
 }
