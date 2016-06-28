@@ -22,6 +22,8 @@ package com.microsoft.thrifty.gen;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.testing.compile.JavaFileObjects;
+import com.google.testing.compile.JavaSourcesSubjectFactory;
 import com.microsoft.thrifty.schema.Loader;
 import com.microsoft.thrifty.schema.Schema;
 import com.squareup.javapoet.JavaFile;
@@ -29,10 +31,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import javax.tools.JavaFileObject;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.google.testing.compile.JavaSourceSubjectFactory.javaSource;
 import static com.google.common.truth.Truth.assertAbout;
@@ -87,6 +92,41 @@ public class ThriftyCodeGeneratorTest {
 
         assertAbout(javaSource())
                 .that(java.get(0).toJavaFileObject())
+                .compilesWithoutError();
+    }
+
+    @Test
+    public void fieldWithConstInitializer() throws Exception {
+        String thrift = Joiner.on('\n').join(
+                "namespace java fields",
+                "",
+                "const i32 TEST_CONST = 5",
+                "",
+                "struct HasDefaultValue {",
+                "  1: required i32 foo = TEST_CONST",
+                "}");
+
+        Schema schema = parse("fields.thrift", thrift);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        ImmutableList<JavaFile> java = gen.generateTypes();
+        List<JavaFileObject> jfos = new ArrayList<>();
+
+        boolean found = false;
+        for (JavaFile javaFile : java) {
+            if (javaFile.toString().contains("foo = fields.Constants.TEST_CONST;")) {
+                found = true;
+            }
+        }
+
+        assertThat(found).named("Const reference was found in field assignment").isTrue();
+
+        assertThat(java).hasSize(2);
+        for (JavaFile javaFile : java) {
+            jfos.add(javaFile.toJavaFileObject());
+        }
+
+        assertAbout(JavaSourcesSubjectFactory.javaSources())
+                .that(jfos)
                 .compilesWithoutError();
     }
 

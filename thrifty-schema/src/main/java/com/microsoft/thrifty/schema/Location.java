@@ -60,6 +60,23 @@ public final class Location {
         return column;
     }
 
+    /**
+     * Computes and returns the Thrift 'program' name, which is the filename portion
+     * of the full path *without* the .thrift extension.
+     */
+    public String getProgramName() {
+        String name = path;
+        int separatorIndex = name.lastIndexOf(File.pathSeparatorChar);
+        if (separatorIndex != -1) {
+            name = name.substring(separatorIndex + 1);
+        }
+        int dotIndex = name.indexOf('.');
+        if (dotIndex != -1) {
+            name = name.substring(0, dotIndex);
+        }
+        return name;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(base.length() + path.length());

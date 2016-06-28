@@ -43,6 +43,30 @@ public abstract class ConstValueElement {
     public abstract Kind kind();
     public abstract Object value();
 
+    public boolean isInt() {
+        return kind() == Kind.INTEGER;
+    }
+
+    public boolean isDouble() {
+        return kind() == Kind.DOUBLE;
+    }
+
+    public boolean isString() {
+        return kind() == Kind.STRING;
+    }
+
+    public boolean isIdentifier() {
+        return kind() == Kind.IDENTIFIER;
+    }
+
+    public boolean isList() {
+        return kind() == Kind.LIST;
+    }
+
+    public boolean isMap() {
+        return kind() == Kind.MAP;
+    }
+
     public String getAsString() {
         if (kind() == Kind.STRING || kind() == Kind.IDENTIFIER) {
             return (String) value();
