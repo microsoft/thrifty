@@ -66,7 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 
 public final class ThriftyCodeGenerator {
     private static final String FILE_COMMENT =
@@ -734,9 +733,6 @@ public final class ThriftyCodeGenerator {
         hashCode.addStatement("return code");
         return hashCode.build();
     }
-
-    private static final Pattern REDACTED_PATTERN = Pattern.compile(
-            "@redacted", Pattern.CASE_INSENSITIVE);
 
     /**
      * Builds a #toString() method for the given struct.
