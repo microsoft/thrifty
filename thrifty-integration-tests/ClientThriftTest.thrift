@@ -398,8 +398,8 @@ service ThirdService extends SecondService {
 
 struct HasRedaction {
   1: required string one;
-  2: required string two (redacted);
-  3: required string three;
+  2: required string two (redacted = "true");
+  3: required string three (obfuscated);
 }
 
 struct HasCommentBasedRedaction {

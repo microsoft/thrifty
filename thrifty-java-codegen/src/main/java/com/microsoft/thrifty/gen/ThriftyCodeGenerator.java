@@ -754,15 +754,12 @@ public final class ThriftyCodeGenerator {
      */
     private MethodSpec buildToStringFor(StructType struct) {
         class Chunk {
-            static final int TYPE_STRING = 0;
-            static final int TYPE_CODE = 1;
+            final String format;
+            final Object[] args;
 
-            final int type;
-            final String value;
-
-            Chunk(int type, String value) {
-                this.type = type;
-                this.value = value;
+            Chunk(String format, Object ... args) {
+                this.format = format;
+                this.args = args;
             }
         }
 
@@ -776,10 +773,6 @@ public final class ThriftyCodeGenerator {
         StringBuilder sb = new StringBuilder(struct.name()).append("{");
         boolean appendedOneField = false;
         for (Field field : struct.fields()) {
-            boolean isRedacted =
-                    field.annotations().containsKey("redacted")
-                    || REDACTED_PATTERN.matcher(field.documentation()).find();
-
             if (appendedOneField) {
                 sb.append(", ");
             } else {
@@ -788,18 +781,24 @@ public final class ThriftyCodeGenerator {
 
             sb.append(field.name()).append("=");
 
-            if (isRedacted) {
+            if (field.isRedacted()) {
                 sb.append("<REDACTED>");
+            } else if (field.isObfuscated()) {
+                chunks.add(new Chunk("$S", sb.toString()));
+                chunks.add(new Chunk(
+                        "$T.hash(this.$L)", TypeNames.OBFUSCATION_UTIL, field.name()));
+
+                sb.setLength(0);
             } else {
-                chunks.add(new Chunk(Chunk.TYPE_STRING, sb.toString()));
-                chunks.add(new Chunk(Chunk.TYPE_CODE, "this." + field.name()));
+                chunks.add(new Chunk("$S", sb.toString()));
+                chunks.add(new Chunk("this.$L", field.name()));
 
                 sb.setLength(0);
             }
         }
 
         sb.append("}");
-        chunks.add(new Chunk(Chunk.TYPE_STRING, sb.toString()));
+        chunks.add(new Chunk("$S", sb.toString()));
 
         CodeBlock.Builder block = CodeBlock.builder();
         boolean firstChunk = true;
@@ -811,11 +810,7 @@ public final class ThriftyCodeGenerator {
                 block.add(" + ");
             }
 
-            if (chunk.type == Chunk.TYPE_STRING) {
-                block.add("$S", chunk.value);
-            } else {
-                block.add("$L", chunk.value);
-            }
+            block.add(chunk.format, chunk.args);
         }
 
         block.add(";$]\n");

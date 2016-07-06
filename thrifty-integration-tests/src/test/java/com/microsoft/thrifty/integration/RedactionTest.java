@@ -15,13 +15,24 @@ public class RedactionTest {
         HasRedaction hr = new HasRedaction.Builder()
                 .one("value-one")
                 .two("should-not-appear")
-                .three("value-three")
+                .three("value-three")  // expe
                 .build();
 
         assertThat(hr.toString(), containsString("one=value-one"));
         assertThat(hr.toString(), not(containsString("should-not-appear")));
-        assertThat(hr.toString(), containsString("three=value-three"));
         assertThat(hr.two, is("should-not-appear"));
+    }
+
+    @Test
+    public void obfuscation() {
+        HasRedaction hr = new HasRedaction.Builder()
+                .one("value-one")
+                .two("value-two")
+                .three("value-three")
+                .build();
+
+        assertThat(hr.toString(), containsString("three=6A39B242"));
+        assertThat(hr.three, is("value-three"));
     }
 
     @Test
