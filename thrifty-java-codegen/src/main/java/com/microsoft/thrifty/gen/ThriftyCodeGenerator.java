@@ -757,7 +757,7 @@ public final class ThriftyCodeGenerator {
             final String format;
             final Object[] args;
 
-            Chunk(String format, Object ... args) {
+            Chunk(String format, Object ...args) {
                 this.format = format;
                 this.args = args;
             }
@@ -785,10 +785,43 @@ public final class ThriftyCodeGenerator {
                 sb.append("<REDACTED>");
             } else if (field.isObfuscated()) {
                 chunks.add(new Chunk("$S", sb.toString()));
-                chunks.add(new Chunk(
-                        "$T.hash(this.$L)", TypeNames.OBFUSCATION_UTIL, field.name()));
-
                 sb.setLength(0);
+
+                Chunk chunk;
+                ThriftType fieldType = field.type().getTrueType();
+                if (fieldType.isList() || fieldType.isSet()) {
+                    String type;
+                    String elementType;
+                    if (fieldType.isList()) {
+                        type = "List";
+                        elementType = ((ThriftType.ListType) fieldType).elementType().getTrueType().javaName();
+                    } else {
+                        type = "Set";
+                        elementType = ((ThriftType.SetType) fieldType).elementType().getTrueType().javaName();
+                    }
+
+                    chunk = new Chunk(
+                            "$T.summarizeCollection(this.$L, $S, $S)",
+                            TypeNames.OBFUSCATION_UTIL,
+                            field.name(),
+                            type,
+                            elementType);
+                } else if (fieldType.isMap()) {
+                    ThriftType.MapType mapType = (ThriftType.MapType) fieldType;
+                    String keyType = mapType.keyType().getTrueType().javaName();
+                    String valueType = mapType.valueType().getTrueType().javaName();
+
+                    chunk = new Chunk(
+                            "$T.summarizeMap(this.$L, $S, $S)",
+                            TypeNames.OBFUSCATION_UTIL,
+                            field.name(),
+                            keyType,
+                            valueType);
+                } else {
+                    chunk = new Chunk("$T.hash(this.$L)", TypeNames.OBFUSCATION_UTIL, field.name());
+                }
+
+                chunks.add(chunk);
             } else {
                 chunks.add(new Chunk("$S", sb.toString()));
                 chunks.add(new Chunk("this.$L", field.name()));

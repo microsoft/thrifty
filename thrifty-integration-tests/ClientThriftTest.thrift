@@ -406,3 +406,8 @@ struct HasCommentBasedRedaction {
   /** @redacted */
   1: required string foo;
 }
+
+struct ObfuscatedCollections {
+  1: required list<i32> numz = [1, 2, 3] (obfuscated)
+  2: required map<string, string> stringz = {} (obfuscated)
+}

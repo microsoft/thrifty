@@ -151,6 +151,85 @@ public abstract class ThriftType {
         return t;
     }
 
+    public String javaName() {
+        return accept(new Visitor<String>() {
+            @Override
+            public String visitBool() {
+                return "Boolean";
+            }
+
+            @Override
+            public String visitByte() {
+                return "Byte";
+            }
+
+            @Override
+            public String visitI16() {
+                return "Short";
+            }
+
+            @Override
+            public String visitI32() {
+                return "Integer";
+            }
+
+            @Override
+            public String visitI64() {
+                return "Long";
+            }
+
+            @Override
+            public String visitDouble() {
+                return "Double";
+            }
+
+            @Override
+            public String visitString() {
+                return "String";
+            }
+
+            @Override
+            public String visitBinary() {
+                return "ByteString";
+            }
+
+            @Override
+            public String visitVoid() {
+                return "Void";
+            }
+
+            @Override
+            public String visitEnum(ThriftType userType) {
+                return userType.name();
+            }
+
+            @Override
+            public String visitList(ListType listType) {
+                return "List<" + listType.elementType().accept(this) + ">";
+            }
+
+            @Override
+            public String visitSet(SetType setType) {
+                return "Set<" + setType.elementType().accept(this) + ">";
+            }
+
+            @Override
+            public String visitMap(MapType mapType) {
+                return "Map<" + mapType.keyType().accept(this) + ", " + mapType.valueType().accept(this) + ">";
+            }
+
+            @Override
+            public String visitUserType(ThriftType userType) {
+                return userType.name();
+            }
+
+            @Override
+            public String visitTypedef(TypedefType typedefType) {
+                return typedefType.getTrueType().accept(this);
+            }
+        });
+    }
+
     public abstract <T> T accept(Visitor<? extends T> visitor);
 
     public String getNamespace(NamespaceScope scope) {
