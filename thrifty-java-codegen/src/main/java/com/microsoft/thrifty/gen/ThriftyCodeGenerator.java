@@ -25,6 +25,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.microsoft.thrifty.Obfuscated;
+import com.microsoft.thrifty.Redacted;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
@@ -330,6 +332,14 @@ public final class ThriftyCodeGenerator {
 
             if (field.hasJavadoc()) {
                 fieldBuilder = fieldBuilder.addJavadoc(field.documentation());
+            }
+
+            if (field.isRedacted()) {
+                fieldBuilder = fieldBuilder.addAnnotation(AnnotationSpec.builder(Redacted.class).build());
+            }
+
+            if (field.isObfuscated()) {
+                fieldBuilder = fieldBuilder.addAnnotation(AnnotationSpec.builder(Obfuscated.class).build());
             }
 
             structBuilder.addField(fieldBuilder.build());

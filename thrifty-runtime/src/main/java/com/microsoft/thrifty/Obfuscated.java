@@ -27,13 +27,20 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * A field annotated as {@code {literal @}Redacted} is intended to be obscured
- * in log files, debug statements, etc.  The printed value of a redacted field
- * is always a constant placeholder string, regardless of the value's type or
- * presence/absence.
+ * A field annotated as {@code Obfuscated} is intended to be obscured in log
+ * files, debug statements, etc.  The printed value of an obfuscated field is
+ * dependent on its type.  Scalar values (byte, short, int, etc) will be hashed
+ * using an unspecified digest, and collection types will be summarized.
+ *
+ * <p>Obfuscated is a suitable choice when one wishes to avoid logging
+ * personally-identifiable information, but still wishes to distinguish one
+ * value from another.
+ *
+ * <p>Collection summaries consist of the collection kind (List, Set, or Map),
+ * its generic parameter(s), and the number of elements in the collection.
  */
 @Documented
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Redacted {
+public @interface Obfuscated {
 }
