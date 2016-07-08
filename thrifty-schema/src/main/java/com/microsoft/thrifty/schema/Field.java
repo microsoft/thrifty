@@ -26,6 +26,7 @@ import com.microsoft.thrifty.schema.parser.ConstValueElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 
 public final class Field {
     private final FieldElement element;
@@ -98,6 +99,18 @@ public final class Field {
 
     public ImmutableMap<String, String> annotations() {
         return annotations;
+    }
+
+    public boolean isRedacted() {
+        return annotations.containsKey("thrifty.redacted")
+                || annotations.containsKey("redacted")
+                || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@redacted"));
+    }
+
+    public boolean isObfuscated() {
+        return annotations.containsKey("thrifty.obfuscated")
+                || annotations.containsKey("obfuscated")
+                || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@obfuscated"));
     }
 
     void setType(ThriftType type) {

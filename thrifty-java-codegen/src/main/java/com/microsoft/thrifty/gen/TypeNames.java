@@ -35,6 +35,7 @@ import com.microsoft.thrifty.service.ClientBase;
 import com.microsoft.thrifty.service.MethodCall;
 import com.microsoft.thrifty.service.ServiceMethodCallback;
 import com.microsoft.thrifty.service.TMessageType;
+import com.microsoft.thrifty.util.ObfuscationUtil;
 import com.microsoft.thrifty.util.ProtocolUtil;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
@@ -101,6 +102,8 @@ final class TypeNames {
     static final ClassName PARCEL = ClassName.get("android.os", "Parcel");
     static final ClassName PARCELABLE = ClassName.get("android.os", "Parcelable");
     static final ClassName PARCELABLE_CREATOR = ClassName.get("android.os", "Parcelable", "Creator");
+
+    static final ClassName OBFUSCATION_UTIL = ClassName.get(ObfuscationUtil.class);
 
     /**
      * A mapping of {@link TType} constant values to their Java names.

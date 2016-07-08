@@ -25,6 +25,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.microsoft.thrifty.Obfuscated;
+import com.microsoft.thrifty.Redacted;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
@@ -64,7 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 
 public final class ThriftyCodeGenerator {
     private static final String FILE_COMMENT =
@@ -330,6 +331,14 @@ public final class ThriftyCodeGenerator {
 
             if (field.hasJavadoc()) {
                 fieldBuilder = fieldBuilder.addJavadoc(field.documentation());
+            }
+
+            if (field.isRedacted()) {
+                fieldBuilder = fieldBuilder.addAnnotation(AnnotationSpec.builder(Redacted.class).build());
+            }
+
+            if (field.isObfuscated()) {
+                fieldBuilder = fieldBuilder.addAnnotation(AnnotationSpec.builder(Obfuscated.class).build());
             }
 
             structBuilder.addField(fieldBuilder.build());
@@ -725,9 +734,6 @@ public final class ThriftyCodeGenerator {
         return hashCode.build();
     }
 
-    private static final Pattern REDACTED_PATTERN = Pattern.compile(
-            "@redacted", Pattern.CASE_INSENSITIVE);
-
     /**
      * Builds a #toString() method for the given struct.
      *
@@ -744,15 +750,12 @@ public final class ThriftyCodeGenerator {
      */
     private MethodSpec buildToStringFor(StructType struct) {
         class Chunk {
-            static final int TYPE_STRING = 0;
-            static final int TYPE_CODE = 1;
+            final String format;
+            final Object[] args;
 
-            final int type;
-            final String value;
-
-            Chunk(int type, String value) {
-                this.type = type;
-                this.value = value;
+            Chunk(String format, Object ...args) {
+                this.format = format;
+                this.args = args;
             }
         }
 
@@ -766,10 +769,6 @@ public final class ThriftyCodeGenerator {
         StringBuilder sb = new StringBuilder(struct.name()).append("{");
         boolean appendedOneField = false;
         for (Field field : struct.fields()) {
-            boolean isRedacted =
-                    field.annotations().containsKey("redacted")
-                    || REDACTED_PATTERN.matcher(field.documentation()).find();
-
             if (appendedOneField) {
                 sb.append(", ");
             } else {
@@ -778,18 +777,57 @@ public final class ThriftyCodeGenerator {
 
             sb.append(field.name()).append("=");
 
-            if (isRedacted) {
+            if (field.isRedacted()) {
                 sb.append("<REDACTED>");
+            } else if (field.isObfuscated()) {
+                chunks.add(new Chunk("$S", sb.toString()));
+                sb.setLength(0);
+
+                Chunk chunk;
+                ThriftType fieldType = field.type().getTrueType();
+                if (fieldType.isList() || fieldType.isSet()) {
+                    String type;
+                    String elementType;
+                    if (fieldType.isList()) {
+                        type = "list";
+                        elementType = ((ThriftType.ListType) fieldType).elementType().name();
+                    } else {
+                        type = "set";
+                        elementType = ((ThriftType.SetType) fieldType).elementType().name();
+                    }
+
+                    chunk = new Chunk(
+                            "$T.summarizeCollection(this.$L, $S, $S)",
+                            TypeNames.OBFUSCATION_UTIL,
+                            field.name(),
+                            type,
+                            elementType);
+                } else if (fieldType.isMap()) {
+                    ThriftType.MapType mapType = (ThriftType.MapType) fieldType;
+                    String keyType = mapType.keyType().name();
+                    String valueType = mapType.valueType().name();
+
+                    chunk = new Chunk(
+                            "$T.summarizeMap(this.$L, $S, $S)",
+                            TypeNames.OBFUSCATION_UTIL,
+                            field.name(),
+                            keyType,
+                            valueType);
+                } else {
+                    chunk = new Chunk("$T.hash(this.$L)", TypeNames.OBFUSCATION_UTIL, field.name());
+                }
+
+                chunks.add(chunk);
             } else {
-                chunks.add(new Chunk(Chunk.TYPE_STRING, sb.toString()));
-                chunks.add(new Chunk(Chunk.TYPE_CODE, "this." + field.name()));
+                chunks.add(new Chunk("$S", sb.toString()));
+                chunks.add(new Chunk("this.$L", field.name()));
 
                 sb.setLength(0);
             }
         }
 
         sb.append("}");
-        chunks.add(new Chunk(Chunk.TYPE_STRING, sb.toString()));
+        chunks.add(new Chunk("$S", sb.toString()));
 
         CodeBlock.Builder block = CodeBlock.builder();
         boolean firstChunk = true;
@@ -801,11 +839,7 @@ public final class ThriftyCodeGenerator {
                 block.add(" + ");
             }
 
-            if (chunk.type == Chunk.TYPE_STRING) {
-                block.add("$S", chunk.value);
-            } else {
-                block.add("$L", chunk.value);
-            }
+            block.add(chunk.format, chunk.args);
         }
 
         block.add(";$]\n");

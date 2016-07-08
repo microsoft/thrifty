@@ -20,9 +20,12 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.TypeElement;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -56,6 +59,78 @@ public class FieldTest {
         Field field = new Field(element, FieldNamingPolicy.DEFAULT);
         assertFalse(field.required());
         assertFalse(field.optional());
+    }
+
+    @Test
+    public void unredactedAndUnobfuscatedByDefault() {
+        FieldElement element = fieldBuilder().build();
+        Field field = new Field(element, FieldNamingPolicy.DEFAULT);
+        assertFalse(field.isRedacted());
+        assertFalse(field.isObfuscated());
+    }
+
+    @Test
+    public void redactedByThriftAnnotation() {
+        FieldElement element = fieldBuilder()
+                .annotations(annotation("thrifty.redacted"))
+                .build();
+
+        Field field = new Field(element, FieldNamingPolicy.DEFAULT);
+        assertTrue(field.isRedacted());
+    }
+
+    @Test
+    public void redactedByShortThriftAnnotation() {
+        FieldElement element = fieldBuilder()
+                .annotations(annotation("redacted"))
+                .build();
+
+        Field field = new Field(element, FieldNamingPolicy.DEFAULT);
+        assertTrue(field.isRedacted());
+    }
+
+    @Test
+    public void redactedByJavadocAnnotation() {
+        FieldElement element = fieldBuilder()
+                .documentation("/** @redacted */")
+                .build();
+
+        Field field = new Field(element, FieldNamingPolicy.DEFAULT);
+        assertTrue(field.isRedacted());
+    }
+
+    @Test
+    public void obfuscatedByThriftAnnotation() {
+        FieldElement element = fieldBuilder()
+                .annotations(annotation("thrifty.obfuscated"))
+                .build();
+
+        Field field = new Field(element, FieldNamingPolicy.DEFAULT);
+        assertTrue(field.isObfuscated());
+    }
+
+    @Test
+    public void obfuscatedByShortThriftAnnotation() {
+        FieldElement element = fieldBuilder()
+                .annotations(annotation("obfuscated"))
+                .build();
+
+        Field field = new Field(element, FieldNamingPolicy.DEFAULT);
+        assertTrue(field.isObfuscated());
+    }
+
+    @Test
+    public void obfuscatedByJavadocAnnotation() {
+        FieldElement element = fieldBuilder()
+                .documentation("/** @obfuscated */")
+                .build();
+
+        Field field = new Field(element, FieldNamingPolicy.DEFAULT);
+        assertTrue(field.isObfuscated());
+    }
+
+    private AnnotationElement annotation(String name) {
+        return AnnotationElement.create(Location.get("", ""), Collections.singletonMap(name, "true"));
     }
 
     private FieldElement.Builder fieldBuilder() {
