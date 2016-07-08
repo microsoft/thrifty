@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-  compile 'com.microsoft.thrifty:thrifty-runtime:0.2.2'
+  compile 'com.microsoft.thrifty:thrifty-runtime:0.2.3'
 }
 ```
 
@@ -337,6 +337,58 @@ client.search(query, new ServiceMethodCallback<List<SearchResult>>() {
 Every project has its own requirements, and no one style of boilerplate can fill them all.  Thrifty offers a small but 
 powerful plugin model that you can implement, using the standard Java SPI mechanism, which will allow one to customize
 each generated Java class before it is written out to disk.  Read more about it in the [thrifty-compiler-plugins README](thrifty-compiler-plugins/README.md).  You can see a worked example in [thrifty-example-postprocessor](thrifty-example-postprocessor).
+
+### Hiding PII with Redaction and Obfuscation
+
+Personally-Identifiable Information (PII) is an inevitability in most systems, and often there are legal consequences
+if it is not handled carefully.  Thrifty allows you to avoid logging PII contained in generated classes by supporting
+both total redaction and obfuscation.  It is as simple as adding annotations to your Thrift IDL:
+
+```thrift
+struct User {
+  1: required string email (obfuscated)
+  2: required string ssn (redacted)
+}
+```
+
+The difference between redaction and obfuscation is small but important.  In `.toString()`, `redacted` fields are totally replaced
+with the string `"<REDACTED>"` - no information survives.  This meets the goal of not leaking PII, but has the consequence that
+sometimes debugging can be difficult.  `obfuscated` fields, on the other hand, are treated differently.  Their values are hashed,
+and this hash is printed.  This allows one to distinguish between unique values in log files, without compromising user privacy.
+
+The Thrift annotations `(thrifty.redacted)` and `(thrifty.obfuscated)` are also accepted by the compiler.
+
+The Thrift example above leads to code similar to the following:
+
+```java
+public final class User {
+  @ThriftField(
+    fieldId = 1,
+    required = true)
+  @Obfuscated
+  public final String email;
+
+  @ThriftField(
+    fieldId = 2,
+    required = true)
+  @Redacted
+  public final String ssn;
+
+  // more code
+
+  @Override
+  public String toString() {
+    return "User{email=" + ObfuscationUtil.hash(this.email) + ", ssn=<REDACTED>}";
+  }
+
+  // more code
+}
+```
+
+Obfuscated fields that are collections are not hashed; instead, their type is printed, along with the collection size, e.g. `map<i32, string>(size=5)`.
+
+Close readers will note that the compiler will also respond to `@redacted` and `@obfuscated` in field documentation; this is currently valid *but not supported
+and subject to change in future releases*.  It is a legacy from the time before Thrifty implemented Thrift annotations.
 
 ### Thanks
 
