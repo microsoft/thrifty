@@ -37,27 +37,27 @@ public class ObfuscationUtilTest {
     @Test
     public void summarizeStringList() {
         List<String> strings = Arrays.asList("one", "two", "three");
-        String summary = ObfuscationUtil.summarizeCollection(strings, "List", "String");
-        assertThat(summary, is("List<String>(size=3)"));
+        String summary = ObfuscationUtil.summarizeCollection(strings, "list", "string");
+        assertThat(summary, is("list<string>(size=3)"));
     }
 
     @Test
     public void summarizeObjectSet() {
-        Set<Object> set = Sets.newHashSet(new Object(), new Object());
-        String summary = ObfuscationUtil.summarizeCollection(set, "Set", "Object");
-        assertThat(summary, is("Set<Object>(size=2)"));
+        Set<Long> set = Sets.newHashSet(3L, 4L);
+        String summary = ObfuscationUtil.summarizeCollection(set, "set", "i64");
+        assertThat(summary, is("set<i64>(size=2)"));
     }
 
     @Test
     public void summarizeNullList() {
         List<Integer> list = null;
-        String summary = ObfuscationUtil.summarizeCollection(list, "List", "Integer");
+        String summary = ObfuscationUtil.summarizeCollection(list, "list", "i32");
         assertThat(summary, is("null"));
     }
 
     @Test
     public void summarizeMap() {
         Map<String, Integer> map = Collections.emptyMap();
-        assertThat(ObfuscationUtil.summarizeMap(map, "String", "Integer"), is("Map<String, Integer>(size=0)"));
+        assertThat(ObfuscationUtil.summarizeMap(map, "string", "i32"), is("map<string, i32>(size=0)"));
     }
 }

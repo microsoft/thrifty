@@ -789,11 +789,11 @@ public final class ThriftyCodeGenerator {
                     String type;
                     String elementType;
                     if (fieldType.isList()) {
-                        type = "List";
-                        elementType = ((ThriftType.ListType) fieldType).elementType().getTrueType().javaName();
+                        type = "list";
+                        elementType = ((ThriftType.ListType) fieldType).elementType().name();
                     } else {
-                        type = "Set";
-                        elementType = ((ThriftType.SetType) fieldType).elementType().getTrueType().javaName();
+                        type = "set";
+                        elementType = ((ThriftType.SetType) fieldType).elementType().name();
                     }
 
                     chunk = new Chunk(
@@ -804,8 +804,8 @@ public final class ThriftyCodeGenerator {
                             elementType);
                 } else if (fieldType.isMap()) {
                     ThriftType.MapType mapType = (ThriftType.MapType) fieldType;
-                    String keyType = mapType.keyType().getTrueType().javaName();
-                    String valueType = mapType.valueType().getTrueType().javaName();
+                    String keyType = mapType.keyType().name();
+                    String valueType = mapType.valueType().name();
 
                     chunk = new Chunk(
                             "$T.summarizeMap(this.$L, $S, $S)",

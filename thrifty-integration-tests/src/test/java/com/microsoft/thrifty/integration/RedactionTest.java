@@ -54,7 +54,7 @@ public class RedactionTest {
                 .numz(Arrays.asList(1, 2, 3))
                 .build();
 
-        assertThat(oc.toString(), containsString("numz=List<Integer>(size=3)"));
+        assertThat(oc.toString(), containsString("numz=list<i32>(size=3)"));
     }
 
     @Test
@@ -63,6 +63,6 @@ public class RedactionTest {
                 .stringz(Collections.singletonMap("foo", "bar"))
                 .build();
 
-        assertThat(oc.toString(), containsString("stringz=Map<String, String>(size=1)"));
+        assertThat(oc.toString(), containsString("stringz=map<string, string>(size=1)"));
     }
 }

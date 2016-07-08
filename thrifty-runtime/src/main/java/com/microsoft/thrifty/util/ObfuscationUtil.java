@@ -45,7 +45,7 @@ public final class ObfuscationUtil {
         if (map == null) {
             return "null";
         }
-        return "Map<" + keyType + ", " + valueType + ">(size=" + map.size() + ")";
+        return "map<" + keyType + ", " + valueType + ">(size=" + map.size() + ")";
     }
 
     public static String hash(Object value) {
