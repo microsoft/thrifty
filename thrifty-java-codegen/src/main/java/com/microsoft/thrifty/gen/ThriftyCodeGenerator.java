@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.microsoft.thrifty.Obfuscated;
 import com.microsoft.thrifty.Redacted;
+import com.microsoft.thrifty.Adapter;
+import com.microsoft.thrifty.Struct;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
@@ -51,6 +53,7 @@ import com.squareup.javapoet.NameAllocator;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -284,8 +287,10 @@ public final class ThriftyCodeGenerator {
         ClassName structTypeName = ClassName.get(packageName, type.name());
         ClassName builderTypeName = structTypeName.nestedClass("Builder");
 
+        TypeName struct = ParameterizedTypeName.get(ClassName.get(Struct.class), structTypeName, builderTypeName);
         TypeSpec.Builder structBuilder = TypeSpec.classBuilder(type.name())
-                .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addSuperinterface(struct);
 
         if (type.hasJavadoc()) {
             structBuilder.addJavadoc(type.documentation());
@@ -376,6 +381,7 @@ public final class ThriftyCodeGenerator {
         structBuilder.addMethod(buildEqualsFor(type));
         structBuilder.addMethod(buildHashCodeFor(type));
         structBuilder.addMethod(buildToStringFor(type));
+        structBuilder.addMethod(buildGetAdapterFor(structTypeName, builderTypeName));
 
         return structBuilder.build();
     }
@@ -670,6 +676,18 @@ public final class ThriftyCodeGenerator {
                 .addMethod(write.build())
                 .addMethod(read.build())
                 .addMethod(readHelper)
+                .build();
+    }
+
+    private MethodSpec buildGetAdapterFor(ClassName structTypeName, ClassName builderTypeName) {
+
+        TypeName adapter = ParameterizedTypeName.get(ClassName.get(Adapter.class), structTypeName, builderTypeName);
+
+        return MethodSpec.methodBuilder("getAdapter")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(adapter)
+                .addStatement("return ADAPTER")
                 .build();
     }
 
