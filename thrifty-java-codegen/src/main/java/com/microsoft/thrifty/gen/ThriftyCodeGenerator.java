@@ -295,6 +295,10 @@ public final class ThriftyCodeGenerator {
             structBuilder.superclass(Exception.class);
         }
 
+        if (type.isDeprecated()) {
+            structBuilder.addAnnotation(AnnotationSpec.builder(Deprecated.class).build());
+        }
+
         TypeSpec builderSpec = builderFor(type, structTypeName, builderTypeName);
         TypeSpec adapterSpec = adapterFor(type, structTypeName, builderTypeName);
 
@@ -339,6 +343,10 @@ public final class ThriftyCodeGenerator {
 
             if (field.isObfuscated()) {
                 fieldBuilder = fieldBuilder.addAnnotation(AnnotationSpec.builder(Obfuscated.class).build());
+            }
+
+            if (field.isDeprecated()) {
+                fieldBuilder = fieldBuilder.addAnnotation(AnnotationSpec.builder(Deprecated.class).build());
             }
 
             structBuilder.addField(fieldBuilder.build());
@@ -878,6 +886,10 @@ public final class ThriftyCodeGenerator {
                 field.addJavadoc(constant.documentation() + "\n\nGenerated from: " + constant.location());
             }
 
+            if (constant.isDeprecated()) {
+                field.addAnnotation(AnnotationSpec.builder(Deprecated.class).build());
+            }
+
             type.accept(new SimpleVisitor<Void>() {
                 @Override
                 public Void visitBuiltin(ThriftType builtinType) {
@@ -991,6 +1003,10 @@ public final class ThriftyCodeGenerator {
             builder.addJavadoc(type.documentation());
         }
 
+        if (type.isDeprecated()) {
+            builder.addAnnotation(AnnotationSpec.builder(Deprecated.class).build());
+        }
+
         MethodSpec.Builder fromCodeMethod = MethodSpec.methodBuilder("findByValue")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(enumClassName)
@@ -1005,6 +1021,10 @@ public final class ThriftyCodeGenerator {
             TypeSpec.Builder memberBuilder = TypeSpec.anonymousClassBuilder("$L", value);
             if (member.hasJavadoc()) {
                 memberBuilder.addJavadoc(member.documentation());
+            }
+
+            if (member.isDeprecated()) {
+                memberBuilder.addAnnotation(AnnotationSpec.builder(Deprecated.class).build());
             }
 
             builder.addEnumConstant(name, memberBuilder.build());

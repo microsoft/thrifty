@@ -113,6 +113,12 @@ public final class Field {
                 || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@obfuscated"));
     }
 
+    public boolean isDeprecated() {
+        return annotations.containsKey("deprecated")
+                || annotations.containsKey("thrifty.deprecated")
+                || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@deprecated"));
+    }
+
     void setType(ThriftType type) {
         this.type = type;
     }

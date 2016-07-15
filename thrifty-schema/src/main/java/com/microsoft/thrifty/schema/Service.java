@@ -83,6 +83,13 @@ public final class Service extends Named {
         return annotations;
     }
 
+    @Override
+    public boolean isDeprecated() {
+        return super.isDeprecated()
+                || annotations.containsKey("deprecated")
+                || annotations.containsKey("thrifty.deprecated");
+    }
+
     void link(Linker linker) {
         TypeElement extendsType = element.extendsService();
         if (extendsType != null) {
