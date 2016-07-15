@@ -32,6 +32,7 @@ import com.microsoft.thrifty.Struct;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
+import com.microsoft.thrifty.protocol.Protocol;
 import com.microsoft.thrifty.schema.Constant;
 import com.microsoft.thrifty.schema.EnumType;
 import com.microsoft.thrifty.schema.Field;
@@ -50,6 +51,7 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.NameAllocator;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -287,10 +289,9 @@ public final class ThriftyCodeGenerator {
         ClassName structTypeName = ClassName.get(packageName, type.name());
         ClassName builderTypeName = structTypeName.nestedClass("Builder");
 
-        TypeName struct = ParameterizedTypeName.get(ClassName.get(Struct.class), structTypeName, builderTypeName);
         TypeSpec.Builder structBuilder = TypeSpec.classBuilder(type.name())
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addSuperinterface(struct);
+                .addSuperinterface(Struct.class);
 
         if (type.hasJavadoc()) {
             structBuilder.addJavadoc(type.documentation());
@@ -381,7 +382,7 @@ public final class ThriftyCodeGenerator {
         structBuilder.addMethod(buildEqualsFor(type));
         structBuilder.addMethod(buildHashCodeFor(type));
         structBuilder.addMethod(buildToStringFor(type));
-        structBuilder.addMethod(buildGetAdapterFor(structTypeName, builderTypeName));
+        structBuilder.addMethod(buildWrite());
 
         return structBuilder.build();
     }
@@ -679,15 +680,13 @@ public final class ThriftyCodeGenerator {
                 .build();
     }
 
-    private MethodSpec buildGetAdapterFor(ClassName structTypeName, ClassName builderTypeName) {
-
-        TypeName adapter = ParameterizedTypeName.get(ClassName.get(Adapter.class), structTypeName, builderTypeName);
-
-        return MethodSpec.methodBuilder("getAdapter")
+    private MethodSpec buildWrite() {
+        return MethodSpec.methodBuilder("write")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
-                .returns(adapter)
-                .addStatement("return ADAPTER")
+                .addParameter(Protocol.class, "protocol")
+                .addStatement("ADAPTER.write(protocol, this)")
+                .addException(IOException.class)
                 .build();
     }
 
