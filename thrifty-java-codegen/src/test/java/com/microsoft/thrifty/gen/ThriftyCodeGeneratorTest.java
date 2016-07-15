@@ -68,8 +68,6 @@ public class ThriftyCodeGeneratorTest {
 
         assertThat(javaFiles).hasSize(1);
 
-        System.out.println(javaFiles.get(0));
-
         assertAbout(javaSource())
                 .that(javaFiles.get(0).toJavaFileObject())
                 .compilesWithoutError();
