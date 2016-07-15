@@ -466,6 +466,31 @@ public final class ThriftParser {
         field.type(typeName);
         field.name(readIdentifier());
 
+        // Workaround for issue #38, where:
+        // a) field does not have annotations
+        // b) field does not end with a separator
+        // c) field does not have trailing doc
+        // d) the following field has a doc comment
+        //
+        // In this case, peeking ahead for annotations consumes newlines.
+        // If no annotation or separator is found, then the cursor is positioned
+        // at the start of the next field's documentation; we will treat it as
+        // trailing documentation of the previous field.  If the doc spans more
+        // than one line we'll fail with an exception - if not, the doc will just
+        // silently go to the wrong field!
+        //
+        // The workaround is to remember what line we are on before searching for
+        // annotations, and only attempt to read trailing doc if we are on the same
+        // line OR we have read at least one annotation (which may be on a separate
+        // line).
+        //
+        // Of course, now this means that the following legal syntax fails:
+        // 1: required string foo // this comment is treated as trailing
+        //        (annotation = "legal") // but *this* is the real trailing doc
+        //
+        // This is why some people use parser generators... (issue #30)
+        int currentLine = location().line();
+
         char next = peekChar(false);
         if (next == '=') {
             readChar();
@@ -475,9 +500,11 @@ public final class ThriftParser {
         AnnotationElement annotations = readAnnotations();
         field.annotations(annotations);
 
-        doc = readTrailingDoc(doc, true);
-        if (JavadocUtil.isNonEmptyJavadoc(doc)) {
-            field.documentation(formatJavadoc(doc));
+        if (location().line() == currentLine || annotations != null) {
+            doc = readTrailingDoc(doc, true);
+            if (JavadocUtil.isNonEmptyJavadoc(doc)) {
+                field.documentation(formatJavadoc(doc));
+            }
         }
 
         return field.build();
@@ -784,7 +811,7 @@ public final class ThriftParser {
                 commentType = c;
                 break;
             } else {
-                break;
+                return doc;
             }
         }
 
