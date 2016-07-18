@@ -27,9 +27,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.microsoft.thrifty.Obfuscated;
 import com.microsoft.thrifty.Redacted;
+import com.microsoft.thrifty.Struct;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
+import com.microsoft.thrifty.protocol.Protocol;
 import com.microsoft.thrifty.schema.Constant;
 import com.microsoft.thrifty.schema.EnumType;
 import com.microsoft.thrifty.schema.Field;
@@ -51,6 +53,7 @@ import com.squareup.javapoet.NameAllocator;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -285,7 +288,8 @@ public final class ThriftyCodeGenerator {
         ClassName builderTypeName = structTypeName.nestedClass("Builder");
 
         TypeSpec.Builder structBuilder = TypeSpec.classBuilder(type.name())
-                .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addSuperinterface(Struct.class);
 
         if (type.hasJavadoc()) {
             structBuilder.addJavadoc(type.documentation());
@@ -376,6 +380,7 @@ public final class ThriftyCodeGenerator {
         structBuilder.addMethod(buildEqualsFor(type));
         structBuilder.addMethod(buildHashCodeFor(type));
         structBuilder.addMethod(buildToStringFor(type));
+        structBuilder.addMethod(buildWrite());
 
         return structBuilder.build();
     }
@@ -670,6 +675,16 @@ public final class ThriftyCodeGenerator {
                 .addMethod(write.build())
                 .addMethod(read.build())
                 .addMethod(readHelper)
+                .build();
+    }
+
+    private MethodSpec buildWrite() {
+        return MethodSpec.methodBuilder("write")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(Protocol.class, "protocol")
+                .addStatement("ADAPTER.write(protocol, this)")
+                .addException(IOException.class)
                 .build();
     }
 
