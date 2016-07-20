@@ -31,8 +31,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -413,6 +413,24 @@ public class LoaderTest {
         loader.addThriftFile(f2.getAbsolutePath());
 
         loader.load();
+    }
+
+    @Test
+    public void typedefsWithAnnotations() throws Exception {
+        File f = tempDir.newFile("typedef.thrift");
+
+        String thrift = "namespace java typedef.annotations\n" +
+                "\n" +
+                "typedef i64 (js.type = \"Date\") Date";
+
+        writeTo(f, thrift);
+
+        Loader loader = new Loader();
+        loader.addThriftFile(f.getAbsolutePath());
+        Schema schema = loader.load();
+
+        Typedef td = schema.typedefs().get(0);
+        assertThat(td.sourceTypeAnnotations(), hasEntry("js.type", "Date"));
     }
 
     private static void writeTo(File file, String content) throws IOException {
