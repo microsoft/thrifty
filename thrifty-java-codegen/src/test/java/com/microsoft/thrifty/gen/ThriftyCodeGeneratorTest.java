@@ -42,6 +42,7 @@ import java.util.List;
 import static com.google.testing.compile.JavaSourceSubjectFactory.javaSource;
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.testing.compile.JavaSourcesSubjectFactory.javaSources;
 
 /**
  * These tests ensure that various constructs produce valid Java code.
@@ -125,9 +126,96 @@ public class ThriftyCodeGeneratorTest {
             jfos.add(javaFile.toJavaFileObject());
         }
 
-        assertAbout(JavaSourcesSubjectFactory.javaSources())
+        assertAbout(javaSources())
                 .that(jfos)
                 .compilesWithoutError();
+    }
+
+    @Test
+    public void deprecatedStructWithComment() throws Exception {
+        String thrift = Joiner.on('\n').join(
+                "namespace java deprecated",
+                "",
+                "/** @deprecated */",
+                "struct Foo {}"
+        );
+
+        Schema schema = parse("dep.thrift", thrift);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        ImmutableList<JavaFile> java = gen.generateTypes();
+        List<JavaFileObject> jfos = new ArrayList<>(java.size());
+
+        for (JavaFile javaFile : java) {
+            jfos.add(javaFile.toJavaFileObject());
+        }
+
+        assertAbout(javaSources()).that(jfos).compilesWithoutError();
+
+        String file = java.get(0).toString();
+
+        assertThat(file).contains("@Deprecated");  // note the change in case
+    }
+
+    @Test
+    public void deprecatedStructWithAnnotation() throws Exception {
+        String thrift = Joiner.on('\n').join(
+                "namespace java deprecated",
+                "",
+                "struct Foo {} (deprecated)"
+        );
+
+        Schema schema = parse("dep.thrift", thrift);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        ImmutableList<JavaFile> java = gen.generateTypes();
+        List<JavaFileObject> jfos = new ArrayList<>(java.size());
+
+        for (JavaFile javaFile : java) {
+            jfos.add(javaFile.toJavaFileObject());
+        }
+
+        assertAbout(javaSources()).that(jfos).compilesWithoutError();
+
+        String file = java.get(0).toString();
+
+        assertThat(file).contains("@Deprecated");
+    }
+
+    @Test
+    public void deprecatedEnum() throws Exception {
+        String thrift = Joiner.on('\n').join(
+                "namespace java deprecated",
+                "",
+                "enum Foo {ONE = 1} (deprecated)"
+        );
+
+        Schema schema = parse("enum.thrift", thrift);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        ImmutableList<JavaFile> javaFiles = gen.generateTypes();
+        JavaFile file = javaFiles.get(0);
+
+        String java = file.toString();
+
+        assertThat(java).contains("@Deprecated\npublic enum Foo");
+    }
+
+    @Test
+    public void deprecatedEnumMember() throws Exception {
+        String thrift = Joiner.on('\n').join(
+                "namespace java deprecated",
+                "",
+                "enum Foo {",
+                "  ONE = 1 (deprecated)",
+                "}"
+        );
+
+        Schema schema = parse("enum.thrift", thrift);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        ImmutableList<JavaFile> javaFiles = gen.generateTypes();
+        JavaFile file = javaFiles.get(0);
+
+        String java = file.toString();
+
+        assertThat(java).contains("@Deprecated\n  ONE(1)");
     }
 
     private Schema parse(String filename, String text) throws Exception {

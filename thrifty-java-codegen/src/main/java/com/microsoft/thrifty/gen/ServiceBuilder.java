@@ -28,6 +28,7 @@ import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.Service;
 import com.microsoft.thrifty.schema.ServiceMethod;
 import com.microsoft.thrifty.schema.ThriftType;
+import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -57,6 +58,10 @@ final class ServiceBuilder {
 
         if (!Strings.isNullOrEmpty(service.documentation())) {
             serviceSpec.addJavadoc(service.documentation());
+        }
+
+        if (service.isDeprecated()) {
+            serviceSpec.addAnnotation(AnnotationSpec.builder(Deprecated.class).build());
         }
 
         if (service.extendsService() != null) {

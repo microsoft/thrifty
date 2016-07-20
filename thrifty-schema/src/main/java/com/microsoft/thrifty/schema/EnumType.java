@@ -27,6 +27,7 @@ import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.EnumElement;
 import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -96,6 +97,13 @@ public class EnumType extends Named {
         throw new NoSuchElementException();
     }
 
+    @Override
+    public boolean isDeprecated() {
+        return super.isDeprecated()
+                || annotations.containsKey("deprecated")
+                || annotations.containsKey("thrifty.deprecated");
+    }
+
     public static final class Member {
         private final EnumMemberElement element;
         private final ImmutableMap<String, String> annotations;
@@ -129,6 +137,12 @@ public class EnumType extends Named {
 
         public boolean hasJavadoc() {
             return JavadocUtil.hasJavadoc(this);
+        }
+
+        public boolean isDeprecated() {
+            return annotations.containsKey("deprecated")
+                    || annotations.containsKey("thrifty.deprecated")
+                    || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@deprecated"));
         }
 
         @Override

@@ -23,6 +23,7 @@ package com.microsoft.thrifty.schema;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -51,6 +52,14 @@ public abstract class Named {
 
     public boolean hasJavadoc() {
         return JavadocUtil.hasJavadoc(this);
+    }
+
+    /**
+     * Returns {@code true} if the elements is documented to be deprecated,
+     * {@code false} otherwise.
+     */
+    public boolean isDeprecated() {
+        return hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@deprecated");
     }
 
     /**

@@ -93,6 +93,13 @@ public class StructType extends Named {
         return element.type() == StructElement.Type.EXCEPTION;
     }
 
+    @Override
+    public boolean isDeprecated() {
+        return super.isDeprecated()
+                || annotations.containsKey("deprecated")
+                || annotations.containsKey("thrifty.deprecated");
+    }
+
     void link(Linker linker) {
         for (Field field : fields) {
             field.link(linker);
