@@ -38,7 +38,7 @@ public class EnumType extends Named {
     private final ImmutableMap<String, String> annotations;
 
     @VisibleForTesting
-    public EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
+    EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;

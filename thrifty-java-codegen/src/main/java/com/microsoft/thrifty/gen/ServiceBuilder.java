@@ -94,7 +94,7 @@ final class ServiceBuilder {
 
             ThriftType returnType = method.returnType().or(ThriftType.VOID);
             TypeName returnTypeName;
-            if (returnType == ThriftType.VOID) {
+            if (returnType.equals(ThriftType.VOID)) {
                 returnTypeName = TypeName.VOID.box();
             } else {
                 returnTypeName = typeResolver.getJavaClass(returnType.getTrueType());
