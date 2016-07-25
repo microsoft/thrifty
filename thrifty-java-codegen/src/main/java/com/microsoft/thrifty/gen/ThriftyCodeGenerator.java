@@ -891,7 +891,7 @@ public final class ThriftyCodeGenerator {
             final ThriftType type = constant.type().getTrueType();
 
             TypeName javaType = typeResolver.getJavaClass(type);
-            if (type.isBuiltin() && type != ThriftType.STRING) {
+            if (type.isBuiltin() && type.equals(ThriftType.STRING)) {
                 javaType = javaType.unbox();
             }
             final FieldSpec.Builder field = FieldSpec.builder(javaType, constant.name())

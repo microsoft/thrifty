@@ -83,7 +83,7 @@ public class Constant extends Named {
         void validate(Linker linker, ThriftType expected, ConstValueElement value);
     }
 
-    static class Validators {
+    private static class Validators {
         private static final ConstValueValidator BOOL   = new BoolValidator();
         private static final ConstValueValidator BYTE   = new IntegerValidator(Byte.MIN_VALUE, Byte.MAX_VALUE);
         private static final ConstValueValidator I16    = new IntegerValidator(Short.MIN_VALUE, Short.MAX_VALUE);
@@ -102,19 +102,19 @@ public class Constant extends Named {
             }
 
             if (type.isBuiltin()) {
-                if (type == ThriftType.BOOL)   return BOOL;
-                if (type == ThriftType.BYTE)   return BYTE;
-                if (type == ThriftType.I16)    return I16;
-                if (type == ThriftType.I32)    return I32;
-                if (type == ThriftType.I64)    return I64;
-                if (type == ThriftType.DOUBLE) return DOUBLE;
-                if (type == ThriftType.STRING) return STRING;
+                if (type.equals(ThriftType.BOOL))   return BOOL;
+                if (type.equals(ThriftType.BYTE))   return BYTE;
+                if (type.equals(ThriftType.I16))    return I16;
+                if (type.equals(ThriftType.I32))    return I32;
+                if (type.equals(ThriftType.I64))    return I64;
+                if (type.equals(ThriftType.DOUBLE)) return DOUBLE;
+                if (type.equals(ThriftType.STRING)) return STRING;
 
-                if (type == ThriftType.BINARY) {
+                if (type.equals(ThriftType.BINARY)) {
                     throw new IllegalStateException("Binary constants are unsupported");
                 }
 
-                if (type == ThriftType.VOID) {
+                if (type.equals(ThriftType.VOID)) {
                     throw new IllegalStateException("Cannot declare a constant of type 'void'");
                 }
 
@@ -137,7 +137,7 @@ public class Constant extends Named {
         }
     }
 
-    static class BoolValidator implements ConstValueValidator {
+    private static class BoolValidator implements ConstValueValidator {
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
             if (value.kind() == ConstValueElement.Kind.INTEGER) {
@@ -152,7 +152,7 @@ public class Constant extends Named {
                 }
 
                 Named named = linker.lookupSymbol(identifier);
-                if (named != null && named.type().getTrueType() == ThriftType.BOOL) {
+                if (named != null && named.type().getTrueType().equals(ThriftType.BOOL)) {
                     return;
                 }
             }
@@ -163,10 +163,10 @@ public class Constant extends Named {
         }
     }
 
-    static class BaseValidator implements ConstValueValidator {
+    private static class BaseValidator implements ConstValueValidator {
         private final ConstValueElement.Kind expectedKind;
 
-        protected BaseValidator(ConstValueElement.Kind expectedKind) {
+        BaseValidator(ConstValueElement.Kind expectedKind) {
             this.expectedKind = expectedKind;
         }
 
@@ -196,16 +196,17 @@ public class Constant extends Named {
         }
     }
 
-    static class IntegerValidator extends BaseValidator {
+    private static class IntegerValidator extends BaseValidator {
         private final long minValue;
 
         private final long maxValue;
 
-        protected IntegerValidator(long minValue, long maxValue) {
+        IntegerValidator(long minValue, long maxValue) {
             super(ConstValueElement.Kind.INTEGER);
             this.minValue = minValue;
             this.maxValue = maxValue;
         }
+
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
             super.validate(linker, expected, value);
@@ -220,7 +221,7 @@ public class Constant extends Named {
         }
     }
 
-    static class EnumValidator implements ConstValueValidator {
+    private static class EnumValidator implements ConstValueValidator {
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
             Named named = linker.lookupSymbol(expected);
@@ -268,7 +269,7 @@ public class Constant extends Named {
         }
     }
 
-    static class CollectionValidator implements ConstValueValidator {
+    private static class CollectionValidator implements ConstValueValidator {
         @SuppressWarnings("unchecked")
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
@@ -304,7 +305,7 @@ public class Constant extends Named {
         }
     }
 
-    static class MapValidator implements ConstValueValidator {
+    private static class MapValidator implements ConstValueValidator {
         @SuppressWarnings("unchecked")
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {

@@ -29,6 +29,7 @@ import java.util.Map;
 /**
  * Represents a type name and all containing namespaces.
  */
+@SuppressWarnings("StaticInitializerReferencesSubClass") // Safe here because we don't lock on any static data
 public abstract class ThriftType {
     private static final String LIST_PREFIX = "list<";
     private static final String SET_PREFIX = "set<";
@@ -64,7 +65,7 @@ public abstract class ThriftType {
 
     private final String name;
 
-    protected ThriftType(String name) {
+    private ThriftType(String name) {
         this.name = name;
     }
 
@@ -110,7 +111,7 @@ public abstract class ThriftType {
 
     public static ThriftType typedefOf(ThriftType oldType, String name) {
         if (BUILTINS.get(name) != null) {
-            throw new IllegalArgumentException("Cannot typedef built-in type: " + name);
+            throw new IllegalArgumentException("Cannot redefine built-in type: " + name);
         }
         return new TypedefType(name, oldType);
     }
@@ -144,11 +145,7 @@ public abstract class ThriftType {
     }
 
     public ThriftType getTrueType() {
-        ThriftType t = this;
-        while (t instanceof TypedefType) {
-            t = ((TypedefType) t).originalType;
-        }
-        return t;
+        return this;
     }
 
     public abstract <T> T accept(Visitor<? extends T> visitor);
@@ -165,7 +162,6 @@ public abstract class ThriftType {
         ThriftType that = (ThriftType) o;
 
         return name.equals(that.name);
-
     }
 
     @Override
@@ -185,23 +181,23 @@ public abstract class ThriftType {
 
         @Override
         public <T> T accept(Visitor<? extends T> visitor) {
-            if (this == BOOL) {
+            if (this.equals(BOOL)) {
                 return visitor.visitBool();
-            } else if (this == BYTE || this == I8) {
+            } else if (this.equals(BYTE) || equals(I8)) {
                 return visitor.visitByte();
-            } else if (this == I16) {
+            } else if (this.equals(I16)) {
                 return visitor.visitI16();
-            } else if (this == I32) {
+            } else if (this.equals(I32)) {
                 return visitor.visitI32();
-            } else if (this == I64) {
+            } else if (this.equals(I64)) {
                 return visitor.visitI64();
-            } else if (this == DOUBLE) {
+            } else if (this.equals(DOUBLE)) {
                 return visitor.visitDouble();
-            } else if (this == STRING) {
+            } else if (this.equals(STRING)) {
                 return visitor.visitString();
-            } else if (this == BINARY) {
+            } else if (this.equals(BINARY)) {
                 return visitor.visitBinary();
-            } else if (this == VOID) {
+            } else if (this.equals(VOID)) {
                 return visitor.visitVoid();
             } else {
                 throw new AssertionError("Unexpected built-in type: " + name());
@@ -372,6 +368,15 @@ public abstract class ThriftType {
 
         public ThriftType originalType() {
             return originalType;
+        }
+
+        @Override
+        public ThriftType getTrueType() {
+            ThriftType t = originalType();
+            while (t instanceof TypedefType) {
+                t = ((TypedefType) t).originalType();
+            }
+            return t;
         }
 
         @Override
