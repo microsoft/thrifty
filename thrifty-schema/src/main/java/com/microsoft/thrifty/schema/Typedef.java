@@ -29,7 +29,6 @@ import java.util.Map;
 public final class Typedef extends Named {
     private final TypedefElement element;
     private final ImmutableMap<String, String> annotations;
-    private final ImmutableMap<String, String> sourceTypeAnnotations;
     private ThriftType oldType;
     private ThriftType type;
 
@@ -43,13 +42,6 @@ public final class Typedef extends Named {
             annotationBuilder.putAll(anno.values());
         }
         this.annotations = annotationBuilder.build();
-
-        ImmutableMap.Builder<String, String> sourceTypeAnnotationBuilder = ImmutableMap.builder();
-        AnnotationElement sourceAnno = element.oldType().annotations();
-        if (sourceAnno != null) {
-            sourceTypeAnnotationBuilder.putAll(sourceAnno.values());
-        }
-        this.sourceTypeAnnotations = sourceTypeAnnotationBuilder.build();
     }
 
     @Override
@@ -80,7 +72,7 @@ public final class Typedef extends Named {
     }
 
     public ImmutableMap<String, String> sourceTypeAnnotations() {
-        return sourceTypeAnnotations;
+        return oldType.annotations();
     }
 
     boolean link(Linker linker) {

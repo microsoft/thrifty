@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.net.URL;
 
 import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -104,7 +105,7 @@ public class LoaderTest {
         Field param = method.paramTypes().get(0);
         assertThat(param.name(), is("arg1"));
         assertThat(param.type().name(), is("S"));
-        assertThat(param.type() == st.type(), is(true));
+        assertThat(param.type(), equalTo(st.type()));
     }
 
     @Test
@@ -145,7 +146,7 @@ public class LoaderTest {
         assertThat(et.type().name(), is("TestEnum"));
 
         Typedef td = schema.typedefs().get(0);
-        assertThat(td.oldType(), sameInstance(et.type()));
+        assertThat(td.oldType(), equalTo(et.type()));
     }
 
     @Test
@@ -321,8 +322,8 @@ public class LoaderTest {
         assertThat(map.oldType().isMap(), is(true));
 
         ThriftType.MapType mt = (ThriftType.MapType) map.oldType();
-        assertThat(mt.keyType(), sameInstance(code.type()));
-        assertThat(mt.valueType(), sameInstance(msg.type()));
+        assertThat(mt.keyType(), equalTo(code.type()));
+        assertThat(mt.valueType(), equalTo(msg.type()));
     }
 
     @Test

@@ -22,10 +22,14 @@ package com.microsoft.thrifty.schema;
 
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class ThriftTypeTest {
     @Test
@@ -115,5 +119,41 @@ public class ThriftTypeTest {
 
         assertThat(ThriftType.I8.isBuiltin(), is(true));
         assertThat(ctr.get(), is(2));
+    }
+
+    @Test
+    public void typesWithSameNameAreEqual() {
+        ThriftType one = ThriftType.get("foo", null);
+        ThriftType two = ThriftType.get("foo", null);
+
+        assertThat(one, equalTo(two));
+    }
+
+    @Test
+    public void annotationsDoNotAffectEquality() {
+        ThriftType one = ThriftType.get("foo", null, Collections.singletonMap("test", "one"));
+        ThriftType two = ThriftType.get("foo", null, Collections.singletonMap("test", "two"));
+
+        assertThat(one, equalTo(two));
+    }
+
+    @Test
+    public void withAnnotationsMergesAnnotations() {
+        ThriftType one = ThriftType.get("foo", null, Collections.singletonMap("foo", "bar"));
+        ThriftType two = one.withAnnotations(Collections.singletonMap("baz", "quux"));
+
+        assertThat(two.annotations(), hasEntry("foo", "bar"));
+        assertThat(two.annotations(), hasEntry("baz", "quux"));
+    }
+
+    @Test
+    public void typeAnnotationsAreImmutable() {
+        ThriftType one = ThriftType.get("foo", null, Collections.singletonMap("foo", "bar"));
+        try {
+            one.annotations().put("baz", "quux");
+            fail("Expected ThriftType#annotations() to be immutable!");
+        } catch (UnsupportedOperationException ignored) {
+            // pass
+        }
     }
 }

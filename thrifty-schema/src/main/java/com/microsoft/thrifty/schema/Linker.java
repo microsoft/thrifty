@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.ListTypeElement;
 import com.microsoft.thrifty.schema.parser.MapTypeElement;
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement;
@@ -120,7 +121,7 @@ class Linker {
             int ix = name.indexOf('.');
             if (ix == -1) {
                 throw new AssertionError(
-                        "No extension found for included file " + included.getAbsolutePath() + ","
+                        "No extension found for included file " + included.getAbsolutePath() + ", "
                         + "invalid include statement");
             }
             String prefix = name.substring(0, ix);
@@ -292,42 +293,48 @@ class Linker {
 
     @Nonnull
     ThriftType resolveType(TypeElement type) {
+        AnnotationElement annotationElement = type.annotations();
+        Map<String, String> annotations = annotationElement != null
+                ? annotationElement.values()
+                : Collections.<String, String>emptyMap();
+
         ThriftType tt = typesByName.get(type.name());
         if (tt != null) {
-            return tt;
+            // If we are resolving e.g. the type of a field element, the type
+            // may carry annotations that are not part of the canonical type.
+            if (annotations.isEmpty()) {
+                return tt.withAnnotations(annotations);
+            } else {
+                return tt;
+            }
         }
 
-        // NOTE:
-        // TypeElement -> ThriftType resolution currently destroys any type-level
-        // annotations.  We rely (nb: do we?) on types with identical names being
-        // de-duplicated, which makes annotating single instances of a type problematic.
-        // Luckily the only case I know of where this feature is useful in the Apache
-        // implementation is the 'python.immutable' annotation for Python codegen,
-        // which is not a concern.  Conceivably we could make use of type-annotations
-        // to control e.g. collection implementation, but we can worry about that
-        // in the future, if at all.
         if (type instanceof ListTypeElement) {
             ThriftType elementType = resolveType(((ListTypeElement) type).elementType());
             ThriftType listType = ThriftType.list(elementType);
             typesByName.put(type.name(), listType);
-            return listType;
+            return listType.withAnnotations(annotations);
         } else if (type instanceof SetTypeElement) {
             ThriftType elementType = resolveType(((SetTypeElement) type).elementType());
             ThriftType setType = ThriftType.set(elementType);
             typesByName.put(type.name(), setType);
-            return setType;
+            return setType.withAnnotations(annotations);
         } else if (type instanceof MapTypeElement) {
             MapTypeElement element = (MapTypeElement) type;
             ThriftType keyType = resolveType(element.keyType());
             ThriftType valueType = resolveType(element.valueType());
             ThriftType mapType = ThriftType.map(keyType, valueType);
             typesByName.put(type.name(), mapType);
-            return mapType;
+            return mapType.withAnnotations(annotations);
         } else if (type instanceof ScalarTypeElement) {
             tt = ThriftType.get(
                     type.name(),
-                    Collections.<NamespaceScope, String>emptyMap()); // Any map will do
+                    Collections.<NamespaceScope, String>emptyMap(), // Any map will do
+                    annotations);
 
+            // At this point, all user-defined types should have been registered.
+            // If we are resolving a built-in type, then that's fine.  If not, then
+            // we have an error.
             if (tt.isBuiltin()) {
                 return tt;
             }
