@@ -63,25 +63,56 @@ public abstract class ThriftType {
         BUILTINS = builtins.build();
     }
 
+    /**
+     * Merge two maps, with keys in {@code newAnnotations} taking precedence
+     * over keys in {@code baseAnnotations}.
+     */
+    private static ImmutableMap<String, String> merge(
+            ImmutableMap<String, String> baseAnnotations,
+            Map<String, String> newAnnotations) {
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        builder.putAll(baseAnnotations);
+        builder.putAll(newAnnotations);
+        return builder.build();
+    }
+
     private final String name;
+    private final ImmutableMap<String, String> annotations;
 
     private ThriftType(String name) {
+        this(name, ImmutableMap.<String, String>of());
+    }
+
+    private ThriftType(String name, Map<String, String> annotations) {
         this.name = name;
+        this.annotations = ImmutableMap.copyOf(annotations);
     }
 
     public static ThriftType list(ThriftType elementType) {
+        return list(elementType, ImmutableMap.<String, String>of());
+    }
+
+    public static ThriftType list(ThriftType elementType, Map<String, String> annotations) {
         String name = LIST_PREFIX + elementType.name + ">";
-        return new ListType(name, elementType);
+        return new ListType(name, elementType, annotations);
     }
 
     public static ThriftType set(ThriftType elementType) {
+        return set(elementType, ImmutableMap.<String, String>of());
+    }
+
+    public static ThriftType set(ThriftType elementType, Map<String, String> annotations) {
         String name = SET_PREFIX + elementType.name + ">";
-        return new SetType(name, elementType);
+        return new SetType(name, elementType, annotations);
     }
 
     public static ThriftType map(ThriftType keyType, ThriftType valueType) {
+        return map(keyType, valueType, ImmutableMap.<String, String>of());
+    }
+
+    public static ThriftType map(ThriftType keyType, ThriftType valueType, Map<String, String> annotations) {
         String name = MAP_PREFIX + keyType.name + "," + valueType.name + ">";
-        return new MapType(name, keyType, valueType);
+        return new MapType(name, keyType, valueType, annotations);
     }
 
     /**
@@ -97,27 +128,50 @@ public abstract class ThriftType {
      * @return a {@link ThriftType} representing the given typename.
      */
     public static ThriftType get(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
+        return get(name, namespaces, ImmutableMap.<String, String>of());
+    }
+
+    public static ThriftType get(
+            @Nonnull String name,
+            Map<NamespaceScope, String> namespaces,
+            Map<String, String> annotations) {
         ThriftType t = BUILTINS.get(name);
-        if (t != null) {
+        if (t != null && annotations.isEmpty()) {
             return t;
+        } else if (t != null) {
+            return new BuiltinType(name, annotations);
         }
 
-        return new UserType(name, namespaces);
+        return new UserType(name, namespaces, false, annotations);
     }
 
     public static ThriftType enumType(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
-        return new UserType(name, namespaces, true);
+        return enumType(name, namespaces, ImmutableMap.<String, String>of());
     }
 
+    public static ThriftType enumType(
+            @Nonnull String name,
+            Map<NamespaceScope, String> namespaces,
+            Map<String, String> annotations) {
+        return new UserType(name, namespaces, true, annotations);
+    }
     public static ThriftType typedefOf(ThriftType oldType, String name) {
+        return typedefOf(oldType, name, ImmutableMap.<String, String>of());
+    }
+
+    public static ThriftType typedefOf(ThriftType oldType, String name, Map<String, String> annotations) {
         if (BUILTINS.get(name) != null) {
             throw new IllegalArgumentException("Cannot redefine built-in type: " + name);
         }
-        return new TypedefType(name, oldType);
+        return new TypedefType(name, oldType, annotations);
     }
 
     public String name() {
         return this.name;
+    }
+
+    public ImmutableMap<String, String> annotations() {
+        return annotations;
     }
 
     public boolean isBuiltin() {
@@ -150,6 +204,8 @@ public abstract class ThriftType {
 
     public abstract <T> T accept(Visitor<? extends T> visitor);
 
+    public abstract ThriftType withAnnotations(Map<String, String> annotations);
+
     public String getNamespace(NamespaceScope scope) {
         return "";
     }
@@ -169,9 +225,13 @@ public abstract class ThriftType {
         return name.hashCode();
     }
 
-    public static class BuiltinType extends ThriftType {
+    public static final class BuiltinType extends ThriftType {
         BuiltinType(String name) {
             super(name);
+        }
+
+        BuiltinType(String name, Map<String, String> annotations) {
+            super(name, annotations);
         }
 
         @Override
@@ -203,18 +263,23 @@ public abstract class ThriftType {
                 throw new AssertionError("Unexpected built-in type: " + name());
             }
         }
+
+        @Override
+        public ThriftType withAnnotations(Map<String, String> annotations) {
+            return new BuiltinType(this.name(), merge(this.annotations(), annotations));
+        }
     }
 
-    public static class UserType extends ThriftType {
+    public static final class UserType extends ThriftType {
         private final Map<NamespaceScope, String> namespaces;
         private final boolean isEnum;
 
-        UserType(String name, Map<NamespaceScope, String> namespaces) {
-            this(name, namespaces, false);
-        }
-
-        UserType(String name, Map<NamespaceScope, String> namespaces, boolean isEnum) {
-            super(name);
+        UserType(
+                String name,
+                Map<NamespaceScope, String> namespaces,
+                boolean isEnum,
+                Map<String, String> annotations) {
+            super(name, annotations);
             this.namespaces = namespaces;
             this.isEnum = isEnum;
         }
@@ -243,6 +308,11 @@ public abstract class ThriftType {
         }
 
         @Override
+        public ThriftType withAnnotations(Map<String, String> annotations) {
+            return new UserType(name(), namespaces, isEnum, merge(this.annotations(), annotations));
+        }
+
+        @Override
         public boolean equals(Object o) {
             return super.equals(o) && isEnum == ((UserType) o).isEnum;
         }
@@ -256,8 +326,8 @@ public abstract class ThriftType {
     public static class ListType extends ThriftType {
         private final ThriftType elementType;
 
-        ListType(String name, ThriftType elementType) {
-            super(name);
+        ListType(String name, ThriftType elementType, Map<String, String> annotations) {
+            super(name, annotations);
             this.elementType = elementType;
         }
 
@@ -268,6 +338,11 @@ public abstract class ThriftType {
         @Override
         public <T> T accept(Visitor<? extends T> visitor) {
             return visitor.visitList(this);
+        }
+
+        @Override
+        public ThriftType withAnnotations(Map<String, String> annotations) {
+            return new ListType(name(), elementType, merge(this.annotations(), annotations));
         }
 
         @Override
@@ -282,11 +357,11 @@ public abstract class ThriftType {
         }
     }
 
-    public static class SetType extends ThriftType {
+    public static final class SetType extends ThriftType {
         private final ThriftType elementType;
 
-        SetType(String name, ThriftType elementType) {
-            super(name);
+        SetType(String name, ThriftType elementType, Map<String, String> annotations) {
+            super(name, annotations);
             this.elementType = elementType;
         }
 
@@ -297,6 +372,11 @@ public abstract class ThriftType {
         @Override
         public <T> T accept(Visitor<? extends T> visitor) {
             return visitor.visitSet(this);
+        }
+
+        @Override
+        public ThriftType withAnnotations(Map<String, String> annotations) {
+            return new SetType(name(), elementType, merge(this.annotations(), annotations));
         }
 
         @Override
@@ -311,12 +391,12 @@ public abstract class ThriftType {
         }
     }
 
-    public static class MapType extends ThriftType {
+    public static final class MapType extends ThriftType {
         private final ThriftType keyType;
         private final ThriftType valueType;
 
-        MapType(String name, ThriftType keyType, ThriftType valueType) {
-            super(name);
+        MapType(String name, ThriftType keyType, ThriftType valueType, Map<String, String> annotations) {
+            super(name, annotations);
             this.keyType = keyType;
             this.valueType = valueType;
         }
@@ -332,6 +412,11 @@ public abstract class ThriftType {
         @Override
         public <T> T accept(Visitor<? extends T> visitor) {
             return visitor.visitMap(this);
+        }
+
+        @Override
+        public ThriftType withAnnotations(Map<String, String> annotations) {
+            return new MapType(name(), keyType, valueType, merge(this.annotations(), annotations));
         }
 
         @Override
@@ -353,11 +438,11 @@ public abstract class ThriftType {
         }
     }
 
-    public static class TypedefType extends ThriftType {
+    public static final class TypedefType extends ThriftType {
         private final ThriftType originalType;
 
-        TypedefType(String name, ThriftType originalType) {
-            super(name);
+        TypedefType(String name, ThriftType originalType, Map<String, String> annotations) {
+            super(name, annotations);
             this.originalType = originalType;
         }
 
@@ -382,6 +467,11 @@ public abstract class ThriftType {
         @Override
         public <T> T accept(Visitor<? extends T> visitor) {
             return visitor.visitTypedef(this);
+        }
+
+        @Override
+        public ThriftType withAnnotations(Map<String, String> annotations) {
+            return new TypedefType(name(), originalType, merge(this.annotations(), annotations));
         }
 
         @Override

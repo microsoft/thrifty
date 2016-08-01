@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.net.URL;
 
 import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -60,13 +61,7 @@ public class LoaderTest {
                 "  oneway void sayHello(1: S arg1)\n" +
                 "}";
 
-        File f = tempDir.newFile();
-        writeTo(f, thrift);
-
-        Loader loader = new Loader();
-        loader.addThriftFile(f.getAbsolutePath());
-
-        Schema schema = loader.load();
+        Schema schema = load(thrift);
 
         assertThat(schema.enums().size(), is(1));
         assertThat(schema.structs().size(), is(1));
@@ -104,7 +99,7 @@ public class LoaderTest {
         Field param = method.paramTypes().get(0);
         assertThat(param.name(), is("arg1"));
         assertThat(param.type().name(), is("S"));
-        assertThat(param.type() == st.type(), is(true));
+        assertThat(param.type(), equalTo(st.type()));
     }
 
     @Test
@@ -145,7 +140,7 @@ public class LoaderTest {
         assertThat(et.type().name(), is("TestEnum"));
 
         Typedef td = schema.typedefs().get(0);
-        assertThat(td.oldType(), sameInstance(et.type()));
+        assertThat(td.oldType(), equalTo(et.type()));
     }
 
     @Test
@@ -276,14 +271,8 @@ public class LoaderTest {
                 "typedef A B\n" +
                 "typedef B A";
 
-        File f = tempDir.newFile();
-        writeTo(f, thrift);
-
-        Loader loader = new Loader();
-        loader.addThriftFile(f.getAbsolutePath());
-
         try {
-            loader.load();
+            load(thrift);
             fail("Circular typedefs should fail to link");
         } catch (LoadFailedException e) {
             assertHasError(e, "Unresolvable typedef");
@@ -297,13 +286,7 @@ public class LoaderTest {
                 "typedef string Message\n" +
                 "typedef map<StatusCode, Message> Messages";
 
-        File f = tempDir.newFile();
-        writeTo(f, thrift);
-
-        Loader loader = new Loader();
-        loader.addThriftFile(f.getAbsolutePath());
-
-        Schema schema = loader.load();
+        Schema schema = load(thrift);
 
         Typedef code = schema.typedefs().get(0);
         Typedef msg = schema.typedefs().get(1);
@@ -321,8 +304,8 @@ public class LoaderTest {
         assertThat(map.oldType().isMap(), is(true));
 
         ThriftType.MapType mt = (ThriftType.MapType) map.oldType();
-        assertThat(mt.keyType(), sameInstance(code.type()));
-        assertThat(mt.valueType(), sameInstance(msg.type()));
+        assertThat(mt.keyType(), equalTo(code.type()));
+        assertThat(mt.valueType(), equalTo(msg.type()));
     }
 
     @Test
@@ -342,13 +325,7 @@ public class LoaderTest {
                 "  READ\n" +
                 "}";
 
-        File f = tempDir.newFile();
-        writeTo(f, thrift);
-
-        Loader loader = new Loader();
-        loader.addThriftFile(f.getAbsolutePath());
-
-        Schema schema = loader.load();
+        Schema schema = load(thrift);
 
         assertThat(schema.structs().get(0).fields().size(), is(2));
     }
@@ -360,14 +337,8 @@ public class LoaderTest {
                 "  1: required list<Undefined> nope\n" +
                 "}";
 
-        File f = tempDir.newFile();
-        writeTo(f, thrift);
-
-        Loader loader = new Loader();
-        loader.addThriftFile(f.getAbsolutePath());
-
         try {
-            loader.load();
+            load(thrift);
             fail();
         } catch (LoadFailedException e) {
             assertHasError(e, "Failed to resolve type 'Undefined'");
@@ -417,20 +388,41 @@ public class LoaderTest {
 
     @Test
     public void typedefsWithAnnotations() throws Exception {
-        File f = tempDir.newFile("typedef.thrift");
-
         String thrift = "namespace java typedef.annotations\n" +
                 "\n" +
                 "typedef i64 (js.type = \"Date\") Date";
 
+        Schema schema = load(thrift);
+
+        Typedef td = schema.typedefs().get(0);
+        assertThat(td.sourceTypeAnnotations(), hasEntry("js.type", "Date"));
+    }
+
+    @Test
+    public void annotationsOnFieldType() throws Exception {
+        String thrift = "namespace java struct.field.annotations\n" +
+                "\n" +
+                // Ensure that the first time the linker sees set<i32>, it has no annotations
+                "const set<i32> NUMZ = [1];\n" +
+                "\n" +
+                "struct Foo {\n" +
+                "  1: required set<i32> (thrifty.test = \"bar\") nums;\n" +
+                "}";
+
+        Schema schema = load(thrift);
+        StructType struct = schema.structs().get(0);
+        Field field = struct.fields().get(0);
+
+        assertThat(field.type().annotations(), hasEntry("thrifty.test", "bar"));
+    }
+
+    private Schema load(String thrift) throws Exception {
+        File f = tempDir.newFile();
         writeTo(f, thrift);
 
         Loader loader = new Loader();
         loader.addThriftFile(f.getAbsolutePath());
-        Schema schema = loader.load();
-
-        Typedef td = schema.typedefs().get(0);
-        assertThat(td.sourceTypeAnnotations(), hasEntry("js.type", "Date"));
+        return loader.load();
     }
 
     private static void writeTo(File file, String content) throws IOException {
