@@ -302,7 +302,7 @@ class Linker {
         if (tt != null) {
             // If we are resolving e.g. the type of a field element, the type
             // may carry annotations that are not part of the canonical type.
-            if (annotations.isEmpty()) {
+            if (!annotations.isEmpty()) {
                 return tt.withAnnotations(annotations);
             } else {
                 return tt;
