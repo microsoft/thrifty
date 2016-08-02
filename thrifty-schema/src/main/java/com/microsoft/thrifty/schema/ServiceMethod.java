@@ -27,7 +27,9 @@ import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.FunctionElement;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class ServiceMethod {
     private final FunctionElement element;
@@ -58,6 +60,10 @@ public final class ServiceMethod {
             annotationBuilder.putAll(anno.values());
         }
         this.annotations = annotationBuilder.build();
+    }
+
+    public Location location() {
+        return element.location();
     }
 
     public String documentation() {
@@ -105,6 +111,52 @@ public final class ServiceMethod {
 
         for (Field field : exceptionTypes) {
             field.link(linker);
+        }
+    }
+
+    void validate(Linker linker) {
+        if (oneWay() && !ThriftType.VOID.equals(returnType)) {
+            linker.addError(location(), "oneway methods may not have a non-void return type");
+        }
+
+        if (oneWay() && !exceptionTypes().isEmpty()) {
+            linker.addError(location(), "oneway methods may not throw exceptions");
+        }
+
+        Map<Integer, Field> fieldsById = new HashMap<>();
+        for (Field param : paramTypes) {
+            Field oldParam = fieldsById.put(param.id(), param);
+            if (oldParam != null) {
+                String fmt = "Duplicate parameters; param '%s' has the same ID (%s) as param '%s'";
+                linker.addError(param.location(), String.format(fmt, param.name(), param.id(), oldParam.name()));
+
+                fieldsById.put(oldParam.id(), oldParam);
+            }
+        }
+
+        fieldsById.clear();
+        for (Field exn : exceptionTypes) {
+            Field oldExn = fieldsById.put(exn.id(), exn);
+            if (oldExn != null) {
+                String fmt = "Duplicate exceptions; exception '%s' has the same ID (%s) as exception '%s'";
+                linker.addError(exn.location(), String.format(fmt, exn.name(), exn.id(), oldExn.name()));
+
+                fieldsById.put(oldExn.id(), oldExn);
+            }
+        }
+
+        for (Field field : exceptionTypes) {
+            ThriftType type = field.type();
+
+            Named named = linker.lookupSymbol(type);
+            if (named instanceof StructType) {
+                StructType struct = (StructType) named;
+                if (struct.isException()) {
+                    continue;
+                }
+            }
+
+            linker.addError(field.location(), "Only exception types can be thrown");
         }
     }
 }

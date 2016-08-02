@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.base.Joiner;
+import com.microsoft.thrifty.Struct;
 import okio.BufferedSink;
 import okio.Okio;
 import org.junit.Rule;
@@ -414,6 +415,259 @@ public class LoaderTest {
         Field field = struct.fields().get(0);
 
         assertThat(field.type().annotations(), hasEntry("thrifty.test", "bar"));
+    }
+
+    @Test
+    public void serviceThatExtendsServiceIsValid() throws Exception {
+        String thrift = "" +
+                "namespace java service.valid\n" +
+                "\n" +
+                "service Base {\n" +
+                "  void foo()\n" +
+                "}\n" +
+                "\n" +
+                "service Derived extends Base {\n" +
+                "  void bar()\n" +
+                "}\n";
+
+        Schema schema = load(thrift);
+        Service base = schema.services().get(0);
+        Service derived = schema.services().get(1);
+
+        assertThat(base.name(), is("Base"));
+        assertThat(derived.name(), is("Derived"));
+
+        assertThat(base.type(), equalTo(derived.extendsService()));
+    }
+
+    @Test
+    public void serviceWithDuplicateMethodsIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.invalid\n" +
+                "\n" +
+                "service Svc {\n" +
+                "  void test()\n" +
+                "  void test(1: string msg)\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Services cannot have more than one method with the same name");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void serviceWithDuplicateMethodFromBaseServiceIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.invalid\n" +
+                "\n" +
+                "service Base {\n" +
+                "  void test()\n" +
+                "}\n" +
+                "\n" +
+                "service Derived extends Base {\n" +
+                "  void test()\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Service cannot override methods inherited from base services");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void serviceMethodWithDuplicateFieldIdsIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.invalid\n" +
+                "\n" +
+                "service NoGood {\n" +
+                "  void test(1: i32 foo; 1: i64 bar)\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Methods having multiple parameters with the same ID are invalid");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void serviceThatExtendsNonServiceIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.invalid\n" +
+                "\n" +
+                "service Foo extends i32 {\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Service extending non-service types should not validate");
+        } catch (LoadFailedException expected) {
+            // hooray
+        }
+    }
+
+    @Test
+    public void onewayVoidMethodIsValid() throws Exception {
+        String thrift = "" +
+                "namespace java service.oneway.valid\n" +
+                "\n" +
+                "service OnewayService {\n" +
+                "  oneway void test();\n" +
+                "}\n";
+
+        Schema schema = load(thrift);
+        Service service = schema.services().get(0);
+        ServiceMethod method = service.methods().get(0);
+
+        assertThat(method.oneWay(), is(true));
+        assertThat(method.returnType().get(), equalTo(ThriftType.VOID));
+    }
+
+    @Test
+    public void onewayMethodWithReturnTypeIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.oneway.valid\n" +
+                "\n" +
+                "service OnewayService {\n" +
+                "  oneway i32 test();\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Oneway methods cannot have non-void return types");
+        } catch (LoadFailedException e) {
+            // yay
+        }
+    }
+
+    @Test
+    public void onewayMethodWithThrowsIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.oneway.valid\n" +
+                "\n" +
+                "exception MyError {\n" +
+                "  1: i32 what\n" +
+                "  2: string why\n" +
+                "}\n" +
+                "\n" +
+                "service OnewayService {\n" +
+                "  oneway void test() throws (1: MyError error);\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Oneway methods cannot throw exceptions");
+        } catch (LoadFailedException e) {
+            // yay
+        }
+    }
+
+    @Test
+    public void throwsClauseWithNonExceptionBuiltinTypeIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.throws.invalid\n" +
+                "\n" +
+                "service ThrowsStrings {" +
+                "  void test() throws (1: string not_an_exception)\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Methods that declare throws of non-exception types are invalid");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void throwsClauseWithListTypeIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.throws.invalid\n" +
+                "\n" +
+                "service ThrowsList {\n" +
+                "  void test() throws (1: list<i32> nums)\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Methods that declare throws of non-exception types are invalid");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void throwsClauseWithDuplicateFieldIdsIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.throws.invalid\n" +
+                "\n" +
+                "exception Foo {}\n" +
+                "\n" +
+                "exception Bar {}\n" +
+                "\n" +
+                "service DuplicateExnIds {\n" +
+                "  void test() throws (1: Foo foo, 1: Bar bar)\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Methods with multiple exceptions having the same ID are invalid");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void throwsClauseWithNonExceptionUserTypeIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.throws.invalid\n" +
+                "\n" +
+                "struct UserType {\n" +
+                "  1: string foo\n" +
+                "}\n" +
+                "\n" +
+                "service OnewayService {\n" +
+                "  void test() throws (1: UserType also_not_an_exception);\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Methods that declare throws of non-exception user types are invalid");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void throwsClauseWithExceptionTypeIsValid() throws Exception {
+        String thrift = "" +
+                "namespace java service.throws.valid\n" +
+                "\n" +
+                "exception UserType {\n" +
+                "  1: string foo\n" +
+                "}\n" +
+                "\n" +
+                "service OnewayService {\n" +
+                "  void test() throws (1: UserType error);\n" +
+                "}\n";
+
+        Schema schema = load(thrift);
+        StructType struct = schema.exceptions().get(0);
+
+        assertThat(struct.isException(), is(true));
+
+        Service service = schema.services().get(0);
+        ServiceMethod method = service.methods().get(0);
+        Field field = method.exceptionTypes().get(0);
+        ThriftType type = field.type();
+
+        assertThat(type, equalTo(struct.type()));
     }
 
     private Schema load(String thrift) throws Exception {
