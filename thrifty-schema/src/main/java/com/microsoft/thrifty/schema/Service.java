@@ -27,7 +27,11 @@ import com.microsoft.thrifty.schema.parser.FunctionElement;
 import com.microsoft.thrifty.schema.parser.ServiceElement;
 import com.microsoft.thrifty.schema.parser.TypeElement;
 
+import java.util.ArrayDeque;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.Map;
+import java.util.TreeSet;
 
 public final class Service extends Named {
     private final ServiceElement element;
@@ -103,7 +107,83 @@ public final class Service extends Named {
     }
 
     void validate(Linker linker) {
-        // TODO: Implement
-        throw new IllegalStateException("not implemented");
+        // Validate the following properties:
+        // 1. If the service extends a type, that the type is itself a service
+        // 2. The service contains no duplicate methods, including those inherited from base types.
+        // 3. All service methods themselves are valid.
+
+        TreeSet<ServiceMethod> methodNames = new TreeSet<>(new Comparator<ServiceMethod>() {
+            @Override
+            public int compare(ServiceMethod o1, ServiceMethod o2) {
+                return o1.name().compareTo(o2.name());
+            }
+        });
+
+        Deque<Service> hierarchy = new ArrayDeque<>();
+
+        if (extendsService != null) {
+            Named named = linker.lookupSymbol(extendsService());
+            if (!(named instanceof Service)) {
+                linker.addError(location(), "Base type '" + extendsService.name() + "' is not a service");
+            }
+        }
+
+        // Assume base services have already been validated
+        ThriftType baseType = extendsService;
+        while (baseType != null) {
+            Named named = linker.lookupSymbol(baseType);
+            if (!(named instanceof Service)) {
+                break;
+            }
+
+            Service svc = (Service) named;
+            hierarchy.add(svc);
+
+            baseType = svc.extendsService;
+        }
+
+
+        while (!hierarchy.isEmpty()) {
+            // Process from most- to least-derived services; that way, if there
+            // is a name conflict, we'll report the conflict with the least-derived
+            // class.
+            Service svc = hierarchy.remove();
+
+            for (ServiceMethod serviceMethod : svc.methods()) {
+                // Add the base-type method names to a set.  In this case,
+                // we don't care about duplicates because the base types have
+                // already been validated and we have already reported that error.
+                methodNames.add(serviceMethod);
+            }
+        }
+
+        for (ServiceMethod method : methods) {
+            if (!methodNames.add(method)) {
+                // We know an element with this name is in the set; we can use NavigableSet#ceiling(T) to
+                // get that method.  'ceiling' returns the "least element greater-than or equal to" an element;
+                // in this case we are guaranteed to get the "equal" element.
+                ServiceMethod clash =  methodNames.ceiling(method);
+                linker.addError(method.location(), "Duplicate method; '" + method.name()
+                        + "' conflicts with another method declared at " + clash.location());
+            }
+        }
+
+        for (ServiceMethod method : methods) {
+            method.validate(linker);
+        }
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        if (!(other instanceof Service)) return false;
+
+        Service that = (Service) other;
+        return this.element.equals(that.element);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.element.hashCode();
     }
 }

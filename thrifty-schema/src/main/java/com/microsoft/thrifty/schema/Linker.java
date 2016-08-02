@@ -20,6 +20,8 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.ListTypeElement;
 import com.microsoft.thrifty.schema.parser.MapTypeElement;
@@ -30,12 +32,16 @@ import com.microsoft.thrifty.schema.parser.TypeElement;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 /**
  * An object that can resolve the types of typdefs, struct fields, and service
@@ -284,7 +290,39 @@ class Linker {
     }
 
     private void validateServices() {
-        // TODO: Implement me
+        // Services form an inheritance tree
+        Set<Service> visited = new HashSet<>(program.services().size());
+        Multimap<Service, Service> parentToChildren = HashMultimap.create();
+        Queue<Service> servicesToValidate = new ArrayDeque<>(program.services().size());
+
+        for (Service service : program.services()) {
+            // If this service extends another, add the parent -> child relationship to the multmap.
+            // Otherwise, this is a root node, and should be added to the processing queue.
+            ThriftType baseType = service.extendsService();
+            if (baseType != null) {
+                Named named = lookupSymbol(baseType);
+                if (named instanceof Service) {
+                    parentToChildren.put((Service) named, service);
+                } else {
+                    // We know that this is an error condition; queue this type up for validation anyways
+                    // so that any other errors lurking here can be reported.
+                    servicesToValidate.add(service);
+                }
+            } else {
+                // Root node - add it to the queue
+                servicesToValidate.add(service);
+            }
+        }
+
+        while (!servicesToValidate.isEmpty()) {
+            Service service = servicesToValidate.remove();
+            if (visited.add(service)) {
+                service.validate(this);
+                for (Service child : parentToChildren.get(service)) {
+                    servicesToValidate.add(child);
+                }
+            }
+        }
     }
 
     private void register(Named type) {

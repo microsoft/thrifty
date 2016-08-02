@@ -60,6 +60,10 @@ public final class ServiceMethod {
         this.annotations = annotationBuilder.build();
     }
 
+    public Location location() {
+        return element.location();
+    }
+
     public String documentation() {
         return element.documentation();
     }
@@ -105,6 +109,38 @@ public final class ServiceMethod {
 
         for (Field field : exceptionTypes) {
             field.link(linker);
+        }
+    }
+
+    void validate(Linker linker) {
+        if (oneWay() && !ThriftType.VOID.equals(returnType)) {
+            linker.addError(location(), "oneway methods may not have a non-void return type");
+        }
+
+        if (oneWay() && !exceptionTypes().isEmpty()) {
+            linker.addError(location(), "oneway methods may not throw exceptions");
+        }
+
+        for (Field field : exceptionTypes) {
+            ThriftType type = field.type();
+
+            if (type.isBuiltin()) {
+                linker.addError(field.location(), "Only exception types can be thrown");
+            } else {
+                Named named = linker.lookupSymbol(type);
+                if (named == null) {
+                    throw new AssertionError("wtf");
+                }
+
+                if (named instanceof StructType) {
+                    StructType struct = (StructType) named;
+                    if (!struct.isException()) {
+                        linker.addError(field.location(), "Only exceptions can be thrown");
+                    }
+                } else {
+                    linker.addError(field.location(), "Only exceptions can be thrown");
+                }
+            }
         }
     }
 }
