@@ -480,6 +480,23 @@ public class LoaderTest {
     }
 
     @Test
+    public void serviceMethodWithDuplicateFieldIdsIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.invalid\n" +
+                "\n" +
+                "service NoGood {\n" +
+                "  void test(1: i32 foo; 1: i64 bar)\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Methods having multiple parameters with the same ID are invalid");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
     public void serviceThatExtendsNonServiceIsInvalid() throws Exception {
         String thrift = "" +
                 "namespace java service.invalid\n" +
@@ -563,6 +580,44 @@ public class LoaderTest {
         try {
             load(thrift);
             fail("Methods that declare throws of non-exception types are invalid");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void throwsClauseWithListTypeIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.throws.invalid\n" +
+                "\n" +
+                "service ThrowsList {\n" +
+                "  void test() throws (1: list<i32> nums)\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Methods that declare throws of non-exception types are invalid");
+        } catch (LoadFailedException e) {
+            // good
+        }
+    }
+
+    @Test
+    public void throwsClauseWithDuplicateFieldIdsIsInvalid() throws Exception {
+        String thrift = "" +
+                "namespace java service.throws.invalid\n" +
+                "\n" +
+                "exception Foo {}\n" +
+                "\n" +
+                "exception Bar {}\n" +
+                "\n" +
+                "service DuplicateExnIds {\n" +
+                "  void test() throws (1: Foo foo, 1: Bar bar)\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Methods with multiple exceptions having the same ID are invalid");
         } catch (LoadFailedException e) {
             // good
         }
