@@ -140,7 +140,8 @@ public final class Program {
             Service svc = new Service(
                     serviceElement,
                     ThriftType.get(serviceElement.name(), namespaces),
-                    namespaces);
+                    namespaces,
+                    fieldNamingPolicy);
             services.add(svc);
         }
         this.services = services.build();

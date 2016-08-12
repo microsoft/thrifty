@@ -39,18 +39,18 @@ public final class ServiceMethod {
 
     private ThriftType returnType;
 
-    public ServiceMethod(FunctionElement element) {
+    public ServiceMethod(FunctionElement element, FieldNamingPolicy fieldNamingPolicy) {
         this.element = element;
 
         ImmutableList.Builder<Field> params = ImmutableList.builder();
         for (FieldElement field : element.params()) {
-            params.add(new Field(field, FieldNamingPolicy.DEFAULT));
+            params.add(new Field(field, fieldNamingPolicy));
         }
         this.paramTypes = params.build();
 
         ImmutableList.Builder<Field> exceptions = ImmutableList.builder();
         for (FieldElement field : element.exceptions()) {
-            exceptions.add(new Field(field, FieldNamingPolicy.DEFAULT));
+            exceptions.add(new Field(field, fieldNamingPolicy));
         }
         this.exceptionTypes = exceptions.build();
 

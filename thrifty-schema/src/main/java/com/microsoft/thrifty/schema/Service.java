@@ -41,14 +41,14 @@ public final class Service extends Named {
 
     private ThriftType extendsService;
 
-    Service(ServiceElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
+    Service(ServiceElement element, ThriftType type, Map<NamespaceScope, String> namespaces, FieldNamingPolicy fieldNamingPolicy) {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
 
         ImmutableList.Builder<ServiceMethod> methods = ImmutableList.builder();
         for (FunctionElement functionElement : element.functions()) {
-            ServiceMethod method = new ServiceMethod(functionElement);
+            ServiceMethod method = new ServiceMethod(functionElement, fieldNamingPolicy);
             methods.add(method);
         }
         this.methods = methods.build();
