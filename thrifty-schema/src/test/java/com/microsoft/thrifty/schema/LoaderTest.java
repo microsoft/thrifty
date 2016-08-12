@@ -670,6 +670,52 @@ public class LoaderTest {
         assertThat(type, equalTo(struct.type()));
     }
 
+    @Test
+    public void methodParameterNamesHaveFieldNamingPolicyApplied() throws Exception {
+        String thrift = "" +
+                "service Service {\n" +
+                "  void foo(1: string MyParam)\n" +
+                "}\n";
+
+        File f = tempDir.newFile("svc.thrift");
+        writeTo(f, thrift);
+
+        Loader loader = new Loader(FieldNamingPolicy.JAVA);
+        loader.addThriftFile(f.getAbsolutePath());
+
+        Schema schema = loader.load();
+        Service service = schema.services().get(0);
+        ServiceMethod method = service.methods().get(0);
+        Field param = method.paramTypes().get(0);
+
+        assertThat(param.name(), is("myParam"));
+    }
+
+    @Test
+    public void throwsElementNamesHaveFieldNamingPolicyApplied() throws Exception {
+        String thrift = "" +
+                "exception NoMorePowerError {\n" +
+                "  1: string message\n" +
+                "}\n" +
+                "\n" +
+                "service Service {\n" +
+                "  void firePhasers() throws (1: NoMorePowerError TheUsualComplaint)\n" +
+                "}\n";
+
+        File f = tempDir.newFile("svc.thrift");
+        writeTo(f, thrift);
+
+        Loader loader = new Loader(FieldNamingPolicy.JAVA);
+        loader.addThriftFile(f.getAbsolutePath());
+
+        Schema schema = loader.load();
+        Service service = schema.services().get(0);
+        ServiceMethod method = service.methods().get(0);
+        Field param = method.exceptionTypes().get(0);
+
+        assertThat(param.name(), is("theUsualComplaint"));
+    }
+
     private Schema load(String thrift) throws Exception {
         File f = tempDir.newFile();
         writeTo(f, thrift);
