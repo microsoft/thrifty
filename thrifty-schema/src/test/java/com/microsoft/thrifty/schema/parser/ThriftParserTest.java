@@ -1064,6 +1064,48 @@ public class ThriftParserTest {
 
         parse(thrift);
     }
+
+    @Test
+    public void fieldsWithoutSeparatorsDoNotConsumeNextFieldsDocumentation() {
+        String thrift = "struct SomeRequest {\n" +
+                "    /** Here's a comment. */\n" +
+                "    1: required UUID clientUuid\n" +
+                "\n" +
+                "    /** Here's a longer comment. */\n" +
+                "    2: optional string someOtherField\n" +
+                "}";
+
+        ThriftFileElement element = parse(thrift);
+        StructElement struct = element.structs().get(0);
+        FieldElement clientUuid = struct.fields().get(0);
+        FieldElement someOtherField = struct.fields().get(1);
+
+        assertThat(clientUuid.documentation(), is("Here's a comment.\n"));
+        assertThat(someOtherField.documentation(), is("Here's a longer comment.\n"));
+    }
+
+    @Test
+    public void trailingDocWithoutSeparatorWithAnnotationOnNewLine() {
+        String thrift = "struct SomeRequest {\n" +
+                "    /** Here's a comment. */\n" +
+                "    1: required UUID clientUuid\n" +
+                "         (bork = \"bork\")  // this belongs to clientUuid\n" +
+                "\n" +
+                "    /**\n" +
+                "     * Here's a longer comment.\n" +
+                "     * One two lines.\n" +
+                "     */\n" +
+                "    2: optional string someOtherField\n" +
+                "}";
+
+        ThriftFileElement element = parse(thrift);
+        StructElement struct = element.structs().get(0);
+        FieldElement clientUuid = struct.fields().get(0);
+        FieldElement someOtherField = struct.fields().get(1);
+
+        assertThat(clientUuid.documentation(), containsString("this belongs to clientUuid"));
+        assertThat(someOtherField.documentation(), containsString("Here's a longer comment."));
+    }
     
     private static ThriftFileElement parse(String thrift) {
         return parse(thrift, Location.get("", ""));
