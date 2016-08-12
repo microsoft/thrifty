@@ -41,7 +41,11 @@ public final class Service extends Named {
 
     private ThriftType extendsService;
 
-    Service(ServiceElement element, ThriftType type, Map<NamespaceScope, String> namespaces, FieldNamingPolicy fieldNamingPolicy) {
+    Service(
+            ServiceElement element,
+            ThriftType type,
+            Map<NamespaceScope, String> namespaces,
+            FieldNamingPolicy fieldNamingPolicy) {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
