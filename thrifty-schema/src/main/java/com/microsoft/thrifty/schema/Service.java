@@ -28,10 +28,9 @@ import com.microsoft.thrifty.schema.parser.ServiceElement;
 import com.microsoft.thrifty.schema.parser.TypeElement;
 
 import java.util.ArrayDeque;
-import java.util.Comparator;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeSet;
 
 public final class Service extends Named {
     private final ServiceElement element;
@@ -116,12 +115,7 @@ public final class Service extends Named {
         // 2. The service contains no duplicate methods, including those inherited from base types.
         // 3. All service methods themselves are valid.
 
-        TreeSet<ServiceMethod> methodNames = new TreeSet<>(new Comparator<ServiceMethod>() {
-            @Override
-            public int compare(ServiceMethod o1, ServiceMethod o2) {
-                return o1.name().compareTo(o2.name());
-            }
-        });
+        Map<String, ServiceMethod> methodsByName = new LinkedHashMap<>();
 
         Deque<Service> hierarchy = new ArrayDeque<>();
 
@@ -154,21 +148,20 @@ public final class Service extends Named {
             Service svc = hierarchy.remove();
 
             for (ServiceMethod serviceMethod : svc.methods()) {
-                // Add the base-type method names to a set.  In this case,
+                // Add the base-type method names to the map.  In this case,
                 // we don't care about duplicates because the base types have
                 // already been validated and we have already reported that error.
-                methodNames.add(serviceMethod);
+                methodsByName.put(serviceMethod.name(), serviceMethod);
             }
         }
 
         for (ServiceMethod method : methods) {
-            if (!methodNames.add(method)) {
-                // We know an element with this name is in the set; we can use NavigableSet#ceiling(T) to
-                // get that method.  'ceiling' returns the "least element greater-than or equal to" an element;
-                // in this case we are guaranteed to get the "equal" element.
-                ServiceMethod clash =  methodNames.ceiling(method);
+            ServiceMethod conflictingMethod = methodsByName.put(method.name(), method);
+            if (conflictingMethod != null) {
+                methodsByName.put(conflictingMethod.name(), conflictingMethod);
+
                 linker.addError(method.location(), "Duplicate method; '" + method.name()
-                        + "' conflicts with another method declared at " + clash.location());
+                        + "' conflicts with another method declared at " + conflictingMethod.location());
             }
         }
 
