@@ -21,7 +21,6 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.base.Joiner;
-import com.microsoft.thrifty.Struct;
 import okio.BufferedSink;
 import okio.Okio;
 import org.junit.Rule;
@@ -32,7 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.Is.is;
@@ -714,6 +713,26 @@ public class LoaderTest {
         Field param = method.exceptionTypes().get(0);
 
         assertThat(param.name(), is("theUsualComplaint"));
+    }
+
+    @Test
+    public void circularInheritanceDetected() throws Exception {
+        String thrift = "" +
+                "namespace java thrifty.services\n" +
+                "\n" +
+                "service A extends B {}\n" +
+                "\n" +
+                "service B extends C {}\n" +
+                "\n" +
+                "service C extends A {}\n";
+
+        try {
+            load(thrift);
+            fail("Service inheritance cannot form a cycle");
+        } catch (LoadFailedException e) {
+            // Make sure that we identify the cycle
+            assertThat(e.getMessage(), containsString("A -> B -> C -> A"));
+        }
     }
 
     private Schema load(String thrift) throws Exception {
