@@ -33,10 +33,12 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -314,6 +316,8 @@ class Linker {
             }
         }
 
+        checkForCircularInheritance();
+
         while (!servicesToValidate.isEmpty()) {
             Service service = servicesToValidate.remove();
             if (visited.add(service)) {
@@ -322,6 +326,54 @@ class Linker {
                     servicesToValidate.add(child);
                 }
             }
+        }
+    }
+
+    private void checkForCircularInheritance() {
+        Set<ThriftType> visited = new LinkedHashSet<>();
+        List<ThriftType> stack = new ArrayList<>();
+        Set<ThriftType> totalVisited = new LinkedHashSet<>();
+
+        for (Service svc : program.services()) {
+            ThriftType type = svc.type();
+
+            if (totalVisited.contains(type)) {
+                // We've already validated this hierarchy
+                continue;
+            }
+
+            visited.clear();
+            stack.clear();
+            visited.add(type);
+            stack.add(type);
+
+            type = svc.extendsService();
+            while (type != null) {
+                stack.add(type);
+                if (!visited.add(type)) {
+                    StringBuilder sb = new StringBuilder("Circular inheritance detected: ");
+                    String arrow = " -> ";
+                    for (ThriftType t : stack) {
+                        sb.append(t.name());
+                        sb.append(arrow);
+                    }
+                    sb.setLength(sb.length() - arrow.length());
+                    addError(svc.location(), sb.toString());
+                    break;
+                }
+
+                Named named = lookupSymbol(type);
+                if (!(named instanceof Service)) {
+                    // Service extends a non-service type?
+                    // This is an error but is reported in
+                    // Service#validate(Linker).
+                    break;
+                }
+
+                type = ((Service) named).extendsService();
+            }
+
+            totalVisited.addAll(visited);
         }
     }
 
