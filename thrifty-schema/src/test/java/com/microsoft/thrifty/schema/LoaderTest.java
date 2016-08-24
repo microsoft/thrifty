@@ -525,7 +525,7 @@ public class LoaderTest {
         ServiceMethod method = service.methods().get(0);
 
         assertThat(method.oneWay(), is(true));
-        assertThat(method.returnType().get(), equalTo(ThriftType.VOID));
+        assertThat(method.returnType(), equalTo(ThriftType.VOID));
     }
 
     @Test

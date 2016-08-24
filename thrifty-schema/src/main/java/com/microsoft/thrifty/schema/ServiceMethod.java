@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.schema;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.AnnotationElement;
@@ -82,8 +81,8 @@ public final class ServiceMethod {
         return element.oneWay();
     }
 
-    public Optional<ThriftType> returnType() {
-        return Optional.fromNullable(returnType);
+    public ThriftType returnType() {
+        return returnType;
     }
 
     public List<Field> paramTypes() {

@@ -92,7 +92,7 @@ final class ServiceBuilder {
 
             String callbackName = allocator.newName("callback", ++tag);
 
-            ThriftType returnType = method.returnType().or(ThriftType.VOID);
+            ThriftType returnType = method.returnType();
             TypeName returnTypeName;
             if (returnType.equals(ThriftType.VOID)) {
                 returnTypeName = TypeName.VOID.box();
@@ -182,7 +182,7 @@ final class ServiceBuilder {
             name += "Call";
         }
 
-        ThriftType returnType = method.returnType().or(ThriftType.VOID);
+        ThriftType returnType = method.returnType();
         TypeName returnTypeName = returnType.equals(ThriftType.VOID)
                 ? TypeName.VOID.box()
                 : typeResolver.getJavaClass(returnType.getTrueType());
@@ -314,7 +314,7 @@ final class ServiceBuilder {
                 .addException(TypeNames.EXCEPTION);
 
         if (hasReturnType) {
-            TypeName retTypeName = typeResolver.getJavaClass(method.returnType().get().getTrueType());
+            TypeName retTypeName = typeResolver.getJavaClass(method.returnType().getTrueType());
             recv.returns(retTypeName);
             recv.addStatement("$T result = null", retTypeName);
         } else {
@@ -335,7 +335,7 @@ final class ServiceBuilder {
                 .beginControlFlow("switch (field.fieldId)");
 
         if (hasReturnType) {
-            ThriftType type = method.returnType().get().getTrueType();
+            ThriftType type = method.returnType().getTrueType();
             recv.beginControlFlow("case 0:");
 
             new GenerateReaderVisitor(typeResolver, recv, "result", type) {
