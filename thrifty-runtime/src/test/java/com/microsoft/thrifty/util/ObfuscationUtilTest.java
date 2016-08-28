@@ -60,4 +60,16 @@ public class ObfuscationUtilTest {
         Map<String, Integer> map = Collections.emptyMap();
         assertThat(ObfuscationUtil.summarizeMap(map, "string", "i32"), is("map<string, i32>(size=0)"));
     }
+
+    @Test
+    public void summarizeSingleObject() {
+        Integer obj = 0x12345678;
+        assertThat(ObfuscationUtil.hash(obj), is("12345678"));
+    }
+
+    @Test
+    public void summarizeNullObjext() {
+        String obj = null;
+        assertThat(ObfuscationUtil.hash(obj), is("null"));
+    }
 }

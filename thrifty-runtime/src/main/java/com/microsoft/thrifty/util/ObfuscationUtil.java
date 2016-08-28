@@ -49,10 +49,11 @@ public final class ObfuscationUtil {
     }
 
     public static String hash(Object value) {
-        int hashcode = 0x9e3779b9;
-        if (value != null) {
-            hashcode = value.hashCode();
+        if (value == null) {
+            return "null";
         }
+
+        int hashcode = value.hashCode();
 
         // Integer.toHexString(int) doesn't pad to 8 chars;
         // this is simple enough to do ourselves.
