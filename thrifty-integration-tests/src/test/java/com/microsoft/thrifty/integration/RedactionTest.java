@@ -1,6 +1,7 @@
 package com.microsoft.thrifty.integration;
 
 import com.microsoft.thrifty.integration.gen.HasCommentBasedRedaction;
+import com.microsoft.thrifty.integration.gen.HasObfuscation;
 import com.microsoft.thrifty.integration.gen.HasRedaction;
 import com.microsoft.thrifty.integration.gen.ObfuscatedCollections;
 import org.junit.Test;
@@ -64,5 +65,14 @@ public class RedactionTest {
                 .build();
 
         assertThat(oc.toString(), containsString("stringz=map<string, string>(size=1)"));
+    }
+
+    @Test
+    public void obfuscatedString() {
+        HasObfuscation ho = new HasObfuscation.Builder().build();
+        assertThat(ho.toString(), is("HasObfuscation{ssn=null}"));
+
+        ho = new HasObfuscation.Builder().ssn("123-45-6789").build();
+        assertThat(ho.toString(), is("HasObfuscation{ssn=1E1DB4B3}"));
     }
 }
