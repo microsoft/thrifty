@@ -151,8 +151,8 @@ public class Constant extends Named {
                     return;
                 }
 
-                Named named = linker.lookupSymbol(identifier);
-                if (named != null && named.type().getTrueType().equals(ThriftType.BOOL)) {
+                Constant constant = linker.lookupConst(identifier);
+                if (constant != null && constant.type().getTrueType().equals(ThriftType.BOOL)) {
                     return;
                 }
             }
@@ -178,10 +178,10 @@ public class Constant extends Named {
 
             if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                 String id = (String) value.value();
-                Named named = linker.lookupSymbol(id);
+                Named named = linker.lookupConst(id);
 
                 if (named == null) {
-                    throw new IllegalStateException("Unrecognized identifier: " + id);
+                    throw new IllegalStateException("Unrecognized const identifier: " + id);
                 }
 
                 if (!named.type().getTrueType().equals(expected)) {
@@ -239,6 +239,10 @@ public class Constant extends Named {
                 } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                     String id = (String) value.value();
 
+                    // Identifiers usually will be a literal enum value; these must always be qualified!
+                    // Bare values (e.g. 'BAR' for enum Foo { BAR }) are *not* legal.
+                    //
+                    // Enum literals may be further qualified by an import, e.g. module.Foo.BAR.
                     int ix = id.lastIndexOf('.');
                     if (ix != -1) {
                         String typeName = id.substring(0, ix);
@@ -254,14 +258,18 @@ public class Constant extends Named {
                         }
                     }
 
+                    // Identifiers could also be a reference to a constant of the expected
+                    // enum type, or alias thereof.  Similarly, these may be qualified
+                    // references.
+                    Constant constant = linker.lookupConst(id);
+                    if (constant != null && constant.type().getTrueType().equals(expected)) {
+                        return;
+                    }
+
                     throw new IllegalStateException(
                             "'" + id + "' is not a member of enum type " + et.name() + ": members=" + et.members());
                 } else {
                     throw new IllegalStateException("bad enum literal: " + value.value());
-                }
-            } else if (named instanceof Constant) {
-                if (!named.type().getTrueType().equals(expected)) {
-                    throw new IllegalStateException("Invalid type");
                 }
             } else {
                 throw new IllegalStateException("bad enum literal");

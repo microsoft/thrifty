@@ -480,6 +480,30 @@ class Linker {
         return named;
     }
 
+    @Nullable
+    Constant lookupConst(String symbol) {
+        Constant constant = program.constantMap().get(symbol);
+        if (constant == null) {
+            // As above, 'symbol' may be a reference to an included
+            // constant.
+            int ix = symbol.indexOf('.');
+            if (ix != -1) {
+                String includeName = symbol.substring(0, ix);
+                String qualifiedName = symbol.substring(ix + 1);
+                String expectedPath = includeName + ".thrift";
+                for (Program includedProgram : program.includes()) {
+                    if (includedProgram.location().path().equals(expectedPath)) {
+                        constant = includedProgram.constantMap().get(qualifiedName);
+                        if (constant != null) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return constant;
+    }
+
     void addError(Location location, String error) {
         reporter.error(location, error);
     }

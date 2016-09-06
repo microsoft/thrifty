@@ -57,6 +57,7 @@ public final class Program {
 
     private ImmutableList<Program> includedPrograms;
     private ImmutableMap<String, Named> symbols;
+    private ImmutableMap<String, Constant> constSymbols;
 
     Program(ThriftFileElement element, FieldNamingPolicy fieldNamingPolicy) {
         this.element = element;
@@ -195,6 +196,10 @@ public final class Program {
         return this.symbols;
     }
 
+    public ImmutableMap<String, Constant> constantMap() {
+        return this.constSymbols;
+    }
+
     /**
      * Get all named elements declared in this Program.
      */
@@ -242,6 +247,10 @@ public final class Program {
 
         LinkedHashMap<String, Named> symbolMap = new LinkedHashMap<>();
         for (Named named : names()) {
+            if (named instanceof Constant) {
+                continue;
+            }
+
             Named oldValue = symbolMap.put(named.name(), named);
             if (oldValue != null) {
                 throw duplicateSymbol(named.name(), oldValue, named);
@@ -249,6 +258,20 @@ public final class Program {
         }
 
         this.symbols = ImmutableMap.copyOf(symbolMap);
+
+        LinkedHashMap<String, Constant> constSymbolMap = new LinkedHashMap<>();
+        for (Named named : names()) {
+            if (!(named instanceof Constant)) {
+                continue;
+            }
+
+            Constant oldValue = constSymbolMap.put(named.name(), (Constant) named);
+            if (oldValue != null) {
+                throw duplicateSymbol(named.name(), oldValue, named);
+            }
+        }
+
+        this.constSymbols = ImmutableMap.copyOf(constSymbolMap);
     }
 
     private IllegalStateException duplicateSymbol(String symbol, Named oldValue, Named newValue) {
