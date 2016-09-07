@@ -57,6 +57,7 @@ public final class Program {
 
     private ImmutableList<Program> includedPrograms;
     private ImmutableMap<String, Named> symbols;
+    private ImmutableMap<String, Constant> constSymbols;
 
     Program(ThriftFileElement element, FieldNamingPolicy fieldNamingPolicy) {
         this.element = element;
@@ -195,10 +196,17 @@ public final class Program {
         return this.symbols;
     }
 
+    public ImmutableMap<String, Constant> constantMap() {
+        return this.constSymbols;
+    }
+
     /**
-     * Get all named elements declared in this Program.
+     * Get all named types declared in this Program.
+     *
+     * Note that this does not include {@link #constants()}, which are
+     * not types.
      */
-    public Iterable<Named> names() {
+    public Iterable<Named> allTypeNames() {
         // Some type-resolution subtlety eludes me.  I'd have thought that
         // Iterable<EnumType> is castable to Iterable<Named> (inheritance),
         // but the IDE claims otherwise.  So, instead of FluentIterable.<Named>from(enums),
@@ -210,8 +218,7 @@ public final class Program {
                 .append(unions)
                 .append(exceptions)
                 .append(services)
-                .append(typedefs)
-                .append(constants);
+                .append(typedefs);
     }
 
     /**
@@ -241,7 +248,7 @@ public final class Program {
         this.includedPrograms = includes.build();
 
         LinkedHashMap<String, Named> symbolMap = new LinkedHashMap<>();
-        for (Named named : names()) {
+        for (Named named : allTypeNames()) {
             Named oldValue = symbolMap.put(named.name(), named);
             if (oldValue != null) {
                 throw duplicateSymbol(named.name(), oldValue, named);
@@ -249,6 +256,16 @@ public final class Program {
         }
 
         this.symbols = ImmutableMap.copyOf(symbolMap);
+
+        LinkedHashMap<String, Constant> constSymbolMap = new LinkedHashMap<>();
+        for (Constant constant : constants()) {
+            Constant oldValue = constSymbolMap.put(constant.name(), constant);
+            if (oldValue != null) {
+                throw duplicateSymbol(constant.name(), oldValue, constant);
+            }
+        }
+
+        this.constSymbols = ImmutableMap.copyOf(constSymbolMap);
     }
 
     private IllegalStateException duplicateSymbol(String symbol, Named oldValue, Named newValue) {

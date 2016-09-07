@@ -66,7 +66,7 @@ public class ConstantTest {
         when(c.name()).thenReturn("aBool");
         when(c.type()).thenReturn(ThriftType.BOOL);
 
-        when(linker.lookupSymbol("aBool")).thenReturn(c);
+        when(linker.lookupConst("aBool")).thenReturn(c);
 
         Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), ThriftType.BOOL);
     }
@@ -107,7 +107,7 @@ public class ConstantTest {
         when(c.name()).thenReturn("aBool");
         when(c.type()).thenReturn(ThriftType.typedefOf(ThriftType.BOOL, "Truthiness"));
 
-        when(linker.lookupSymbol("aBool")).thenReturn(c);
+        when(linker.lookupConst("aBool")).thenReturn(c);
 
         Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), ThriftType.BOOL);
     }

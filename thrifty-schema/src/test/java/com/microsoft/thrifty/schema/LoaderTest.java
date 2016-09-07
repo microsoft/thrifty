@@ -735,6 +735,57 @@ public class LoaderTest {
         }
     }
 
+    @Test
+    public void constAndTypeWithSameName() throws Exception {
+        String thrift = "" +
+                "namespace java thrifty.constants\n" +
+                "\n" +
+                "const Foo Foo = Foo.BAR;\n" +
+                "\n" +
+                "enum Foo {\n" +
+                "  BAR,\n" +
+                "  BAZ\n" +
+                "}\n" +
+                "\n" +
+                "struct FooBar {\n" +
+                "  1: required Foo Foo = Foo,\n" +
+                "  2: required Foo Bar = Foo.BAR,\n" +
+                "}\n";
+
+        load(thrift);
+    }
+
+    @Test
+    public void booleanConstValidation() throws Exception {
+        String thrift = "" +
+                "namespace java thrifty.constants\n" +
+                "\n" +
+                "const bool B = true;\n" +
+                "\n" +
+                "struct Foo {\n" +
+                "  1: required bool value = B\n" +
+                "}\n";
+
+        load(thrift);
+    }
+
+    @Test
+    public void typedefOfBooleanConstValidation() throws Exception {
+        // TODO: Does this actually work in the Apache compiler?
+        String thrift = "" +
+                "namespace java thrifty.constants\n" +
+                "\n" +
+                "typedef bool MyBool" +
+                "\n" +
+                "const MyBool B = true;\n" +
+                "\n" +
+                "struct Foo {\n" +
+                "  1: required bool value = B\n" +
+                "}\n";
+
+        load(thrift);
+    }
+
     private Schema load(String thrift) throws Exception {
         File f = tempDir.newFile();
         writeTo(f, thrift);
