@@ -38,7 +38,7 @@ public class Constant extends Named {
         this.namespaces = namespaces;
     }
 
-    public Constant(Builder builder) {
+    private Constant(Builder builder) {
         super(builder.element.name(), builder.namespaces);
         this.element = builder.element;
         this.namespaces = builder.namespaces;
@@ -97,12 +97,12 @@ public class Constant extends Named {
         void validate(Linker linker, ThriftType expected, ConstValueElement value);
     }
 
-    private static final class Builder {
+    public static final class Builder {
         private ConstElement element;
         private Map<NamespaceScope, String> namespaces;
         private ThriftType type;
 
-        public Builder(ConstElement element,
+        Builder(ConstElement element,
                        Map<NamespaceScope, String> namespaces,
                        ThriftType type) {
             this.element = element;

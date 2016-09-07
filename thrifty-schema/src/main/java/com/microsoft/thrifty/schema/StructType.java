@@ -119,7 +119,7 @@ public class StructType extends Named {
         private ImmutableMap<String, String> annotations;
         private Map<NamespaceScope, String> namespaces;
 
-        public Builder(StructElement element,
+        Builder(StructElement element,
                        ThriftType type,
                        ImmutableList<Field> fields,
                        ImmutableMap<String, String> annotations,

@@ -130,7 +130,7 @@ public class EnumType extends Named {
         private ImmutableMap<String, String> annotations;
         private Map<NamespaceScope, String> namespaces;
 
-        public Builder(EnumElement element,
+        Builder(EnumElement element,
                        ThriftType type,
                        ImmutableList<Member> members,
                        ImmutableMap<String, String> annotations,

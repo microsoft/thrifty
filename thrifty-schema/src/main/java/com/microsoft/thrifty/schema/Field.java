@@ -136,7 +136,7 @@ public final class Field {
         private ImmutableMap<String, String> annotations;
         private ThriftType type;
 
-        public Builder(FieldElement element,
+        Builder(FieldElement element,
                        FieldNamingPolicy fieldNamingPolicy,
                        ImmutableMap<String, String> annotations,
                        ThriftType type) {

@@ -114,7 +114,7 @@ public final class ServiceMethod {
         private ImmutableList<Field> exceptionTypes;
         private ImmutableMap<String, String> annotations;
 
-        public Builder(FunctionElement element,
+        Builder(FunctionElement element,
                        ImmutableList<Field> paramTypes,
                        ImmutableList<Field> exceptionTypes,
                        ImmutableMap<String, String> annotations) {

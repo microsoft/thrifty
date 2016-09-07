@@ -46,7 +46,7 @@ public final class Typedef extends Named {
         this.annotations = annotationBuilder.build();
     }
 
-    public Typedef(Builder builder) {
+    private Typedef(Builder builder) {
         this(builder.element, builder.namespaces);
     }
 
@@ -96,7 +96,7 @@ public final class Typedef extends Named {
         private ImmutableMap<String, String> annotations;
         private Map<NamespaceScope, String> namespaces;
 
-        public Builder(TypedefElement element,
+        Builder(TypedefElement element,
                        ImmutableMap<String, String> annotations,
                        Map<NamespaceScope, String> namespaces) {
             this.element = element;
