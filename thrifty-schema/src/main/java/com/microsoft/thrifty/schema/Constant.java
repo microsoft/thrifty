@@ -76,7 +76,8 @@ public class Constant extends Named {
     @SuppressWarnings("unchecked")
     @VisibleForTesting
     static void validate(Linker linker, ConstValueElement value, ThriftType expectedType) {
-        Validators.forType(expectedType).validate(linker, expectedType, value);
+        ThriftType trueExpectedType = expectedType.getTrueType();
+        Validators.forType(trueExpectedType).validate(linker, trueExpectedType, value);
     }
 
     interface ConstValueValidator {

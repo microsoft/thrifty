@@ -31,6 +31,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
@@ -215,6 +216,63 @@ public class ConstantTest {
         try {
             Constant.validate(linker, listValue, list);
             fail("Heterogeneous lists should fail validation");
+        } catch (IllegalStateException ignored) {
+        }
+    }
+
+    @Test
+    public void typedefOfEnum() {
+        ThriftType enumType = ThriftType.enumType("AnEnum", new HashMap<NamespaceScope, String>());
+        ThriftType typedefType = ThriftType.typedefOf(enumType, "Td");
+
+        EnumType.Member member = new EnumType.Member(EnumMemberElement.builder(loc).name("FOO").value(1).build());
+        ImmutableList<EnumType.Member> members = ImmutableList.of(member);
+
+        EnumType et = mock(EnumType.class);
+        when(et.type()).thenReturn(enumType);
+        when(et.name()).thenReturn("AnEnum");
+        when(et.members()).thenReturn(members);
+
+        when(linker.lookupSymbol(enumType)).thenReturn(et);
+        when(linker.lookupSymbol("AnEnum")).thenReturn(et);
+
+        ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO");
+
+        Constant.validate(linker, value, typedefType);
+    }
+
+    @Test
+    public void typedefOfWrongEnum() {
+        ThriftType enumType = ThriftType.enumType("AnEnum", new HashMap<NamespaceScope, String>());
+        ThriftType wrongType = ThriftType.enumType("DifferentEnum", new HashMap<NamespaceScope, String>());
+        ThriftType typedefType = ThriftType.typedefOf(wrongType, "Td");
+
+        EnumType.Member member = new EnumType.Member(EnumMemberElement.builder(loc).name("FOO").value(1).build());
+        ImmutableList<EnumType.Member> members = ImmutableList.of(member);
+
+        EnumType et = mock(EnumType.class);
+        when(et.type()).thenReturn(enumType);
+        when(et.name()).thenReturn("AnEnum");
+        when(et.members()).thenReturn(members);
+
+        EnumType.Member wrongMember = new EnumType.Member(EnumMemberElement.builder(loc).name("BAR").value(2).build());
+
+        EnumType wt = mock(EnumType.class);
+        when(wt.type()).thenReturn(wrongType);
+        when(wt.name()).thenReturn("DifferentEnum");
+        when(wt.members()).thenReturn(ImmutableList.of(wrongMember));
+
+        when(linker.lookupSymbol(enumType)).thenReturn(et);
+        when(linker.lookupSymbol("AnEnum")).thenReturn(et);
+
+        when(linker.lookupSymbol(wrongType)).thenReturn(wt);
+        when(linker.lookupSymbol("DifferentEnum")).thenReturn(wt);
+
+        ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO");
+
+        try {
+            Constant.validate(linker, value, typedefType);
+            fail("An enum literal of type A cannot be assigned to a typedef of type B");
         } catch (IllegalStateException ignored) {
         }
     }
