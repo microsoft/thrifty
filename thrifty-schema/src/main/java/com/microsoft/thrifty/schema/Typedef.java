@@ -47,7 +47,10 @@ public final class Typedef extends Named {
     }
 
     private Typedef(Builder builder) {
-        this(builder.element, builder.namespaces);
+        super(builder.element.newName(), builder.namespaces);
+        this.element = builder.element;
+        this.annotations = builder.annotations;
+        this.namespaces= builder.namespaces;
     }
 
     @Override
