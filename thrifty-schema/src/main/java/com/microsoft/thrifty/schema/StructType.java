@@ -34,6 +34,7 @@ public class StructType extends Named {
     private final ThriftType type;
     private final ImmutableList<Field> fields;
     private final ImmutableMap<String, String> annotations;
+    private final Map<NamespaceScope, String> namespaces;
 
     StructType(
             StructElement element,
@@ -43,6 +44,7 @@ public class StructType extends Named {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
+        this.namespaces = namespaces;
 
         ImmutableList.Builder<Field> fieldsBuilder = ImmutableList.builder();
         for (FieldElement fieldElement : element.fields()) {
@@ -56,6 +58,15 @@ public class StructType extends Named {
             annotationBuilder.putAll(anno.values());
         }
         this.annotations = annotationBuilder.build();
+    }
+
+    private StructType(Builder builder) {
+        super(builder.element.name(), builder.namespaces);
+        this.element = builder.element;
+        this.type = builder.type;
+        this.fields = builder.fields;
+        this.annotations = builder.annotations;
+        this.namespaces = builder.namespaces;
     }
 
     @Override
@@ -91,6 +102,63 @@ public class StructType extends Named {
 
     public boolean isException() {
         return element.type() == StructElement.Type.EXCEPTION;
+    }
+
+    public Builder toBuilder(StructType structType) {
+        return new Builder(structType.element,
+                structType.type,
+                structType.fields,
+                structType.annotations,
+                structType.namespaces);
+    }
+
+    private static final class Builder {
+        private StructElement element;
+        private ThriftType type;
+        private ImmutableList<Field> fields;
+        private ImmutableMap<String, String> annotations;
+        private Map<NamespaceScope, String> namespaces;
+
+        public Builder(StructElement element,
+                       ThriftType type,
+                       ImmutableList<Field> fields,
+                       ImmutableMap<String, String> annotations,
+                       Map<NamespaceScope, String> namespaces) {
+            this.element = element;
+            this.type = type;
+            this.fields = fields;
+            this.annotations = annotations;
+            this.namespaces = namespaces;
+        }
+
+        public Builder setElement(StructElement element) {
+            this.element = element;
+            return this;
+        }
+
+        public Builder setType(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder setFields(ImmutableList<Field> fields) {
+            this.fields = fields;
+            return this;
+        }
+
+        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+            this.annotations = annotations;
+            return this;
+        }
+
+        public Builder setNamespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = namespaces;
+            return this;
+        }
+
+        public StructType build() {
+            return new StructType(this);
+        }
     }
 
     @Override

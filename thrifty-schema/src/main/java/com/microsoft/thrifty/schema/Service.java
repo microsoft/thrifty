@@ -64,6 +64,14 @@ public final class Service extends Named {
         this.annotations = annotationBuilder.build();
     }
 
+    private Service(Builder builder) {
+        super(builder.element.name(), builder.namespaces);
+        this.element = builder.element;
+        this.methods = builder.methods;
+        this.type = builder.type;
+        this.annotations = builder.annotations;
+    }
+
     @Override
     public ThriftType type() {
         return type;
@@ -88,6 +96,57 @@ public final class Service extends Named {
 
     public ImmutableMap<String, String> annotations() {
         return annotations;
+    }
+
+    public Builder toBuilder() {
+        return new Builder(element, methods, type, annotations);
+    }
+
+    public static final class Builder {
+        private ServiceElement element;
+        private ImmutableList<ServiceMethod> methods;
+        private ThriftType type;
+        private ImmutableMap<String, String> annotations;
+        private Map<NamespaceScope, String> namespaces;
+
+        Builder(ServiceElement element,
+               ImmutableList<ServiceMethod> methods,
+               ThriftType type,
+               ImmutableMap<String, String> annotations) {
+            this.element = element;
+            this.methods = methods;
+            this.type = type;
+            this.annotations = annotations;
+        }
+
+        public Builder setElement(ServiceElement element) {
+            this.element = element;
+            return this;
+        }
+
+        public Builder setMethods(ImmutableList<ServiceMethod> methods) {
+            this.methods = methods;
+            return this;
+        }
+
+        public Builder setType(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+            this.annotations = annotations;
+            return this;
+        }
+
+        public Builder setNamespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = namespaces;
+            return this;
+        }
+
+        public Service build() {
+            return new Service(this);
+        }
     }
 
     @Override

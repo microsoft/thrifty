@@ -48,6 +48,13 @@ public final class Field {
         this.annotations = annotationBuilder.build();
     }
 
+    private Field(Builder builder) {
+        this.element = builder.element;
+        this.fieldNamingPolicy = builder.fieldNamingPolicy;
+        this.annotations = builder.annotations;
+        this.type = builder.type;
+    }
+
     public Location location() {
         return element.location();
     }
@@ -117,6 +124,51 @@ public final class Field {
         return annotations.containsKey("deprecated")
                 || annotations.containsKey("thrifty.deprecated")
                 || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@deprecated"));
+    }
+
+    public Builder toBuilder(Field field) {
+        return new Builder(field.element, field.fieldNamingPolicy, field.annotations, field.type);
+    }
+
+    public static final class Builder {
+        private FieldElement element;
+        private FieldNamingPolicy fieldNamingPolicy;
+        private ImmutableMap<String, String> annotations;
+        private ThriftType type;
+
+        public Builder(FieldElement element,
+                       FieldNamingPolicy fieldNamingPolicy,
+                       ImmutableMap<String, String> annotations,
+                       ThriftType type) {
+            this.element = element;
+            this.fieldNamingPolicy = fieldNamingPolicy;
+            this.annotations = annotations;
+            this.type = type;
+        }
+
+        public Builder setElement(FieldElement element) {
+            this.element = element;
+            return this;
+        }
+
+        public Builder setFieldNamingPolicy(FieldNamingPolicy fieldNamingPolicy) {
+            this.fieldNamingPolicy = fieldNamingPolicy;
+            return this;
+        }
+
+        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+            this.annotations = annotations;
+            return this;
+        }
+
+        public Builder setType(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Field build() {
+            return new Field(this);
+        }
     }
 
     void setType(ThriftType type) {

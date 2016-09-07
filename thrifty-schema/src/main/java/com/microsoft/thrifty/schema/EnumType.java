@@ -36,12 +36,14 @@ public class EnumType extends Named {
     private final ThriftType type;
     private final ImmutableList<Member> members;
     private final ImmutableMap<String, String> annotations;
+    private final Map<NamespaceScope, String> namespaces;
 
     @VisibleForTesting
     EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
+        this.namespaces = namespaces;
 
         ImmutableList.Builder<Member> membersBuilder = ImmutableList.builder();
         for (EnumMemberElement memberElement : element.members()) {
@@ -55,6 +57,15 @@ public class EnumType extends Named {
             annotationBuilder.putAll(anno.values());
         }
         this.annotations = annotationBuilder.build();
+    }
+
+    private EnumType(Builder builder) {
+        super(builder.element.name(), builder.namespaces);
+        this.element = builder.element;
+        this.type = builder.type;
+        this.members = builder.members;
+        this.annotations = builder.annotations;
+        this.namespaces = builder.namespaces;
     }
 
     public String documentation() {
@@ -102,6 +113,63 @@ public class EnumType extends Named {
         return super.isDeprecated()
                 || annotations.containsKey("deprecated")
                 || annotations.containsKey("thrifty.deprecated");
+    }
+
+    public Builder toBuilder(EnumType enumType) {
+        return new Builder(enumType.element,
+                enumType.type,
+                enumType.members,
+                enumType.annotations,
+                enumType.namespaces);
+    }
+
+    public static final class Builder {
+        private EnumElement element;
+        private ThriftType type;
+        private ImmutableList<Member> members;
+        private ImmutableMap<String, String> annotations;
+        private Map<NamespaceScope, String> namespaces;
+
+        public Builder(EnumElement element,
+                       ThriftType type,
+                       ImmutableList<Member> members,
+                       ImmutableMap<String, String> annotations,
+                       Map<NamespaceScope, String> namespaces) {
+            this.element = element;
+            this.type = type;
+            this.members = members;
+            this.annotations = annotations;
+            this.namespaces = namespaces;
+        }
+
+        public Builder setElement(EnumElement element) {
+            this.element = element;
+            return this;
+        }
+
+        public Builder setType(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder setMembers(ImmutableList<Member> members) {
+            this.members = members;
+            return this;
+        }
+
+        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+            this.annotations = annotations;
+            return this;
+        }
+
+        public Builder setNamespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = namespaces;
+            return this;
+        }
+
+        public EnumType build() {
+            return new EnumType(this);
+        }
     }
 
     public static final class Member {

@@ -71,6 +71,16 @@ public class Schema {
         this.services = services.build();
     }
 
+    private Schema(Builder builder) {
+        this.structs = builder.structs;
+        this.unions = builder.unions;
+        this.exceptions = builder.exceptions;
+        this.enums = builder.enums;
+        this.constants = builder.constants;
+        this.typedefs = builder.typedefs;
+        this.services = builder.services;
+    }
+
     public ImmutableList<StructType> structs() {
         return structs;
     }
@@ -106,5 +116,74 @@ public class Schema {
             }
         }
         throw new NoSuchElementException("No enum type matching " + type.name());
+    }
+
+    public Builder toBuilder() {
+        return new Builder(structs, unions, exceptions, enums, constants, typedefs, services);
+    }
+
+    public static final class Builder {
+        private ImmutableList<StructType> structs;
+        private ImmutableList<StructType> unions;
+        private ImmutableList<StructType> exceptions;
+        private ImmutableList<EnumType> enums;
+        private ImmutableList<Constant> constants;
+        private ImmutableList<Typedef> typedefs;
+        private ImmutableList<Service> services;
+
+        Builder(ImmutableList<StructType> structs,
+                ImmutableList<StructType> unions,
+                ImmutableList<StructType> exceptions,
+                ImmutableList<EnumType> enums,
+                ImmutableList<Constant> constants,
+                ImmutableList<Typedef> typedefs,
+                ImmutableList<Service> services) {
+            this.structs = structs;
+            this.unions = unions;
+            this.exceptions = exceptions;
+            this.enums = enums;
+            this.constants = constants;
+            this.typedefs = typedefs;
+            this.services = services;
+        }
+
+        public Builder setStructs(ImmutableList<StructType> structs) {
+            this.structs = structs;
+            return this;
+        }
+
+        public Builder setUnions(ImmutableList<StructType> unions) {
+            this.unions = unions;
+            return this;
+        }
+
+        public Builder setExceptions(ImmutableList<StructType> exceptions) {
+            this.exceptions = exceptions;
+            return this;
+        }
+
+        public Builder setEnums(ImmutableList<EnumType> enums) {
+            this.enums = enums;
+            return this;
+        }
+
+        public Builder setConstants(ImmutableList<Constant> constants) {
+            this.constants = constants;
+            return this;
+        }
+
+        public Builder setTypedefs(ImmutableList<Typedef> typedefs) {
+            this.typedefs = typedefs;
+            return this;
+        }
+
+        public Builder setServices(ImmutableList<Service> services) {
+            this.services = services;
+            return this;
+        }
+
+        public Schema build() {
+            return new Schema(this);
+        }
     }
 }

@@ -61,6 +61,13 @@ public final class ServiceMethod {
         this.annotations = annotationBuilder.build();
     }
 
+    private ServiceMethod(Builder builder) {
+        this.element = builder.element;
+        this.paramTypes = builder.paramTypes;
+        this.exceptionTypes = builder.exceptionTypes;
+        this.annotations = builder.annotations;
+    }
+
     public Location location() {
         return element.location();
     }
@@ -95,6 +102,51 @@ public final class ServiceMethod {
 
     public ImmutableMap<String, String> annotations() {
         return annotations;
+    }
+
+    public Builder toBuilder() {
+        return new Builder(element, paramTypes, exceptionTypes, annotations);
+    }
+
+    public static final class Builder {
+        private FunctionElement element;
+        private ImmutableList<Field> paramTypes;
+        private ImmutableList<Field> exceptionTypes;
+        private ImmutableMap<String, String> annotations;
+
+        public Builder(FunctionElement element,
+                       ImmutableList<Field> paramTypes,
+                       ImmutableList<Field> exceptionTypes,
+                       ImmutableMap<String, String> annotations) {
+            this.element = element;
+            this.paramTypes = paramTypes;
+            this.exceptionTypes = exceptionTypes;
+            this.annotations = annotations;
+        }
+
+        public Builder setElement(FunctionElement element) {
+            this.element = element;
+            return this;
+        }
+
+        public Builder setParamTypes(ImmutableList<Field> paramTypes) {
+            this.paramTypes = paramTypes;
+            return this;
+        }
+
+        public Builder setExceptionTypes(ImmutableList<Field> exceptionTypes) {
+            this.exceptionTypes = exceptionTypes;
+            return this;
+        }
+
+        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+            this.annotations = annotations;
+            return this;
+        }
+
+        public ServiceMethod build() {
+            return new ServiceMethod(this);
+        }
     }
 
     void link(Linker linker) {

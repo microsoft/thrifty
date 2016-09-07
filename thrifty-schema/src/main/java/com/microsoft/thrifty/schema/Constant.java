@@ -29,11 +29,20 @@ import java.util.Map;
 
 public class Constant extends Named {
     private final ConstElement element;
+    private final Map<NamespaceScope, String> namespaces;
     private ThriftType type;
 
     Constant(ConstElement element, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
         this.element = element;
+        this.namespaces = namespaces;
+    }
+
+    public Constant(Builder builder) {
+        super(builder.element.name(), builder.namespaces);
+        this.element = builder.element;
+        this.namespaces = builder.namespaces;
+        this.type = builder.type;
     }
 
     @Override
@@ -52,6 +61,10 @@ public class Constant extends Named {
 
     public ConstValueElement value() {
         return element.value();
+    }
+
+    public Builder toBuilder(Constant constant) {
+        return new Builder(constant.element, constant.namespaces(), constant.type);
     }
 
     void link(Linker linker) {
@@ -82,6 +95,39 @@ public class Constant extends Named {
 
     interface ConstValueValidator {
         void validate(Linker linker, ThriftType expected, ConstValueElement value);
+    }
+
+    private static final class Builder {
+        private ConstElement element;
+        private Map<NamespaceScope, String> namespaces;
+        private ThriftType type;
+
+        public Builder(ConstElement element,
+                       Map<NamespaceScope, String> namespaces,
+                       ThriftType type) {
+            this.element = element;
+            this.namespaces = namespaces;
+            this.type = type;
+        }
+
+        public Builder setElement(ConstElement element) {
+            this.element = element;
+            return this;
+        }
+
+        public Builder setNamespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = namespaces;
+            return this;
+        }
+
+        public Builder setType(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Constant build() {
+            return new Constant(this);
+        }
     }
 
     private static class Validators {
