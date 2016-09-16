@@ -102,7 +102,7 @@ public class StructType extends Named {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, type,fields, annotations, namespaces());
+        return new Builder(element, type, fields, annotations, namespaces());
     }
 
     private static final class Builder {
