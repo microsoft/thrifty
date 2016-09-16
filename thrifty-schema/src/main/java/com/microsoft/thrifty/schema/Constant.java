@@ -110,17 +110,17 @@ public class Constant extends Named {
             this.type = type;
         }
 
-        public Builder setElement(ConstElement element) {
+        public Builder element(ConstElement element) {
             this.element = element;
             return this;
         }
 
-        public Builder setNamespaces(Map<NamespaceScope, String> namespaces) {
+        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
             this.namespaces = namespaces;
             return this;
         }
 
-        public Builder setType(ThriftType type) {
+        public Builder type(ThriftType type) {
             this.type = type;
             return this;
         }

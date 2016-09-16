@@ -124,22 +124,22 @@ public final class ServiceMethod {
             this.annotations = annotations;
         }
 
-        public Builder setElement(FunctionElement element) {
+        public Builder element(FunctionElement element) {
             this.element = element;
             return this;
         }
 
-        public Builder setParamTypes(ImmutableList<Field> paramTypes) {
+        public Builder paramTypes(ImmutableList<Field> paramTypes) {
             this.paramTypes = paramTypes;
             return this;
         }
 
-        public Builder setExceptionTypes(ImmutableList<Field> exceptionTypes) {
+        public Builder exceptionTypes(ImmutableList<Field> exceptionTypes) {
             this.exceptionTypes = exceptionTypes;
             return this;
         }
 
-        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+        public Builder annotations(ImmutableMap<String, String> annotations) {
             this.annotations = annotations;
             return this;
         }

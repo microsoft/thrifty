@@ -25,8 +25,9 @@ import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
+
+import javax.annotation.Nullable;
 
 public final class Field {
     private final FieldElement element;
@@ -146,22 +147,22 @@ public final class Field {
             this.type = type;
         }
 
-        public Builder setElement(FieldElement element) {
+        public Builder element(FieldElement element) {
             this.element = element;
             return this;
         }
 
-        public Builder setFieldNamingPolicy(FieldNamingPolicy fieldNamingPolicy) {
+        public Builder fieldNamingPolicy(FieldNamingPolicy fieldNamingPolicy) {
             this.fieldNamingPolicy = fieldNamingPolicy;
             return this;
         }
 
-        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+        public Builder annotations(ImmutableMap<String, String> annotations) {
             this.annotations = annotations;
             return this;
         }
 
-        public Builder setType(ThriftType type) {
+        public Builder type(ThriftType type) {
             this.type = type;
             return this;
         }

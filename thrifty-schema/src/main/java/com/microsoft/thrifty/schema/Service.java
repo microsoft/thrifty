@@ -119,27 +119,27 @@ public final class Service extends Named {
             this.annotations = annotations;
         }
 
-        public Builder setElement(ServiceElement element) {
+        public Builder element(ServiceElement element) {
             this.element = element;
             return this;
         }
 
-        public Builder setMethods(ImmutableList<ServiceMethod> methods) {
+        public Builder methods(ImmutableList<ServiceMethod> methods) {
             this.methods = methods;
             return this;
         }
 
-        public Builder setType(ThriftType type) {
+        public Builder type(ThriftType type) {
             this.type = type;
             return this;
         }
 
-        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+        public Builder annotations(ImmutableMap<String, String> annotations) {
             this.annotations = annotations;
             return this;
         }
 
-        public Builder setNamespaces(Map<NamespaceScope, String> namespaces) {
+        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
             this.namespaces = namespaces;
             return this;
         }

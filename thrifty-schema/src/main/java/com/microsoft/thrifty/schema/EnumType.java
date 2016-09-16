@@ -142,27 +142,27 @@ public class EnumType extends Named {
             this.namespaces = namespaces;
         }
 
-        public Builder setElement(EnumElement element) {
+        public Builder element(EnumElement element) {
             this.element = element;
             return this;
         }
 
-        public Builder setType(ThriftType type) {
+        public Builder type(ThriftType type) {
             this.type = type;
             return this;
         }
 
-        public Builder setMembers(ImmutableList<Member> members) {
+        public Builder members(ImmutableList<Member> members) {
             this.members = members;
             return this;
         }
 
-        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+        public Builder annotations(ImmutableMap<String, String> annotations) {
             this.annotations = annotations;
             return this;
         }
 
-        public Builder setNamespaces(Map<NamespaceScope, String> namespaces) {
+        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
             this.namespaces = namespaces;
             return this;
         }

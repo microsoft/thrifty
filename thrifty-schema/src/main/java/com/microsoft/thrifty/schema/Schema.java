@@ -147,37 +147,37 @@ public class Schema {
             this.services = services;
         }
 
-        public Builder setStructs(ImmutableList<StructType> structs) {
+        public Builder structs(ImmutableList<StructType> structs) {
             this.structs = structs;
             return this;
         }
 
-        public Builder setUnions(ImmutableList<StructType> unions) {
+        public Builder unions(ImmutableList<StructType> unions) {
             this.unions = unions;
             return this;
         }
 
-        public Builder setExceptions(ImmutableList<StructType> exceptions) {
+        public Builder exceptions(ImmutableList<StructType> exceptions) {
             this.exceptions = exceptions;
             return this;
         }
 
-        public Builder setEnums(ImmutableList<EnumType> enums) {
+        public Builder enums(ImmutableList<EnumType> enums) {
             this.enums = enums;
             return this;
         }
 
-        public Builder setConstants(ImmutableList<Constant> constants) {
+        public Builder constants(ImmutableList<Constant> constants) {
             this.constants = constants;
             return this;
         }
 
-        public Builder setTypedefs(ImmutableList<Typedef> typedefs) {
+        public Builder typedefs(ImmutableList<Typedef> typedefs) {
             this.typedefs = typedefs;
             return this;
         }
 
-        public Builder setServices(ImmutableList<Service> services) {
+        public Builder services(ImmutableList<Service> services) {
             this.services = services;
             return this;
         }

@@ -107,17 +107,17 @@ public final class Typedef extends Named {
             this.namespaces = namespaces;
         }
 
-        public Builder setElement(TypedefElement element) {
+        public Builder element(TypedefElement element) {
             this.element = element;
             return this;
         }
 
-        public Builder setAnnotations(ImmutableMap<String, String> annotations) {
+        public Builder annotations(ImmutableMap<String, String> annotations) {
             this.annotations = annotations;
             return this;
         }
 
-        public Builder setNamespaces(Map<NamespaceScope, String> namespaces) {
+        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
             this.namespaces = namespaces;
             return this;
         }
