@@ -127,8 +127,8 @@ public final class Field {
                 || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@deprecated"));
     }
 
-    public Builder toBuilder(Field field) {
-        return new Builder(field.element, field.fieldNamingPolicy, field.annotations, field.type);
+    public Builder toBuilder() {
+        return new Builder(element, fieldNamingPolicy, annotations, type);
     }
 
     public static final class Builder {

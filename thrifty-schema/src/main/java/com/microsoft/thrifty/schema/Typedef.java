@@ -84,8 +84,8 @@ public final class Typedef extends Named {
         return oldType.annotations();
     }
 
-    public Builder toBuilder(Typedef typeDef) {
-        return new Builder(typeDef.element, typeDef.annotations, typeDef.namespaces);
+    public Builder toBuilder() {
+        return new Builder(element, annotations, namespaces);
     }
 
     boolean link(Linker linker) {

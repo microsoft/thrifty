@@ -63,8 +63,8 @@ public class Constant extends Named {
         return element.value();
     }
 
-    public Builder toBuilder(Constant constant) {
-        return new Builder(constant.element, constant.namespaces(), constant.type);
+    public Builder toBuilder() {
+        return new Builder(element, namespaces(), type);
     }
 
     void link(Linker linker) {

@@ -104,12 +104,8 @@ public class StructType extends Named {
         return element.type() == StructElement.Type.EXCEPTION;
     }
 
-    public Builder toBuilder(StructType structType) {
-        return new Builder(structType.element,
-                structType.type,
-                structType.fields,
-                structType.annotations,
-                structType.namespaces);
+    public Builder toBuilder() {
+        return new Builder(element, type,fields, annotations, namespaces);
     }
 
     private static final class Builder {

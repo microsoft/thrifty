@@ -115,12 +115,12 @@ public class EnumType extends Named {
                 || annotations.containsKey("thrifty.deprecated");
     }
 
-    public Builder toBuilder(EnumType enumType) {
-        return new Builder(enumType.element,
-                enumType.type,
-                enumType.members,
-                enumType.annotations,
-                enumType.namespaces);
+    public Builder toBuilder() {
+        return new Builder(element,
+                type,
+                members,
+                annotations,
+                namespaces);
     }
 
     public static final class Builder {
