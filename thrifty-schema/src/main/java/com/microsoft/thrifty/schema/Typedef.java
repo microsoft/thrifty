@@ -29,14 +29,12 @@ import java.util.Map;
 public final class Typedef extends Named {
     private final TypedefElement element;
     private final ImmutableMap<String, String> annotations;
-    private final Map<NamespaceScope, String> namespaces;
     private ThriftType oldType;
     private ThriftType type;
 
     Typedef(TypedefElement element, Map<NamespaceScope, String> namespaces) {
         super(element.newName(), namespaces);
         this.element = element;
-        this.namespaces = namespaces;
 
         ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
         AnnotationElement anno = element.annotations();
@@ -50,7 +48,6 @@ public final class Typedef extends Named {
         super(builder.element.newName(), builder.namespaces);
         this.element = builder.element;
         this.annotations = builder.annotations;
-        this.namespaces = builder.namespaces;
     }
 
     @Override
@@ -85,7 +82,7 @@ public final class Typedef extends Named {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, annotations, namespaces);
+        return new Builder(element, annotations, namespaces());
     }
 
     boolean link(Linker linker) {

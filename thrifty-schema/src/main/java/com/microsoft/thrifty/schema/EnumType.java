@@ -36,14 +36,12 @@ public class EnumType extends Named {
     private final ThriftType type;
     private final ImmutableList<Member> members;
     private final ImmutableMap<String, String> annotations;
-    private final Map<NamespaceScope, String> namespaces;
 
     @VisibleForTesting
     EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
-        this.namespaces = namespaces;
 
         ImmutableList.Builder<Member> membersBuilder = ImmutableList.builder();
         for (EnumMemberElement memberElement : element.members()) {
@@ -65,7 +63,6 @@ public class EnumType extends Named {
         this.type = builder.type;
         this.members = builder.members;
         this.annotations = builder.annotations;
-        this.namespaces = builder.namespaces;
     }
 
     public String documentation() {
@@ -120,7 +117,7 @@ public class EnumType extends Named {
                 type,
                 members,
                 annotations,
-                namespaces);
+                namespaces());
     }
 
     public static final class Builder {

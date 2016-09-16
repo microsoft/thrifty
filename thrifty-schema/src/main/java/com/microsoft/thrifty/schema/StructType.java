@@ -34,7 +34,6 @@ public class StructType extends Named {
     private final ThriftType type;
     private final ImmutableList<Field> fields;
     private final ImmutableMap<String, String> annotations;
-    private final Map<NamespaceScope, String> namespaces;
 
     StructType(
             StructElement element,
@@ -44,7 +43,6 @@ public class StructType extends Named {
         super(element.name(), namespaces);
         this.element = element;
         this.type = type;
-        this.namespaces = namespaces;
 
         ImmutableList.Builder<Field> fieldsBuilder = ImmutableList.builder();
         for (FieldElement fieldElement : element.fields()) {
@@ -66,7 +64,6 @@ public class StructType extends Named {
         this.type = builder.type;
         this.fields = builder.fields;
         this.annotations = builder.annotations;
-        this.namespaces = builder.namespaces;
     }
 
     @Override
@@ -105,7 +102,7 @@ public class StructType extends Named {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, type,fields, annotations, namespaces);
+        return new Builder(element, type,fields, annotations, namespaces());
     }
 
     private static final class Builder {

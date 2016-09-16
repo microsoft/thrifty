@@ -29,19 +29,16 @@ import java.util.Map;
 
 public class Constant extends Named {
     private final ConstElement element;
-    private final Map<NamespaceScope, String> namespaces;
     private ThriftType type;
 
     Constant(ConstElement element, Map<NamespaceScope, String> namespaces) {
         super(element.name(), namespaces);
         this.element = element;
-        this.namespaces = namespaces;
     }
 
     private Constant(Builder builder) {
         super(builder.element.name(), builder.namespaces);
         this.element = builder.element;
-        this.namespaces = builder.namespaces;
         this.type = builder.type;
     }
 
