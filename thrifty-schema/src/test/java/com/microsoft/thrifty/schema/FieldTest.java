@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.TypeElement;
@@ -27,8 +28,10 @@ import org.junit.Test;
 
 import java.util.Collections;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class FieldTest {
     @Test
@@ -127,6 +130,33 @@ public class FieldTest {
 
         Field field = new Field(element, FieldNamingPolicy.DEFAULT);
         assertTrue(field.isObfuscated());
+    }
+
+    @Test
+    public void builderCreatesCorrectField() {
+        FieldElement fieldElement = mock(FieldElement.class);
+        FieldNamingPolicy fieldNamingPolicy = mock(FieldNamingPolicy.class);
+        Field field = new Field(fieldElement, fieldNamingPolicy);
+
+        ImmutableMap<String, String> annotations = ImmutableMap.of();
+        ThriftType thriftType = mock(ThriftType.class);
+
+        Field builderField = field.toBuilder()
+                .annotations(annotations)
+                .type(thriftType)
+                .build();
+
+        assertEquals(builderField.annotations(), annotations);
+        assertEquals(builderField.type(), thriftType);
+    }
+
+    @Test
+    public void toBuilderCreatesCorrectField() {
+        FieldElement fieldElement = mock(FieldElement.class);
+        FieldNamingPolicy fieldNamingPolicy = mock(FieldNamingPolicy.class);
+        Field field = new Field(fieldElement, fieldNamingPolicy);
+
+        assertEquals(field.toBuilder().build(), field);
     }
 
     private AnnotationElement annotation(String name) {

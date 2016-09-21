@@ -148,6 +148,9 @@ public final class Field {
         }
 
         public Builder element(FieldElement element) {
+            if (element == null) {
+                throw new NullPointerException("element may not be null.");
+            }
             this.element = element;
             return this;
         }
@@ -198,5 +201,31 @@ public final class Field {
                 linker.addError(value.location(), e.getMessage());
             }
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+
+        Field field = (Field) o;
+
+        if (!element.equals(field.element)) { return false; }
+        if (fieldNamingPolicy != null ? !fieldNamingPolicy.equals(field.fieldNamingPolicy) :
+                field.fieldNamingPolicy != null) { return false; }
+        if (annotations != null ? !annotations.equals(field.annotations) : field.annotations != null) { return false; }
+        if (type != null ? !type.equals(field.type) : field.type != null) { return false; }
+        return javaName != null ? javaName.equals(field.javaName) : field.javaName == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element.hashCode();
+        result = 31 * result + (fieldNamingPolicy != null ? fieldNamingPolicy.hashCode() : 0);
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (javaName != null ? javaName.hashCode() : 0);
+        return result;
     }
 }
