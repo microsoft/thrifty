@@ -207,4 +207,33 @@ public class Schema {
             return new Schema(this);
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+
+        Schema schema = (Schema) o;
+
+        if (!structs.equals(schema.structs)) { return false; }
+        if (!unions.equals(schema.unions)) { return false; }
+        if (!exceptions.equals(schema.exceptions)) { return false; }
+        if (!enums.equals(schema.enums)) { return false; }
+        if (!constants.equals(schema.constants)) { return false; }
+        if (!typedefs.equals(schema.typedefs)) { return false; }
+        return services.equals(schema.services);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = structs.hashCode();
+        result = 31 * result + unions.hashCode();
+        result = 31 * result + exceptions.hashCode();
+        result = 31 * result + enums.hashCode();
+        result = 31 * result + constants.hashCode();
+        result = 31 * result + typedefs.hashCode();
+        result = 31 * result + services.hashCode();
+        return result;
+    }
 }
