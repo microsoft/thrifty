@@ -125,6 +125,9 @@ public final class Service extends Named {
         }
 
         public Builder methods(ImmutableList<ServiceMethod> methods) {
+            if (methods == null) {
+                throw new NullPointerException("methods may not be null");
+            }
             this.methods = methods;
             return this;
         }

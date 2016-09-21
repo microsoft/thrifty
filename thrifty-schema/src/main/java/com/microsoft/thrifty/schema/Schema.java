@@ -148,36 +148,57 @@ public class Schema {
         }
 
         public Builder structs(ImmutableList<StructType> structs) {
+            if (structs == null) {
+                throw new NullPointerException("structs may not be null");
+            }
             this.structs = structs;
             return this;
         }
 
         public Builder unions(ImmutableList<StructType> unions) {
+            if (structs == null) {
+                throw new NullPointerException("unions may not be null");
+            }
             this.unions = unions;
             return this;
         }
 
         public Builder exceptions(ImmutableList<StructType> exceptions) {
+            if (structs == null) {
+                throw new NullPointerException("exceptions may not be null");
+            }
             this.exceptions = exceptions;
             return this;
         }
 
         public Builder enums(ImmutableList<EnumType> enums) {
+            if (structs == null) {
+                throw new NullPointerException("enums may not be null");
+            }
             this.enums = enums;
             return this;
         }
 
         public Builder constants(ImmutableList<Constant> constants) {
+            if (structs == null) {
+                throw new NullPointerException("constants may not be null");
+            }
             this.constants = constants;
             return this;
         }
 
         public Builder typedefs(ImmutableList<Typedef> typedefs) {
+            if (structs == null) {
+                throw new NullPointerException("typedefs may not be null");
+            }
             this.typedefs = typedefs;
             return this;
         }
 
         public Builder services(ImmutableList<Service> services) {
+            if (structs == null) {
+                throw new NullPointerException("services may not be null");
+            }
             this.services = services;
             return this;
         }
