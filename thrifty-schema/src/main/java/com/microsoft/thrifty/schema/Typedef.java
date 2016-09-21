@@ -91,6 +91,31 @@ public final class Typedef extends Named {
         return true;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+
+        Typedef typedef = (Typedef) o;
+
+        if (!element.equals(typedef.element)) { return false; }
+        if (annotations != null ? !annotations.equals(typedef.annotations) : typedef.annotations != null) {
+            return false;
+        }
+        if (oldType != null ? !oldType.equals(typedef.oldType) : typedef.oldType != null) { return false; }
+        return type != null ? type.equals(typedef.type) : typedef.type == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element.hashCode();
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        result = 31 * result + (oldType != null ? oldType.hashCode() : 0);
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        return result;
+    }
+
     public static final class Builder {
         private TypedefElement element;
         private ImmutableMap<String, String> annotations;
@@ -105,6 +130,9 @@ public final class Typedef extends Named {
         }
 
         public Builder element(TypedefElement element) {
+            if (element == null) {
+                throw new NullPointerException("element can't be null.");
+            }
             this.element = element;
             return this;
         }
