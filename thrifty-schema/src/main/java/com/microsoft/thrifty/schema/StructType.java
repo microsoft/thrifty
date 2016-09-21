@@ -105,7 +105,7 @@ public class StructType extends Named {
         return new Builder(element, type, fields, annotations, namespaces());
     }
 
-    private static final class Builder {
+    public static final class Builder {
         private StructElement element;
         private ThriftType type;
         private ImmutableList<Field> fields;
@@ -125,6 +125,9 @@ public class StructType extends Named {
         }
 
         public Builder element(StructElement element) {
+            if (element == null) {
+                throw new NullPointerException("element can't be null.");
+            }
             this.element = element;
             return this;
         }
@@ -159,6 +162,29 @@ public class StructType extends Named {
         return super.isDeprecated()
                 || annotations.containsKey("deprecated")
                 || annotations.containsKey("thrifty.deprecated");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+
+        StructType that = (StructType) o;
+
+        if (!element.equals(that.element)) { return false; }
+        if (type != null ? !type.equals(that.type) : that.type != null) { return false; }
+        if (fields != null ? !fields.equals(that.fields) : that.fields != null) { return false; }
+        return annotations != null ? annotations.equals(that.annotations) : that.annotations == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element.hashCode();
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (fields != null ? fields.hashCode() : 0);
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        return result;
     }
 
     void link(Linker linker) {
