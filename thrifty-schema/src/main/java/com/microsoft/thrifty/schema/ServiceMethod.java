@@ -216,17 +216,27 @@ public final class ServiceMethod {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ServiceMethod that = (ServiceMethod) o;
 
-        if (!element.equals(that.element)) { return false; }
-        if (paramTypes != null ? !paramTypes.equals(that.paramTypes) : that.paramTypes != null) { return false; }
+        if (!element.equals(that.element)) {
+            return false;
+        }
+        if (paramTypes != null ? !paramTypes.equals(that.paramTypes) : that.paramTypes != null) {
+            return false;
+        }
         if (exceptionTypes != null ? !exceptionTypes.equals(that.exceptionTypes) : that.exceptionTypes != null) {
             return false;
         }
-        if (annotations != null ? !annotations.equals(that.annotations) : that.annotations != null) { return false; }
+        if (annotations != null ? !annotations.equals(that.annotations) : that.annotations != null) {
+            return false;
+        }
         return returnType != null ? returnType.equals(that.returnType) : that.returnType == null;
 
     }

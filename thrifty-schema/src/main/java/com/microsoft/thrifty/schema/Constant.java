@@ -92,12 +92,18 @@ public class Constant extends Named {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Constant constant = (Constant) o;
 
-        if (element != null ? !element.equals(constant.element) : constant.element != null) { return false; }
+        if (element != null ? !element.equals(constant.element) : constant.element != null) {
+            return false;
+        }
         return type != null ? type.equals(constant.type) : constant.type == null;
     }
 

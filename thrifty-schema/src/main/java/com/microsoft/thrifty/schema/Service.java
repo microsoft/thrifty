@@ -239,14 +239,24 @@ public final class Service extends Named {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Service service = (Service) o;
 
-        if (!element.equals(service.element)) { return false; }
-        if (!methods.equals(service.methods)) { return false; }
-        if (type != null ? !type.equals(service.type) : service.type != null) { return false; }
+        if (!element.equals(service.element)) {
+            return false;
+        }
+        if (!methods.equals(service.methods)) {
+            return false;
+        }
+        if (type != null ? !type.equals(service.type) : service.type != null) {
+            return false;
+        }
         if (annotations != null ? !annotations.equals(service.annotations) : service.annotations != null) {
             return false;
         }

@@ -37,6 +37,7 @@ public class EnumTypeTest {
     @Test
     public void builderCreatesCorrectEnumType() {
         EnumElement enumElement = mock(EnumElement.class);
+        when(enumElement.name()).thenReturn("name");
         ThriftType thriftType = mock(ThriftType.class);
         ImmutableList<EnumType.Member> members = ImmutableList.of();
         ImmutableMap<String, String> annotations = ImmutableMap.of();

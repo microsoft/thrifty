@@ -114,14 +114,24 @@ public class EnumType extends Named {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         EnumType enumType = (EnumType) o;
 
-        if (!element.equals(enumType.element)) { return false; }
-        if (type != null ? !type.equals(enumType.type) : enumType.type != null) { return false; }
-        if (members != null ? !members.equals(enumType.members) : enumType.members != null) { return false; }
+        if (!element.equals(enumType.element)) {
+            return false;
+        }
+        if (type != null ? !type.equals(enumType.type) : enumType.type != null) {
+            return false;
+        }
+        if (members != null ? !members.equals(enumType.members) : enumType.members != null) {
+            return false;
+        }
         return annotations != null ? annotations.equals(enumType.annotations) : enumType.annotations == null;
 
     }

@@ -93,16 +93,24 @@ public final class Typedef extends Named {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Typedef typedef = (Typedef) o;
 
-        if (!element.equals(typedef.element)) { return false; }
+        if (!element.equals(typedef.element)) {
+            return false;
+        }
         if (annotations != null ? !annotations.equals(typedef.annotations) : typedef.annotations != null) {
             return false;
         }
-        if (oldType != null ? !oldType.equals(typedef.oldType) : typedef.oldType != null) { return false; }
+        if (oldType != null ? !oldType.equals(typedef.oldType) : typedef.oldType != null) {
+            return false;
+        }
         return type != null ? type.equals(typedef.type) : typedef.type == null;
 
     }

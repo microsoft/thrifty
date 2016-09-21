@@ -210,17 +210,33 @@ public class Schema {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Schema schema = (Schema) o;
 
-        if (!structs.equals(schema.structs)) { return false; }
-        if (!unions.equals(schema.unions)) { return false; }
-        if (!exceptions.equals(schema.exceptions)) { return false; }
-        if (!enums.equals(schema.enums)) { return false; }
-        if (!constants.equals(schema.constants)) { return false; }
-        if (!typedefs.equals(schema.typedefs)) { return false; }
+        if (!structs.equals(schema.structs)) {
+            return false;
+        }
+        if (!unions.equals(schema.unions)) {
+            return false;
+        }
+        if (!exceptions.equals(schema.exceptions)) {
+            return false;
+        }
+        if (!enums.equals(schema.enums)) {
+            return false;
+        }
+        if (!constants.equals(schema.constants)) {
+            return false;
+        }
+        if (!typedefs.equals(schema.typedefs)) {
+            return false;
+        }
         return services.equals(schema.services);
 
     }

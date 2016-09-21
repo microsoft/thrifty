@@ -166,14 +166,24 @@ public class StructType extends Named {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o == null || getClass() != o.getClass()) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         StructType that = (StructType) o;
 
-        if (!element.equals(that.element)) { return false; }
-        if (type != null ? !type.equals(that.type) : that.type != null) { return false; }
-        if (fields != null ? !fields.equals(that.fields) : that.fields != null) { return false; }
+        if (!element.equals(that.element)) {
+            return false;
+        }
+        if (type != null ? !type.equals(that.type) : that.type != null) {
+            return false;
+        }
+        if (fields != null ? !fields.equals(that.fields) : that.fields != null) {
+            return false;
+        }
         return annotations != null ? annotations.equals(that.annotations) : that.annotations == null;
 
     }
