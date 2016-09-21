@@ -112,6 +112,29 @@ public class EnumType extends Named {
                 || annotations.containsKey("thrifty.deprecated");
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+
+        EnumType enumType = (EnumType) o;
+
+        if (!element.equals(enumType.element)) { return false; }
+        if (type != null ? !type.equals(enumType.type) : enumType.type != null) { return false; }
+        if (members != null ? !members.equals(enumType.members) : enumType.members != null) { return false; }
+        return annotations != null ? annotations.equals(enumType.annotations) : enumType.annotations == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element.hashCode();
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (members != null ? members.hashCode() : 0);
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        return result;
+    }
+
     public Builder toBuilder() {
         return new Builder(element,
                 type,
@@ -140,6 +163,9 @@ public class EnumType extends Named {
         }
 
         public Builder element(EnumElement element) {
+            if (element == null) {
+                throw new NullPointerException("element may not be null.");
+            }
             this.element = element;
             return this;
         }
