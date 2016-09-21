@@ -125,6 +125,9 @@ public final class ServiceMethod {
         }
 
         public Builder element(FunctionElement element) {
+            if (element == null) {
+                throw new NullPointerException("element can't be null.");
+            }
             this.element = element;
             return this;
         }
@@ -209,5 +212,32 @@ public final class ServiceMethod {
 
             linker.addError(field.location(), "Only exception types can be thrown");
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+
+        ServiceMethod that = (ServiceMethod) o;
+
+        if (!element.equals(that.element)) { return false; }
+        if (paramTypes != null ? !paramTypes.equals(that.paramTypes) : that.paramTypes != null) { return false; }
+        if (exceptionTypes != null ? !exceptionTypes.equals(that.exceptionTypes) : that.exceptionTypes != null) {
+            return false;
+        }
+        if (annotations != null ? !annotations.equals(that.annotations) : that.annotations != null) { return false; }
+        return returnType != null ? returnType.equals(that.returnType) : that.returnType == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element.hashCode();
+        result = 31 * result + (paramTypes != null ? paramTypes.hashCode() : 0);
+        result = 31 * result + (exceptionTypes != null ? exceptionTypes.hashCode() : 0);
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        result = 31 * result + (returnType != null ? returnType.hashCode() : 0);
+        return result;
     }
 }
