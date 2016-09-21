@@ -90,6 +90,24 @@ public class Constant extends Named {
         Validators.forType(trueExpectedType).validate(linker, trueExpectedType, value);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+
+        Constant constant = (Constant) o;
+
+        if (element != null ? !element.equals(constant.element) : constant.element != null) { return false; }
+        return type != null ? type.equals(constant.type) : constant.type == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element != null ? element.hashCode() : 0;
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        return result;
+    }
+
     interface ConstValueValidator {
         void validate(Linker linker, ThriftType expected, ConstValueElement value);
     }
@@ -108,6 +126,9 @@ public class Constant extends Named {
         }
 
         public Builder element(ConstElement element) {
+            if (element == null) {
+                throw new NullPointerException("element may not be null.");
+            }
             this.element = element;
             return this;
         }
