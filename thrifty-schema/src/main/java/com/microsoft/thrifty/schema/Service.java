@@ -99,7 +99,7 @@ public final class Service extends Named {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, methods, type, annotations);
+        return new Builder(element, methods, type, annotations, namespaces());
     }
 
     public static final class Builder {
@@ -112,14 +112,19 @@ public final class Service extends Named {
         Builder(ServiceElement element,
                ImmutableList<ServiceMethod> methods,
                ThriftType type,
-               ImmutableMap<String, String> annotations) {
+               ImmutableMap<String, String> annotations,
+                Map<NamespaceScope, String> namespaces) {
             this.element = element;
             this.methods = methods;
             this.type = type;
             this.annotations = annotations;
+            this.namespaces = namespaces;
         }
 
         public Builder element(ServiceElement element) {
+            if (element == null) {
+                throw new NullPointerException("element may not be null");
+            }
             this.element = element;
             return this;
         }
@@ -233,16 +238,29 @@ public final class Service extends Named {
     }
 
     @Override
-    public boolean equals(Object other) {
-        if (this == other) return true;
-        if (!(other instanceof Service)) return false;
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
 
-        Service that = (Service) other;
-        return this.element.equals(that.element);
+        Service service = (Service) o;
+
+        if (!element.equals(service.element)) { return false; }
+        if (!methods.equals(service.methods)) { return false; }
+        if (type != null ? !type.equals(service.type) : service.type != null) { return false; }
+        if (annotations != null ? !annotations.equals(service.annotations) : service.annotations != null) {
+            return false;
+        }
+        return extendsService != null ? extendsService.equals(service.extendsService) : service.extendsService == null;
+
     }
 
     @Override
     public int hashCode() {
-        return this.element.hashCode();
+        int result = element.hashCode();
+        result = 31 * result + methods.hashCode();
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        result = 31 * result + (extendsService != null ? extendsService.hashCode() : 0);
+        return result;
     }
 }
