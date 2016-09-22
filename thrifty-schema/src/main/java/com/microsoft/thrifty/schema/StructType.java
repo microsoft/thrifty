@@ -58,6 +58,14 @@ public class StructType extends Named {
         this.annotations = annotationBuilder.build();
     }
 
+    private StructType(Builder builder) {
+        super(builder.element.name(), builder.namespaces);
+        this.element = builder.element;
+        this.type = builder.type;
+        this.fields = builder.fields;
+        this.annotations = builder.annotations;
+    }
+
     @Override
     public ThriftType type() {
         return type;
@@ -93,11 +101,100 @@ public class StructType extends Named {
         return element.type() == StructElement.Type.EXCEPTION;
     }
 
+    public Builder toBuilder() {
+        return new Builder(element, type, fields, annotations, namespaces());
+    }
+
+    public static final class Builder {
+        private StructElement element;
+        private ThriftType type;
+        private ImmutableList<Field> fields;
+        private ImmutableMap<String, String> annotations;
+        private Map<NamespaceScope, String> namespaces;
+
+        Builder(StructElement element,
+                       ThriftType type,
+                       ImmutableList<Field> fields,
+                       ImmutableMap<String, String> annotations,
+                       Map<NamespaceScope, String> namespaces) {
+            this.element = element;
+            this.type = type;
+            this.fields = fields;
+            this.annotations = annotations;
+            this.namespaces = namespaces;
+        }
+
+        public Builder element(StructElement element) {
+            if (element == null) {
+                throw new NullPointerException("element can't be null.");
+            }
+            this.element = element;
+            return this;
+        }
+
+        public Builder type(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder fields(ImmutableList<Field> fields) {
+            this.fields = fields;
+            return this;
+        }
+
+        public Builder annotations(ImmutableMap<String, String> annotations) {
+            this.annotations = annotations;
+            return this;
+        }
+
+        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = namespaces;
+            return this;
+        }
+
+        public StructType build() {
+            return new StructType(this);
+        }
+    }
+
     @Override
     public boolean isDeprecated() {
         return super.isDeprecated()
                 || annotations.containsKey("deprecated")
                 || annotations.containsKey("thrifty.deprecated");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        StructType that = (StructType) o;
+
+        if (!element.equals(that.element)) {
+            return false;
+        }
+        if (type != null ? !type.equals(that.type) : that.type != null) {
+            return false;
+        }
+        if (fields != null ? !fields.equals(that.fields) : that.fields != null) {
+            return false;
+        }
+        return annotations != null ? annotations.equals(that.annotations) : that.annotations == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element.hashCode();
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (fields != null ? fields.hashCode() : 0);
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        return result;
     }
 
     void link(Linker linker) {

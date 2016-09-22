@@ -61,6 +61,13 @@ public final class ServiceMethod {
         this.annotations = annotationBuilder.build();
     }
 
+    private ServiceMethod(Builder builder) {
+        this.element = builder.element;
+        this.paramTypes = builder.paramTypes;
+        this.exceptionTypes = builder.exceptionTypes;
+        this.annotations = builder.annotations;
+    }
+
     public Location location() {
         return element.location();
     }
@@ -95,6 +102,54 @@ public final class ServiceMethod {
 
     public ImmutableMap<String, String> annotations() {
         return annotations;
+    }
+
+    public Builder toBuilder() {
+        return new Builder(element, paramTypes, exceptionTypes, annotations);
+    }
+
+    public static final class Builder {
+        private FunctionElement element;
+        private ImmutableList<Field> paramTypes;
+        private ImmutableList<Field> exceptionTypes;
+        private ImmutableMap<String, String> annotations;
+
+        Builder(FunctionElement element,
+                       ImmutableList<Field> paramTypes,
+                       ImmutableList<Field> exceptionTypes,
+                       ImmutableMap<String, String> annotations) {
+            this.element = element;
+            this.paramTypes = paramTypes;
+            this.exceptionTypes = exceptionTypes;
+            this.annotations = annotations;
+        }
+
+        public Builder element(FunctionElement element) {
+            if (element == null) {
+                throw new NullPointerException("element can't be null.");
+            }
+            this.element = element;
+            return this;
+        }
+
+        public Builder paramTypes(ImmutableList<Field> paramTypes) {
+            this.paramTypes = paramTypes;
+            return this;
+        }
+
+        public Builder exceptionTypes(ImmutableList<Field> exceptionTypes) {
+            this.exceptionTypes = exceptionTypes;
+            return this;
+        }
+
+        public Builder annotations(ImmutableMap<String, String> annotations) {
+            this.annotations = annotations;
+            return this;
+        }
+
+        public ServiceMethod build() {
+            return new ServiceMethod(this);
+        }
     }
 
     void link(Linker linker) {
@@ -157,5 +212,42 @@ public final class ServiceMethod {
 
             linker.addError(field.location(), "Only exception types can be thrown");
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        ServiceMethod that = (ServiceMethod) o;
+
+        if (!element.equals(that.element)) {
+            return false;
+        }
+        if (paramTypes != null ? !paramTypes.equals(that.paramTypes) : that.paramTypes != null) {
+            return false;
+        }
+        if (exceptionTypes != null ? !exceptionTypes.equals(that.exceptionTypes) : that.exceptionTypes != null) {
+            return false;
+        }
+        if (annotations != null ? !annotations.equals(that.annotations) : that.annotations != null) {
+            return false;
+        }
+        return returnType != null ? returnType.equals(that.returnType) : that.returnType == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element.hashCode();
+        result = 31 * result + (paramTypes != null ? paramTypes.hashCode() : 0);
+        result = 31 * result + (exceptionTypes != null ? exceptionTypes.hashCode() : 0);
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        result = 31 * result + (returnType != null ? returnType.hashCode() : 0);
+        return result;
     }
 }

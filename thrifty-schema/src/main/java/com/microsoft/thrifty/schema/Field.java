@@ -25,8 +25,9 @@ import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
+
+import javax.annotation.Nullable;
 
 public final class Field {
     private final FieldElement element;
@@ -46,6 +47,13 @@ public final class Field {
             annotationBuilder.putAll(anno.values());
         }
         this.annotations = annotationBuilder.build();
+    }
+
+    private Field(Builder builder) {
+        this.element = builder.element;
+        this.fieldNamingPolicy = builder.fieldNamingPolicy;
+        this.annotations = builder.annotations;
+        this.type = builder.type;
     }
 
     public Location location() {
@@ -119,6 +127,54 @@ public final class Field {
                 || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@deprecated"));
     }
 
+    public Builder toBuilder() {
+        return new Builder(element, fieldNamingPolicy, annotations, type);
+    }
+
+    public static final class Builder {
+        private FieldElement element;
+        private FieldNamingPolicy fieldNamingPolicy;
+        private ImmutableMap<String, String> annotations;
+        private ThriftType type;
+
+        Builder(FieldElement element,
+                       FieldNamingPolicy fieldNamingPolicy,
+                       ImmutableMap<String, String> annotations,
+                       ThriftType type) {
+            this.element = element;
+            this.fieldNamingPolicy = fieldNamingPolicy;
+            this.annotations = annotations;
+            this.type = type;
+        }
+
+        public Builder element(FieldElement element) {
+            if (element == null) {
+                throw new NullPointerException("element may not be null.");
+            }
+            this.element = element;
+            return this;
+        }
+
+        public Builder fieldNamingPolicy(FieldNamingPolicy fieldNamingPolicy) {
+            this.fieldNamingPolicy = fieldNamingPolicy;
+            return this;
+        }
+
+        public Builder annotations(ImmutableMap<String, String> annotations) {
+            this.annotations = annotations;
+            return this;
+        }
+
+        public Builder type(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Field build() {
+            return new Field(this);
+        }
+    }
+
     void setType(ThriftType type) {
         this.type = type;
     }
@@ -145,5 +201,43 @@ public final class Field {
                 linker.addError(value.location(), e.getMessage());
             }
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Field field = (Field) o;
+
+        if (!element.equals(field.element)) {
+            return false;
+        }
+        if (fieldNamingPolicy != null ? !fieldNamingPolicy.equals(field.fieldNamingPolicy)
+                : field.fieldNamingPolicy != null) {
+            return false;
+        }
+        if (annotations != null ? !annotations.equals(field.annotations) : field.annotations != null) {
+            return false;
+        }
+        if (type != null ? !type.equals(field.type) : field.type != null) {
+            return false;
+        }
+        return javaName != null ? javaName.equals(field.javaName) : field.javaName == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element.hashCode();
+        result = 31 * result + (fieldNamingPolicy != null ? fieldNamingPolicy.hashCode() : 0);
+        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (javaName != null ? javaName.hashCode() : 0);
+        return result;
     }
 }

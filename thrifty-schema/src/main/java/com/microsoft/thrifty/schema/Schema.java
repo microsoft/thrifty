@@ -71,6 +71,16 @@ public class Schema {
         this.services = services.build();
     }
 
+    private Schema(Builder builder) {
+        this.structs = builder.structs;
+        this.unions = builder.unions;
+        this.exceptions = builder.exceptions;
+        this.enums = builder.enums;
+        this.constants = builder.constants;
+        this.typedefs = builder.typedefs;
+        this.services = builder.services;
+    }
+
     public ImmutableList<StructType> structs() {
         return structs;
     }
@@ -106,5 +116,140 @@ public class Schema {
             }
         }
         throw new NoSuchElementException("No enum type matching " + type.name());
+    }
+
+    public Builder toBuilder() {
+        return new Builder(structs, unions, exceptions, enums, constants, typedefs, services);
+    }
+
+    public static final class Builder {
+        private ImmutableList<StructType> structs;
+        private ImmutableList<StructType> unions;
+        private ImmutableList<StructType> exceptions;
+        private ImmutableList<EnumType> enums;
+        private ImmutableList<Constant> constants;
+        private ImmutableList<Typedef> typedefs;
+        private ImmutableList<Service> services;
+
+        Builder(ImmutableList<StructType> structs,
+                ImmutableList<StructType> unions,
+                ImmutableList<StructType> exceptions,
+                ImmutableList<EnumType> enums,
+                ImmutableList<Constant> constants,
+                ImmutableList<Typedef> typedefs,
+                ImmutableList<Service> services) {
+            this.structs = structs;
+            this.unions = unions;
+            this.exceptions = exceptions;
+            this.enums = enums;
+            this.constants = constants;
+            this.typedefs = typedefs;
+            this.services = services;
+        }
+
+        public Builder structs(ImmutableList<StructType> structs) {
+            if (structs == null) {
+                throw new NullPointerException("structs may not be null");
+            }
+            this.structs = structs;
+            return this;
+        }
+
+        public Builder unions(ImmutableList<StructType> unions) {
+            if (unions == null) {
+                throw new NullPointerException("unions may not be null");
+            }
+            this.unions = unions;
+            return this;
+        }
+
+        public Builder exceptions(ImmutableList<StructType> exceptions) {
+            if (exceptions == null) {
+                throw new NullPointerException("exceptions may not be null");
+            }
+            this.exceptions = exceptions;
+            return this;
+        }
+
+        public Builder enums(ImmutableList<EnumType> enums) {
+            if (enums == null) {
+                throw new NullPointerException("enums may not be null");
+            }
+            this.enums = enums;
+            return this;
+        }
+
+        public Builder constants(ImmutableList<Constant> constants) {
+            if (constants == null) {
+                throw new NullPointerException("constants may not be null");
+            }
+            this.constants = constants;
+            return this;
+        }
+
+        public Builder typedefs(ImmutableList<Typedef> typedefs) {
+            if (typedefs == null) {
+                throw new NullPointerException("typedefs may not be null");
+            }
+            this.typedefs = typedefs;
+            return this;
+        }
+
+        public Builder services(ImmutableList<Service> services) {
+            if (services == null) {
+                throw new NullPointerException("services may not be null");
+            }
+            this.services = services;
+            return this;
+        }
+
+        public Schema build() {
+            return new Schema(this);
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Schema schema = (Schema) o;
+
+        if (!structs.equals(schema.structs)) {
+            return false;
+        }
+        if (!unions.equals(schema.unions)) {
+            return false;
+        }
+        if (!exceptions.equals(schema.exceptions)) {
+            return false;
+        }
+        if (!enums.equals(schema.enums)) {
+            return false;
+        }
+        if (!constants.equals(schema.constants)) {
+            return false;
+        }
+        if (!typedefs.equals(schema.typedefs)) {
+            return false;
+        }
+        return services.equals(schema.services);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = structs.hashCode();
+        result = 31 * result + unions.hashCode();
+        result = 31 * result + exceptions.hashCode();
+        result = 31 * result + enums.hashCode();
+        result = 31 * result + constants.hashCode();
+        result = 31 * result + typedefs.hashCode();
+        result = 31 * result + services.hashCode();
+        return result;
     }
 }

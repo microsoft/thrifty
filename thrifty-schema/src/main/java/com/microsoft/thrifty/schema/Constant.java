@@ -36,6 +36,12 @@ public class Constant extends Named {
         this.element = element;
     }
 
+    private Constant(Builder builder) {
+        super(builder.element.name(), builder.namespaces);
+        this.element = builder.element;
+        this.type = builder.type;
+    }
+
     @Override
     public ThriftType type() {
         return type;
@@ -52,6 +58,10 @@ public class Constant extends Named {
 
     public ConstValueElement value() {
         return element.value();
+    }
+
+    public Builder toBuilder() {
+        return new Builder(element, namespaces(), type);
     }
 
     void link(Linker linker) {
@@ -80,8 +90,68 @@ public class Constant extends Named {
         Validators.forType(trueExpectedType).validate(linker, trueExpectedType, value);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Constant constant = (Constant) o;
+
+        if (element != null ? !element.equals(constant.element) : constant.element != null) {
+            return false;
+        }
+        return type != null ? type.equals(constant.type) : constant.type == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = element != null ? element.hashCode() : 0;
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        return result;
+    }
+
     interface ConstValueValidator {
         void validate(Linker linker, ThriftType expected, ConstValueElement value);
+    }
+
+    public static final class Builder {
+        private ConstElement element;
+        private Map<NamespaceScope, String> namespaces;
+        private ThriftType type;
+
+        Builder(ConstElement element,
+                       Map<NamespaceScope, String> namespaces,
+                       ThriftType type) {
+            this.element = element;
+            this.namespaces = namespaces;
+            this.type = type;
+        }
+
+        public Builder element(ConstElement element) {
+            if (element == null) {
+                throw new NullPointerException("element may not be null.");
+            }
+            this.element = element;
+            return this;
+        }
+
+        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = namespaces;
+            return this;
+        }
+
+        public Builder type(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Constant build() {
+            return new Constant(this);
+        }
     }
 
     private static class Validators {
