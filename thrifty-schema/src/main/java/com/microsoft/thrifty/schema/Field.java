@@ -224,10 +224,7 @@ public final class Field {
         if (annotations != null ? !annotations.equals(field.annotations) : field.annotations != null) {
             return false;
         }
-        if (type != null ? !type.equals(field.type) : field.type != null) {
-            return false;
-        }
-        return javaName != null ? javaName.equals(field.javaName) : field.javaName == null;
+        return type != null ? type.equals(field.type) : field.type == null;
 
     }
 
