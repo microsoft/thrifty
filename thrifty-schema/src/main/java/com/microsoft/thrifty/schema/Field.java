@@ -237,7 +237,6 @@ public final class Field {
         result = 31 * result + (fieldNamingPolicy != null ? fieldNamingPolicy.hashCode() : 0);
         result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
         result = 31 * result + (type != null ? type.hashCode() : 0);
-        result = 31 * result + (javaName != null ? javaName.hashCode() : 0);
         return result;
     }
 }
