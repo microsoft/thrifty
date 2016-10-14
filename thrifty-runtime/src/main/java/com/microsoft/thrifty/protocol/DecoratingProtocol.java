@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.protocol;
 
+import com.microsoft.thrifty.transport.Transport;
 import okio.ByteString;
 import java.io.IOException;
 
@@ -32,6 +33,12 @@ public abstract class DecoratingProtocol extends Protocol {
 
     public DecoratingProtocol(Protocol protocol) {
         super(protocol.transport);
+        concreteProtocol = protocol;
+    }
+
+    /* test only */
+    DecoratingProtocol(Protocol protocol, Transport transport) {
+        super(transport);
         concreteProtocol = protocol;
     }
 
