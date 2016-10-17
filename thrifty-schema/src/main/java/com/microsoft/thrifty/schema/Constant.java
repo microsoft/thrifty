@@ -308,37 +308,55 @@ public class Constant extends Named {
                     }
                     throw new IllegalStateException("'" + id + "' is not a valid value for " + et.name());
                 } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
+                    // An IDENTIFIER enum value could be one of four kinds of entities:
+                    // 1. Another constant, possibly of the correct type
+                    // 2. A fully-qualified imported enum value, e.g. file.Enum.Member
+                    // 3. An imported, partially-qualified enum value, e.g. Enum.Member (where Enum is imported)
+                    // 4. A fully-qualified, non-imported enum value, e.g. Enum.Member
+                    //
+                    // Apache accepts all of these, and so do we.
+
                     String id = (String) value.value();
 
-                    // Identifiers usually will be a literal enum value; these must always be qualified!
-                    // Bare values (e.g. 'BAR' for enum Foo { BAR }) are *not* legal.
-                    //
-                    // Enum literals may be further qualified by an import, e.g. module.Foo.BAR.
-                    int ix = id.lastIndexOf('.');
-                    if (ix != -1) {
-                        String typeName = id.substring(0, ix);
-                        String memberName = id.substring(ix + 1);
-
-                        Named namedType = linker.lookupSymbol(typeName);
-                        if (namedType != null && namedType.type().equals(expected)) {
-                            for (EnumType.Member member : et.members()) {
-                                if (member.name().equals(memberName)) {
-                                    return;
-                                }
-                            }
-                        }
-                    }
-
-                    // Identifiers could also be a reference to a constant of the expected
-                    // enum type, or alias thereof.  Similarly, these may be qualified
-                    // references.
+                    // An unusual edge case is when a named constant has the same name as an enum
+                    // member; in this case, constants take precedence over members.  Make sure that
+                    // the type is as expected!
                     Constant constant = linker.lookupConst(id);
                     if (constant != null && constant.type().getTrueType().equals(expected)) {
                         return;
                     }
 
-                    throw new IllegalStateException(
-                            "'" + id + "' is not a member of enum type " + et.name() + ": members=" + et.members());
+                    int ix = id.lastIndexOf('.');
+                    if (ix == -1) {
+                        throw new IllegalStateException(
+                                "Unqualified name '" + id + "' is not a valid enum constant value: ("
+                                        + value.location() + ")");
+                    }
+
+                    String typeName = id.substring(0, ix); // possibly qualified
+                    String memberName = id.substring(ix + 1);
+
+                    int matches = 0;
+                    List<Named> matchingTypes = linker.findMatchingSymbols(typeName);
+                    for (Named namedType : matchingTypes) {
+                        if (namedType.type().equals(expected)) {
+                            for (EnumType.Member member : et.members()) {
+                                if (member.name().equals(memberName)) {
+                                    matches++;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (matches == 0) {
+                        throw new IllegalStateException(
+                                "'" + id + "' is not a member of enum type " + et.name() + ": members=" + et.members());
+                    } else if (matches != 1) {
+                        throw new IllegalStateException(
+                                "More than one visible enum type matches '" + id
+                                + "'; please consider using the full qualified name here.");
+                    }
                 } else {
                     throw new IllegalStateException("bad enum literal: " + value.value());
                 }

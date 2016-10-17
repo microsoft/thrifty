@@ -435,6 +435,9 @@ class Linker {
         }
     }
 
+    /**
+     * Looks up a {@link Named} symbol from a given name.
+     */
     @Nullable
     Named lookupSymbol(String symbol) {
         Named named = program.symbols().get(symbol);
@@ -456,6 +459,44 @@ class Linker {
             }
         }
         return named;
+    }
+
+    /**
+     * Finds all symbols in the current program and its inclusions, whose name
+     * matches the given symbol.  The qualifier, if present, will be used to
+     * filter included programs.
+     *
+     * @return a list of all symbols matching the given name.
+     */
+    List<Named> findMatchingSymbols(String symbol) {
+        List<Named> result = new ArrayList<>();
+
+        String qualifier = null;
+        String typename = symbol;
+
+        int ix = symbol.indexOf('.');
+        if (ix != -1) {
+            qualifier = symbol.substring(0, ix) + ".thrift";
+            typename = symbol.substring(ix + 1);
+        }
+
+        Named named = program.symbols().get(typename);
+        if (named != null) {
+            result.add(named);
+        }
+
+        for (Program includedProgram : program.includes()) {
+            if (qualifier != null && !includedProgram.location().path().equals(qualifier)) {
+                continue;
+            }
+
+            named = includedProgram.symbols().get(typename);
+            if (named != null) {
+                result.add(named);
+            }
+        }
+
+        return result;
     }
 
     @Nullable

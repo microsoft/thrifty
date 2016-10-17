@@ -130,11 +130,7 @@ public class LoaderTest {
         File f1 = tempDir.newFile();
         writeTo(f1, thrift);
 
-        Loader loader = new Loader();
-        loader.addThriftFile(f.getAbsolutePath());
-        loader.addThriftFile(f1.getAbsolutePath());
-
-        Schema schema = loader.load();
+        Schema schema = load(f, f1);
 
         EnumType et = schema.enums().get(0);
         assertThat(et.type().name(), is("TestEnum"));
@@ -167,12 +163,8 @@ public class LoaderTest {
         writeTo(f, included);
         writeTo(f1, thrift);
 
-        Loader loader = new Loader();
-        loader.addThriftFile(f.getAbsolutePath());
-        loader.addThriftFile(f1.getAbsolutePath());
-
         try {
-            loader.load();
+            load(f, f1);
             fail();
         } catch (LoadFailedException e) {
             assertHasError(e, "Failed to resolve type 'TestEnum'");
@@ -197,11 +189,33 @@ public class LoaderTest {
         writeTo(producer, producerThrift);
         writeTo(consumer, consumerThrift);
 
-        Loader loader = new Loader();
-        loader.addThriftFile(producer.getAbsolutePath());
-        loader.addThriftFile(consumer.getAbsolutePath());
+        load(producer, consumer);
+    }
 
-        loader.load();
+    @Test
+    public void includedConstantsMustBeScoped() throws Exception {
+        File producer = tempDir.newFile("p.thrift");
+        File consumer = tempDir.newFile("c.thrift");
+
+        String producerThrift = "" +
+                "const i32 foo = 10";
+
+        String consumerThrift = "" +
+                "include 'p.thrift'\n" +
+                "\n" +
+                "struct Bar {\n" +
+                "  1: required i32 field = foo\n" +
+                "}\n";
+
+        writeTo(producer, producerThrift);
+        writeTo(consumer, consumerThrift);
+
+        try {
+            load(producer, consumer);
+            fail("Expected a LoadFailedException due to an unqualified use of an imported constant");
+        } catch (LoadFailedException e) {
+            assertHasError(e, "Unrecognized const identifier");
+        }
     }
 
     @Test
@@ -254,11 +268,7 @@ public class LoaderTest {
         writeTo(f3, "include '" + f1.getName() + "'");
 
         try {
-            new Loader()
-                    .addThriftFile(f1.getAbsolutePath())
-                    .addThriftFile(f2.getAbsolutePath())
-                    .addThriftFile(f3.getAbsolutePath())
-                    .load();
+            load(f1, f2, f3);
             fail("Circular includes should fail to load");
         } catch (LoadFailedException e) {
             assertHasError(e, "Circular include");
@@ -379,11 +389,7 @@ public class LoaderTest {
         writeTo(f1, a);
         writeTo(f2, b);
 
-        Loader loader = new Loader();
-        loader.addThriftFile(f1.getAbsolutePath());
-        loader.addThriftFile(f2.getAbsolutePath());
-
-        loader.load();
+        load(f1, f2);
     }
 
     @Test
@@ -786,12 +792,100 @@ public class LoaderTest {
         load(thrift);
     }
 
+    @Test
+    public void importedEnumConstantValue() throws Exception {
+        String imported = "" +
+                "namespace java src\n" +
+                "\n" +
+                "enum Foo {\n" +
+                "  One = 1\n" +
+                "}\n";
+
+        String target = "" +
+                "namespace java target\n" +
+                "\n" +
+                "include 'src.thrift'\n" +
+                "\n" +
+                "struct Bar {\n" +
+                "  1: required src.Foo foo = Foo.One\n" +
+                "  3: required src.Foo baz = 1\n" +
+                "  4: required src.Foo quux = src.Foo.One\n" +
+                "}\n";
+
+        File src = tempDir.newFile("src.thrift");
+        File dest = tempDir.newFile("dest.thrift");
+        writeTo(src, imported);
+        writeTo(dest, target);
+
+        load(src, dest);
+    }
+
+    @Test
+    public void bareEnumDoesNotPassValidation() throws Exception {
+        String thrift = "" +
+                "enum Foo {\n" +
+                "  One\n" +
+                "}\n" +
+                "\n" +
+                "struct Bar {\n" +
+                "  1: required Foo foo = One\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail("Expected a LoadFailedException from validating a bare enum member in a constant");
+        } catch (LoadFailedException e) {
+            assertHasError(e, "Unqualified name 'One' is not a valid enum constant");
+        }
+    }
+
+    // Temporary, until issue #66 is fixed :(
+    @Test
+    public void multipleMatchingEnumsCauseFailure() throws Exception {
+        File a = tempDir.newFile("a.thrift");
+        File b = tempDir.newFile("b.thrift");
+        File c = tempDir.newFile("c.thrift");
+
+        writeTo(a, "" +
+                "enum Status {\n" +
+                "  OK\n" +
+                "}");
+
+        writeTo(b, "" +
+                "enum Status {\n" +
+                "  OK\n" +
+                "}");
+
+        writeTo(c, "" +
+                "include 'a.thrift'\n" +
+                "include 'b.thrift'\n" +
+                "\n" +
+                "struct Test {\n" +
+                "  1: required a.Status status = Status.OK\n" +
+                "}\n");
+
+        try {
+            load(a, b, c);
+            fail("Expected a LoadFailedException due to more than one matching EnumType");
+        } catch (LoadFailedException ex) {
+            assertHasError(ex, "More than one visible enum type matches 'Status.OK'");
+        }
+    }
+
     private Schema load(String thrift) throws Exception {
         File f = tempDir.newFile();
         writeTo(f, thrift);
 
         Loader loader = new Loader();
         loader.addThriftFile(f.getAbsolutePath());
+        return loader.load();
+    }
+
+    private Schema load(File ...files) throws Exception {
+        Loader loader = new Loader();
+        for (File f : files) {
+            loader.addThriftFile(f.getAbsolutePath());
+        }
         return loader.load();
     }
 

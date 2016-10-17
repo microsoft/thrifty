@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -171,7 +172,7 @@ public class ConstantTest {
         when(et.members()).thenReturn(members.build());
 
         when(linker.lookupSymbol(tt)).thenReturn(et);
-        when(linker.lookupSymbol("TestEnum")).thenReturn(et);
+        when(linker.findMatchingSymbols("TestEnum")).thenReturn(singletonList((Named) et));
 
         Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.TEST"), tt);
     }
@@ -187,12 +188,35 @@ public class ConstantTest {
         when(et.type()).thenReturn(tt);
         when(et.members()).thenReturn(members.build());
 
-        when(linker.lookupSymbol("TestEnum")).thenReturn(et);
+        when(linker.lookupSymbol(tt)).thenReturn(et);
+        when(linker.findMatchingSymbols("TestEnum")).thenReturn(singletonList((Named) et));
 
         try {
             Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.NON_MEMBER"), tt);
             fail("Non-member identifier should fail");
         } catch (IllegalStateException ignored) {
+        }
+    }
+
+    @Test
+    public void unqualifiedEnumMember() {
+        ThriftType tt = ThriftType.enumType("TestEnum", Collections.<NamespaceScope, String>emptyMap());
+        ImmutableList.Builder<EnumType.Member> members = ImmutableList.builder();
+        members.add(new EnumType.Member(EnumMemberElement.builder(loc).name("TEST").value(1).build()));
+
+        EnumType et = mock(EnumType.class);
+        when(et.name()).thenReturn("TestEnum");
+        when(et.type()).thenReturn(tt);
+        when(et.members()).thenReturn(members.build());
+
+        when(linker.lookupSymbol(tt)).thenReturn(et);
+        when(linker.findMatchingSymbols("TestEnum")).thenReturn(singletonList((Named) et));
+
+        try {
+            Constant.validate(linker, ConstValueElement.identifier(loc, "TEST"), tt);
+            fail("Expected an IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), containsString("Unqualified name 'TEST' is not a valid enum constant value"));
         }
     }
 
@@ -238,7 +262,7 @@ public class ConstantTest {
         when(et.members()).thenReturn(members);
 
         when(linker.lookupSymbol(enumType)).thenReturn(et);
-        when(linker.lookupSymbol("AnEnum")).thenReturn(et);
+        when(linker.findMatchingSymbols("AnEnum")).thenReturn(singletonList((Named) et));
 
         ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO");
 
@@ -267,10 +291,10 @@ public class ConstantTest {
         when(wt.members()).thenReturn(ImmutableList.of(wrongMember));
 
         when(linker.lookupSymbol(enumType)).thenReturn(et);
-        when(linker.lookupSymbol("AnEnum")).thenReturn(et);
+        when(linker.findMatchingSymbols("AnEnum")).thenReturn(singletonList((Named) et));
 
         when(linker.lookupSymbol(wrongType)).thenReturn(wt);
-        when(linker.lookupSymbol("DifferentEnum")).thenReturn(wt);
+        when(linker.findMatchingSymbols("DifferentEnum")).thenReturn(singletonList((Named) wt));
 
         ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO");
 
