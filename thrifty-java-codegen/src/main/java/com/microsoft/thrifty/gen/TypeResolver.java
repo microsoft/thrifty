@@ -173,7 +173,7 @@ final class TypeResolver {
 
         @Override
         public TypeName visitTypedef(ThriftType.TypedefType typedefType) {
-            throw new AssertionError("Typedefs should have been resolved");
+            return typedefType.originalType().accept(this);
         }
     };
 
@@ -254,7 +254,7 @@ final class TypeResolver {
 
         @Override
         public Byte visitTypedef(ThriftType.TypedefType typedefType) {
-            throw new AssertionError("Typedefs should have been resolved");
+            return typedefType.originalType().accept(this);
         }
     };
 }
