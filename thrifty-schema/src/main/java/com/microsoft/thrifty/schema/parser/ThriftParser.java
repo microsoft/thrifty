@@ -259,20 +259,13 @@ public final class ThriftParser {
                 break;
             }
 
-            EnumMemberElement member = readEnumMember(memberDoc);
+            EnumMemberElement member = readEnumMember(memberDoc, nextId);
 
-            int value;
-            if (member.value() == null) {
-                value = nextId++;
-                member = member.withValue(value);
-            } else {
-                //noinspection ConstantConditions
-                value = member.value();
-                nextId = value + 1;
-            }
+            // value is either the default, or an explicit number.  Either way, the next default is n + 1.
+            nextId = member.value() + 1;
 
-            if (!ids.add(value)) {
-                throw unexpected(member.location(), "duplicate enum value: " + value);
+            if (!ids.add(member.value())) {
+                throw unexpected(member.location(), "duplicate enum value: " + member.value());
             }
 
             members.add(member);
@@ -286,14 +279,14 @@ public final class ThriftParser {
                 .build();
     }
 
-    private EnumMemberElement readEnumMember(String doc) {
+    private EnumMemberElement readEnumMember(String doc, int defaultValue) {
         // enum member:
         //   identifier ('=' IntValue)? Separator? Comment? '\n'
         Location location = location();
         String name = readIdentifier();
 
         char next = peekChar(false);
-        Integer value = null;
+        int value = defaultValue;
         if (next == '=') {
             ++pos;
             value = readInt();

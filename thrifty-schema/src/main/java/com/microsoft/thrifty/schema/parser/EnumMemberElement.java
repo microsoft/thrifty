@@ -30,19 +30,13 @@ public abstract class EnumMemberElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract String name();
-    @Nullable public abstract Integer value();
+    public abstract int value();
     @Nullable public abstract AnnotationElement annotations();
 
     public static Builder builder(Location location) {
         return new AutoValue_EnumMemberElement.Builder()
                 .location(location)
                 .documentation("");
-    }
-
-    public EnumMemberElement withValue(Integer value) {
-        return new AutoValue_EnumMemberElement.Builder(this)
-                .value(value)
-                .build();
     }
 
     EnumMemberElement() { }
@@ -52,7 +46,7 @@ public abstract class EnumMemberElement {
         Builder location(Location location);
         Builder documentation(String documentation);
         Builder name(String name);
-        Builder value(Integer value);
+        Builder value(int value);
         Builder annotations(AnnotationElement annotations);
 
         EnumMemberElement build();

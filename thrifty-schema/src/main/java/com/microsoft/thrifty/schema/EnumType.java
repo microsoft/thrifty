@@ -228,7 +228,7 @@ public class EnumType extends Named {
             return element.name();
         }
 
-        public Integer value() {
+        public int value() {
             return element.value();
         }
 

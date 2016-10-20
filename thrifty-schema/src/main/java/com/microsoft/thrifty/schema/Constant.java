@@ -307,7 +307,7 @@ public class Constant extends Named {
                 if (value.kind() == ConstValueElement.Kind.INTEGER) {
                     long id = (Long) value.value();
                     for (EnumType.Member member : et.members()) {
-                        if (member.value().longValue() == id) {
+                        if (member.value() == id) {
                             return;
                         }
                     }
