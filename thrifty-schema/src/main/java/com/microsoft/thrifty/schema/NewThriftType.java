@@ -1,5 +1,7 @@
 package com.microsoft.thrifty.schema;
 
+import com.google.common.collect.ImmutableMap;
+
 public abstract class NewThriftType {
     public static final BuiltinThriftType BOOL   = new BuiltinThriftType("bool");
     public static final BuiltinThriftType BYTE   = new BuiltinThriftType("byte");
@@ -10,6 +12,24 @@ public abstract class NewThriftType {
     public static final BuiltinThriftType DOUBLE = new BuiltinThriftType("double");
     public static final BuiltinThriftType STRING = new BuiltinThriftType("string");
     public static final BuiltinThriftType BINARY = new BuiltinThriftType("binary");
+    public static final BuiltinThriftType VOID   = new BuiltinThriftType("void");
+
+    private static final ImmutableMap<String, NewThriftType> BUILTINS;
+
+    static {
+        BUILTINS = ImmutableMap.<String, NewThriftType>builder()
+                .put(BOOL.name(),   BOOL)
+                .put(BYTE.name(),   BYTE)
+                .put(I8.name(),     I8)
+                .put(I16.name(),    I16)
+                .put(I32.name(),    I32)
+                .put(I64.name(),    I64)
+                .put(DOUBLE.name(), DOUBLE)
+                .put(STRING.name(), STRING)
+                .put(BINARY.name(), BINARY)
+                .put(VOID.name(),   VOID)
+                .build();
+    }
 
     private final String name;
 
@@ -51,6 +71,21 @@ public abstract class NewThriftType {
         return false;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        NewThriftType that = (NewThriftType) o;
+
+        return name.equals(that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+
     public interface Visitor<T> {
         T visitBool(BuiltinThriftType boolType);
         T visitByte(BuiltinThriftType byteType);
@@ -68,5 +103,7 @@ public abstract class NewThriftType {
         T visitSet(SetType setType);
 
         T visitMap(MapType mapType);
+
+        T visitStruct(NewStructType structType);
     }
 }

@@ -1,5 +1,6 @@
 package com.microsoft.thrifty.schema;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.EnumElement;
@@ -8,6 +9,7 @@ import com.microsoft.thrifty.schema.parser.StructElement;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * A mixin encapsulating a common implementation of {@link UserElement},
@@ -31,7 +33,7 @@ class UserElementMixin implements UserElement {
         this(member.name(), member.location(), member.documentation(), member.annotations());
     }
 
-    private UserElementMixin(
+    UserElementMixin(
             String name,
             Location location,
             String documentation,
@@ -45,6 +47,13 @@ class UserElementMixin implements UserElement {
             annotations.putAll(annotationElement.values());
         }
         this.annotations = annotations.build();
+    }
+
+    private UserElementMixin(Builder builder) {
+        this.name = builder.name;
+        this.location = builder.location;
+        this.documentation = builder.documentation;
+        this.annotations = builder.annotations.build();
     }
 
     @Override
@@ -110,5 +119,53 @@ class UserElementMixin implements UserElement {
         result = 31 * result + documentation.hashCode();
         result = 31 * result + annotations.hashCode();
         return result;
+    }
+
+    Builder toBuilder() {
+        return new Builder(this);
+    }
+
+    static class Builder {
+        private String name;
+        private Location location;
+        private String documentation;
+        private ImmutableMap.Builder<String, String> annotations;
+
+        private Builder(UserElement userElement) {
+            this.name = userElement.name();
+            this.location = userElement.location();
+            this.documentation = userElement.documentation();
+            this.annotations = ImmutableMap.builder();
+
+            this.annotations.putAll(userElement.annotations());
+        }
+
+        Builder name(String name) {
+            this.name = Preconditions.checkNotNull(name, "name");
+            return this;
+        }
+
+        Builder location(Location location) {
+            this.location = Preconditions.checkNotNull(location, "name");
+            return this;
+        }
+
+        Builder documentation(String documentation) {
+            if (JavadocUtil.isNonEmptyJavadoc(documentation)) {
+                this.documentation = documentation;
+            } else {
+                this.documentation = "";
+            }
+            return this;
+        }
+
+        Builder annotations(Map<String, String> annotations) {
+            this.annotations.putAll(annotations);
+            return this;
+        }
+
+        UserElementMixin build() {
+            return new UserElementMixin(this);
+        }
     }
 }

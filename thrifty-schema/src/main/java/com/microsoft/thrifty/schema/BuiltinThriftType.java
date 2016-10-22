@@ -12,24 +12,24 @@ public class BuiltinThriftType extends NewThriftType {
 
     @Override
     public <T> T accept(Visitor<T> visitor) {
-        if (this == NewThriftType.BOOL) {
+        if (this.equals(NewThriftType.BOOL)) {
             return visitor.visitBool(this);
-        } else if (this == NewThriftType.BYTE) {
+        } else if (this.equals(NewThriftType.BYTE)) {
             return visitor.visitByte(this);
-        } else if (this == NewThriftType.I8) {
+        } else if (this.equals(NewThriftType.I8)) {
             // Synonym for byte
             return visitor.visitByte(this);
-        } else if (this == NewThriftType.I16) {
+        } else if (this.equals(NewThriftType.I16)) {
             return visitor.visitI16(this);
-        } else if (this == NewThriftType.I32) {
+        } else if (this.equals(NewThriftType.I32)) {
             return visitor.visitI32(this);
-        } else if (this == NewThriftType.I64) {
+        } else if (this.equals(NewThriftType.I64)) {
             return visitor.visitI64(this);
-        } else if (this == NewThriftType.DOUBLE) {
+        } else if (this.equals(NewThriftType.DOUBLE)) {
             return visitor.visitDouble(this);
-        } else if (this == NewThriftType.STRING) {
+        } else if (this.equals(NewThriftType.STRING)) {
             return visitor.visitString(this);
-        } else if (this == NewThriftType.BINARY) {
+        } else if (this.equals(NewThriftType.BINARY)) {
             return visitor.visitBinary(this);
         } else {
             throw new AssertionError("Unexpected ThriftType: " + name());

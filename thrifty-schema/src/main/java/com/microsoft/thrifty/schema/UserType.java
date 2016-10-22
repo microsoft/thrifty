@@ -2,6 +2,8 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.util.Objects;
+
 public abstract class UserType extends NewThriftType implements UserElement {
     private final Program program;
     private final UserElementMixin mixin;
@@ -29,6 +31,8 @@ public abstract class UserType extends NewThriftType implements UserElement {
         return program;
     }
 
+    abstract void link(Linker linker);
+
     @Override
     public Location location() {
         return mixin.location();
@@ -52,5 +56,20 @@ public abstract class UserType extends NewThriftType implements UserElement {
     @Override
     public boolean isDeprecated() {
         return mixin.isDeprecated();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!super.equals(o)) return false;
+
+        UserType that = (UserType) o;
+        if (!mixin.equals(that.mixin)) return false;
+        if (!program.equals(that.program)) return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), mixin, program);
     }
 }
