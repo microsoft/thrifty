@@ -66,6 +66,7 @@ public final class ServiceMethod {
         this.paramTypes = builder.paramTypes;
         this.exceptionTypes = builder.exceptionTypes;
         this.annotations = builder.annotations;
+        this.returnType = builder.returnType;
     }
 
     public Location location() {
@@ -105,7 +106,7 @@ public final class ServiceMethod {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, paramTypes, exceptionTypes, annotations);
+        return new Builder(element, paramTypes, exceptionTypes, annotations, returnType);
     }
 
     public static final class Builder {
@@ -113,15 +114,18 @@ public final class ServiceMethod {
         private ImmutableList<Field> paramTypes;
         private ImmutableList<Field> exceptionTypes;
         private ImmutableMap<String, String> annotations;
+        private ThriftType returnType;
 
         Builder(FunctionElement element,
                        ImmutableList<Field> paramTypes,
                        ImmutableList<Field> exceptionTypes,
-                       ImmutableMap<String, String> annotations) {
+                       ImmutableMap<String, String> annotations,
+                       ThriftType thriftType) {
             this.element = element;
             this.paramTypes = paramTypes;
             this.exceptionTypes = exceptionTypes;
             this.annotations = annotations;
+            this.returnType = thriftType;
         }
 
         public Builder element(FunctionElement element) {
@@ -144,6 +148,11 @@ public final class ServiceMethod {
 
         public Builder annotations(ImmutableMap<String, String> annotations) {
             this.annotations = annotations;
+            return this;
+        }
+
+        public Builder returnType(ThriftType returnType) {
+            this.returnType = returnType;
             return this;
         }
 

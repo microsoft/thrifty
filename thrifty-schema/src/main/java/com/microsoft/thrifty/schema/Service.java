@@ -70,6 +70,7 @@ public final class Service extends Named {
         this.methods = builder.methods;
         this.type = builder.type;
         this.annotations = builder.annotations;
+        this.extendsService = builder.extendsService;
     }
 
     @Override
@@ -99,7 +100,7 @@ public final class Service extends Named {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, methods, type, annotations, namespaces());
+        return new Builder(element, methods, type, annotations, namespaces(), extendsService);
     }
 
     public static final class Builder {
@@ -108,17 +109,20 @@ public final class Service extends Named {
         private ThriftType type;
         private ImmutableMap<String, String> annotations;
         private Map<NamespaceScope, String> namespaces;
+        private ThriftType extendsService;
 
         Builder(ServiceElement element,
                ImmutableList<ServiceMethod> methods,
                ThriftType type,
                ImmutableMap<String, String> annotations,
-                Map<NamespaceScope, String> namespaces) {
+               Map<NamespaceScope, String> namespaces,
+               ThriftType extendsService) {
             this.element = element;
             this.methods = methods;
             this.type = type;
             this.annotations = annotations;
             this.namespaces = namespaces;
+            this.extendsService = extendsService;
         }
 
         public Builder element(ServiceElement element) {
@@ -149,6 +153,11 @@ public final class Service extends Named {
 
         public Builder namespaces(Map<NamespaceScope, String> namespaces) {
             this.namespaces = namespaces;
+            return this;
+        }
+
+        public Builder extendsService(ThriftType extendsService) {
+            this.extendsService = extendsService;
             return this;
         }
 

@@ -54,6 +54,7 @@ public final class Field {
         this.fieldNamingPolicy = builder.fieldNamingPolicy;
         this.annotations = builder.annotations;
         this.type = builder.type;
+        this.javaName = builder.javaName;
     }
 
     public Location location() {
@@ -128,7 +129,7 @@ public final class Field {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, fieldNamingPolicy, annotations, type);
+        return new Builder(element, fieldNamingPolicy, annotations, type, javaName);
     }
 
     public static final class Builder {
@@ -136,15 +137,18 @@ public final class Field {
         private FieldNamingPolicy fieldNamingPolicy;
         private ImmutableMap<String, String> annotations;
         private ThriftType type;
+        private String javaName;
 
         Builder(FieldElement element,
                        FieldNamingPolicy fieldNamingPolicy,
                        ImmutableMap<String, String> annotations,
-                       ThriftType type) {
+                       ThriftType type,
+                       String javaName) {
             this.element = element;
             this.fieldNamingPolicy = fieldNamingPolicy;
             this.annotations = annotations;
             this.type = type;
+            this.javaName = javaName;
         }
 
         public Builder element(FieldElement element) {
@@ -167,6 +171,11 @@ public final class Field {
 
         public Builder type(ThriftType type) {
             this.type = type;
+            return this;
+        }
+
+        public Builder javaName(String javaName) {
+            this.javaName = javaName;
             return this;
         }
 

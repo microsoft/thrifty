@@ -47,6 +47,8 @@ public final class Typedef extends Named {
     private Typedef(Builder builder) {
         super(builder.element.newName(), builder.namespaces);
         this.element = builder.element;
+        this.oldType = builder.oldType;
+        this.type = builder.type;
         this.annotations = builder.annotations;
     }
 
@@ -82,7 +84,7 @@ public final class Typedef extends Named {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, annotations, namespaces());
+        return new Builder(element, annotations, oldType, type, namespaces());
     }
 
     boolean link(Linker linker) {
@@ -127,13 +129,19 @@ public final class Typedef extends Named {
     public static final class Builder {
         private TypedefElement element;
         private ImmutableMap<String, String> annotations;
+        private ThriftType oldType;
+        private ThriftType type;
         private Map<NamespaceScope, String> namespaces;
 
         Builder(TypedefElement element,
                        ImmutableMap<String, String> annotations,
+                       ThriftType oldType,
+                       ThriftType type,
                        Map<NamespaceScope, String> namespaces) {
             this.element = element;
             this.annotations = annotations;
+            this.type = type;
+            this.oldType = oldType;
             this.namespaces = namespaces;
         }
 
@@ -152,6 +160,16 @@ public final class Typedef extends Named {
 
         public Builder namespaces(Map<NamespaceScope, String> namespaces) {
             this.namespaces = namespaces;
+            return this;
+        }
+
+        public Builder type(ThriftType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder oldType(ThriftType oldType) {
+            this.oldType = oldType;
             return this;
         }
 
