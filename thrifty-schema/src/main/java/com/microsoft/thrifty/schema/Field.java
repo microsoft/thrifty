@@ -35,7 +35,7 @@ public final class Field {
     private final ImmutableMap<String, String> annotations;
     private ThriftType type;
 
-    private String javaName;
+    private transient String javaName;
 
     Field(FieldElement element, FieldNamingPolicy fieldNamingPolicy) {
         this.element = element;
@@ -54,7 +54,6 @@ public final class Field {
         this.fieldNamingPolicy = builder.fieldNamingPolicy;
         this.annotations = builder.annotations;
         this.type = builder.type;
-        this.javaName = builder.javaName;
     }
 
     public Location location() {
@@ -129,7 +128,7 @@ public final class Field {
     }
 
     public Builder toBuilder() {
-        return new Builder(element, fieldNamingPolicy, annotations, type, javaName);
+        return new Builder(element, fieldNamingPolicy, annotations, type);
     }
 
     public static final class Builder {
@@ -137,18 +136,15 @@ public final class Field {
         private FieldNamingPolicy fieldNamingPolicy;
         private ImmutableMap<String, String> annotations;
         private ThriftType type;
-        private String javaName;
 
         Builder(FieldElement element,
                        FieldNamingPolicy fieldNamingPolicy,
                        ImmutableMap<String, String> annotations,
-                       ThriftType type,
-                       String javaName) {
+                       ThriftType type) {
             this.element = element;
             this.fieldNamingPolicy = fieldNamingPolicy;
             this.annotations = annotations;
             this.type = type;
-            this.javaName = javaName;
         }
 
         public Builder element(FieldElement element) {
@@ -171,17 +167,6 @@ public final class Field {
 
         public Builder type(ThriftType type) {
             this.type = type;
-            return this;
-        }
-
-        /**
-         * This field is transient and will be removed as part of https://github.com/Microsoft/thrifty/issues/69.
-         *
-         * @param javaName the javaName computed from the thrift name and naming policy.
-         * @return the javaName.
-         */
-        public Builder javaName(String javaName) {
-            this.javaName = javaName;
             return this;
         }
 
@@ -240,7 +225,6 @@ public final class Field {
             return false;
         }
         return type != null ? type.equals(field.type) : field.type == null;
-
     }
 
     @Override
