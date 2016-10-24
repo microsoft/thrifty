@@ -174,6 +174,12 @@ public final class Field {
             return this;
         }
 
+        /**
+         * This field is transient and will be removed as part of https://github.com/Microsoft/thrifty/issues/69.
+         *
+         * @param javaName the javaName computed from the thrift name and naming policy.
+         * @return the javaName.
+         */
         public Builder javaName(String javaName) {
             this.javaName = javaName;
             return this;
