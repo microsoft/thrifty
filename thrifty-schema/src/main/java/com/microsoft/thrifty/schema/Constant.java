@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 
@@ -140,7 +141,11 @@ public class Constant extends Named {
         }
 
         public Builder namespaces(Map<NamespaceScope, String> namespaces) {
-            this.namespaces = namespaces;
+            Map<NamespaceScope, String> immutableNamespaces = namespaces;
+            if (!(immutableNamespaces instanceof ImmutableMap)) {
+                immutableNamespaces = ImmutableMap.copyOf(namespaces);
+            }
+            this.namespaces = immutableNamespaces;
             return this;
         }
 
