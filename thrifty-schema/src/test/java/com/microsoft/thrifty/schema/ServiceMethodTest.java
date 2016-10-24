@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -32,14 +33,17 @@ public class ServiceMethodTest {
     public void builderCreatesCorrectServiceMethod() {
         ImmutableList<Field> fields = ImmutableList.of();
         ImmutableMap<String, String> annotations = ImmutableMap.of();
+        ThriftType thriftType = mock(ThriftType.class);
 
         ServiceMethod builderServiceMethod = serviceMethod.toBuilder()
                 .paramTypes(fields)
                 .exceptionTypes(fields)
                 .annotations(annotations)
+                .returnType(thriftType)
                 .build();
 
         assertEquals(builderServiceMethod.paramTypes(), fields);
+        assertEquals(builderServiceMethod.returnType(), thriftType);
         assertEquals(builderServiceMethod.exceptionTypes(), fields);
         assertEquals(builderServiceMethod.annotations(), annotations);
     }

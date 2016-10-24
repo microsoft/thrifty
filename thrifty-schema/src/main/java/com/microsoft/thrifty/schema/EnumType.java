@@ -196,7 +196,11 @@ public class EnumType extends Named {
         }
 
         public Builder namespaces(Map<NamespaceScope, String> namespaces) {
-            this.namespaces = namespaces;
+            Map<NamespaceScope, String> immutableNamespaces = namespaces;
+            if (!(immutableNamespaces instanceof ImmutableMap)) {
+                immutableNamespaces = ImmutableMap.copyOf(namespaces);
+            }
+            this.namespaces = immutableNamespaces;
             return this;
         }
 

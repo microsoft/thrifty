@@ -46,10 +46,12 @@ public class ServiceTest {
                 .type(type)
                 .annotations(annotations)
                 .namespaces(namespaces)
+                .extendsService(type)
                 .build();
 
         assertEquals(methods, builderService.methods());
         assertEquals(type, builderService.type());
+        assertEquals(type, builderService.extendsService());
         assertEquals(annotations, builderService.annotations());
         assertEquals(namespaces, builderService.namespaces());
     }

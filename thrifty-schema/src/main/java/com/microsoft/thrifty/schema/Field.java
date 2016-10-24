@@ -35,7 +35,7 @@ public final class Field {
     private final ImmutableMap<String, String> annotations;
     private ThriftType type;
 
-    private String javaName;
+    private transient String javaName;
 
     Field(FieldElement element, FieldNamingPolicy fieldNamingPolicy) {
         this.element = element;
@@ -225,7 +225,6 @@ public final class Field {
             return false;
         }
         return type != null ? type.equals(field.type) : field.type == null;
-
     }
 
     @Override

@@ -32,13 +32,16 @@ public class TypedefTest {
     public void builderCreatesCorrectTypedef() {
         ImmutableMap<String, String> annotations = ImmutableMap.of();
         Map<NamespaceScope, String> namespace = mock(Map.class);
+        ThriftType oldType = mock(ThriftType.class);
 
         Typedef typedef = this.typedef.toBuilder()
                 .annotations(annotations)
                 .namespaces(namespace)
+                .oldType(oldType)
                 .build();
 
         assertEquals(typedef.annotations(), annotations);
+        assertEquals(typedef.oldType(), oldType);
         assertEquals(typedef.namespaces(), namespace);
     }
 
