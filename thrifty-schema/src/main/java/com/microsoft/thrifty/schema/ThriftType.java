@@ -20,136 +20,29 @@
  */
 package com.microsoft.thrifty.schema;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
-/**
- * Represents a type name and all containing namespaces.
- */
-@SuppressWarnings("StaticInitializerReferencesSubClass") // Safe here because we don't lock on any static data
 public abstract class ThriftType {
-    private static final String LIST_PREFIX = "list<";
-    private static final String SET_PREFIX = "set<";
-    private static final String MAP_PREFIX = "map<";
-
-    public static final ThriftType BOOL = new BuiltinType("bool");
-    public static final ThriftType BYTE = new BuiltinType("byte");
-    public static final ThriftType I8 = new BuiltinType("i8");
-    public static final ThriftType I16 = new BuiltinType("i16");
-    public static final ThriftType I32 = new BuiltinType("i32");
-    public static final ThriftType I64 = new BuiltinType("i64");
-    public static final ThriftType DOUBLE = new BuiltinType("double");
-    public static final ThriftType STRING = new BuiltinType("string");
-    public static final ThriftType BINARY = new BuiltinType("binary");
-
-    // Only valid as a "return type" for service methods
-    public static final ThriftType VOID = new BuiltinType("void");
-
-    private static final ImmutableMap<String, ThriftType> BUILTINS;
-    static {
-        ImmutableMap.Builder<String, ThriftType> builtins = ImmutableMap.builder();
-        builtins.put(BOOL.name, BOOL);
-        builtins.put(BYTE.name, BYTE);
-        builtins.put(I8.name, I8);
-        builtins.put(I16.name, I16);
-        builtins.put(I32.name, I32);
-        builtins.put(I64.name, I64);
-        builtins.put(DOUBLE.name, DOUBLE);
-        builtins.put(STRING.name, STRING);
-        builtins.put(BINARY.name, BINARY);
-        BUILTINS = builtins.build();
-    }
-
-    /**
-     * Merge two maps, with keys in {@code newAnnotations} taking precedence
-     * over keys in {@code baseAnnotations}.
-     */
-    private static ImmutableMap<String, String> merge(
-            ImmutableMap<String, String> baseAnnotations,
-            Map<String, String> newAnnotations) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-        builder.putAll(baseAnnotations);
-        builder.putAll(newAnnotations);
-        return builder.build();
-    }
-
     private final String name;
-    private final ImmutableMap<String, String> annotations;
 
-    private ThriftType(String name) {
-        this(name, ImmutableMap.<String, String>of());
-    }
-
-    private ThriftType(String name, Map<String, String> annotations) {
+    ThriftType(String name) {
         this.name = name;
-        this.annotations = ImmutableMap.copyOf(annotations);
     }
 
-    public static ThriftType list(ThriftType elementType) {
-        return list(elementType, ImmutableMap.<String, String>of());
+    public String name() {
+        return name;
     }
 
-    public static ThriftType list(ThriftType elementType, Map<String, String> annotations) {
-        String name = LIST_PREFIX + elementType.name + ">";
-        return new ListType(name, elementType, annotations);
+    public abstract <T> T accept(Visitor<T> visitor);
+
+    public boolean isBuiltin() {
+        return false;
     }
 
-    public static ThriftType set(ThriftType elementType) {
-        return set(elementType, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType set(ThriftType elementType, Map<String, String> annotations) {
-        String name = SET_PREFIX + elementType.name + ">";
-        return new SetType(name, elementType, annotations);
-    }
-
-    public static ThriftType map(ThriftType keyType, ThriftType valueType) {
-        return map(keyType, valueType, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType map(ThriftType keyType, ThriftType valueType, Map<String, String> annotations) {
-        String name = MAP_PREFIX + keyType.name + "," + valueType.name + ">";
-        return new MapType(name, keyType, valueType, annotations);
-    }
-
-    /**
-     * Gets a {@link ThriftType} for the given type name.
-     *
-     * Preconditions:
-     * The given name is non-null, non-empty, and is the product
-     * of ThriftParser.  In particular, it is assumed that collection
-     * types are already validated.
-     *
-     * @param name the name of the type.
-     * @param namespaces all defined namespaces for this type.
-     * @return a {@link ThriftType} representing the given typename.
-     */
-    public static ThriftType get(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
-        return get(name, namespaces, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType get(
-            @Nonnull String name,
-            Map<NamespaceScope, String> namespaces,
-            Map<String, String> annotations) {
-        ThriftType t = BUILTINS.get(name);
-        if (t != null && annotations.isEmpty()) {
-            return t;
-        } else if (t != null) {
-            return new BuiltinType(name, annotations);
-        }
-
-        return new UserType(name, namespaces, false, annotations);
-    }
-
-    public static ThriftType enumType(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
-        return enumType(name, namespaces, ImmutableMap.<String, String>of());
-    }
-
+<<<<<<< 2ea12b53c3f56b9789f0441f59b0edebf625e3d7
     public static ThriftType enumType(
             @Nonnull String name,
             Map<NamespaceScope, String> namespaces,
@@ -170,17 +63,25 @@ public abstract class ThriftType {
             throw new IllegalArgumentException("Cannot redefine built-in type: " + name);
         }
         return new TypedefType(name, oldType, namespaces, annotations);
+=======
+    public boolean isList() {
+        return false;
     }
 
-    public String name() {
-        return this.name;
+    public boolean isSet() {
+        return false;
+>>>>>>> Totally broken, but... Builders!  Types!  Change!
     }
 
-    public ImmutableMap<String, String> annotations() {
-        return annotations;
+    public boolean isMap() {
+        return false;
     }
 
-    public boolean isBuiltin() {
+    public boolean isEnum() {
+        return false;
+    }
+
+    public boolean isStruct() {
         return false;
     }
 
@@ -188,19 +89,7 @@ public abstract class ThriftType {
         return false;
     }
 
-    public boolean isList() {
-        return getTrueType() instanceof ListType;
-    }
-
-    public boolean isSet() {
-        return getTrueType() instanceof SetType;
-    }
-
-    public boolean isMap() {
-        return getTrueType() instanceof MapType;
-    }
-
-    public boolean isEnum() {
+    public boolean isService() {
         return false;
     }
 
@@ -208,12 +97,17 @@ public abstract class ThriftType {
         return this;
     }
 
-    public abstract <T> T accept(Visitor<? extends T> visitor);
+    abstract ThriftType withAnnotations(Map<String, String> annotations);
 
-    public abstract ThriftType withAnnotations(Map<String, String> annotations);
+    public abstract ImmutableMap<String, String> annotations();
 
-    public String getNamespace(NamespaceScope scope) {
-        return "";
+    protected static ImmutableMap<String, String> merge(
+            ImmutableMap<String, String> baseAnnotations,
+            Map<String, String> newAnnotations) {
+        LinkedHashMap<String, String> merged = new LinkedHashMap<>();
+        merged.putAll(baseAnnotations);
+        merged.putAll(newAnnotations);
+        return ImmutableMap.copyOf(merged);
     }
 
     @Override
@@ -231,6 +125,7 @@ public abstract class ThriftType {
         return name.hashCode();
     }
 
+<<<<<<< 2ea12b53c3f56b9789f0441f59b0edebf625e3d7
     public static final class BuiltinType extends ThriftType {
         BuiltinType(String name) {
             super(name);
@@ -483,51 +378,37 @@ public abstract class ThriftType {
             }
             return t;
         }
+=======
+    public interface Visitor<T> {
+        T visitBool(BuiltinThriftType boolType);
+        T visitByte(BuiltinThriftType byteType);
+        T visitI16(BuiltinThriftType i16Type);
+        T visitI32(BuiltinThriftType i32Type);
+        T visitI64(BuiltinThriftType i64Type);
+        T visitDouble(BuiltinThriftType doubleType);
+        T visitString(BuiltinThriftType stringType);
+        T visitBinary(BuiltinThriftType binaryType);
+>>>>>>> Totally broken, but... Builders!  Types!  Change!
 
-        @Override
-        public <T> T accept(Visitor<? extends T> visitor) {
-            return visitor.visitTypedef(this);
-        }
+        T visitEnum(EnumType enumType);
 
+<<<<<<< 2ea12b53c3f56b9789f0441f59b0edebf625e3d7
         @Override
         public ThriftType withAnnotations(Map<String, String> annotations) {
             return new TypedefType(name(), originalType, namespaces, merge(this.annotations(), annotations));
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!super.equals(o)) {
-                return false;
-            }
-            TypedefType that = (TypedefType) o;
-
-            return originalType.equals(that.originalType);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = super.hashCode();
-            result = 31 * result + originalType.hashCode();
-            return result;
-        }
-    }
-
-    public interface Visitor<T> {
-        T visitBool();
-        T visitByte();
-        T visitI16();
-        T visitI32();
-        T visitI64();
-        T visitDouble();
-        T visitString();
-        T visitBinary();
-        T visitVoid();
-        T visitEnum(ThriftType userType);
+=======
         T visitList(ListType listType);
+>>>>>>> Totally broken, but... Builders!  Types!  Change!
+
         T visitSet(SetType setType);
+
         T visitMap(MapType mapType);
-        T visitUserType(ThriftType userType);
+
+        T visitStruct(StructType structType);
+
         T visitTypedef(TypedefType typedefType);
+
+        T visitService(ServiceType serviceType);
     }
 }

@@ -20,185 +20,65 @@
  */
 package com.microsoft.thrifty.schema;
 
-import com.microsoft.thrifty.schema.parser.AnnotationElement;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.StructElement;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-public class StructType extends Named {
-    private final StructElement element;
-    private final ThriftType type;
+public class StructType extends UserType {
+    private final StructElement.Type structType;
     private final ImmutableList<Field> fields;
-    private final ImmutableMap<String, String> annotations;
 
-    StructType(
-            StructElement element,
-            ThriftType type,
-            Map<NamespaceScope, String> namespaces,
-            FieldNamingPolicy fieldNamingPolicy) {
-        super(element.name(), namespaces);
-        this.element = element;
-        this.type = type;
+    StructType(Program program, StructElement element) {
+        super(program, new UserElementMixin(element));
+
+        this.structType = element.type();
 
         ImmutableList.Builder<Field> fieldsBuilder = ImmutableList.builder();
         for (FieldElement fieldElement : element.fields()) {
-            fieldsBuilder.add(new Field(fieldElement, fieldNamingPolicy));
+            fieldsBuilder.add(new Field(fieldElement));
         }
         this.fields = fieldsBuilder.build();
-
-        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
-        AnnotationElement anno = element.annotations();
-        if (anno != null) {
-            annotationBuilder.putAll(anno.values());
-        }
-        this.annotations = annotationBuilder.build();
     }
 
     private StructType(Builder builder) {
-        super(builder.element.name(), builder.namespaces);
-        this.element = builder.element;
-        this.type = builder.type;
+        super(builder);
+        this.structType = builder.structType;
         this.fields = builder.fields;
-        this.annotations = builder.annotations;
     }
 
     @Override
-    public ThriftType type() {
-        return type;
-    }
-
-    @Override
-    public String documentation() {
-        return element.documentation();
-    }
-
-    @Override
-    public Location location() {
-        return element.location();
-    }
-
-    public ImmutableList<Field> fields() {
-        return fields;
-    }
-
-    public ImmutableMap<String, String> annotations() {
-        return annotations;
-    }
-
     public boolean isStruct() {
-        return element.type() == StructElement.Type.STRUCT;
+        return true;
     }
 
     public boolean isUnion() {
-        return element.type() == StructElement.Type.UNION;
+        return structType == StructElement.Type.UNION;
     }
 
     public boolean isException() {
-        return element.type() == StructElement.Type.EXCEPTION;
+        return structType == StructElement.Type.EXCEPTION;
+    }
+
+    @Override
+    public <T> T accept(Visitor<T> visitor) {
+        return visitor.visitStruct(this);
+    }
+
+    @Override
+    ThriftType withAnnotations(Map<String, String> annotations) {
+        return toBuilder()
+                .annotations(merge(this.annotations(), annotations))
+                .build();
     }
 
     public Builder toBuilder() {
-        return new Builder(element, type, fields, annotations, namespaces());
-    }
-
-    public static final class Builder {
-        private StructElement element;
-        private ThriftType type;
-        private ImmutableList<Field> fields;
-        private ImmutableMap<String, String> annotations;
-        private Map<NamespaceScope, String> namespaces;
-
-        Builder(StructElement element,
-                       ThriftType type,
-                       ImmutableList<Field> fields,
-                       ImmutableMap<String, String> annotations,
-                       Map<NamespaceScope, String> namespaces) {
-            this.element = element;
-            this.type = type;
-            this.fields = fields;
-            this.annotations = annotations;
-            this.namespaces = namespaces;
-        }
-
-        public Builder element(StructElement element) {
-            if (element == null) {
-                throw new NullPointerException("element can't be null.");
-            }
-            this.element = element;
-            return this;
-        }
-
-        public Builder type(ThriftType type) {
-            this.type = type;
-            return this;
-        }
-
-        public Builder fields(ImmutableList<Field> fields) {
-            this.fields = fields;
-            return this;
-        }
-
-        public Builder annotations(ImmutableMap<String, String> annotations) {
-            this.annotations = annotations;
-            return this;
-        }
-
-        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
-            Map<NamespaceScope, String> immutableNamespaces = namespaces;
-            if (!(immutableNamespaces instanceof ImmutableMap)) {
-                immutableNamespaces = ImmutableMap.copyOf(namespaces);
-            }
-            this.namespaces = immutableNamespaces;
-            return this;
-        }
-
-        public StructType build() {
-            return new StructType(this);
-        }
-    }
-
-    @Override
-    public boolean isDeprecated() {
-        return super.isDeprecated()
-                || annotations.containsKey("deprecated")
-                || annotations.containsKey("thrifty.deprecated");
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        StructType that = (StructType) o;
-
-        if (!element.equals(that.element)) {
-            return false;
-        }
-        if (type != null ? !type.equals(that.type) : that.type != null) {
-            return false;
-        }
-        if (fields != null ? !fields.equals(that.fields) : that.fields != null) {
-            return false;
-        }
-        return annotations != null ? annotations.equals(that.annotations) : that.annotations == null;
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = element.hashCode();
-        result = 31 * result + (type != null ? type.hashCode() : 0);
-        result = 31 * result + (fields != null ? fields.hashCode() : 0);
-        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
-        return result;
+        return new Builder(this);
     }
 
     void link(Linker linker) {
@@ -218,12 +98,65 @@ public class StructType extends Named {
             if (dupe != null) {
                 linker.addError(dupe.location(),
                         "Duplicate field IDs: " + field.name() + " and " + dupe.name()
-                        + " both have the same ID (" + field.id() + ")");
+                                + " both have the same ID (" + field.id() + ")");
             }
 
-            if (isUnion() && field.required()) {
+            if (isUnion() && field.isRequired()) {
                 linker.addError(field.location(), "Unions may not have required fields: " + field.name());
             }
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!super.equals(o)) return false;
+
+        StructType that = (StructType) o;
+        return this.structType == that.structType
+                && this.fields.equals(that.fields);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), structType, fields);
+    }
+
+    public static final class Builder extends UserType.UserTypeBuilder<StructType, Builder> {
+        private StructElement.Type structType;
+        private ImmutableList<Field> fields;
+
+        Builder(StructType type) {
+            super(type);
+            this.structType = type.structType;
+            this.fields = type.fields;
+        }
+
+        public Builder asUnion() {
+            return structType(StructElement.Type.UNION);
+        }
+
+        public Builder asStruct() {
+            return structType(StructElement.Type.STRUCT);
+        }
+
+        public Builder asException() {
+            return structType(StructElement.Type.EXCEPTION);
+        }
+
+        public Builder structType(StructElement.Type structType) {
+            this.structType = Preconditions.checkNotNull(structType, "structType");
+            return this;
+        }
+
+        public Builder fields(List<Field> fields) {
+            Preconditions.checkNotNull(fields, "fields");
+            this.fields = ImmutableList.copyOf(fields);
+            return this;
+        }
+
+        @Override
+        public StructType build() {
+            return new StructType(this);
         }
     }
 }

@@ -20,59 +20,26 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.microsoft.thrifty.schema.parser.ConstValueElement;
-import com.microsoft.thrifty.schema.parser.FieldElement;
+import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 
-import javax.annotation.Nullable;
-
-public class Field implements UserElement {
-    private final FieldElement element;
+public class EnumMember implements UserElement {
     private final UserElementMixin mixin;
+    private final int value;
 
-    private ThriftType type;
-
-    Field(FieldElement element) {
-        this.element = element;
+    EnumMember(EnumMemberElement element) {
         this.mixin = new UserElementMixin(element);
+        this.value = element.value();
     }
 
-    public ThriftType type() {
-        return type;
+    private EnumMember(Builder builder) {
+        this.mixin = builder.mixin;
+        this.value = builder.value;
     }
 
-    public int id() {
-        return element.fieldId();
-    }
-
-    public boolean isOptional() {
-        return element.requiredness() == Requiredness.OPTIONAL;
-    }
-
-    public boolean isRequired() {
-        return element.requiredness() == Requiredness.REQUIRED;
-    }
-
-    @Nullable
-    public ConstValueElement defaultValue() {
-        return element.constValue();
-    }
-
-    public boolean isRedacted() {
-        return mixin.hasThriftOrJavadocAnnotation("redacted");
-    }
-
-    public boolean isObfuscated() {
-        return mixin.hasThriftOrJavadocAnnotation("obfuscated");
-    }
-
-    @Nullable
-    public String typedefName() {
-        String name = null;
-        if (type != null && type.isTypedef()) {
-            name = type.name();
-        }
-        return name;
+    public int value() {
+        return value;
     }
 
     @Override
@@ -105,11 +72,23 @@ public class Field implements UserElement {
         return mixin.isDeprecated();
     }
 
-    void link(Linker linker) {
-        //this.type = linker.resolveType(element.type());
-    }
+    public static class Builder extends AbstractUserElementBuilder<EnumMember, Builder> {
+        private int value;
 
-    void validate(Linker linker) {
-        // TODO: Implement me!
+        protected Builder(EnumMember member) {
+            super(member.mixin);
+            this.value = member.value;
+        }
+
+        public Builder value(int value) {
+            Preconditions.checkArgument(value >= 0, "Enum values cannot be less than zero");
+            this.value = value;
+            return this;
+        }
+
+        @Override
+        public EnumMember build() {
+            return new EnumMember(this);
+        }
     }
 }

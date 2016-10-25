@@ -47,16 +47,16 @@ public final class Program {
     private final ImmutableMap<NamespaceScope, String> namespaces;
     private final ImmutableList<String> cppIncludes;
     private final ImmutableList<String> thriftIncludes;
-    private final ImmutableList<Typedef> typedefs;
+    private final ImmutableList<TypedefType> typedefs;
     private final ImmutableList<Constant> constants;
     private final ImmutableList<EnumType> enums;
     private final ImmutableList<StructType> structs;
     private final ImmutableList<StructType> unions;
     private final ImmutableList<StructType> exceptions;
-    private final ImmutableList<Service> services;
+    private final ImmutableList<ServiceType> services;
 
     private ImmutableList<Program> includedPrograms;
-    private ImmutableMap<String, Named> symbols;
+    private ImmutableMap<String, UserType> symbols;
     private ImmutableMap<String, Constant> constSymbols;
 
     Program(ThriftFileElement element, FieldNamingPolicy fieldNamingPolicy) {
@@ -82,68 +82,43 @@ public final class Program {
 
         ImmutableList.Builder<StructType> structs = ImmutableList.builder();
         for (StructElement structElement : element.structs()) {
-            StructType t = new StructType(
-                    structElement,
-                    ThriftType.get(structElement.name(), namespaces),
-                    namespaces,
-                    fieldNamingPolicy);
-            structs.add(t);
+            structs.add(new StructType(this, structElement));
         }
         this.structs = structs.build();
 
-        ImmutableList.Builder<Typedef> typedefs = ImmutableList.builder();
+        ImmutableList.Builder<TypedefType> typedefs = ImmutableList.builder();
         for (TypedefElement typedefElement : element.typedefs()) {
-            Typedef td = new Typedef(typedefElement, namespaces);
-            typedefs.add(td);
+            typedefs.add(new TypedefType(this, typedefElement));
         }
         this.typedefs = typedefs.build();
 
         ImmutableList.Builder<Constant> constants = ImmutableList.builder();
         for (ConstElement constElement : element.constants()) {
-            Constant constant = new Constant(constElement, namespaces);
-            constants.add(constant);
+            constants.add(new Constant(constElement, namespaces));
         }
         this.constants = constants.build();
 
         ImmutableList.Builder<EnumType> enums = ImmutableList.builder();
         for (EnumElement enumElement : element.enums()) {
-            enums.add(new EnumType(
-                    enumElement,
-                    ThriftType.enumType(enumElement.name(), namespaces),
-                    namespaces));
+            enums.add(new EnumType(this, enumElement));
         }
         this.enums = enums.build();
 
         ImmutableList.Builder<StructType> unions = ImmutableList.builder();
         for (StructElement structElement : element.unions()) {
-            StructType u = new StructType(
-                    structElement,
-                    ThriftType.get(structElement.name(), namespaces),
-                    namespaces,
-                    fieldNamingPolicy);
-            unions.add(u);
+            unions.add(new StructType(this, structElement));
         }
         this.unions = unions.build();
 
         ImmutableList.Builder<StructType> exceptions = ImmutableList.builder();
         for (StructElement structElement : element.exceptions()) {
-            StructType u = new StructType(
-                    structElement,
-                    ThriftType.get(structElement.name(), namespaces),
-                    namespaces,
-                    fieldNamingPolicy);
-            exceptions.add(u);
+            exceptions.add(new StructType(this, structElement));
         }
         this.exceptions = exceptions.build();
 
-        ImmutableList.Builder<Service> services = ImmutableList.builder();
+        ImmutableList.Builder<ServiceType> services = ImmutableList.builder();
         for (ServiceElement serviceElement : element.services()) {
-            Service svc = new Service(
-                    serviceElement,
-                    ThriftType.get(serviceElement.name(), namespaces),
-                    namespaces,
-                    fieldNamingPolicy);
-            services.add(svc);
+            services.add(new ServiceType(this, serviceElement));
         }
         this.services = services.build();
     }
@@ -184,15 +159,15 @@ public final class Program {
         return this.exceptions;
     }
 
-    public ImmutableList<Service> services() {
+    public ImmutableList<ServiceType> services() {
         return this.services;
     }
 
-    public ImmutableList<Typedef> typedefs() {
+    public ImmutableList<TypedefType> typedefs() {
         return this.typedefs;
     }
 
-    public ImmutableMap<String, Named> symbols() {
+    public ImmutableMap<String, UserType> symbols() {
         return this.symbols;
     }
 
@@ -206,12 +181,12 @@ public final class Program {
      * Note that this does not include {@link #constants()}, which are
      * not types.
      */
-    public Iterable<Named> allTypeNames() {
+    public Iterable<UserType> allTypeNames() {
         // Some type-resolution subtlety eludes me.  I'd have thought that
         // Iterable<EnumType> is castable to Iterable<Named> (inheritance),
         // but the IDE claims otherwise.  So, instead of FluentIterable.<Named>from(enums),
         // we work around by making one from an empty Named array and appending.
-        FluentIterable<Named> iter = FluentIterable.of(new Named[0]);
+        FluentIterable<UserType> iter = FluentIterable.of(new UserType[0]);
         return iter
                 .append(enums)
                 .append(structs)
@@ -247,9 +222,9 @@ public final class Program {
 
         this.includedPrograms = includes.build();
 
-        LinkedHashMap<String, Named> symbolMap = new LinkedHashMap<>();
-        for (Named named : allTypeNames()) {
-            Named oldValue = symbolMap.put(named.name(), named);
+        LinkedHashMap<String, UserType> symbolMap = new LinkedHashMap<>();
+        for (UserType named : allTypeNames()) {
+            UserType oldValue = symbolMap.put(named.name(), named);
             if (oldValue != null) {
                 throw duplicateSymbol(named.name(), oldValue, named);
             }
@@ -268,7 +243,7 @@ public final class Program {
         this.constSymbols = ImmutableMap.copyOf(constSymbolMap);
     }
 
-    private IllegalStateException duplicateSymbol(String symbol, Named oldValue, Named newValue) {
+    private IllegalStateException duplicateSymbol(String symbol, UserElement oldValue, UserElement newValue) {
         throw new IllegalStateException(
                 "Duplicate symbols: '" + symbol + "' defined at "
                 + oldValue.location() + " and at " + newValue.location());

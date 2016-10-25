@@ -20,84 +20,48 @@
  */
 package com.microsoft.thrifty.schema;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.EnumElement;
 import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-public class EnumType extends Named {
-    private final EnumElement element;
-    private final ThriftType type;
-    private final ImmutableList<Member> members;
-    private final ImmutableMap<String, String> annotations;
+public class EnumType extends UserType {
+    private final ImmutableList<EnumMember> members;
 
-    @VisibleForTesting
-    EnumType(EnumElement element, ThriftType type, Map<NamespaceScope, String> namespaces) {
-        super(element.name(), namespaces);
-        this.element = element;
-        this.type = type;
+    EnumType(Program program, EnumElement element) {
+        super(program, new UserElementMixin(element));
 
-        ImmutableList.Builder<Member> membersBuilder = ImmutableList.builder();
+        ImmutableList.Builder<EnumMember> builder = ImmutableList.builder();
         for (EnumMemberElement memberElement : element.members()) {
-            membersBuilder.add(new Member(memberElement));
+            builder.add(new EnumMember(memberElement));
         }
-        this.members = membersBuilder.build();
-
-        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
-        AnnotationElement anno = element.annotations();
-        if (anno != null) {
-            annotationBuilder.putAll(anno.values());
-        }
-        this.annotations = annotationBuilder.build();
+        this.members = builder.build();
     }
 
     private EnumType(Builder builder) {
-        super(builder.element.name(), builder.namespaces);
-        this.element = builder.element;
-        this.type = builder.type;
+        super(builder);
         this.members = builder.members;
-        this.annotations = builder.annotations;
     }
 
-    public String documentation() {
-        return element.documentation();
-    }
-
-    @Override
-    public Location location() {
-        return element.location();
-    }
-
-    public ImmutableList<Member> members() {
+    public ImmutableList<EnumMember> members() {
         return members;
     }
 
-    @Override
-    public ThriftType type() {
-        return type;
-    }
-
-    public ImmutableMap<String, String> annotations() {
-        return annotations;
-    }
-
-    public Member findMemberByName(String name) {
-        for (Member member : members) {
-            if (name.equals(member.name())) {
+    public EnumMember findMemberByName(String name) {
+        for (EnumMember member : members) {
+            if (member.name().equals(name)) {
                 return member;
             }
         }
         throw new NoSuchElementException();
     }
 
-    public Member findMemberById(int id) {
-        for (Member member : members) {
+    public EnumMember findMemberById(int id) {
+        for (EnumMember member : members) {
             if (member.value() == id) {
                 return member;
             }
@@ -106,153 +70,43 @@ public class EnumType extends Named {
     }
 
     @Override
-    public boolean isDeprecated() {
-        return super.isDeprecated()
-                || annotations.containsKey("deprecated")
-                || annotations.containsKey("thrifty.deprecated");
+    public boolean isEnum() {
+        return true;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        EnumType enumType = (EnumType) o;
-
-        if (!element.equals(enumType.element)) {
-            return false;
-        }
-        if (type != null ? !type.equals(enumType.type) : enumType.type != null) {
-            return false;
-        }
-        if (members != null ? !members.equals(enumType.members) : enumType.members != null) {
-            return false;
-        }
-        return annotations != null ? annotations.equals(enumType.annotations) : enumType.annotations == null;
-
+    public <T> T accept(Visitor<T> visitor) {
+        return visitor.visitEnum(this);
     }
 
     @Override
-    public int hashCode() {
-        int result = element.hashCode();
-        result = 31 * result + (type != null ? type.hashCode() : 0);
-        result = 31 * result + (members != null ? members.hashCode() : 0);
-        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
-        return result;
+    ThriftType withAnnotations(Map<String, String> annotations) {
+        return toBuilder()
+                .annotations(merge(this.annotations(), annotations))
+                .build();
     }
 
     public Builder toBuilder() {
-        return new Builder(element,
-                type,
-                members,
-                annotations,
-                namespaces());
+        return new Builder(this);
     }
 
-    public static final class Builder {
-        private EnumElement element;
-        private ThriftType type;
-        private ImmutableList<Member> members;
-        private ImmutableMap<String, String> annotations;
-        private Map<NamespaceScope, String> namespaces;
+    public static class Builder extends UserType.UserTypeBuilder<EnumType, Builder> {
+        private ImmutableList<EnumMember> members;
 
-        Builder(EnumElement element,
-                       ThriftType type,
-                       ImmutableList<Member> members,
-                       ImmutableMap<String, String> annotations,
-                       Map<NamespaceScope, String> namespaces) {
-            this.element = element;
-            this.type = type;
-            this.members = members;
-            this.annotations = annotations;
-            this.namespaces = namespaces;
+        Builder(EnumType enumType) {
+            super(enumType);
+            this.members = enumType.members;
         }
 
-        public Builder element(EnumElement element) {
-            if (element == null) {
-                throw new NullPointerException("element may not be null.");
-            }
-            this.element = element;
+        public Builder members(List<EnumMember> members) {
+            Preconditions.checkNotNull(members, "members");
+            this.members = ImmutableList.copyOf(members);
             return this;
-        }
-
-        public Builder type(ThriftType type) {
-            this.type = type;
-            return this;
-        }
-
-        public Builder members(ImmutableList<Member> members) {
-            this.members = members;
-            return this;
-        }
-
-        public Builder annotations(ImmutableMap<String, String> annotations) {
-            this.annotations = annotations;
-            return this;
-        }
-
-        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
-            Map<NamespaceScope, String> immutableNamespaces = namespaces;
-            if (!(immutableNamespaces instanceof ImmutableMap)) {
-                immutableNamespaces = ImmutableMap.copyOf(namespaces);
-            }
-            this.namespaces = immutableNamespaces;
-            return this;
-        }
-
-        public EnumType build() {
-            return new EnumType(this);
-        }
-    }
-
-    public static final class Member {
-        private final EnumMemberElement element;
-        private final ImmutableMap<String, String> annotations;
-
-        Member(EnumMemberElement element) {
-            this.element = element;
-
-            ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
-            AnnotationElement anno = element.annotations();
-            if (anno != null) {
-                annotationBuilder.putAll(anno.values());
-            }
-            this.annotations = annotationBuilder.build();
-        }
-
-        public String name() {
-            return element.name();
-        }
-
-        public int value() {
-            return element.value();
-        }
-
-        public String documentation() {
-            return element.documentation();
-        }
-
-        public ImmutableMap<String, String> annotations() {
-            return annotations;
-        }
-
-        public boolean hasJavadoc() {
-            return JavadocUtil.hasJavadoc(this);
-        }
-
-        public boolean isDeprecated() {
-            return annotations.containsKey("deprecated")
-                    || annotations.containsKey("thrifty.deprecated")
-                    || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@deprecated"));
         }
 
         @Override
-        public String toString() {
-            return name();
+        public EnumType build() {
+            return new EnumType(this);
         }
     }
 }

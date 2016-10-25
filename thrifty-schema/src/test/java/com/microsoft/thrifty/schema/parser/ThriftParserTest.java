@@ -1106,6 +1106,28 @@ public class ThriftParserTest {
         assertThat(clientUuid.documentation(), containsString("this belongs to clientUuid"));
         assertThat(someOtherField.documentation(), containsString("Here's a longer comment."));
     }
+
+    @Test
+    public void structsCanOmitAndReorderFieldIds() {
+        ThriftFileElement element = parse("" +
+                "struct Struct {\n" +
+                "  required string foo;\n" +
+                "  required string bar;\n" +
+                "  5: required string baz\n" +
+                "  required string qux;\n" +
+                "  4: required string barfo\n" +
+                "  required string beefy\n" +
+                "}");
+
+        StructElement struct = element.structs().get(0);
+        ImmutableList<FieldElement> fields = struct.fields();
+        assertThat(fields.get(0).fieldId(), equalTo(1));
+        assertThat(fields.get(1).fieldId(), equalTo(2));
+        assertThat(fields.get(2).fieldId(), equalTo(5));
+        assertThat(fields.get(3).fieldId(), equalTo(6));
+        assertThat(fields.get(4).fieldId(), equalTo(4));
+        assertThat(fields.get(5).fieldId(), equalTo(7));
+    }
     
     private static ThriftFileElement parse(String thrift) {
         return parse(thrift, Location.get("", ""));

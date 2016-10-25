@@ -43,7 +43,7 @@ public abstract class FieldElement {
 
     public abstract Location location();
     public abstract String documentation();
-    @Nullable public abstract Integer fieldId();
+    public abstract int fieldId();
     public abstract Requiredness requiredness();
     public abstract TypeElement type();
     public abstract String name();
@@ -56,7 +56,7 @@ public abstract class FieldElement {
     public interface Builder {
         Builder location(Location location);
         Builder documentation(String documentation);
-        Builder fieldId(Integer fieldId);
+        Builder fieldId(int fieldId);
         Builder requiredness(Requiredness requiredness);
         Builder type(TypeElement type);
         Builder name(String name);
