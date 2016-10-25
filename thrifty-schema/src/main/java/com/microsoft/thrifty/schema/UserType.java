@@ -27,33 +27,29 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 public abstract class UserType extends ThriftType implements UserElement {
-    private final Program program;
+    private final ImmutableMap<NamespaceScope, String> namespaces;
     private final UserElementMixin mixin; // visible for subtype builders
 
     UserType(Program program, UserElementMixin mixin) {
         super(mixin.name());
-        this.program = program;
+        this.namespaces = program.namespaces();
         this.mixin = mixin;
     }
 
-    protected UserType(UserTypeBuilder builder) {
+    protected UserType(UserTypeBuilder<? extends UserType, ? extends UserTypeBuilder<?, ?>> builder) {
         super(builder.mixin.name());
-        this.program = builder.program;
+        this.namespaces = builder.namespaces;
         this.mixin = builder.mixin;
     }
 
     @Nullable
     public String getNamespaceFor(NamespaceScope namespace) {
-        String ns = program.namespaces().get(namespace);
+        String ns = namespaces.get(namespace);
         if (ns == null && namespace != NamespaceScope.ALL) {
-            ns = program.namespaces().get(NamespaceScope.ALL);
+            ns = namespaces.get(NamespaceScope.ALL);
         }
 
         return ns;
-    }
-
-    public Program program() {
-        return program;
     }
 
     @Override
@@ -87,29 +83,29 @@ public abstract class UserType extends ThriftType implements UserElement {
 
         UserType that = (UserType) o;
         if (!mixin.equals(that.mixin)) return false;
-        if (!program.equals(that.program)) return false;
+        if (!namespaces.equals(that.namespaces)) return false;
         return true;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), mixin, program);
+        return Objects.hash(super.hashCode(), mixin, namespaces);
     }
 
     abstract static class UserTypeBuilder<
             TType extends UserType,
             TBuilder extends UserTypeBuilder<TType, TBuilder>> extends AbstractUserElementBuilder<TType, TBuilder> {
 
-        private Program program;
+        private ImmutableMap<NamespaceScope, String> namespaces;
 
         UserTypeBuilder(TType type) {
             super(((UserType) type).mixin);
-            this.program = type.program();
+            this.namespaces = ((UserType) type).namespaces;
         }
 
         @SuppressWarnings("unchecked")
-        TBuilder program(Program program) {
-            this.program = Preconditions.checkNotNull(program, "program");
+        TBuilder namespaces(ImmutableMap<NamespaceScope, String> namespaces) {
+            this.namespaces = Preconditions.checkNotNull(namespaces, "namespaces");
             return (TBuilder) this;
         }
     }

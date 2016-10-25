@@ -58,5 +58,5 @@ abstract class AbstractUserElementBuilder<
         return (TBuilder) this;
     }
 
-    abstract TElement build();
+    public abstract TElement build();
 }
