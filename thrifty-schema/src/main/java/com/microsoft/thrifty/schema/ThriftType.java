@@ -23,8 +23,9 @@ package com.microsoft.thrifty.schema;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
+
+import javax.annotation.Nonnull;
 
 /**
  * Represents a type name and all containing namespaces.
@@ -155,15 +156,20 @@ public abstract class ThriftType {
             Map<String, String> annotations) {
         return new UserType(name, namespaces, true, annotations);
     }
-    public static ThriftType typedefOf(ThriftType oldType, String name) {
-        return typedefOf(oldType, name, ImmutableMap.<String, String>of());
+    public static ThriftType typedefOf(ThriftType oldType,
+            String name,
+            Map<NamespaceScope, String> namespaces) {
+        return typedefOf(oldType, name, namespaces, ImmutableMap.<String, String>of());
     }
 
-    public static ThriftType typedefOf(ThriftType oldType, String name, Map<String, String> annotations) {
+    public static ThriftType typedefOf(ThriftType oldType,
+            String name,
+            Map<NamespaceScope, String> namespaces,
+            Map<String, String> annotations) {
         if (BUILTINS.get(name) != null) {
             throw new IllegalArgumentException("Cannot redefine built-in type: " + name);
         }
-        return new TypedefType(name, oldType, annotations);
+        return new TypedefType(name, oldType, namespaces, annotations);
     }
 
     public String name() {
@@ -440,10 +446,15 @@ public abstract class ThriftType {
 
     public static final class TypedefType extends ThriftType {
         private final ThriftType originalType;
+        private final Map<NamespaceScope, String> namespaces;
 
-        TypedefType(String name, ThriftType originalType, Map<String, String> annotations) {
+        TypedefType(String name,
+                ThriftType originalType,
+                Map<NamespaceScope, String> namespaces,
+                Map<String, String> annotations) {
             super(name, annotations);
             this.originalType = originalType;
+            this.namespaces = namespaces;
         }
 
         @Override
@@ -453,6 +464,15 @@ public abstract class ThriftType {
 
         public ThriftType originalType() {
             return originalType;
+        }
+
+        @Override
+        public String getNamespace(NamespaceScope scope) {
+            String ns = namespaces.get(scope);
+            if (ns == null && scope != NamespaceScope.ALL) {
+                ns = namespaces.get(NamespaceScope.ALL);
+            }
+            return ns == null ? "" : ns;
         }
 
         @Override
@@ -471,7 +491,7 @@ public abstract class ThriftType {
 
         @Override
         public ThriftType withAnnotations(Map<String, String> annotations) {
-            return new TypedefType(name(), originalType, merge(this.annotations(), annotations));
+            return new TypedefType(name(), originalType, namespaces, merge(this.annotations(), annotations));
         }
 
         @Override

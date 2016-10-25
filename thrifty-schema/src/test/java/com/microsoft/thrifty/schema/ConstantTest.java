@@ -111,7 +111,8 @@ public class ConstantTest {
     public void boolWithConstantHavingBoolTypedefValue() {
         Constant c = mock(Constant.class);
         when(c.name()).thenReturn("aBool");
-        when(c.type()).thenReturn(ThriftType.typedefOf(ThriftType.BOOL, "Truthiness"));
+        when(c.type()).thenReturn(ThriftType.typedefOf(ThriftType.BOOL, "Truthiness",
+                Collections.<NamespaceScope, String>emptyMap()));
 
         when(linker.lookupConst("aBool")).thenReturn(c);
 
@@ -120,7 +121,8 @@ public class ConstantTest {
 
     @Test
     public void typedefWithCorrectLiteral() {
-        ThriftType td = ThriftType.typedefOf(ThriftType.STRING, "Message");
+        ThriftType td = ThriftType.typedefOf(ThriftType.STRING, "Message",
+                Collections.<NamespaceScope, String>emptyMap());
         ConstValueElement value = ConstValueElement.literal(loc, "y helo thar");
 
         Constant.validate(linker, value, td);
@@ -251,7 +253,7 @@ public class ConstantTest {
     @Test
     public void typedefOfEnum() {
         ThriftType enumType = ThriftType.enumType("AnEnum", new HashMap<NamespaceScope, String>());
-        ThriftType typedefType = ThriftType.typedefOf(enumType, "Td");
+        ThriftType typedefType = ThriftType.typedefOf(enumType, "Td", Collections.<NamespaceScope, String>emptyMap());
 
         EnumType.Member member = new EnumType.Member(EnumMemberElement.builder(loc).name("FOO").value(1).build());
         ImmutableList<EnumType.Member> members = ImmutableList.of(member);
@@ -273,7 +275,7 @@ public class ConstantTest {
     public void typedefOfWrongEnum() {
         ThriftType enumType = ThriftType.enumType("AnEnum", new HashMap<NamespaceScope, String>());
         ThriftType wrongType = ThriftType.enumType("DifferentEnum", new HashMap<NamespaceScope, String>());
-        ThriftType typedefType = ThriftType.typedefOf(wrongType, "Td");
+        ThriftType typedefType = ThriftType.typedefOf(wrongType, "Td", Collections.<NamespaceScope, String>emptyMap());
 
         EnumType.Member member = new EnumType.Member(EnumMemberElement.builder(loc).name("FOO").value(1).build());
         ImmutableList<EnumType.Member> members = ImmutableList.of(member);

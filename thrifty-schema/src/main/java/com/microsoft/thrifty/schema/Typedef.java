@@ -89,7 +89,7 @@ public final class Typedef extends Named {
 
     boolean link(Linker linker) {
         oldType = linker.resolveType(element.oldType());
-        type = ThriftType.typedefOf(oldType, element.newName());
+        type = ThriftType.typedefOf(oldType, element.newName(), namespaces());
         return true;
     }
 
