@@ -35,7 +35,6 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -293,7 +292,7 @@ class Linker {
 
     private void validateServices() {
         // Services form an inheritance tree
-        Set<ServiceType> visited = new HashSet<>(program.services().size());
+        Set<ServiceType> visited = new LinkedHashSet<>(program.services().size());
         Multimap<ServiceType, ServiceType> parentToChildren = HashMultimap.create();
         Queue<ServiceType> servicesToValidate = new ArrayDeque<>(program.services().size());
 
@@ -302,7 +301,7 @@ class Linker {
             // Otherwise, this is a root node, and should be added to the processing queue.
             ThriftType baseType = service.extendsService();
             if (baseType != null) {
-                if (baseType instanceof ServiceType) {
+                if (baseType.isService()) {
                     parentToChildren.put((ServiceType) baseType, service);
                 } else {
                     // We know that this is an error condition; queue this type up for validation anyways
@@ -440,26 +439,7 @@ class Linker {
 
     @Nullable
     @Deprecated
-    Named lookupSymbol(ThriftType type) {
-        // This differs from the above because, instead of a possibly-qualified
-        // name, we have a ThriftType that is not qualified, and wish to find
-        // its defining element.  It could feasibly be in this program, or in
-        // one of its direct inclusions.
-        //
-        // (Symbols from direct inclusions are available in IDL, but those from
-        // transitive inclusions are not).
-//        Named named = program.symbols().get(type.name());
-//        if (named == null) {
-//            for (Program p : program.includes()) {
-//                named = p.symbols().get(type.name());
-//                if (named != null) {
-//                    break;
-//                }
-//            }
-//        }
-//
-//        return named;
-
+    Named lookupSymbol(OldThriftType type) {
         return null;
     }
 

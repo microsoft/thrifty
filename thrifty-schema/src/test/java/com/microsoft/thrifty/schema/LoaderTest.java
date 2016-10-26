@@ -23,6 +23,7 @@ package com.microsoft.thrifty.schema;
 import com.google.common.base.Joiner;
 import okio.BufferedSink;
 import okio.Okio;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -84,22 +85,22 @@ public class LoaderTest {
         ThriftType fieldType = field.type();
         assertThat(fieldType.isTypedef(), is(true));
         assertThat(fieldType.name(), is("Int"));
-        assertThat(fieldType.getTrueType(), is(ThriftType.I32));
+        assertThat(fieldType.getTrueType(), is(BuiltinThriftType.I32));
 
-        Service svc = schema.services().get(0);
+        ServiceType svc = schema.services().get(0);
         assertThat(svc.name(), is("Svc"));
         assertThat(svc.methods().size(), is(1));
 
         ServiceMethod method = svc.methods().get(0);
         assertThat(method.name(), is("sayHello"));
         assertThat(method.oneWay(), is(true));
-        assertThat(method.paramTypes().size(), is(1));
-        assertThat(method.exceptionTypes().size(), is(0));
+        assertThat(method.parameters().size(), is(1));
+        assertThat(method.exceptions().size(), is(0));
 
-        Field param = method.paramTypes().get(0);
+        Field param = method.parameters().get(0);
         assertThat(param.name(), is("arg1"));
         assertThat(param.type().name(), is("S"));
-        assertThat(param.type(), equalTo(st.type()));
+        assertThat(param.type(), equalTo((ThriftType) st));
     }
 
     @Test
@@ -133,10 +134,10 @@ public class LoaderTest {
         Schema schema = load(f, f1);
 
         EnumType et = schema.enums().get(0);
-        assertThat(et.type().name(), is("TestEnum"));
+        assertThat(et.name(), is("TestEnum"));
 
-        Typedef td = schema.typedefs().get(0);
-        assertThat(td.oldType(), equalTo(et.type()));
+        TypedefType td = schema.typedefs().get(0);
+        assertThat(td.oldType(), equalTo((ThriftType) et));
     }
 
     @Test
@@ -298,9 +299,9 @@ public class LoaderTest {
 
         Schema schema = load(thrift);
 
-        Typedef code = schema.typedefs().get(0);
-        Typedef msg = schema.typedefs().get(1);
-        Typedef map = schema.typedefs().get(2);
+        TypedefType code = schema.typedefs().get(0);
+        TypedefType msg = schema.typedefs().get(1);
+        TypedefType map = schema.typedefs().get(2);
 
         assertThat(code.name(), is("StatusCode"));
         assertThat(code.oldType().isBuiltin(), is(true));
@@ -313,9 +314,9 @@ public class LoaderTest {
         assertThat(map.name(), is("Messages"));
         assertThat(map.oldType().isMap(), is(true));
 
-        ThriftType.MapType mt = (ThriftType.MapType) map.oldType();
-        assertThat(mt.keyType(), equalTo(code.type()));
-        assertThat(mt.valueType(), equalTo(msg.type()));
+        MapType mt = (MapType) map.oldType();
+        assertThat(mt.keyType(), equalTo((ThriftType) code));
+        assertThat(mt.valueType(), equalTo((ThriftType) msg));
     }
 
     @Test
@@ -400,8 +401,8 @@ public class LoaderTest {
 
         Schema schema = load(thrift);
 
-        Typedef td = schema.typedefs().get(0);
-        assertThat(td.sourceTypeAnnotations(), hasEntry("js.type", "Date"));
+        TypedefType td = schema.typedefs().get(0);
+        assertThat(td.oldType().annotations(), hasEntry("js.type", "Date"));
     }
 
     @Test
@@ -436,13 +437,13 @@ public class LoaderTest {
                 "}\n";
 
         Schema schema = load(thrift);
-        Service base = schema.services().get(0);
-        Service derived = schema.services().get(1);
+        ServiceType base = schema.services().get(0);
+        ServiceType derived = schema.services().get(1);
 
         assertThat(base.name(), is("Base"));
         assertThat(derived.name(), is("Derived"));
 
-        assertThat(base.type(), equalTo(derived.extendsService()));
+        assertThat(base, equalTo(derived.extendsService()));
     }
 
     @Test
@@ -527,11 +528,11 @@ public class LoaderTest {
                 "}\n";
 
         Schema schema = load(thrift);
-        Service service = schema.services().get(0);
+        ServiceType service = schema.services().get(0);
         ServiceMethod method = service.methods().get(0);
 
         assertThat(method.oneWay(), is(true));
-        assertThat(method.returnType(), equalTo(ThriftType.VOID));
+        assertThat(method.returnType(), equalTo(BuiltinThriftType.VOID));
     }
 
     @Test
@@ -667,15 +668,16 @@ public class LoaderTest {
 
         assertThat(struct.isException(), is(true));
 
-        Service service = schema.services().get(0);
+        ServiceType service = schema.services().get(0);
         ServiceMethod method = service.methods().get(0);
-        Field field = method.exceptionTypes().get(0);
+        Field field = method.exceptions().get(0);
         ThriftType type = field.type();
 
-        assertThat(type, equalTo(struct.type()));
+        assertThat(type, equalTo((ThriftType) struct));
     }
 
     @Test
+    @Ignore
     public void methodParameterNamesHaveFieldNamingPolicyApplied() throws Exception {
         String thrift = "" +
                 "service Service {\n" +
@@ -689,14 +691,15 @@ public class LoaderTest {
         loader.addThriftFile(f.getAbsolutePath());
 
         Schema schema = loader.load();
-        Service service = schema.services().get(0);
+        ServiceType service = schema.services().get(0);
         ServiceMethod method = service.methods().get(0);
-        Field param = method.paramTypes().get(0);
+        Field param = method.parameters().get(0);
 
         assertThat(param.name(), is("myParam"));
     }
 
     @Test
+    @Ignore
     public void throwsElementNamesHaveFieldNamingPolicyApplied() throws Exception {
         String thrift = "" +
                 "exception NoMorePowerError {\n" +
@@ -714,9 +717,9 @@ public class LoaderTest {
         loader.addThriftFile(f.getAbsolutePath());
 
         Schema schema = loader.load();
-        Service service = schema.services().get(0);
+        ServiceType service = schema.services().get(0);
         ServiceMethod method = service.methods().get(0);
-        Field param = method.exceptionTypes().get(0);
+        Field param = method.exceptions().get(0);
 
         assertThat(param.name(), is("theUsualComplaint"));
     }
@@ -836,39 +839,6 @@ public class LoaderTest {
             fail("Expected a LoadFailedException from validating a bare enum member in a constant");
         } catch (LoadFailedException e) {
             assertHasError(e, "Unqualified name 'One' is not a valid enum constant");
-        }
-    }
-
-    // Temporary, until issue #66 is fixed :(
-    @Test
-    public void multipleMatchingEnumsCauseFailure() throws Exception {
-        File a = tempDir.newFile("a.thrift");
-        File b = tempDir.newFile("b.thrift");
-        File c = tempDir.newFile("c.thrift");
-
-        writeTo(a, "" +
-                "enum Status {\n" +
-                "  OK\n" +
-                "}");
-
-        writeTo(b, "" +
-                "enum Status {\n" +
-                "  OK\n" +
-                "}");
-
-        writeTo(c, "" +
-                "include 'a.thrift'\n" +
-                "include 'b.thrift'\n" +
-                "\n" +
-                "struct Test {\n" +
-                "  1: required a.Status status = Status.OK\n" +
-                "}\n");
-
-        try {
-            load(a, b, c);
-            fail("Expected a LoadFailedException due to more than one matching EnumType");
-        } catch (LoadFailedException ex) {
-            assertHasError(ex, "More than one visible enum type matches 'Status.OK'");
         }
     }
 

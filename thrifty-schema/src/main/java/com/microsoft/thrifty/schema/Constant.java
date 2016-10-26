@@ -94,17 +94,17 @@ public class Constant implements UserElement {
     }
 
     void link(Linker linker) {
-
+        type = linker.resolveType(element.type());
     }
 
     void validate(Linker linker) {
-
+        validate(linker, element.value(), type);
     }
 
     @VisibleForTesting
     static void validate(Linker linker, ConstValueElement value, ThriftType expected) {
         ThriftType trueType = expected.getTrueType();
-        Validators.forType(trueType).validate(linker, expected, value);
+        Validators.forType(trueType).validate(linker, trueType, value);
     }
 
     interface ConstValueValidator {
@@ -295,15 +295,31 @@ public class Constant implements UserElement {
                 String typeName = id.substring(0, ix); // possibly qualified
                 String memberName = id.substring(ix + 1);
 
-                ThriftType symbol = linker.lookupSymbol(typeName);
-                if (symbol == null || !symbol.getTrueType().equals(expected)) {
-                    throw new IllegalStateException(
-                            "Unrecognized type '" + typeName + "' at " + value.location());
+                // Does the literal name match the expected type name?
+                // It could be that typeName is qualified; handle that case.
+                boolean typeNameMatches = false;
+                ix = typeName.indexOf('.');
+                if (ix == -1) {
+                    // unqualified
+                    if (expected.name().equals(typeName)) {
+                        typeNameMatches = true;
+                    }
+                } else {
+                    // qualified
+                    String qualifier = typeName.substring(0, ix);
+                    String actualName = typeName.substring(ix + 1);
+
+                    // Does the qualifier match?
+                    if (et.location().getProgramName().equals(qualifier) && et.name().equals(actualName)) {
+                        typeNameMatches = true;
+                    }
                 }
 
-                for (EnumMember member : et.members()) {
-                    if (member.name().equals(memberName)) {
-                        return;
+                if (typeNameMatches) {
+                    for (EnumMember member : et.members()) {
+                        if (member.name().equals(memberName)) {
+                            return;
+                        }
                     }
                 }
 

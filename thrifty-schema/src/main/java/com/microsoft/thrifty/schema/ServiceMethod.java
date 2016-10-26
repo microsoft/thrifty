@@ -25,6 +25,9 @@ import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.FunctionElement;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class ServiceMethod implements UserElement {
     private final UserElementMixin mixin;
     private final FunctionElement element;
@@ -104,10 +107,50 @@ public class ServiceMethod implements UserElement {
             exception.link(linker);
         }
 
-        //returnType = linker.resolveType(element.returnType());
+        returnType = linker.resolveType(element.returnType());
     }
 
     void validate(Linker linker) {
-        // TODO: implement
+        if (oneWay() && !BuiltinThriftType.VOID.equals(returnType)) {
+            linker.addError(location(), "oneway methods may not have a non-void return type");
+        }
+
+        if (oneWay() && !exceptions.isEmpty()) {
+            linker.addError(location(), "oneway methods may not throw exceptions");
+        }
+
+        Map<Integer, Field> fieldsById = new LinkedHashMap<>();
+        for (Field param : parameters) {
+            Field oldParam = fieldsById.put(param.id(), param);
+            if (oldParam != null) {
+                String fmt = "Duplicate parameters; param '%s' has the same ID (%s) as param '%s'";
+                linker.addError(param.location(), String.format(fmt, param.name(), param.id(), oldParam.name()));
+
+                fieldsById.put(oldParam.id(), oldParam);
+            }
+        }
+
+        fieldsById.clear();
+        for (Field exn : exceptions) {
+            Field oldExn = fieldsById.put(exn.id(), exn);
+            if (oldExn != null) {
+                String fmt = "Duplicate exceptions; exception '%s' has the same ID (%s) as exception '%s'";
+                linker.addError(exn.location(), String.format(fmt, exn.name(), exn.id(), oldExn.name()));
+
+                fieldsById.put(oldExn.id(), oldExn);
+            }
+        }
+
+        for (Field field : exceptions) {
+            ThriftType type = field.type();
+            if (type.isStruct()) {
+                StructType struct = (StructType) type;
+                if (struct.isException()) {
+                    continue;
+                }
+            }
+
+            linker.addError(field.location(), "Only exception types can be thrown");
+        }
     }
 }

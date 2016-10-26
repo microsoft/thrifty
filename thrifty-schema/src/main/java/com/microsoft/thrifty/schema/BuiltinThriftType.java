@@ -25,16 +25,16 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 public class BuiltinThriftType extends ThriftType {
-    public static final BuiltinThriftType BOOL   = new BuiltinThriftType("bool");
-    public static final BuiltinThriftType BYTE   = new BuiltinThriftType("byte");
-    public static final BuiltinThriftType I8     = new BuiltinThriftType("i8");
-    public static final BuiltinThriftType I16    = new BuiltinThriftType("i16");
-    public static final BuiltinThriftType I32    = new BuiltinThriftType("i32");
-    public static final BuiltinThriftType I64    = new BuiltinThriftType("i64");
-    public static final BuiltinThriftType DOUBLE = new BuiltinThriftType("double");
-    public static final BuiltinThriftType STRING = new BuiltinThriftType("string");
-    public static final BuiltinThriftType BINARY = new BuiltinThriftType("binary");
-    public static final BuiltinThriftType VOID   = new BuiltinThriftType("void");
+    public static final ThriftType BOOL   = new BuiltinThriftType("bool");
+    public static final ThriftType BYTE   = new BuiltinThriftType("byte");
+    public static final ThriftType I8     = new BuiltinThriftType("i8");
+    public static final ThriftType I16    = new BuiltinThriftType("i16");
+    public static final ThriftType I32    = new BuiltinThriftType("i32");
+    public static final ThriftType I64    = new BuiltinThriftType("i64");
+    public static final ThriftType DOUBLE = new BuiltinThriftType("double");
+    public static final ThriftType STRING = new BuiltinThriftType("string");
+    public static final ThriftType BINARY = new BuiltinThriftType("binary");
+    public static final ThriftType VOID   = new BuiltinThriftType("void");
 
     private static final ImmutableMap<String, ThriftType> BUILTINS;
 

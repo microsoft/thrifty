@@ -52,6 +52,10 @@ public abstract class UserType extends ThriftType implements UserElement {
         return ns;
     }
 
+    public ImmutableMap<NamespaceScope, String> namespaces() {
+        return namespaces;
+    }
+
     @Override
     public Location location() {
         return mixin.location();

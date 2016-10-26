@@ -48,7 +48,7 @@ public abstract class Named {
 
     public abstract String documentation();
     public abstract Location location();
-    public abstract ThriftType type();
+    public abstract OldThriftType type();
 
     public boolean hasJavadoc() {
         return JavadocUtil.hasJavadoc(this);

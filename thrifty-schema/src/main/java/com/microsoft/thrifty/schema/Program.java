@@ -42,7 +42,7 @@ import java.util.Set;
  * A Program is the set of elements declared in a Thrift file.  It
  * contains
  */
-public final class Program {
+public class Program {
     private final ThriftFileElement element;
     private final ImmutableMap<NamespaceScope, String> namespaces;
     private final ImmutableList<String> cppIncludes;

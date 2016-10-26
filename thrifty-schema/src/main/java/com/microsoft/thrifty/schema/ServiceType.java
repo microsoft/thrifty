@@ -26,12 +26,19 @@ import com.microsoft.thrifty.schema.parser.FunctionElement;
 import com.microsoft.thrifty.schema.parser.ServiceElement;
 import com.microsoft.thrifty.schema.parser.TypeElement;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ServiceType extends UserType {
     private final ImmutableList<ServiceMethod> methods;
     private final TypeElement extendsServiceType;
+
+    // This is intentionally too broad - it is not legal for a service to extend
+    // a non-service type, but if we've parsed that we need to keep the invalid
+    // state long enough to catch it during link validation.
     private ThriftType extendsService;
 
     ServiceType(Program program, ServiceElement element) {
@@ -53,8 +60,17 @@ public class ServiceType extends UserType {
         this.extendsService = builder.extendsService;
     }
 
+    public ImmutableList<ServiceMethod> methods() {
+        return methods;
+    }
+
     public ThriftType extendsService() {
         return extendsService;
+    }
+
+    @Override
+    public boolean isService() {
+        return true;
     }
 
     @Override
@@ -78,11 +94,78 @@ public class ServiceType extends UserType {
             method.link(linker);
         }
 
-        this.extendsService = linker.resolveType(extendsServiceType);
+        if (this.extendsServiceType != null) {
+            this.extendsService = linker.resolveType(extendsServiceType);
+        }
     }
 
     void validate(Linker linker) {
+        // Validate the following properties:
+        // 1. If the service extends a type, that the type is itself a service
+        // 2. The service contains no duplicate methods, including those inherited from base types.
+        // 3. All service methods themselves are valid.
 
+        Map<String, ServiceMethod> methodsByName = new LinkedHashMap<>();
+
+        Deque<ServiceType> hierarchy = new ArrayDeque<>();
+
+        if (extendsService != null) {
+            if (!(extendsService.isService())) {
+                linker.addError(location(), "Base type '" + extendsService.name() + "' is not a service");
+            }
+        }
+
+        // Assume base services have already been validated
+        ThriftType baseType = extendsService;
+        while (baseType != null) {
+            if (!baseType.isService()) {
+                break;
+            }
+
+            ServiceType svc = (ServiceType) baseType;
+            hierarchy.add(svc);
+
+            baseType = svc.extendsService;
+        }
+
+
+        while (!hierarchy.isEmpty()) {
+            // Process from most- to least-derived services; that way, if there
+            // is a name conflict, we'll report the conflict with the least-derived
+            // class.
+            ServiceType svc = hierarchy.remove();
+
+            for (ServiceMethod serviceMethod : svc.methods()) {
+                // Add the base-type method names to the map.  In this case,
+                // we don't care about duplicates because the base types have
+                // already been validated and we have already reported that error.
+                methodsByName.put(serviceMethod.name(), serviceMethod);
+            }
+        }
+
+        for (ServiceMethod method : methods) {
+            ServiceMethod conflictingMethod = methodsByName.put(method.name(), method);
+            if (conflictingMethod != null) {
+                methodsByName.put(conflictingMethod.name(), conflictingMethod);
+
+                linker.addError(method.location(), "Duplicate method; '" + method.name()
+                        + "' conflicts with another method declared at " + conflictingMethod.location());
+            }
+        }
+
+        for (ServiceMethod method : methods) {
+            method.validate(linker);
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 
     public static final class Builder extends UserType.UserTypeBuilder<ServiceType, Builder> {

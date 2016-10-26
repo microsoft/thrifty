@@ -39,7 +39,7 @@ public final class JavadocUtil {
         return isNonEmptyJavadoc(field.documentation());
     }
 
-    static boolean hasJavadoc(EnumType.Member enumMember) {
+    static boolean hasJavadoc(EnumMember enumMember) {
         return isNonEmptyJavadoc(enumMember.documentation());
     }
 

@@ -52,6 +52,10 @@ public class StructType extends UserType {
         this.fields = builder.fields;
     }
 
+    public ImmutableList<Field> fields() {
+        return fields;
+    }
+
     @Override
     public boolean isStruct() {
         return true;
@@ -101,7 +105,7 @@ public class StructType extends UserType {
                                 + " both have the same ID (" + field.id() + ")");
             }
 
-            if (isUnion() && field.isRequired()) {
+            if (isUnion() && field.required()) {
                 linker.addError(field.location(), "Unions may not have required fields: " + field.name());
             }
         }
@@ -112,7 +116,7 @@ public class StructType extends UserType {
         if (!super.equals(o)) return false;
 
         StructType that = (StructType) o;
-        return this.structType == that.structType
+        return this.structType.equals(that.structType)
                 && this.fields.equals(that.fields);
     }
 

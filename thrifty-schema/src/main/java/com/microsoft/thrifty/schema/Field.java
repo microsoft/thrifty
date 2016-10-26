@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
@@ -37,6 +38,12 @@ public class Field implements UserElement {
         this.mixin = new UserElementMixin(element);
     }
 
+    private Field(Builder builder) {
+        this.mixin = builder.mixin;
+        this.element = builder.fieldElement;
+        this.type = builder.fieldType;
+    }
+
     public ThriftType type() {
         return type;
     }
@@ -45,11 +52,11 @@ public class Field implements UserElement {
         return element.fieldId();
     }
 
-    public boolean isOptional() {
+    public boolean optional() {
         return element.requiredness() == Requiredness.OPTIONAL;
     }
 
-    public boolean isRequired() {
+    public boolean required() {
         return element.requiredness() == Requiredness.REQUIRED;
     }
 
@@ -105,11 +112,43 @@ public class Field implements UserElement {
         return mixin.isDeprecated();
     }
 
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     void link(Linker linker) {
-        //this.type = linker.resolveType(element.type());
+        this.type = linker.resolveType(element.type());
     }
 
     void validate(Linker linker) {
-        // TODO: Implement me!
+        ConstValueElement value = element.constValue();
+        if (value != null) {
+            try {
+                Constant.validate(linker, value, type);
+            } catch (IllegalStateException e) {
+                linker.addError(value.location(), e.getMessage());
+            }
+        }
+    }
+
+    public static final class Builder extends AbstractUserElementBuilder<Field, Builder> {
+        private FieldElement fieldElement;
+        private ThriftType fieldType;
+
+        Builder(Field field) {
+            super(field.mixin);
+            this.fieldElement = field.element;
+            this.fieldType = field.type;
+        }
+
+        public Builder type(ThriftType type) {
+            this.fieldType = Preconditions.checkNotNull(type, "type");
+            return this;
+        }
+
+        @Override
+        public Field build() {
+            return new Field(this);
+        }
     }
 }

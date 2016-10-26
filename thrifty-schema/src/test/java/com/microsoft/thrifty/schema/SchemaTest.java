@@ -31,8 +31,8 @@ public class SchemaTest {
         ImmutableList<StructType> structTypes = ImmutableList.of();
         ImmutableList<EnumType> enumTypes = ImmutableList.of();
         ImmutableList<Constant> constants = ImmutableList.of();
-        ImmutableList<Typedef> typedefs = ImmutableList.of();
-        ImmutableList<Service> services = ImmutableList.of();
+        ImmutableList<TypedefType> typedefs = ImmutableList.of();
+        ImmutableList<ServiceType> services = ImmutableList.of();
 
         Schema.Builder builder = schema.toBuilder();
         builder.structs(structTypes);
