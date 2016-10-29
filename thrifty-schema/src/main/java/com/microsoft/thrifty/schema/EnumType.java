@@ -29,6 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+/**
+ * Represents an enumeration defined in Thrift IDL.
+ */
 public class EnumType extends UserType {
     private final ImmutableList<EnumMember> members;
 

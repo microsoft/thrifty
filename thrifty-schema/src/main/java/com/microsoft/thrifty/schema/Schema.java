@@ -107,12 +107,6 @@ public class Schema {
         return services;
     }
 
-    public EnumType findEnumByType(ThriftType type) {
-        // Vestigial
-        // TODO: delete me when ConstantBuilder is updated
-        return null;
-    }
-
     public Builder toBuilder() {
         return new Builder(structs, unions, exceptions, enums, constants, typedefs, services);
     }

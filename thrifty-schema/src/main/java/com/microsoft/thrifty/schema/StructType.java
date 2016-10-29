@@ -30,6 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Represents a 'structured' type in Thrift.  A StructType could be any of
+ * 'struct', 'union', or 'exception'.
+ */
 public class StructType extends UserType {
     private final StructElement.Type structType;
     private final ImmutableList<Field> fields;

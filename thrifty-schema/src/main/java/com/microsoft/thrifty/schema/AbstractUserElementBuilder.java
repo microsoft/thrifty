@@ -24,13 +24,19 @@ import com.google.common.base.Preconditions;
 
 import java.util.Map;
 
+/**
+ * The base type of all UserElement-derived builders.
+ *
+ * @param <TElement> the type of element being built
+ * @param <TBuilder> the most-derived type of the builder
+ */
 @SuppressWarnings("unchecked")
 abstract class AbstractUserElementBuilder<
         TElement extends UserElement,
         TBuilder extends AbstractUserElementBuilder<TElement, TBuilder>> {
     UserElementMixin mixin;
 
-    protected AbstractUserElementBuilder(UserElementMixin mixin) {
+    AbstractUserElementBuilder(UserElementMixin mixin) {
         this.mixin = mixin;
     }
 

@@ -25,6 +25,9 @@ import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * A type defined in Thrift.
+ */
 public abstract class ThriftType {
     private final String name;
 

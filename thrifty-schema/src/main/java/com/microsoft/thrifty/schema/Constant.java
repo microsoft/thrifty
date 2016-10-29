@@ -29,6 +29,9 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Represents a Thrift const definition.
+ */
 public class Constant implements UserElement {
     private final ConstElement element;
     private final ImmutableMap<NamespaceScope, String> namespaces;

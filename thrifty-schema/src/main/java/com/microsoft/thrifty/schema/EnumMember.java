@@ -72,6 +72,11 @@ public class EnumMember implements UserElement {
         return mixin.isDeprecated();
     }
 
+    @Override
+    public String toString() {
+        return name();
+    }
+
     public static class Builder extends AbstractUserElementBuilder<EnumMember, Builder> {
         private int value;
 

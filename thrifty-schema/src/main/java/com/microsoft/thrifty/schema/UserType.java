@@ -26,6 +26,10 @@ import com.google.common.collect.ImmutableMap;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
+/**
+ * Base type of all user-defined Thrift IDL types, including structs, unions,
+ * exceptions, services, and typedefs.
+ */
 public abstract class UserType extends ThriftType implements UserElement {
     private final ImmutableMap<NamespaceScope, String> namespaces;
     private final UserElementMixin mixin; // visible for subtype builders

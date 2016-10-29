@@ -55,6 +55,8 @@ public class TypedefType extends UserType {
         if (oldType.equals(BuiltinThriftType.VOID)) {
             linker.addError(location(), "Cannot declare a typedef of void");
         }
+
+        // Typedef cycles are validated during linking
     }
 
     public ThriftType oldType() {

@@ -34,9 +34,9 @@ import java.util.Arrays;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +48,6 @@ public class ConstantTest {
 
     @Before
     public void setup() {
-        when(linker.lookupSymbol(anyString())).thenReturn(null);
         when(program.namespaces()).thenReturn(ImmutableMap.<NamespaceScope, String>of());
     }
 
@@ -59,7 +58,10 @@ public class ConstantTest {
         try {
             Constant.validate(linker, ConstValueElement.literal(loc, "nope"), BuiltinThriftType.BOOL);
             fail("Invalid identifier should not validate as a bool");
-        } catch (IllegalStateException ignored) {
+        } catch (IllegalStateException expected) {
+            assertThat(
+                    expected.getMessage(),
+                    containsString("Expected 'true', 'false', '1', '0', or a bool constant"));
         }
     }
 
@@ -94,12 +96,13 @@ public class ConstantTest {
         StructType s = mock(StructType.class);
         when(s.name()).thenReturn("someStruct");
 
-        when(linker.lookupSymbol("someStruct")).thenReturn(s);
-
         try {
             Constant.validate(linker, ConstValueElement.identifier(loc, "someStruct"), BuiltinThriftType.BOOL);
             fail("Non-constant identifier should not validate");
-        } catch (IllegalStateException ignored) {
+        } catch (IllegalStateException expected) {
+            assertThat(
+                    expected.getMessage(),
+                    containsString("Expected 'true', 'false', '1', '0', or a bool constant; got: someStruct"));
         }
     }
 
@@ -175,8 +178,6 @@ public class ConstantTest {
         when(et.getTrueType()).thenReturn(et);
         when(et.isEnum()).thenReturn(true);
 
-        when(linker.lookupSymbol("TestEnum")).thenReturn(et);
-
         Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.TEST"), et);
     }
 
@@ -191,12 +192,13 @@ public class ConstantTest {
         when(et.getTrueType()).thenReturn(et);
         when(et.isEnum()).thenReturn(true);
 
-        when(linker.lookupSymbol("TestEnum")).thenReturn(et);
-
         try {
             Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.NON_MEMBER"), et);
             fail("Non-member identifier should fail");
-        } catch (IllegalStateException ignored) {
+        } catch (IllegalStateException expected) {
+            assertThat(
+                    expected.getMessage(),
+                    containsString("'TestEnum.NON_MEMBER' is not a member of enum type TestEnum: members=[TEST]"));
         }
     }
 
@@ -210,8 +212,6 @@ public class ConstantTest {
         when(et.members()).thenReturn(members.build());
         when(et.getTrueType()).thenReturn(et);
         when(et.isEnum()).thenReturn(true);
-
-        when(linker.lookupSymbol("TestEnum")).thenReturn(et);
 
         try {
             Constant.validate(linker, ConstValueElement.identifier(loc, "TEST"), et);
@@ -265,8 +265,6 @@ public class ConstantTest {
         when(typedefType.oldType()).thenReturn(et);
         when(typedefType.getTrueType()).thenReturn(et);
 
-        when(linker.lookupSymbol("AnEnum")).thenReturn(et);
-
         ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO");
 
         Constant.validate(linker, value, typedefType);
@@ -296,15 +294,15 @@ public class ConstantTest {
         when(typedefType.oldType()).thenReturn(wt);
         when(typedefType.getTrueType()).thenReturn(wt);
 
-        when(linker.lookupSymbol("AnEnum")).thenReturn(et);
-        when(linker.lookupSymbol("DifferentEnum")).thenReturn(wt);
-
         ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO");
 
         try {
             Constant.validate(linker, value, typedefType);
             fail("An enum literal of type A cannot be assigned to a typedef of type B");
-        } catch (IllegalStateException ignored) {
+        } catch (IllegalStateException expected) {
+            assertThat(
+                    expected.getMessage(),
+                    is("'AnEnum.FOO' is not a member of enum type DifferentEnum: members=[BAR]"));
         }
     }
 
@@ -352,17 +350,5 @@ public class ConstantTest {
         //Constant constant = new Constant(constructorElement, new HashMap<NamespaceScope, String>());
 
         //assertEquals(constant.toBuilder().build(), constant);
-    }
-
-    private TypedefType typedefOf(String oldType, String name) {
-        TypedefElement element = TypedefElement.builder(loc)
-                .oldType(TypeElement.scalar(loc, oldType, null))
-                .newName(name)
-                .build();
-        return new TypedefType(program, element);
-    }
-
-    private TypeElement typeElement(String name) {
-        return TypeElement.scalar(loc, name, null);
     }
 }

@@ -99,6 +99,7 @@ class Linker {
 
             // Only validate the schema if linking succeeded; no point otherwise.
             if (!reporter.hasError()) {
+                validateTypedefs();
                 validateConstants();
                 validateStructs();
                 validateExceptions();
@@ -433,14 +434,6 @@ class Linker {
         } else {
             throw new AssertionError("Unexpected TypeElement: " + type.getClass());
         }
-    }
-
-    /**
-     * Deprecated.
-     */
-    @Nullable
-    ThriftType lookupSymbol(String symbol) {
-        return typesByName.get(symbol);
     }
 
     @Nullable
