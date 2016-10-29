@@ -23,6 +23,7 @@ package com.microsoft.thrifty.schema;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -68,13 +69,12 @@ public abstract class ThriftType {
      * Merge two maps, with keys in {@code newAnnotations} taking precedence
      * over keys in {@code baseAnnotations}.
      */
-    private static ImmutableMap<String, String> merge(
-            ImmutableMap<String, String> baseAnnotations,
-            Map<String, String> newAnnotations) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-        builder.putAll(baseAnnotations);
-        builder.putAll(newAnnotations);
-        return builder.build();
+    private static <K, V> ImmutableMap<K, V> merge(
+            Map<K, V> baseAnnotations,
+            Map<K, V> newAnnotations) {
+        Map<K, V> map = new HashMap<>(baseAnnotations);
+        map.putAll(newAnnotations);
+        return ImmutableMap.copyOf(map);
     }
 
     private final String name;
@@ -212,6 +212,10 @@ public abstract class ThriftType {
 
     public abstract ThriftType withAnnotations(Map<String, String> annotations);
 
+    public ThriftType withNamespaces(Map<NamespaceScope, String> namespaces) {
+        return this;
+    }
+
     public String getNamespace(NamespaceScope scope) {
         return "";
     }
@@ -319,6 +323,11 @@ public abstract class ThriftType {
         }
 
         @Override
+        public ThriftType withNamespaces(Map<NamespaceScope, String> newNamespaces) {
+            return new UserType(name(), merge(namespaces, newNamespaces), isEnum, annotations());
+        }
+
+        @Override
         public boolean equals(Object o) {
             return super.equals(o) && isEnum == ((UserType) o).isEnum;
         }
@@ -349,6 +358,10 @@ public abstract class ThriftType {
         @Override
         public ThriftType withAnnotations(Map<String, String> annotations) {
             return new ListType(name(), elementType, merge(this.annotations(), annotations));
+        }
+
+        public ListType withElementType(ThriftType newElementType) {
+            return new ListType(name(), newElementType, annotations());
         }
 
         @Override
@@ -492,6 +505,11 @@ public abstract class ThriftType {
         @Override
         public ThriftType withAnnotations(Map<String, String> annotations) {
             return new TypedefType(name(), originalType, namespaces, merge(this.annotations(), annotations));
+        }
+
+        @Override
+        public ThriftType withNamespaces(Map<NamespaceScope, String> newNamespaces) {
+            return new TypedefType(name(), originalType, merge(namespaces, newNamespaces), annotations());
         }
 
         @Override
