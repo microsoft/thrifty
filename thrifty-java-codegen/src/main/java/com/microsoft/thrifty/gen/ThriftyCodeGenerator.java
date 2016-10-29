@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.gen;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
@@ -298,6 +299,8 @@ public final class ThriftyCodeGenerator {
         return file.build();
     }
 
+    @VisibleForTesting
+    @SuppressWarnings("WeakerAccess")
     TypeSpec buildStruct(StructType type) {
         String packageName = type.getNamespaceFor(NamespaceScope.JAVA);
         ClassName structTypeName = ClassName.get(packageName, type.name());
@@ -661,7 +664,7 @@ public final class ThriftyCodeGenerator {
 
             write.addStatement(
                     "protocol.writeFieldBegin($S, $L, $T.$L)",
-                    fieldName,
+                    field.name(), // make sure that we write the Thrift IDL name, and not the name of the Java field
                     field.id(),
                     TypeNames.TTYPE,
                     typeCodeName);
@@ -797,10 +800,10 @@ public final class ThriftyCodeGenerator {
      */
     private MethodSpec buildToStringFor(StructType struct) {
         class Chunk {
-            final String format;
-            final Object[] args;
+            private final String format;
+            private final Object[] args;
 
-            Chunk(String format, Object ...args) {
+            private Chunk(String format, Object ...args) {
                 this.format = format;
                 this.args = args;
             }
@@ -898,6 +901,8 @@ public final class ThriftyCodeGenerator {
         return toString.build();
     }
 
+    @VisibleForTesting
+    @SuppressWarnings("WeakerAccess")
     TypeSpec buildConst(Collection<Constant> constants) {
         TypeSpec.Builder builder = TypeSpec.classBuilder("Constants")
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -1032,6 +1037,8 @@ public final class ThriftyCodeGenerator {
         return ann.build();
     }
 
+    @VisibleForTesting
+    @SuppressWarnings("WeakerAccess")
     TypeSpec buildEnum(EnumType type) {
         ClassName enumClassName = ClassName.get(
                 type.getNamespaceFor(NamespaceScope.JAVA),

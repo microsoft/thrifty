@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.gen;
 
 import com.microsoft.thrifty.Adapter;
+import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.protocol.Protocol;
 import com.microsoft.thrifty.schema.BuiltinThriftType;
 import com.microsoft.thrifty.schema.EnumType;
@@ -176,6 +177,9 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
 
         TypeName javaClass = resolver.getJavaClass(elementType);
         byte typeCode = resolver.getTypeCode(elementType);
+        if (typeCode == TType.ENUM) {
+            typeCode = TType.I32;
+        }
         String typeCodeName = TypeNames.getTypeCodeName(typeCode);
 
         write.addStatement(
@@ -208,16 +212,26 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
         String entryName = nameAllocator.newName(entryTag, entryTag);
         String keyName = nameAllocator.newName(keyTag, keyTag);
         String valueName = nameAllocator.newName(valueTag, valueTag);
-
         ThriftType kt = mapType.keyType().getTrueType();
         ThriftType vt = mapType.valueType().getTrueType();
+
+        byte keyTypeCode = resolver.getTypeCode(kt);
+        byte valTypeCode = resolver.getTypeCode(vt);
+
+        if (keyTypeCode == TType.ENUM) {
+            keyTypeCode = TType.I32;
+        }
+
+        if (valTypeCode == TType.ENUM) {
+            valTypeCode = TType.I32;
+        }
 
         write.addStatement(
                 "$1N.writeMapBegin($2T.$3L, $2T.$4L, $5L.size())",
                 proto,
                 TypeNames.TTYPE,
-                TypeNames.getTypeCodeName(resolver.getTypeCode(kt)),
-                TypeNames.getTypeCodeName(resolver.getTypeCode(vt)),
+                TypeNames.getTypeCodeName(keyTypeCode),
+                TypeNames.getTypeCodeName(valTypeCode),
                 nameStack.peek());
 
         TypeName keyTypeName = resolver.getJavaClass(kt);

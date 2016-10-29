@@ -291,7 +291,7 @@ final class ServiceBuilder {
             }
 
             send.addStatement("protocol.writeFieldBegin($S, $L, $T.$L)",
-                    fieldName,
+                    field.name(), // send the Thrift name, not the fieldNamer output
                     field.id(),
                     TypeNames.TTYPE,
                     TypeNames.getTypeCodeName(typeCode));
