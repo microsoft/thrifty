@@ -23,10 +23,11 @@ package com.microsoft.thrifty.gen;
 import com.google.common.base.Strings;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftException;
+import com.microsoft.thrifty.schema.BuiltinThriftType;
 import com.microsoft.thrifty.schema.Field;
 import com.microsoft.thrifty.schema.NamespaceScope;
-import com.microsoft.thrifty.schema.Service;
 import com.microsoft.thrifty.schema.ServiceMethod;
+import com.microsoft.thrifty.schema.ServiceType;
 import com.microsoft.thrifty.schema.ThriftType;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
@@ -46,13 +47,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class ServiceBuilder {
     private final TypeResolver typeResolver;
     private final ConstantBuilder constantBuilder;
+    private final FieldNamer fieldNamer;
 
-    ServiceBuilder(TypeResolver typeResolver, ConstantBuilder constantBuilder) {
+    ServiceBuilder(TypeResolver typeResolver, ConstantBuilder constantBuilder, FieldNamer fieldNamer) {
         this.typeResolver = typeResolver;
         this.constantBuilder = constantBuilder;
+        this.fieldNamer = fieldNamer;
     }
 
-    TypeSpec buildServiceInterface(Service service) {
+    TypeSpec buildServiceInterface(ServiceType service) {
         TypeSpec.Builder serviceSpec = TypeSpec.interfaceBuilder(service.name())
                 .addModifiers(Modifier.PUBLIC);
 
@@ -81,8 +84,9 @@ final class ServiceBuilder {
                 methodBuilder.addJavadoc(method.documentation());
             }
 
-            for (Field field : method.paramTypes()) {
-                String name = allocator.newName(field.name(), ++tag);
+            for (Field field : method.parameters()) {
+                String fieldName = fieldNamer.getName(field);
+                String name = allocator.newName(fieldName, ++tag);
                 ThriftType paramType = field.type().getTrueType();
                 TypeName paramTypeName = typeResolver.getJavaClass(paramType);
 
@@ -94,7 +98,7 @@ final class ServiceBuilder {
 
             ThriftType returnType = method.returnType();
             TypeName returnTypeName;
-            if (returnType.equals(ThriftType.VOID)) {
+            if (returnType.equals(BuiltinThriftType.VOID)) {
                 returnTypeName = TypeName.VOID.box();
             } else {
                 returnTypeName = typeResolver.getJavaClass(returnType.getTrueType());
@@ -111,7 +115,7 @@ final class ServiceBuilder {
         return serviceSpec.build();
     }
 
-    TypeSpec buildService(Service service, TypeSpec serviceInterface) {
+    TypeSpec buildService(ServiceType service, TypeSpec serviceInterface) {
         String packageName = service.getNamespaceFor(NamespaceScope.JAVA);
         TypeName interfaceTypeName = ClassName.get(packageName, serviceInterface.name);
         TypeSpec.Builder builder = TypeSpec.classBuilder(service.name() + "Client")
@@ -121,7 +125,7 @@ final class ServiceBuilder {
         if (service.extendsService() != null) {
             ThriftType type = service.extendsService();
             String typeName = type.name() + "Client";
-            String ns = type.getNamespace(NamespaceScope.JAVA);
+            String ns = ((ServiceType) type).getNamespaceFor(NamespaceScope.JAVA);
             TypeName javaClass = ClassName.get(ns, typeName);
             builder.superclass(javaClass);
         } else {
@@ -183,7 +187,7 @@ final class ServiceBuilder {
         }
 
         ThriftType returnType = method.returnType();
-        TypeName returnTypeName = returnType.equals(ThriftType.VOID)
+        TypeName returnTypeName = returnType.equals(BuiltinThriftType.VOID)
                 ? TypeName.VOID.box()
                 : typeResolver.getJavaClass(returnType.getTrueType());
         TypeName callbackTypeName = ParameterizedTypeName.get(TypeNames.SERVICE_CALLBACK, returnTypeName);
@@ -196,10 +200,10 @@ final class ServiceBuilder {
                 .superclass(superclass);
 
         // Set up fields
-        for (Field field : method.paramTypes()) {
+        for (Field field : method.parameters()) {
             TypeName javaType = typeResolver.getJavaClass(field.type().getTrueType());
 
-            callBuilder.addField(FieldSpec.builder(javaType, field.name())
+            callBuilder.addField(FieldSpec.builder(javaType, fieldNamer.getName(field))
                     .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
                     .build());
         }
@@ -226,17 +230,18 @@ final class ServiceBuilder {
                         TypeNames.TMESSAGE_TYPE,
                         method.oneWay() ? "ONEWAY" : "CALL");
 
-        for (Field field : method.paramTypes()) {
+        for (Field field : method.parameters()) {
+            String fieldName = fieldNamer.getName(field);
             TypeName javaType = typeResolver.getJavaClass(field.type().getTrueType());
 
-            ctor.addParameter(javaType, field.name());
+            ctor.addParameter(javaType, fieldName);
 
             if (field.required() && field.defaultValue() == null) {
-                ctor.addStatement("if ($L == null) throw new NullPointerException($S)", field.name(), field.name());
-                ctor.addStatement("this.$1L = $1L", field.name());
+                ctor.addStatement("if ($L == null) throw new NullPointerException($S)", fieldName, fieldName);
+                ctor.addStatement("this.$1L = $1L", fieldName);
             } else if (field.defaultValue() != null) {
-                ctor.beginControlFlow("if ($L != null)", field.name());
-                ctor.addStatement("this.$1L = $1L", field.name(), field.name());
+                ctor.beginControlFlow("if ($L != null)", fieldName);
+                ctor.addStatement("this.$1L = $1L", fieldName);
                 ctor.nextControlFlow("else");
 
                 CodeBlock.Builder init = CodeBlock.builder();
@@ -244,7 +249,7 @@ final class ServiceBuilder {
                         init,
                         allocator,
                         scope,
-                        "this." + field.name(),
+                        "this." + fieldName,
                         field.type().getTrueType(),
                         field.defaultValue(),
                         false);
@@ -252,7 +257,7 @@ final class ServiceBuilder {
 
                 ctor.endControlFlow();
             } else {
-                ctor.addStatement("this.$1L = $1L", field.name());
+                ctor.addStatement("this.$1L = $1L", fieldName);
             }
         }
 
@@ -270,7 +275,8 @@ final class ServiceBuilder {
 
         send.addStatement("protocol.writeStructBegin($S)", "args");
 
-        for (Field field : method.paramTypes()) {
+        for (Field field : method.parameters()) {
+            String fieldName = fieldNamer.getName(field);
             boolean optional = !field.required();
             final ThriftType tt = field.type().getTrueType();
             byte typeCode = typeResolver.getTypeCode(tt);
@@ -281,16 +287,16 @@ final class ServiceBuilder {
             }
 
             if (optional) {
-                send.beginControlFlow("if (this.$L != null)", field.name());
+                send.beginControlFlow("if (this.$L != null)", fieldName);
             }
 
             send.addStatement("protocol.writeFieldBegin($S, $L, $T.$L)",
-                    field.thriftName(),
+                    fieldName,
                     field.id(),
                     TypeNames.TTYPE,
                     TypeNames.getTypeCodeName(typeCode));
 
-            tt.accept(new GenerateWriterVisitor(typeResolver, send, "protocol", "this", field));
+            tt.accept(new GenerateWriterVisitor(typeResolver, send, "protocol", "this", fieldName));
 
             send.addStatement("protocol.writeFieldEnd()");
 
@@ -321,9 +327,10 @@ final class ServiceBuilder {
             recv.returns(TypeName.VOID.box());
         }
 
-        for (Field field : method.exceptionTypes()) {
+        for (Field field : method.exceptions()) {
+            String fieldName = fieldNamer.getName(field);
             TypeName exceptionTypeName = typeResolver.getJavaClass(field.type().getTrueType());
-            recv.addStatement("$T $L = null", exceptionTypeName, field.name());
+            recv.addStatement("$T $L = null", exceptionTypeName, fieldName);
         }
 
         recv.addStatement("protocol.readStructBegin()")
@@ -349,13 +356,14 @@ final class ServiceBuilder {
             recv.addStatement("break");
         }
 
-        for (final Field field : method.exceptionTypes()) {
+        for (Field field : method.exceptions()) {
+            final String fieldName = fieldNamer.getName(field);
             recv.beginControlFlow("case $L:", field.id());
 
-            new GenerateReaderVisitor(typeResolver, recv, field) {
+            new GenerateReaderVisitor(typeResolver, recv, fieldName, field.type().getTrueType()) {
                 @Override
                 protected void useReadValue(String localName) {
-                    recv.addStatement("$N = $N", field.name(), localName);
+                    recv.addStatement("$N = $N", fieldName, localName);
                 }
             }.generate();
 
@@ -376,14 +384,15 @@ final class ServiceBuilder {
             isInControlFlow = true;
         }
 
-        for (Field field : method.exceptionTypes()) {
+        for (Field field : method.exceptions()) {
+            String fieldName = fieldNamer.getName(field);
             if (isInControlFlow) {
-                recv.nextControlFlow("else if ($L != null)", field.name());
+                recv.nextControlFlow("else if ($L != null)", fieldName);
             } else {
-                recv.beginControlFlow("if ($L != null)", field.name());
+                recv.beginControlFlow("if ($L != null)", fieldName);
                 isInControlFlow = true;
             }
-            recv.addStatement("throw $L", field.name());
+            recv.addStatement("throw $L", fieldName);
         }
 
         if (isInControlFlow) {

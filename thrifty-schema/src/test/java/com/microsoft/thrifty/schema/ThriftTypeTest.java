@@ -38,6 +38,11 @@ public class ThriftTypeTest {
 
         ThriftType.Visitor<Void> v = new ThriftType.Visitor<Void>() {
             @Override
+            public Void visitVoid(BuiltinThriftType voidType) {
+                return null;
+            }
+
+            @Override
             public Void visitBool(BuiltinThriftType boolType) {
                 return null;
             }
@@ -150,6 +155,7 @@ public class ThriftTypeTest {
     public void typeAnnotationsAreImmutable() {
         ThriftType one = BuiltinThriftType.get("i32").withAnnotations(Collections.singletonMap("i32", "bar"));
         try {
+            //noinspection deprecation
             one.annotations().put("baz", "quux");
             fail("Expected ThriftType#annotations() to be immutable!");
         } catch (UnsupportedOperationException ignored) {

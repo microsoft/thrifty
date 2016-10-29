@@ -23,7 +23,6 @@ package com.microsoft.thrifty.schema;
 import com.google.common.base.Joiner;
 import okio.BufferedSink;
 import okio.Okio;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -674,54 +673,6 @@ public class LoaderTest {
         ThriftType type = field.type();
 
         assertThat(type, equalTo((ThriftType) struct));
-    }
-
-    @Test
-    @Ignore
-    public void methodParameterNamesHaveFieldNamingPolicyApplied() throws Exception {
-        String thrift = "" +
-                "service Service {\n" +
-                "  void foo(1: string MyParam)\n" +
-                "}\n";
-
-        File f = tempDir.newFile("svc.thrift");
-        writeTo(f, thrift);
-
-        Loader loader = new Loader(FieldNamingPolicy.JAVA);
-        loader.addThriftFile(f.getAbsolutePath());
-
-        Schema schema = loader.load();
-        ServiceType service = schema.services().get(0);
-        ServiceMethod method = service.methods().get(0);
-        Field param = method.parameters().get(0);
-
-        assertThat(param.name(), is("myParam"));
-    }
-
-    @Test
-    @Ignore
-    public void throwsElementNamesHaveFieldNamingPolicyApplied() throws Exception {
-        String thrift = "" +
-                "exception NoMorePowerError {\n" +
-                "  1: string message\n" +
-                "}\n" +
-                "\n" +
-                "service Service {\n" +
-                "  void firePhasers() throws (1: NoMorePowerError TheUsualComplaint)\n" +
-                "}\n";
-
-        File f = tempDir.newFile("svc.thrift");
-        writeTo(f, thrift);
-
-        Loader loader = new Loader(FieldNamingPolicy.JAVA);
-        loader.addThriftFile(f.getAbsolutePath());
-
-        Schema schema = loader.load();
-        ServiceType service = schema.services().get(0);
-        ServiceMethod method = service.methods().get(0);
-        Field param = method.exceptions().get(0);
-
-        assertThat(param.name(), is("theUsualComplaint"));
     }
 
     @Test

@@ -22,9 +22,16 @@ package com.microsoft.thrifty.gen;
 
 import com.microsoft.thrifty.Adapter;
 import com.microsoft.thrifty.protocol.Protocol;
-import com.microsoft.thrifty.schema.Field;
+import com.microsoft.thrifty.schema.BuiltinThriftType;
+import com.microsoft.thrifty.schema.EnumType;
+import com.microsoft.thrifty.schema.ListType;
+import com.microsoft.thrifty.schema.MapType;
 import com.microsoft.thrifty.schema.NamespaceScope;
+import com.microsoft.thrifty.schema.ServiceType;
+import com.microsoft.thrifty.schema.SetType;
+import com.microsoft.thrifty.schema.StructType;
 import com.microsoft.thrifty.schema.ThriftType;
+import com.microsoft.thrifty.schema.TypedefType;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.NameAllocator;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -72,80 +79,80 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
      * @param write the {@link Adapter#write} method under construction
      * @param proto the name of the {@link Protocol} parameter to the write method
      * @param subject the name of the struct parameter to the write method
-     * @param field the field being written
+     * @param fieldName the Java name of the field being written
      */
     GenerateWriterVisitor(
             TypeResolver resolver,
             MethodSpec.Builder write,
             String proto,
             String subject,
-            Field field) {
+            String fieldName) {
         this.resolver = resolver;
         this.write = write;
         this.proto = proto;
-        nameStack.push(subject + "." + field.name());
+        nameStack.push(subject + "." + fieldName);
     }
 
-    public Void visitBool() {
+    public Void visitBool(BuiltinThriftType boolType) {
         write.addStatement("$N.writeBool($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitByte() {
+    public Void visitByte(BuiltinThriftType byteType) {
         write.addStatement("$N.writeByte($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI16() {
+    public Void visitI16(BuiltinThriftType i16Type) {
         write.addStatement("$N.writeI16($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI32() {
+    public Void visitI32(BuiltinThriftType i32Type) {
         write.addStatement("$N.writeI32($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI64() {
+    public Void visitI64(BuiltinThriftType i64Type) {
         write.addStatement("$N.writeI64($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitDouble() {
+    public Void visitDouble(BuiltinThriftType doubleType) {
         write.addStatement("$N.writeDouble($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitString() {
+    public Void visitString(BuiltinThriftType stringType) {
         write.addStatement("$N.writeString($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitBinary() {
+    public Void visitBinary(BuiltinThriftType binaryType) {
         write.addStatement("$N.writeBinary($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitVoid() {
+    public Void visitVoid(BuiltinThriftType voidType) {
         throw new AssertionError("Fields cannot be void");
     }
 
     @Override
-    public Void visitEnum(ThriftType userType) {
+    public Void visitEnum(EnumType enumType) {
         write.addStatement("$N.writeI32($L.value)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitList(ThriftType.ListType listType) {
+    public Void visitList(ListType listType) {
         visitSingleElementCollection(
                 listType.elementType().getTrueType(),
                 "writeListBegin",
@@ -154,7 +161,7 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
     }
 
     @Override
-    public Void visitSet(ThriftType.SetType setType) {
+    public Void visitSet(SetType setType) {
         visitSingleElementCollection(
                 setType.elementType().getTrueType(),
                 "writeSetBegin",
@@ -192,7 +199,7 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
     }
 
     @Override
-    public Void visitMap(ThriftType.MapType mapType) {
+    public Void visitMap(MapType mapType) {
         initCollectionHelpers();
         String entryTag = "entry" + scopeLevel;
         String keyTag = "key" + scopeLevel;
@@ -237,16 +244,21 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
     }
 
     @Override
-    public Void visitUserType(ThriftType userType) {
-        String javaName = userType.getNamespace(NamespaceScope.JAVA) + "." + userType.name();
+    public Void visitStruct(StructType structType) {
+        String javaName = structType.getNamespaceFor(NamespaceScope.JAVA) + "." + structType.name();
         write.addStatement("$L.ADAPTER.write($N, $L)", javaName, proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitTypedef(ThriftType.TypedefType typedefType) {
+    public Void visitTypedef(TypedefType typedefType) {
         typedefType.getTrueType().accept(this);
         return null;
+    }
+
+    @Override
+    public Void visitService(ServiceType serviceType) {
+        throw new AssertionError("Cannot write a service");
     }
 
     private void initCollectionHelpers() {

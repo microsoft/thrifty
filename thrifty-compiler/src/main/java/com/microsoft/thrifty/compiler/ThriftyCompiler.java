@@ -171,7 +171,7 @@ public class ThriftyCompiler {
     }
 
     public void compile() throws IOException {
-        Loader loader = new Loader(fieldNamingPolicy);
+        Loader loader = new Loader();
         for (String thriftFile : thriftFiles) {
             loader.addThriftFile(thriftFile);
         }
@@ -192,7 +192,7 @@ public class ThriftyCompiler {
             return;
         }
 
-        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema, fieldNamingPolicy);
         if (listTypeName != null) {
             gen = gen.withListType(listTypeName);
         }

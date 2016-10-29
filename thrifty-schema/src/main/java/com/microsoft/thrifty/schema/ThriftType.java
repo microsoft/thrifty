@@ -103,6 +103,7 @@ public abstract class ThriftType {
     }
 
     public interface Visitor<T> {
+        T visitVoid(BuiltinThriftType voidType);
         T visitBool(BuiltinThriftType boolType);
         T visitByte(BuiltinThriftType byteType);
         T visitI16(BuiltinThriftType i16Type);

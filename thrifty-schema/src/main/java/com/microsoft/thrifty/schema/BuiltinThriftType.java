@@ -108,4 +108,37 @@ public class BuiltinThriftType extends ThriftType {
     ThriftType withAnnotations(Map<String, String> annotations) {
         return new BuiltinThriftType(name(), merge(this.annotations, annotations));
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        if (getClass() != o.getClass()) return false;
+
+        BuiltinThriftType that = (BuiltinThriftType) o;
+
+        if (this.name().equals(that.name())) {
+            return true;
+        }
+
+        // 'byte' and 'i8' are synonyms
+        if (this.name().equals(BYTE.name()) && that.name().equals(I8.name())) {
+            return true;
+        }
+
+        if (this.name().equals(I8.name()) && that.name().equals(BYTE.name())) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        String name = name();
+        if (name.equals(I8.name())) {
+            name = BYTE.name();
+        }
+        return name.hashCode();
+    }
 }

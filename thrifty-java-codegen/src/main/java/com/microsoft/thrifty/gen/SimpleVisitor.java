@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.gen;
 
+import com.microsoft.thrifty.schema.BuiltinThriftType;
 import com.microsoft.thrifty.schema.ThriftType;
 
 /**
@@ -34,47 +35,47 @@ abstract class SimpleVisitor<T> implements ThriftType.Visitor<T>  {
     public abstract T visitBuiltin(ThriftType builtinType);
 
     @Override
-    public T visitBool() {
-        return visitBuiltin(ThriftType.BOOL);
+    public T visitBool(BuiltinThriftType boolType) {
+        return visitBuiltin(boolType);
     }
 
     @Override
-    public T visitByte() {
-        return visitBuiltin(ThriftType.BYTE);
+    public T visitByte(BuiltinThriftType byteType) {
+        return visitBuiltin(byteType);
     }
 
     @Override
-    public T visitI16() {
-        return visitBuiltin(ThriftType.I16);
+    public T visitI16(BuiltinThriftType i16Type) {
+        return visitBuiltin(i16Type);
     }
 
     @Override
-    public T visitI32() {
-        return visitBuiltin(ThriftType.I32);
+    public T visitI32(BuiltinThriftType i32Type) {
+        return visitBuiltin(i32Type);
     }
 
     @Override
-    public T visitI64() {
-        return visitBuiltin(ThriftType.I64);
+    public T visitI64(BuiltinThriftType i64Type) {
+        return visitBuiltin(i64Type);
     }
 
     @Override
-    public T visitDouble() {
-        return visitBuiltin(ThriftType.DOUBLE);
+    public T visitDouble(BuiltinThriftType doubleType) {
+        return visitBuiltin(doubleType);
     }
 
     @Override
-    public T visitString() {
-        return visitBuiltin(ThriftType.STRING);
+    public T visitString(BuiltinThriftType stringType) {
+        return visitBuiltin(stringType);
     }
 
     @Override
-    public T visitBinary() {
-        return visitBuiltin(ThriftType.BINARY);
+    public T visitBinary(BuiltinThriftType binaryType) {
+        return visitBuiltin(binaryType);
     }
 
     @Override
-    public T visitVoid() {
-        return visitBuiltin(ThriftType.VOID);
+    public T visitVoid(BuiltinThriftType voidType) {
+        return visitBuiltin(voidType);
     }
 }

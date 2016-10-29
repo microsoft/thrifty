@@ -47,6 +47,16 @@ public class TypedefType extends UserType {
         this.oldType = linker.resolveType(oldTypeElement);
     }
 
+    void validate(Linker linker) {
+        if (oldType.isService()) {
+            linker.addError(location(), "Cannot declare a typedef of a service");
+        }
+
+        if (oldType.equals(BuiltinThriftType.VOID)) {
+            linker.addError(location(), "Cannot declare a typedef of void");
+        }
+    }
+
     public ThriftType oldType() {
         return oldType;
     }

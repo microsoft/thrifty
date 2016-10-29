@@ -59,7 +59,7 @@ public class Program {
     private ImmutableMap<String, UserType> symbols;
     private ImmutableMap<String, Constant> constSymbols;
 
-    Program(ThriftFileElement element, FieldNamingPolicy fieldNamingPolicy) {
+    Program(ThriftFileElement element) {
         this.element = element;
 
         ImmutableMap.Builder<NamespaceScope, String> ns = ImmutableMap.builder();
@@ -183,9 +183,9 @@ public class Program {
      */
     public Iterable<UserType> allTypeNames() {
         // Some type-resolution subtlety eludes me.  I'd have thought that
-        // Iterable<EnumType> is castable to Iterable<Named> (inheritance),
-        // but the IDE claims otherwise.  So, instead of FluentIterable.<Named>from(enums),
-        // we work around by making one from an empty Named array and appending.
+        // Iterable<EnumType> is castable to Iterable<UserType> (covariance),
+        // but the IDE claims otherwise.  So, instead of FluentIterable.<UserType>from(enums),
+        // we work around by making one from an empty UserType array and appending.
         FluentIterable<UserType> iter = FluentIterable.of(new UserType[0]);
         return iter
                 .append(enums)

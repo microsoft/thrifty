@@ -27,7 +27,7 @@ public class ServiceTest {
     @Mock Map<NamespaceScope, String> namespaces;
     @Mock FieldNamingPolicy fieldNamingPolicy;
 
-    Service service;
+    ServiceType service;
 
 //    @Before
 //    public void setup() {

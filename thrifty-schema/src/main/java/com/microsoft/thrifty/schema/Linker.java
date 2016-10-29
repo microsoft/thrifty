@@ -290,6 +290,12 @@ class Linker {
         }
     }
 
+    private void validateTypedefs() {
+        for (TypedefType typedef : program.typedefs()) {
+            typedef.validate(this);
+        }
+    }
+
     private void validateServices() {
         // Services form an inheritance tree
         Set<ServiceType> visited = new LinkedHashSet<>(program.services().size());
@@ -430,17 +436,11 @@ class Linker {
     }
 
     /**
-     * Looks up a {@link Named} symbol from a given name, possibly qualified.
+     * Deprecated.
      */
     @Nullable
     ThriftType lookupSymbol(String symbol) {
         return typesByName.get(symbol);
-    }
-
-    @Nullable
-    @Deprecated
-    Named lookupSymbol(OldThriftType type) {
-        return null;
     }
 
     @Nullable

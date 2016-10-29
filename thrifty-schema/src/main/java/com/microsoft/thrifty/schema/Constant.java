@@ -55,7 +55,7 @@ public class Constant implements UserElement {
     }
 
     @Nullable
-    public String namespaceFor(NamespaceScope scope) {
+    public String getNamespaceFor(NamespaceScope scope) {
         String ns = namespaces.get(scope);
         if (ns == null && scope != NamespaceScope.ALL) {
             ns = namespaces.get(NamespaceScope.ALL);
