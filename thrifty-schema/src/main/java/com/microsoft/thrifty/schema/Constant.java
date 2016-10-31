@@ -262,7 +262,7 @@ public class Constant implements UserElement {
             EnumType et = (EnumType) expected;
 
             if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                long id = (Long) value.value();
+                long id = value.getAsLong();
                 for (EnumMember member : et.members()) {
                     if (member.value() == id) {
                         return;

@@ -68,51 +68,53 @@ public abstract class ThriftType {
 
     /**
      * Gets the name of this type.
+     *
+     * @return the name of this type.
      */
     public String name() {
         return name;
     }
 
     /**
-     * Accepts a {@link Visitor<T>}, performing an arbitrary operation and
+     * Accepts a {@link Visitor}, performing an arbitrary operation and
      * returning its result.
      *
      * @param visitor the visitor to invoke.
-     * @param <T> the type returned by <code>visitor</code>.
-     * @return the value returned by <code>visitor</code>, if any.
+     * @param <T> the type returned by the visitor.
+     * @return the value returned by the visitor, if any.
      */
     public abstract <T> T accept(Visitor<T> visitor);
 
     /**
-     * True if this type is a built-in type, e.g. i32, bool, string, etc.
+     * @return true if this type is a built-in type, e.g. i32, bool, etc.
      */
     public boolean isBuiltin() {
         return false;
     }
 
     /**
-     * True if this is a list type.
+     * @return true if this is a list type.
      */
     public boolean isList() {
         return false;
     }
 
     /**
-     * True if this is a set type.
+     * @return true if this is a set type.
      */
     public boolean isSet() {
         return false;
     }
 
     /**
-     * True if this is a map type.
+     * @return true if this is a map type.
      */
     public boolean isMap() {
         return false;
     }
 
     /**
-     * True if this is an enumeration type.
+     * @return true if this is an enumeration type.
      */
     public boolean isEnum() {
         return false;
@@ -122,20 +124,22 @@ public abstract class ThriftType {
      * True if this is a structured user-defined type such as a struct, union,
      * or exception.  This does <em>not</em> mean that this type is actually
      * a struct!
+     *
+     * @return true if this is a structured type.
      */
     public boolean isStruct() {
         return false;
     }
 
     /**
-     * True if this is a typedef of another type.
+     * @return true if this is a typedef of another type.
      */
     public boolean isTypedef() {
         return false;
     }
 
     /**
-     * True if this is a user-defined RPC service type.
+     * @return true if this is a user-defined RPC service type.
      */
     public boolean isService() {
         return false;
@@ -145,6 +149,8 @@ public abstract class ThriftType {
      * Returns the aliased type if this is a typedef or, if not,
      * returns <code>this</code>.  A convenience function for
      * codegen.
+     *
+     * @return true if this is a typedef.
      */
     public ThriftType getTrueType() {
         return this;
@@ -163,7 +169,7 @@ public abstract class ThriftType {
     public abstract ThriftType withAnnotations(Map<String, String> annotations);
 
     /**
-     * Returns all annotations present on this type.
+     * @return all annotations present on this type.
      */
     public abstract ImmutableMap<String, String> annotations();
 
@@ -194,60 +200,139 @@ public abstract class ThriftType {
     /**
      * Represents an arbitrary computation on a {@link ThriftType}.
      *
-     * <p>Just your standard visitor from the Gang of Four book; very useful
-     * for code generation which is all about type-hierarchy-specific
+     * <p>Just your standard visitor from the Gang of Four book.  Very useful
+     * for code generation, which is all about type-hierarchy-specific
      * operations; visitors let us effectively augment a complicated hierarchy
      * without bloating the ThriftType classes themselves.
      *
      * @param <T> the type of value returned by the visit methods.
      */
     public interface Visitor<T> {
-        /** Visit a BuiltinType.VOID. */
+        /**
+         * Visit a {@link BuiltinType#VOID}.
+         *
+         * @param voidType the BuiltinType instance being visited.
+         * @return the result of the operation.
+         */
         T visitVoid(BuiltinType voidType);
 
-        /** Visit a BuiltinType.BOOL. */
+        /**
+         * Visit a {@link BuiltinType#BOOL}.
+         *
+         * @param boolType the BuiltinType instance being visited.
+         * @return the result of the operation.
+         */
         T visitBool(BuiltinType boolType);
 
-        /** Visit a BuiltinType.BYTE or BuiltinType.I8. */
+        /** Visit a {@link BuiltinType#BYTE} or {@link BuiltinType#I8}.
+         *
+         * @param byteType BuiltinType instance being visited.
+         * @return the result of the operation.
+         */
         T visitByte(BuiltinType byteType);
 
-        /** Visit a BuiltinType.I16. */
+        /**
+         * Visit a {@link BuiltinType#I16}.
+         *
+         * @param i16Type the BuiltinType being visited.
+         * @return the result of the operation.
+         */
         T visitI16(BuiltinType i16Type);
 
-        /** Visit a BuiltinType.I32. */
+        /**
+         * Visit a {@link BuiltinType#I32}.
+         *
+         * @param i32Type the BuiltinType being visited.
+         * @return the result of the operation.
+         */
         T visitI32(BuiltinType i32Type);
 
-        /** Visit a BuiltinType.I64. */
+        /**
+         * Visit a {@link BuiltinType#I64}.
+         *
+         * @param i64Type the BuiltinType being visited.
+         * @return the result of the operation.
+         */
         T visitI64(BuiltinType i64Type);
 
-        /** Visit a BuiltinType.DOUBLE. */
+        /**
+         * Visit a {@link BuiltinType#DOUBLE}.
+         *
+         * @param doubleType the BuiltinType being visited.
+         * @return the result of the operation.
+         */
         T visitDouble(BuiltinType doubleType);
 
-        /** Visit a BuiltinType.STRING. */
+        /**
+         * Visit a {@link BuiltinType#STRING}.
+         *
+         * @param stringType the BuiltinType being visited.
+         * @return the result of the operation.
+         */
         T visitString(BuiltinType stringType);
 
-        /** Visit a BuiltinType.BINARY. */
+        /**
+         * Visit a {@link BuiltinType#BINARY}.
+         *
+         * @param binaryType the BuiltinType being visited.
+         * @return the result of the operation.
+         */
         T visitBinary(BuiltinType binaryType);
 
-        /** Visit a user-defined enum. */
+        /**
+         * Visit a user-defined enum.
+         *
+         * @param enumType the EnumType instance being visited.
+         * @return the result of the operation.
+         */
         T visitEnum(EnumType enumType);
 
-        /** Visit a list type. */
+        /**
+         * Visit a list type.
+         *
+         * @param listType the ListType instance being visited.
+         * @return the result of the operation.
+         */
         T visitList(ListType listType);
 
-        /** Visit a set type. */
+        /**
+         * Visit a set type.
+         *
+         * @param setType the SetType instance being visited.
+         * @return the result of the operation.
+         */
         T visitSet(SetType setType);
 
-        /** Visit a map type. */
+        /**
+         * Visit a map type.
+         *
+         * @param mapType the MapType instance being visited.
+         * @return the result of the operation.
+         */
         T visitMap(MapType mapType);
 
-        /** Visit a user-defined struct, union, or exception type. */
+        /**
+         * Visit a user-defined struct, union, or exception type.
+         *
+         * @param structType the StructType instance being visited.
+         * @return the result of the operation.
+         */
         T visitStruct(StructType structType);
 
-        /** Visit a typedef type. */
+        /**
+         * Visit a typedef type.
+         *
+         * @param typedefType the TypedefType instance being visited.
+         * @return the result of the operation.
+         */
         T visitTypedef(TypedefType typedefType);
 
-        /** Visit a service type. */
+        /**
+         * Visit a service type.
+         *
+         * @param serviceType the ServiceType instance being visited.
+         * @return the result of the operation.
+         */
         T visitService(ServiceType serviceType);
     }
 }

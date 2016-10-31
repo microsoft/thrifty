@@ -24,6 +24,9 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
+/**
+ * Represents a Thrift <code>map&lt;K, V&gt;</code>.
+ */
 public class MapType extends ThriftType {
     private final ThriftType keyType;
     private final ThriftType valueType;

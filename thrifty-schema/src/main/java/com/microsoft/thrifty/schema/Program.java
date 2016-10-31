@@ -40,7 +40,7 @@ import java.util.Set;
 
 /**
  * A Program is the set of elements declared in a Thrift file.  It
- * contains
+ * contains all types, namespaces, constants, and inclusions defined therein.
  */
 public class Program {
     private final ThriftFileElement element;
@@ -180,8 +180,10 @@ public class Program {
      *
      * Note that this does not include {@link #constants()}, which are
      * not types.
+     *
+     * @return all user-defined types contained in this Program.
      */
-    public Iterable<UserType> allTypeNames() {
+    public Iterable<UserType> allUserTypes() {
         // Some type-resolution subtlety eludes me.  I'd have thought that
         // Iterable<EnumType> is castable to Iterable<UserType> (covariance),
         // but the IDE claims otherwise.  So, instead of FluentIterable.<UserType>from(enums),
@@ -223,10 +225,10 @@ public class Program {
         this.includedPrograms = includes.build();
 
         LinkedHashMap<String, UserType> symbolMap = new LinkedHashMap<>();
-        for (UserType named : allTypeNames()) {
-            UserType oldValue = symbolMap.put(named.name(), named);
+        for (UserType userType : allUserTypes()) {
+            UserType oldValue = symbolMap.put(userType.name(), userType);
             if (oldValue != null) {
-                throw duplicateSymbol(named.name(), oldValue, named);
+                throw duplicateSymbol(userType.name(), oldValue, userType);
             }
         }
 

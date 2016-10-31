@@ -77,10 +77,7 @@ public class BuiltinType extends ThriftType {
     public <T> T accept(Visitor<T> visitor) {
         if (this.equals(BOOL)) {
             return visitor.visitBool(this);
-        } else if (this.equals(BYTE)) {
-            return visitor.visitByte(this);
-        } else if (this.equals(I8)) {
-            // Synonym for byte
+        } else if (this.equals(BYTE) || this.equals(I8)) {
             return visitor.visitByte(this);
         } else if (this.equals(I16)) {
             return visitor.visitI16(this);

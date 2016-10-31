@@ -28,26 +28,36 @@ import com.google.common.collect.ImmutableMap;
 public interface UserElement {
     /**
      * Gets the name of the element.
+     *
+     * @return the name of this element.
      */
     String name();
 
     /**
      * Gets the {@link Location} where the element is defined.
+     *
+     * @return the Location where this element is defined.
      */
     Location location();
 
     /**
      * Gets the documentation comments of the element, or an empty string.
+     *
+     * @return the documentation present on this element, or an empty string.
      */
     String documentation();
 
     /**
      * Gets an immutable map containing any annotations present on the element.
+     *
+     * @return all annotations present on this element.
      */
     ImmutableMap<String, String> annotations();
 
     /**
      * Gets a value indicating whether the element contains non-empty Javadoc.
+     *
+     * @return true if this element contains non-empty Javadoc.
      */
     boolean hasJavadoc();
 
@@ -55,6 +65,8 @@ public interface UserElement {
      * Gets a value indicating whether the element has been marked as
      * deprecated; this may or may not be meaningful, depending on the
      * particular type of element.
+     *
+     * @return true if this element has been marked as deprecated.
      */
     boolean isDeprecated();
 }

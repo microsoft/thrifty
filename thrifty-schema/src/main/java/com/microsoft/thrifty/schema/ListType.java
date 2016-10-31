@@ -24,6 +24,9 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
+/**
+ * Represents a Thrift <code>list&lt;T&gt;</code>.
+ */
 public class ListType extends ThriftType {
     private final ThriftType elementType;
     private final ImmutableMap<String, String> annotations;
