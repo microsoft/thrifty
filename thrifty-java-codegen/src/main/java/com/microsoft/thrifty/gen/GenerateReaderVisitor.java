@@ -23,7 +23,7 @@ package com.microsoft.thrifty.gen;
 import com.microsoft.thrifty.Adapter;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.protocol.Protocol;
-import com.microsoft.thrifty.schema.BuiltinThriftType;
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.EnumType;
 import com.microsoft.thrifty.schema.ListType;
 import com.microsoft.thrifty.schema.MapType;
@@ -93,55 +93,55 @@ class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     }
 
     @Override
-    public Void visitBool(BuiltinThriftType boolType) {
+    public Void visitBool(BuiltinType boolType) {
         read.addStatement("$T $N = protocol.readBool()", TypeNames.BOOLEAN.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitByte(BuiltinThriftType bytetype) {
+    public Void visitByte(BuiltinType bytetype) {
         read.addStatement("$T $N = protocol.readByte()", TypeNames.BYTE.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI16(BuiltinThriftType i16Type) {
+    public Void visitI16(BuiltinType i16Type) {
         read.addStatement("$T $N = protocol.readI16()", TypeNames.SHORT.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI32(BuiltinThriftType i32Type) {
+    public Void visitI32(BuiltinType i32Type) {
         read.addStatement("$T $N = protocol.readI32()", TypeNames.INTEGER.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI64(BuiltinThriftType i64Type) {
+    public Void visitI64(BuiltinType i64Type) {
         read.addStatement("$T $N = protocol.readI64()", TypeNames.LONG.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitDouble(BuiltinThriftType doubleType) {
+    public Void visitDouble(BuiltinType doubleType) {
         read.addStatement("$T $N = protocol.readDouble()", TypeNames.DOUBLE.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitString(BuiltinThriftType stringType) {
+    public Void visitString(BuiltinType stringType) {
         read.addStatement("$T $N = protocol.readString()", TypeNames.STRING, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitBinary(BuiltinThriftType binaryType) {
+    public Void visitBinary(BuiltinType binaryType) {
         read.addStatement("$T $N = protocol.readBinary()", TypeNames.BYTE_STRING, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitVoid(BuiltinThriftType voidType) {
+    public Void visitVoid(BuiltinType voidType) {
         throw new AssertionError("Cannot read void");
     }
 

@@ -38,48 +38,48 @@ public class ThriftTypeTest {
 
         ThriftType.Visitor<Void> v = new ThriftType.Visitor<Void>() {
             @Override
-            public Void visitVoid(BuiltinThriftType voidType) {
+            public Void visitVoid(BuiltinType voidType) {
                 return null;
             }
 
             @Override
-            public Void visitBool(BuiltinThriftType boolType) {
+            public Void visitBool(BuiltinType boolType) {
                 return null;
             }
 
             @Override
-            public Void visitByte(BuiltinThriftType byteType) {
+            public Void visitByte(BuiltinType byteType) {
                 ctr.incrementAndGet();
                 return null;
             }
 
             @Override
-            public Void visitI16(BuiltinThriftType i16Type) {
+            public Void visitI16(BuiltinType i16Type) {
                 return null;
             }
 
             @Override
-            public Void visitI32(BuiltinThriftType i32Type) {
+            public Void visitI32(BuiltinType i32Type) {
                 return null;
             }
 
             @Override
-            public Void visitI64(BuiltinThriftType i64Type) {
+            public Void visitI64(BuiltinType i64Type) {
                 return null;
             }
 
             @Override
-            public Void visitDouble(BuiltinThriftType doubleType) {
+            public Void visitDouble(BuiltinType doubleType) {
                 return null;
             }
 
             @Override
-            public Void visitString(BuiltinThriftType stringType) {
+            public Void visitString(BuiltinType stringType) {
                 return null;
             }
 
             @Override
-            public Void visitBinary(BuiltinThriftType binaryType) {
+            public Void visitBinary(BuiltinType binaryType) {
                 return null;
             }
 
@@ -119,32 +119,32 @@ public class ThriftTypeTest {
             }
         };
 
-        BuiltinThriftType.I8.accept(v);
-        BuiltinThriftType.BYTE.accept(v);
+        BuiltinType.I8.accept(v);
+        BuiltinType.BYTE.accept(v);
 
-        assertThat(BuiltinThriftType.I8.isBuiltin(), is(true));
+        assertThat(BuiltinType.I8.isBuiltin(), is(true));
         assertThat(ctr.get(), is(2));
     }
 
     @Test
     public void typesWithSameNameAreEqual() {
-        ThriftType one = BuiltinThriftType.get("i32");
-        ThriftType two = BuiltinThriftType.get("i32");
+        ThriftType one = BuiltinType.get("i32");
+        ThriftType two = BuiltinType.get("i32");
 
         assertThat(one, equalTo(two));
     }
 
     @Test
     public void annotationsDoNotAffectEquality() {
-        ThriftType one = BuiltinThriftType.get("i32").withAnnotations(Collections.singletonMap("test", "one"));
-        ThriftType two = BuiltinThriftType.get("i32").withAnnotations(Collections.singletonMap("test", "two"));
+        ThriftType one = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("test", "one"));
+        ThriftType two = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("test", "two"));
 
         assertThat(one, equalTo(two));
     }
 
     @Test
     public void withAnnotationsMergesAnnotations() {
-        ThriftType one = BuiltinThriftType.get("i32").withAnnotations(Collections.singletonMap("i32", "bar"));
+        ThriftType one = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("i32", "bar"));
         ThriftType two = one.withAnnotations(Collections.singletonMap("baz", "quux"));
 
         assertThat(two.annotations(), hasEntry("i32", "bar"));
@@ -153,7 +153,7 @@ public class ThriftTypeTest {
 
     @Test
     public void typeAnnotationsAreImmutable() {
-        ThriftType one = BuiltinThriftType.get("i32").withAnnotations(Collections.singletonMap("i32", "bar"));
+        ThriftType one = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("i32", "bar"));
         try {
             //noinspection deprecation
             one.annotations().put("baz", "quux");

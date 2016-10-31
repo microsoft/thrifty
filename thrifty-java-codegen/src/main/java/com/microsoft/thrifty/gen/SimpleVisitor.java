@@ -20,7 +20,7 @@
  */
 package com.microsoft.thrifty.gen;
 
-import com.microsoft.thrifty.schema.BuiltinThriftType;
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.ThriftType;
 
 /**
@@ -35,47 +35,47 @@ abstract class SimpleVisitor<T> implements ThriftType.Visitor<T>  {
     public abstract T visitBuiltin(ThriftType builtinType);
 
     @Override
-    public T visitBool(BuiltinThriftType boolType) {
+    public T visitBool(BuiltinType boolType) {
         return visitBuiltin(boolType);
     }
 
     @Override
-    public T visitByte(BuiltinThriftType byteType) {
+    public T visitByte(BuiltinType byteType) {
         return visitBuiltin(byteType);
     }
 
     @Override
-    public T visitI16(BuiltinThriftType i16Type) {
+    public T visitI16(BuiltinType i16Type) {
         return visitBuiltin(i16Type);
     }
 
     @Override
-    public T visitI32(BuiltinThriftType i32Type) {
+    public T visitI32(BuiltinType i32Type) {
         return visitBuiltin(i32Type);
     }
 
     @Override
-    public T visitI64(BuiltinThriftType i64Type) {
+    public T visitI64(BuiltinType i64Type) {
         return visitBuiltin(i64Type);
     }
 
     @Override
-    public T visitDouble(BuiltinThriftType doubleType) {
+    public T visitDouble(BuiltinType doubleType) {
         return visitBuiltin(doubleType);
     }
 
     @Override
-    public T visitString(BuiltinThriftType stringType) {
+    public T visitString(BuiltinType stringType) {
         return visitBuiltin(stringType);
     }
 
     @Override
-    public T visitBinary(BuiltinThriftType binaryType) {
+    public T visitBinary(BuiltinType binaryType) {
         return visitBuiltin(binaryType);
     }
 
     @Override
-    public T visitVoid(BuiltinThriftType voidType) {
+    public T visitVoid(BuiltinType voidType) {
         return visitBuiltin(voidType);
     }
 }

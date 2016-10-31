@@ -133,19 +133,19 @@ public class Constant implements UserElement {
             }
 
             if (type.isBuiltin()) {
-                if (type.equals(BuiltinThriftType.BOOL))   return BOOL;
-                if (type.equals(BuiltinThriftType.BYTE))   return BYTE;
-                if (type.equals(BuiltinThriftType.I16))    return I16;
-                if (type.equals(BuiltinThriftType.I32))    return I32;
-                if (type.equals(BuiltinThriftType.I64))    return I64;
-                if (type.equals(BuiltinThriftType.DOUBLE)) return DOUBLE;
-                if (type.equals(BuiltinThriftType.STRING)) return STRING;
+                if (type.equals(BuiltinType.BOOL))   return BOOL;
+                if (type.equals(BuiltinType.BYTE))   return BYTE;
+                if (type.equals(BuiltinType.I16))    return I16;
+                if (type.equals(BuiltinType.I32))    return I32;
+                if (type.equals(BuiltinType.I64))    return I64;
+                if (type.equals(BuiltinType.DOUBLE)) return DOUBLE;
+                if (type.equals(BuiltinType.STRING)) return STRING;
 
-                if (type.equals(BuiltinThriftType.BINARY)) {
+                if (type.equals(BuiltinType.BINARY)) {
                     throw new IllegalStateException("Binary constants are unsupported");
                 }
 
-                if (type.equals(BuiltinThriftType.VOID)) {
+                if (type.equals(BuiltinType.VOID)) {
                     throw new IllegalStateException("Cannot declare a constant of type 'void'");
                 }
 
@@ -183,7 +183,7 @@ public class Constant implements UserElement {
                 }
 
                 Constant constant = linker.lookupConst(identifier);
-                if (constant != null && constant.type().getTrueType().equals(BuiltinThriftType.BOOL)) {
+                if (constant != null && constant.type().getTrueType().equals(BuiltinType.BOOL)) {
                     return;
                 }
             }

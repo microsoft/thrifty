@@ -424,7 +424,7 @@ class Linker {
             // At this point, all user-defined types should have been registered.
             // If we are resolving a built-in type, then that's fine.  If not, then
             // we have an error.
-            tt = BuiltinThriftType.get(type.name());
+            tt = BuiltinType.get(type.name());
 
             if (tt != null) {
                 return tt.withAnnotations(annotations);

@@ -58,7 +58,7 @@ public class ListType extends ThriftType {
     }
 
     @Override
-    ThriftType withAnnotations(Map<String, String> annotations) {
+    public ThriftType withAnnotations(Map<String, String> annotations) {
         return new ListType(elementType, merge(this.annotations, annotations));
     }
 }

@@ -24,17 +24,17 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
-public class BuiltinThriftType extends ThriftType {
-    public static final ThriftType BOOL   = new BuiltinThriftType("bool");
-    public static final ThriftType BYTE   = new BuiltinThriftType("byte");
-    public static final ThriftType I8     = new BuiltinThriftType("i8");
-    public static final ThriftType I16    = new BuiltinThriftType("i16");
-    public static final ThriftType I32    = new BuiltinThriftType("i32");
-    public static final ThriftType I64    = new BuiltinThriftType("i64");
-    public static final ThriftType DOUBLE = new BuiltinThriftType("double");
-    public static final ThriftType STRING = new BuiltinThriftType("string");
-    public static final ThriftType BINARY = new BuiltinThriftType("binary");
-    public static final ThriftType VOID   = new BuiltinThriftType("void");
+public class BuiltinType extends ThriftType {
+    public static final ThriftType BOOL   = new BuiltinType("bool");
+    public static final ThriftType BYTE   = new BuiltinType("byte");
+    public static final ThriftType I8     = new BuiltinType("i8");
+    public static final ThriftType I16    = new BuiltinType("i16");
+    public static final ThriftType I32    = new BuiltinType("i32");
+    public static final ThriftType I64    = new BuiltinType("i64");
+    public static final ThriftType DOUBLE = new BuiltinType("double");
+    public static final ThriftType STRING = new BuiltinType("string");
+    public static final ThriftType BINARY = new BuiltinType("binary");
+    public static final ThriftType VOID   = new BuiltinType("void");
 
     private static final ImmutableMap<String, ThriftType> BUILTINS;
 
@@ -59,11 +59,11 @@ public class BuiltinThriftType extends ThriftType {
 
     private ImmutableMap<String, String> annotations;
 
-    BuiltinThriftType(String name) {
+    BuiltinType(String name) {
         this(name, ImmutableMap.<String, String>of());
     }
 
-    BuiltinThriftType(String name, ImmutableMap<String, String> annotations) {
+    BuiltinType(String name, ImmutableMap<String, String> annotations) {
         super(name);
         this.annotations = annotations;
     }
@@ -105,8 +105,8 @@ public class BuiltinThriftType extends ThriftType {
     }
 
     @Override
-    ThriftType withAnnotations(Map<String, String> annotations) {
-        return new BuiltinThriftType(name(), merge(this.annotations, annotations));
+    public ThriftType withAnnotations(Map<String, String> annotations) {
+        return new BuiltinType(name(), merge(this.annotations, annotations));
     }
 
     @Override
@@ -115,7 +115,7 @@ public class BuiltinThriftType extends ThriftType {
         if (o == null) return false;
         if (getClass() != o.getClass()) return false;
 
-        BuiltinThriftType that = (BuiltinThriftType) o;
+        BuiltinType that = (BuiltinType) o;
 
         if (this.name().equals(that.name())) {
             return true;

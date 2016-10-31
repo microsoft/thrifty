@@ -58,7 +58,7 @@ public class SetType extends ThriftType {
     }
 
     @Override
-    ThriftType withAnnotations(Map<String, String> annotations) {
+    public ThriftType withAnnotations(Map<String, String> annotations) {
         return new SetType(elementType, merge(this.annotations, annotations));
     }
 }

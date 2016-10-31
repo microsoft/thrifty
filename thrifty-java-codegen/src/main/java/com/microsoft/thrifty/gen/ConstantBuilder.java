@@ -20,7 +20,7 @@
  */
 package com.microsoft.thrifty.gen;
 
-import com.microsoft.thrifty.schema.BuiltinThriftType;
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.Constant;
 import com.microsoft.thrifty.schema.EnumMember;
 import com.microsoft.thrifty.schema.EnumType;
@@ -164,7 +164,7 @@ final class ConstantBuilder {
             }
 
             @Override
-            public Void visitVoid(BuiltinThriftType voidType) {
+            public Void visitVoid(BuiltinType voidType) {
                 throw new AssertionError("Should not be possible!");
             }
         });
@@ -200,7 +200,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitBool(BuiltinThriftType boolType) {
+        public CodeBlock visitBool(BuiltinType boolType) {
             String name;
             if (value.isIdentifier()
                     && ("true".equals(value.getAsString()) || "false".equals(value.getAsString()))) {
@@ -215,7 +215,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitByte(BuiltinThriftType byteType) {
+        public CodeBlock visitByte(BuiltinType byteType) {
             if (value.isInt()) {
                 return CodeBlock.builder().add("(byte) $L", value.getAsInt()).build();
             } else {
@@ -224,7 +224,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitI16(BuiltinThriftType i16Type) {
+        public CodeBlock visitI16(BuiltinType i16Type) {
             if (value.isInt()) {
                 return CodeBlock.builder().add("(short) $L", value.getAsInt()).build();
             } else {
@@ -233,7 +233,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitI32(BuiltinThriftType i32Type) {
+        public CodeBlock visitI32(BuiltinType i32Type) {
             if (value.isInt()) {
                 return CodeBlock.builder().add("$L", value.getAsInt()).build();
             } else {
@@ -242,7 +242,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitI64(BuiltinThriftType i64Type) {
+        public CodeBlock visitI64(BuiltinType i64Type) {
             if (value.isInt()) {
                 return CodeBlock.builder().add("$L", value.getAsLong()).build();
             } else {
@@ -251,7 +251,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitDouble(BuiltinThriftType doubleType) {
+        public CodeBlock visitDouble(BuiltinType doubleType) {
             if (value.isInt() || value.isDouble()) {
                 return CodeBlock.builder().add("(double) $L", value.getAsDouble()).build();
             } else {
@@ -260,7 +260,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitString(BuiltinThriftType stringType) {
+        public CodeBlock visitString(BuiltinType stringType) {
             if (value.isString()) {
                 return CodeBlock.builder().add("$S", value.getAsString()).build();
             } else {
@@ -269,12 +269,12 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitBinary(BuiltinThriftType binaryType) {
+        public CodeBlock visitBinary(BuiltinType binaryType) {
             throw new UnsupportedOperationException("Binary literals are not supported");
         }
 
         @Override
-        public CodeBlock visitVoid(BuiltinThriftType voidType) {
+        public CodeBlock visitVoid(BuiltinType voidType) {
             throw new AssertionError("Void literals are meaningless, what are you even doing");
         }
 

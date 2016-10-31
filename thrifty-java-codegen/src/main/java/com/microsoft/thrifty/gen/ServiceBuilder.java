@@ -23,7 +23,7 @@ package com.microsoft.thrifty.gen;
 import com.google.common.base.Strings;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftException;
-import com.microsoft.thrifty.schema.BuiltinThriftType;
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.Field;
 import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.ServiceMethod;
@@ -98,7 +98,7 @@ final class ServiceBuilder {
 
             ThriftType returnType = method.returnType();
             TypeName returnTypeName;
-            if (returnType.equals(BuiltinThriftType.VOID)) {
+            if (returnType.equals(BuiltinType.VOID)) {
                 returnTypeName = TypeName.VOID.box();
             } else {
                 returnTypeName = typeResolver.getJavaClass(returnType.getTrueType());
@@ -187,7 +187,7 @@ final class ServiceBuilder {
         }
 
         ThriftType returnType = method.returnType();
-        TypeName returnTypeName = returnType.equals(BuiltinThriftType.VOID)
+        TypeName returnTypeName = returnType.equals(BuiltinType.VOID)
                 ? TypeName.VOID.box()
                 : typeResolver.getJavaClass(returnType.getTrueType());
         TypeName callbackTypeName = ParameterizedTypeName.get(TypeNames.SERVICE_CALLBACK, returnTypeName);

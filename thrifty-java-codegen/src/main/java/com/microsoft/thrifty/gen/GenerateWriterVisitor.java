@@ -23,7 +23,7 @@ package com.microsoft.thrifty.gen;
 import com.microsoft.thrifty.Adapter;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.protocol.Protocol;
-import com.microsoft.thrifty.schema.BuiltinThriftType;
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.EnumType;
 import com.microsoft.thrifty.schema.ListType;
 import com.microsoft.thrifty.schema.MapType;
@@ -94,55 +94,55 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
         nameStack.push(subject + "." + fieldName);
     }
 
-    public Void visitBool(BuiltinThriftType boolType) {
+    public Void visitBool(BuiltinType boolType) {
         write.addStatement("$N.writeBool($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitByte(BuiltinThriftType byteType) {
+    public Void visitByte(BuiltinType byteType) {
         write.addStatement("$N.writeByte($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI16(BuiltinThriftType i16Type) {
+    public Void visitI16(BuiltinType i16Type) {
         write.addStatement("$N.writeI16($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI32(BuiltinThriftType i32Type) {
+    public Void visitI32(BuiltinType i32Type) {
         write.addStatement("$N.writeI32($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI64(BuiltinThriftType i64Type) {
+    public Void visitI64(BuiltinType i64Type) {
         write.addStatement("$N.writeI64($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitDouble(BuiltinThriftType doubleType) {
+    public Void visitDouble(BuiltinType doubleType) {
         write.addStatement("$N.writeDouble($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitString(BuiltinThriftType stringType) {
+    public Void visitString(BuiltinType stringType) {
         write.addStatement("$N.writeString($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitBinary(BuiltinThriftType binaryType) {
+    public Void visitBinary(BuiltinType binaryType) {
         write.addStatement("$N.writeBinary($L)", proto, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitVoid(BuiltinThriftType voidType) {
+    public Void visitVoid(BuiltinType voidType) {
         throw new AssertionError("Fields cannot be void");
     }
 

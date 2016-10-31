@@ -63,7 +63,7 @@ task compileTestCase(type: Exec) {
 afterEvaluate {
     if (project.tasks.getByName('compileTestCase') != null) {
         project.tasks['compileJava'].dependsOn project.tasks.create('deleteTestCaseJava', Delete) {
-            delete "$projectDir/build/src/gen"
+            delete "$projectDir/build/generated-src/gen"
         }
     }
 }

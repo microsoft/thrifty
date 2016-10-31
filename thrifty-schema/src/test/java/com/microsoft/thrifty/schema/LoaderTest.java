@@ -84,7 +84,7 @@ public class LoaderTest {
         ThriftType fieldType = field.type();
         assertThat(fieldType.isTypedef(), is(true));
         assertThat(fieldType.name(), is("Int"));
-        assertThat(fieldType.getTrueType(), is(BuiltinThriftType.I32));
+        assertThat(fieldType.getTrueType(), is(BuiltinType.I32));
 
         ServiceType svc = schema.services().get(0);
         assertThat(svc.name(), is("Svc"));
@@ -531,7 +531,7 @@ public class LoaderTest {
         ServiceMethod method = service.methods().get(0);
 
         assertThat(method.oneWay(), is(true));
-        assertThat(method.returnType(), equalTo(BuiltinThriftType.VOID));
+        assertThat(method.returnType(), equalTo(BuiltinType.VOID));
     }
 
     @Test

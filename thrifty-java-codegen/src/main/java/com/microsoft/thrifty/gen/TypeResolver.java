@@ -22,7 +22,7 @@ package com.microsoft.thrifty.gen;
 
 import com.google.common.base.Strings;
 import com.microsoft.thrifty.TType;
-import com.microsoft.thrifty.schema.BuiltinThriftType;
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.EnumType;
 import com.microsoft.thrifty.schema.ListType;
 import com.microsoft.thrifty.schema.MapType;
@@ -91,47 +91,47 @@ final class TypeResolver {
      */
     private final ThriftType.Visitor<TypeName> typeNameVisitor = new ThriftType.Visitor<TypeName>() {
         @Override
-        public TypeName visitVoid(BuiltinThriftType voidType) {
+        public TypeName visitVoid(BuiltinType voidType) {
             return TypeNames.VOID;
         }
 
         @Override
-        public TypeName visitBool(BuiltinThriftType boolType) {
+        public TypeName visitBool(BuiltinType boolType) {
             return TypeNames.BOOLEAN;
         }
 
         @Override
-        public TypeName visitByte(BuiltinThriftType byteType) {
+        public TypeName visitByte(BuiltinType byteType) {
             return TypeNames.BYTE;
         }
 
         @Override
-        public TypeName visitI16(BuiltinThriftType i16Type) {
+        public TypeName visitI16(BuiltinType i16Type) {
             return TypeNames.SHORT;
         }
 
         @Override
-        public TypeName visitI32(BuiltinThriftType i32Type) {
+        public TypeName visitI32(BuiltinType i32Type) {
             return TypeNames.INTEGER;
         }
 
         @Override
-        public TypeName visitI64(BuiltinThriftType i64Type) {
+        public TypeName visitI64(BuiltinType i64Type) {
             return TypeNames.LONG;
         }
 
         @Override
-        public TypeName visitDouble(BuiltinThriftType doubleType) {
+        public TypeName visitDouble(BuiltinType doubleType) {
             return TypeNames.DOUBLE;
         }
 
         @Override
-        public TypeName visitString(BuiltinThriftType stringType) {
+        public TypeName visitString(BuiltinType stringType) {
             return TypeNames.STRING;
         }
 
         @Override
-        public TypeName visitBinary(BuiltinThriftType binaryType) {
+        public TypeName visitBinary(BuiltinType binaryType) {
             return TypeNames.BYTE_STRING;
         }
 
@@ -201,47 +201,47 @@ final class TypeResolver {
      */
     private static final ThriftType.Visitor<Byte> TYPE_CODE_VISITOR = new ThriftType.Visitor<Byte>() {
         @Override
-        public Byte visitBool(BuiltinThriftType boolType) {
+        public Byte visitBool(BuiltinType boolType) {
             return TType.BOOL;
         }
 
         @Override
-        public Byte visitByte(BuiltinThriftType byteType) {
+        public Byte visitByte(BuiltinType byteType) {
             return TType.BYTE;
         }
 
         @Override
-        public Byte visitI16(BuiltinThriftType i16Type) {
+        public Byte visitI16(BuiltinType i16Type) {
             return TType.I16;
         }
 
         @Override
-        public Byte visitI32(BuiltinThriftType i32Type) {
+        public Byte visitI32(BuiltinType i32Type) {
             return TType.I32;
         }
 
         @Override
-        public Byte visitI64(BuiltinThriftType i64Type) {
+        public Byte visitI64(BuiltinType i64Type) {
             return TType.I64;
         }
 
         @Override
-        public Byte visitDouble(BuiltinThriftType doubleType) {
+        public Byte visitDouble(BuiltinType doubleType) {
             return TType.DOUBLE;
         }
 
         @Override
-        public Byte visitString(BuiltinThriftType stringType) {
+        public Byte visitString(BuiltinType stringType) {
             return TType.STRING;
         }
 
         @Override
-        public Byte visitBinary(BuiltinThriftType binaryType) {
+        public Byte visitBinary(BuiltinType binaryType) {
             return TType.STRING;
         }
 
         @Override
-        public Byte visitVoid(BuiltinThriftType voidType) {
+        public Byte visitVoid(BuiltinType voidType) {
             return TType.VOID;
         }
 

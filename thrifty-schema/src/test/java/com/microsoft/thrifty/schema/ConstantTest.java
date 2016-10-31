@@ -53,10 +53,10 @@ public class ConstantTest {
 
     @Test
     public void boolLiteral() {
-        Constant.validate(linker, ConstValueElement.identifier(loc, "true"), BuiltinThriftType.BOOL);
-        Constant.validate(linker, ConstValueElement.identifier(loc, "false"), BuiltinThriftType.BOOL);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "true"), BuiltinType.BOOL);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "false"), BuiltinType.BOOL);
         try {
-            Constant.validate(linker, ConstValueElement.literal(loc, "nope"), BuiltinThriftType.BOOL);
+            Constant.validate(linker, ConstValueElement.literal(loc, "nope"), BuiltinType.BOOL);
             fail("Invalid identifier should not validate as a bool");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -69,23 +69,23 @@ public class ConstantTest {
     public void boolConstant() {
         Constant c = mock(Constant.class);
         when(c.name()).thenReturn("aBool");
-        when(c.type()).thenReturn(BuiltinThriftType.BOOL);
+        when(c.type()).thenReturn(BuiltinType.BOOL);
 
         when(linker.lookupConst("aBool")).thenReturn(c);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinThriftType.BOOL);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinType.BOOL);
     }
 
     @Test
     public void boolWithWrongTypeOfConstant() {
         Constant c = mock(Constant.class);
         when(c.name()).thenReturn("aBool");
-        when(c.type()).thenReturn(BuiltinThriftType.STRING);
+        when(c.type()).thenReturn(BuiltinType.STRING);
 
         when(linker.lookupConst("aBool")).thenReturn(c);
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinThriftType.BOOL);
+            Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinType.BOOL);
             fail("Wrongly-typed constant should not validate");
         } catch (IllegalStateException ignored) {
         }
@@ -97,7 +97,7 @@ public class ConstantTest {
         when(s.name()).thenReturn("someStruct");
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "someStruct"), BuiltinThriftType.BOOL);
+            Constant.validate(linker, ConstValueElement.identifier(loc, "someStruct"), BuiltinType.BOOL);
             fail("Non-constant identifier should not validate");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -110,7 +110,7 @@ public class ConstantTest {
     public void boolWithConstantHavingBoolTypedefValue() {
         TypedefType td = mock(TypedefType.class);
         when(td.name()).thenReturn("Truthiness");
-        when(td.getTrueType()).thenReturn(BuiltinThriftType.BOOL);
+        when(td.getTrueType()).thenReturn(BuiltinType.BOOL);
 
         Constant c = mock(Constant.class);
         when(c.name()).thenReturn("aBool");
@@ -118,14 +118,14 @@ public class ConstantTest {
 
         when(linker.lookupConst("aBool")).thenReturn(c);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinThriftType.BOOL);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinType.BOOL);
     }
 
     @Test
     public void typedefWithCorrectLiteral() {
         //ThriftType td = typedefOf("string", "Message");
         TypedefType td = mock(TypedefType.class);
-        when(td.getTrueType()).thenReturn(BuiltinThriftType.STRING);
+        when(td.getTrueType()).thenReturn(BuiltinType.STRING);
         when(td.name()).thenReturn("Message");
 
         ConstValueElement value = ConstValueElement.literal(loc, "y helo thar");
@@ -136,7 +136,7 @@ public class ConstantTest {
     @Test
     public void inRangeInt() {
         ConstValueElement value = ConstValueElement.integer(loc, 10);
-        ThriftType type = BuiltinThriftType.I32;
+        ThriftType type = BuiltinType.I32;
 
         Constant.validate(linker, value, type);
     }
@@ -144,7 +144,7 @@ public class ConstantTest {
     @Test
     public void tooLargeInt() {
         ConstValueElement value = ConstValueElement.integer(loc, (long) Integer.MAX_VALUE + 1);
-        ThriftType type = BuiltinThriftType.I32;
+        ThriftType type = BuiltinType.I32;
 
         try {
             Constant.validate(linker, value, type);
@@ -157,7 +157,7 @@ public class ConstantTest {
     @Test
     public void tooSmallInt() {
         ConstValueElement value = ConstValueElement.integer(loc, (long) Integer.MIN_VALUE - 1);
-        ThriftType type = BuiltinThriftType.I32;
+        ThriftType type = BuiltinType.I32;
 
         try {
             Constant.validate(linker, value, type);
@@ -223,7 +223,7 @@ public class ConstantTest {
 
     @Test
     public void listOfInts() {
-        ThriftType list = new ListType(BuiltinThriftType.I32);
+        ThriftType list = new ListType(BuiltinType.I32);
         ConstValueElement listValue = ConstValueElement.list(loc, Arrays.asList(
                 ConstValueElement.integer(loc, 0),
                 ConstValueElement.integer(loc, 1),
@@ -235,7 +235,7 @@ public class ConstantTest {
 
     @Test
     public void heterogeneousList() {
-        ThriftType list = new ListType(BuiltinThriftType.I32);
+        ThriftType list = new ListType(BuiltinType.I32);
         ConstValueElement listValue = ConstValueElement.list(loc, Arrays.asList(
                 ConstValueElement.integer(loc, 0),
                 ConstValueElement.integer(loc, 1),
@@ -308,7 +308,7 @@ public class ConstantTest {
 
     @Test
     public void setOfInts() {
-        ThriftType setType = new SetType(BuiltinThriftType.I32);
+        ThriftType setType = new SetType(BuiltinType.I32);
         ConstValueElement listValue = ConstValueElement.list(loc, Arrays.asList(
                 ConstValueElement.integer(loc, 0),
                 ConstValueElement.integer(loc, 1),

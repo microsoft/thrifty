@@ -24,6 +24,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 
+/**
+ * A named member of an {@link EnumType}.
+ */
 public class EnumMember implements UserElement {
     private final UserElementMixin mixin;
     private final int value;

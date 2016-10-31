@@ -33,7 +33,7 @@ import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
 import com.microsoft.thrifty.protocol.Protocol;
-import com.microsoft.thrifty.schema.BuiltinThriftType;
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.Constant;
 import com.microsoft.thrifty.schema.EnumMember;
 import com.microsoft.thrifty.schema.EnumType;
@@ -922,7 +922,7 @@ public final class ThriftyCodeGenerator {
             final ThriftType type = constant.type().getTrueType();
 
             TypeName javaType = typeResolver.getJavaClass(type);
-            if (type.isBuiltin() && type.equals(BuiltinThriftType.STRING)) {
+            if (type.isBuiltin() && type.equals(BuiltinType.STRING)) {
                 javaType = javaType.unbox();
             }
             final FieldSpec.Builder field = FieldSpec.builder(javaType, constant.name())

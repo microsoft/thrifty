@@ -83,7 +83,7 @@ public class EnumType extends UserType {
     }
 
     @Override
-    ThriftType withAnnotations(Map<String, String> annotations) {
+    public ThriftType withAnnotations(Map<String, String> annotations) {
         return toBuilder()
                 .annotations(merge(this.annotations(), annotations))
                 .build();

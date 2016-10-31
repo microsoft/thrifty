@@ -52,11 +52,13 @@ public class TypedefType extends UserType {
             linker.addError(location(), "Cannot declare a typedef of a service");
         }
 
-        if (oldType.equals(BuiltinThriftType.VOID)) {
+        if (oldType.equals(BuiltinType.VOID)) {
             linker.addError(location(), "Cannot declare a typedef of void");
         }
 
-        // Typedef cycles are validated during linking
+        // We've already validated that this is not part of an unresolvable
+        // cycle of typedefs (e.g. A -> B -> C -> A) during linking; this
+        // happens in Linker#resolveTypedefs().
     }
 
     public ThriftType oldType() {
@@ -79,7 +81,7 @@ public class TypedefType extends UserType {
     }
 
     @Override
-    ThriftType withAnnotations(Map<String, String> annotations) {
+    public ThriftType withAnnotations(Map<String, String> annotations) {
         return toBuilder()
                 .annotations(merge(this.annotations(), annotations))
                 .build();

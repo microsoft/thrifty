@@ -64,7 +64,7 @@ public class MapType extends ThriftType {
     }
 
     @Override
-    ThriftType withAnnotations(Map<String, String> annotations) {
+    public ThriftType withAnnotations(Map<String, String> annotations) {
         return new MapType(keyType, valueType, merge(this.annotations, annotations));
     }
 }

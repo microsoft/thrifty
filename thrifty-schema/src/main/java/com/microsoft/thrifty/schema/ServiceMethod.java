@@ -111,7 +111,7 @@ public class ServiceMethod implements UserElement {
     }
 
     void validate(Linker linker) {
-        if (oneWay() && !BuiltinThriftType.VOID.equals(returnType)) {
+        if (oneWay() && !BuiltinType.VOID.equals(returnType)) {
             linker.addError(location(), "oneway methods may not have a non-void return type");
         }
 
