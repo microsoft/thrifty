@@ -119,12 +119,15 @@ java -jar thrifty-compiler.jar --out=path/to/output example.thrift
 ```
 
 The example file will result in the following files being generated:
+
+```
 path/to/output/
   - com/foo/bar/
     - Google.java
     - GoogleClient.java
     - Query.java
     - SearchResult.java
+```
 
 The interesting files here are, of course, our domain objects `Query` and `SearchResult`.
 
