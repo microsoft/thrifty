@@ -77,19 +77,7 @@ public final class Loader {
 
     private final LinkEnvironment environment = new LinkEnvironment(errorReporter);
 
-    private volatile ImmutableList<Program> linkedPrograms;
-
     private Map<String, Program> loadedPrograms;
-
-    private FieldNamingPolicy fieldNamingPolicy;
-
-    public Loader() {
-        this(FieldNamingPolicy.DEFAULT);
-    }
-
-    public Loader(FieldNamingPolicy policy) {
-        this.fieldNamingPolicy = policy;
-    }
 
     public Loader addThriftFile(String file) {
         Preconditions.checkNotNull(file, "file");
@@ -144,7 +132,7 @@ public final class Loader {
             if (!file.exists()) throw new AssertionError(
                     "We have a parsed ThriftFileElement with a non-existing location");
             if (!file.isAbsolute()) throw new AssertionError("We have a non-canonical path");
-            Program program = new Program(fileElement, fieldNamingPolicy);
+            Program program = new Program(fileElement);
             loadedPrograms.put(file.getCanonicalPath(), program);
         }
 
@@ -209,8 +197,6 @@ public final class Loader {
             if (environment.hasErrors()) {
                 throw new IllegalStateException("Linking failed");
             }
-
-            linkedPrograms = ImmutableList.copyOf(loadedPrograms.values());
         }
     }
 

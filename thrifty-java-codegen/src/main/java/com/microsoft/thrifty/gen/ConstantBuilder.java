@@ -20,11 +20,19 @@
  */
 package com.microsoft.thrifty.gen;
 
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.Constant;
+import com.microsoft.thrifty.schema.EnumMember;
 import com.microsoft.thrifty.schema.EnumType;
+import com.microsoft.thrifty.schema.ListType;
+import com.microsoft.thrifty.schema.MapType;
 import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.Schema;
+import com.microsoft.thrifty.schema.ServiceType;
+import com.microsoft.thrifty.schema.SetType;
+import com.microsoft.thrifty.schema.StructType;
 import com.microsoft.thrifty.schema.ThriftType;
+import com.microsoft.thrifty.schema.TypedefType;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.NameAllocator;
@@ -64,7 +72,7 @@ final class ConstantBuilder {
             }
 
             @Override
-            public Void visitEnum(ThriftType userType) {
+            public Void visitEnum(EnumType userType) {
                 CodeBlock item = renderConstValue(initializer, allocator, scope, tt, value);
 
                 initializer.addStatement("$L = $L", name, item);
@@ -72,7 +80,7 @@ final class ConstantBuilder {
             }
 
             @Override
-            public Void visitList(ThriftType.ListType listType) {
+            public Void visitList(ListType listType) {
                 List<ConstValueElement> list = (List<ConstValueElement>) value.value();
                 ThriftType elementType = listType.elementType().getTrueType();
                 TypeName elementTypeName = typeResolver.getJavaClass(elementType);
@@ -83,7 +91,7 @@ final class ConstantBuilder {
             }
 
             @Override
-            public Void visitSet(ThriftType.SetType setType) {
+            public Void visitSet(SetType setType) {
                 List<ConstValueElement> set = (List<ConstValueElement>) value.value();
                 ThriftType elementType = setType.elementType().getTrueType();
                 TypeName elementTypeName = typeResolver.getJavaClass(elementType);
@@ -112,7 +120,7 @@ final class ConstantBuilder {
             }
 
             @Override
-            public Void visitMap(ThriftType.MapType mapType) {
+            public Void visitMap(MapType mapType) {
                 Map<ConstValueElement, ConstValueElement> map =
                         (Map<ConstValueElement, ConstValueElement>) value.value();
                 ThriftType keyType = mapType.keyType().getTrueType();
@@ -140,13 +148,23 @@ final class ConstantBuilder {
             }
 
             @Override
-            public Void visitUserType(ThriftType userType) {
+            public Void visitStruct(StructType userType) {
                 // TODO: this
                 throw new UnsupportedOperationException("struct-type default values are not yet implemented");
             }
 
             @Override
-            public Void visitTypedef(ThriftType.TypedefType typedefType) {
+            public Void visitTypedef(TypedefType typedefType) {
+                throw new AssertionError("Should not be possible!");
+            }
+
+            @Override
+            public Void visitService(ServiceType serviceType) {
+                throw new AssertionError("Should not be possible!");
+            }
+
+            @Override
+            public Void visitVoid(BuiltinType voidType) {
                 throw new AssertionError("Should not be possible!");
             }
         });
@@ -182,7 +200,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitBool() {
+        public CodeBlock visitBool(BuiltinType boolType) {
             String name;
             if (value.isIdentifier()
                     && ("true".equals(value.getAsString()) || "false".equals(value.getAsString()))) {
@@ -197,7 +215,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitByte() {
+        public CodeBlock visitByte(BuiltinType byteType) {
             if (value.isInt()) {
                 return CodeBlock.builder().add("(byte) $L", value.getAsInt()).build();
             } else {
@@ -206,7 +224,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitI16() {
+        public CodeBlock visitI16(BuiltinType i16Type) {
             if (value.isInt()) {
                 return CodeBlock.builder().add("(short) $L", value.getAsInt()).build();
             } else {
@@ -215,7 +233,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitI32() {
+        public CodeBlock visitI32(BuiltinType i32Type) {
             if (value.isInt()) {
                 return CodeBlock.builder().add("$L", value.getAsInt()).build();
             } else {
@@ -224,7 +242,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitI64() {
+        public CodeBlock visitI64(BuiltinType i64Type) {
             if (value.isInt()) {
                 return CodeBlock.builder().add("$L", value.getAsLong()).build();
             } else {
@@ -233,7 +251,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitDouble() {
+        public CodeBlock visitDouble(BuiltinType doubleType) {
             if (value.isInt() || value.isDouble()) {
                 return CodeBlock.builder().add("(double) $L", value.getAsDouble()).build();
             } else {
@@ -242,7 +260,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitString() {
+        public CodeBlock visitString(BuiltinType stringType) {
             if (value.isString()) {
                 return CodeBlock.builder().add("$S", value.getAsString()).build();
             } else {
@@ -251,26 +269,19 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitBinary() {
+        public CodeBlock visitBinary(BuiltinType binaryType) {
             throw new UnsupportedOperationException("Binary literals are not supported");
         }
 
         @Override
-        public CodeBlock visitVoid() {
+        public CodeBlock visitVoid(BuiltinType voidType) {
             throw new AssertionError("Void literals are meaningless, what are you even doing");
         }
 
         @Override
-        public CodeBlock visitEnum(final ThriftType tt) {
-            EnumType enumType;
-            try {
-                enumType = schema.findEnumByType(tt);
-            } catch (NoSuchElementException e) {
-                throw new AssertionError("Missing enum type: " + tt.name());
-            }
-
+        public CodeBlock visitEnum(EnumType enumType) {
             // TODO(ben): Figure out how to handle const references
-            EnumType.Member member;
+            EnumMember member;
             try {
                 if (value.kind() == ConstValueElement.Kind.INTEGER) {
                     member = enumType.findMemberById(value.getAsInt());
@@ -294,12 +305,12 @@ final class ConstantBuilder {
             }
 
             return CodeBlock.builder()
-                    .add("$T.$L", typeResolver.getJavaClass(tt), member.name())
+                    .add("$T.$L", typeResolver.getJavaClass(enumType), member.name())
                     .build();
         }
 
         @Override
-        public CodeBlock visitList(ThriftType.ListType listType) {
+        public CodeBlock visitList(ListType listType) {
             if (value.isList()) {
                 if (value.getAsList().isEmpty()) {
                     TypeName elementType = typeResolver.getJavaClass(listType.elementType());
@@ -314,7 +325,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitSet(ThriftType.SetType setType) {
+        public CodeBlock visitSet(SetType setType) {
             if (value.isList()) { // not a typo; ConstantValueElement.Kind.LIST covers lists and sets.
                 if (value.getAsList().isEmpty()) {
                     TypeName elementType = typeResolver.getJavaClass(setType.elementType());
@@ -329,7 +340,7 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitMap(ThriftType.MapType mapType) {
+        public CodeBlock visitMap(MapType mapType) {
             if (value.isMap()) {
                 if (value.getAsMap().isEmpty()) {
                     TypeName keyType = typeResolver.getJavaClass(mapType.keyType());
@@ -354,13 +365,18 @@ final class ConstantBuilder {
         }
 
         @Override
-        public CodeBlock visitUserType(ThriftType userType) {
+        public CodeBlock visitStruct(StructType userType) {
             throw new IllegalStateException("nested structs not implemented");
         }
 
         @Override
-        public CodeBlock visitTypedef(ThriftType.TypedefType typedefType) {
-            return null;
+        public CodeBlock visitTypedef(TypedefType typedefType) {
+            return typedefType.oldType().accept(this);
+        }
+
+        @Override
+        public CodeBlock visitService(ServiceType serviceType) {
+            throw new IllegalStateException("constants cannot be services");
         }
 
         private CodeBlock constantOrError(String error) {

@@ -23,9 +23,17 @@ package com.microsoft.thrifty.gen;
 import com.microsoft.thrifty.Adapter;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.protocol.Protocol;
-import com.microsoft.thrifty.schema.Field;
+import com.microsoft.thrifty.schema.BuiltinType;
+import com.microsoft.thrifty.schema.EnumType;
+import com.microsoft.thrifty.schema.ListType;
+import com.microsoft.thrifty.schema.MapType;
 import com.microsoft.thrifty.schema.NamespaceScope;
+import com.microsoft.thrifty.schema.ServiceType;
+import com.microsoft.thrifty.schema.SetType;
+import com.microsoft.thrifty.schema.StructType;
 import com.microsoft.thrifty.schema.ThriftType;
+import com.microsoft.thrifty.schema.TypedefType;
+import com.microsoft.thrifty.schema.UserType;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.NameAllocator;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -51,10 +59,6 @@ class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     private String fieldName;
     private ThriftType fieldType;
     private int scope;
-
-    GenerateReaderVisitor(TypeResolver resolver, MethodSpec.Builder read, Field field) {
-        this(resolver, read, field.name(), field.type().getTrueType());
-    }
 
     GenerateReaderVisitor(TypeResolver resolver, MethodSpec.Builder read, String fieldName, ThriftType fieldType) {
         this.resolver = resolver;
@@ -89,68 +93,68 @@ class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     }
 
     @Override
-    public Void visitBool() {
+    public Void visitBool(BuiltinType boolType) {
         read.addStatement("$T $N = protocol.readBool()", TypeNames.BOOLEAN.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitByte() {
+    public Void visitByte(BuiltinType bytetype) {
         read.addStatement("$T $N = protocol.readByte()", TypeNames.BYTE.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI16() {
+    public Void visitI16(BuiltinType i16Type) {
         read.addStatement("$T $N = protocol.readI16()", TypeNames.SHORT.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI32() {
+    public Void visitI32(BuiltinType i32Type) {
         read.addStatement("$T $N = protocol.readI32()", TypeNames.INTEGER.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitI64() {
+    public Void visitI64(BuiltinType i64Type) {
         read.addStatement("$T $N = protocol.readI64()", TypeNames.LONG.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitDouble() {
+    public Void visitDouble(BuiltinType doubleType) {
         read.addStatement("$T $N = protocol.readDouble()", TypeNames.DOUBLE.unbox(), nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitString() {
+    public Void visitString(BuiltinType stringType) {
         read.addStatement("$T $N = protocol.readString()", TypeNames.STRING, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitBinary() {
+    public Void visitBinary(BuiltinType binaryType) {
         read.addStatement("$T $N = protocol.readBinary()", TypeNames.BYTE_STRING, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitVoid() {
+    public Void visitVoid(BuiltinType voidType) {
         throw new AssertionError("Cannot read void");
     }
 
     @Override
-    public Void visitEnum(ThriftType userType) {
+    public Void visitEnum(EnumType enumType) {
         String target = nameStack.peek();
-        String qualifiedJavaName = getFullyQualifiedJavaName(userType);
+        String qualifiedJavaName = getFullyQualifiedJavaName(enumType);
         read.addStatement("$1L $2N = $1L.findByValue(protocol.readI32())", qualifiedJavaName, target);
         return null;
     }
 
     @Override
-    public Void visitList(ThriftType.ListType listType) {
+    public Void visitList(ListType listType) {
         initNameAllocator();
 
         TypeName elementType = resolver.getJavaClass(listType.elementType().getTrueType());
@@ -181,7 +185,7 @@ class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     }
 
     @Override
-    public Void visitSet(ThriftType.SetType setType) {
+    public Void visitSet(SetType setType) {
         initNameAllocator();
 
         TypeName elementType = resolver.getJavaClass(setType.elementType().getTrueType());
@@ -212,7 +216,7 @@ class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     }
 
     @Override
-    public Void visitMap(ThriftType.MapType mapType) {
+    public Void visitMap(MapType mapType) {
         initNameAllocator();
 
         TypeName keyType = resolver.getJavaClass(mapType.keyType().getTrueType());
@@ -249,25 +253,30 @@ class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     }
 
     @Override
-    public Void visitUserType(ThriftType userType) {
+    public Void visitStruct(StructType userType) {
         String qualifiedJavaName = getFullyQualifiedJavaName(userType);
         read.addStatement("$1L $2N = $1L.ADAPTER.read(protocol)", qualifiedJavaName, nameStack.peek());
         return null;
     }
 
     @Override
-    public Void visitTypedef(ThriftType.TypedefType typedefType) {
+    public Void visitTypedef(TypedefType typedefType) {
         // throw AssertionError?
         typedefType.getTrueType().accept(this);
         return null;
     }
 
-    private String getFullyQualifiedJavaName(ThriftType type) {
+    @Override
+    public Void visitService(ServiceType serviceType) {
+        throw new AssertionError("Cannot read a service");
+    }
+
+    private String getFullyQualifiedJavaName(UserType type) {
         if (type.isBuiltin() || type.isList() || type.isMap() || type.isSet() || type.isTypedef()) {
             throw new AssertionError("Only user and enum types are supported");
         }
 
-        String packageName = type.getNamespace(NamespaceScope.JAVA);
+        String packageName = type.getNamespaceFor(NamespaceScope.JAVA);
         return packageName + "." + type.name();
     }
 

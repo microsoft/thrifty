@@ -63,6 +63,8 @@ public final class Location {
     /**
      * Computes and returns the Thrift 'program' name, which is the filename portion
      * of the full path *without* the .thrift extension.
+     *
+     * @return the Thrift program name representing this file.
      */
     public String getProgramName() {
         String name = path;

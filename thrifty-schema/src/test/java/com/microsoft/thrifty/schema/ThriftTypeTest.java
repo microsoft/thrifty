@@ -38,118 +38,124 @@ public class ThriftTypeTest {
 
         ThriftType.Visitor<Void> v = new ThriftType.Visitor<Void>() {
             @Override
-            public Void visitBool() {
+            public Void visitVoid(BuiltinType voidType) {
                 return null;
             }
 
             @Override
-            public Void visitByte() {
+            public Void visitBool(BuiltinType boolType) {
+                return null;
+            }
+
+            @Override
+            public Void visitByte(BuiltinType byteType) {
                 ctr.incrementAndGet();
                 return null;
             }
 
             @Override
-            public Void visitI16() {
+            public Void visitI16(BuiltinType i16Type) {
                 return null;
             }
 
             @Override
-            public Void visitI32() {
+            public Void visitI32(BuiltinType i32Type) {
                 return null;
             }
 
             @Override
-            public Void visitI64() {
+            public Void visitI64(BuiltinType i64Type) {
                 return null;
             }
 
             @Override
-            public Void visitDouble() {
+            public Void visitDouble(BuiltinType doubleType) {
                 return null;
             }
 
             @Override
-            public Void visitString() {
+            public Void visitString(BuiltinType stringType) {
                 return null;
             }
 
             @Override
-            public Void visitBinary() {
+            public Void visitBinary(BuiltinType binaryType) {
                 return null;
             }
 
             @Override
-            public Void visitVoid() {
+            public Void visitEnum(EnumType enumType) {
                 return null;
             }
 
             @Override
-            public Void visitEnum(ThriftType userType) {
+            public Void visitList(ListType listType) {
                 return null;
             }
 
             @Override
-            public Void visitList(ThriftType.ListType listType) {
+            public Void visitSet(SetType setType) {
                 return null;
             }
 
             @Override
-            public Void visitSet(ThriftType.SetType setType) {
+            public Void visitMap(MapType mapType) {
                 return null;
             }
 
             @Override
-            public Void visitMap(ThriftType.MapType mapType) {
+            public Void visitStruct(StructType structType) {
                 return null;
             }
 
             @Override
-            public Void visitUserType(ThriftType userType) {
+            public Void visitTypedef(TypedefType typedefType) {
                 return null;
             }
 
             @Override
-            public Void visitTypedef(ThriftType.TypedefType typedefType) {
+            public Void visitService(ServiceType serviceType) {
                 return null;
             }
         };
 
-        ThriftType.I8.accept(v);
-        ThriftType.BYTE.accept(v);
+        BuiltinType.I8.accept(v);
+        BuiltinType.BYTE.accept(v);
 
-        assertThat(ThriftType.I8.isBuiltin(), is(true));
+        assertThat(BuiltinType.I8.isBuiltin(), is(true));
         assertThat(ctr.get(), is(2));
     }
 
     @Test
     public void typesWithSameNameAreEqual() {
-        ThriftType one = ThriftType.get("foo", null);
-        ThriftType two = ThriftType.get("foo", null);
+        ThriftType one = BuiltinType.get("i32");
+        ThriftType two = BuiltinType.get("i32");
 
         assertThat(one, equalTo(two));
     }
 
     @Test
     public void annotationsDoNotAffectEquality() {
-        ThriftType one = ThriftType.get("foo", null, Collections.singletonMap("test", "one"));
-        ThriftType two = ThriftType.get("foo", null, Collections.singletonMap("test", "two"));
+        ThriftType one = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("test", "one"));
+        ThriftType two = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("test", "two"));
 
         assertThat(one, equalTo(two));
     }
 
     @Test
     public void withAnnotationsMergesAnnotations() {
-        ThriftType one = ThriftType.get("foo", null, Collections.singletonMap("foo", "bar"));
+        ThriftType one = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("i32", "bar"));
         ThriftType two = one.withAnnotations(Collections.singletonMap("baz", "quux"));
 
-        assertThat(two.annotations(), hasEntry("foo", "bar"));
+        assertThat(two.annotations(), hasEntry("i32", "bar"));
         assertThat(two.annotations(), hasEntry("baz", "quux"));
     }
 
     @Test
     public void typeAnnotationsAreImmutable() {
-        ThriftType one = ThriftType.get("foo", null, Collections.singletonMap("foo", "bar"));
+        ThriftType one = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("i32", "bar"));
         try {
+            //noinspection deprecation
             one.annotations().put("baz", "quux");
             fail("Expected ThriftType#annotations() to be immutable!");
         } catch (UnsupportedOperationException ignored) {

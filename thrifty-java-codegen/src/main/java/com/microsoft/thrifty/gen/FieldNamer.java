@@ -18,30 +18,28 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-package com.microsoft.thrifty.schema;
+package com.microsoft.thrifty.gen;
 
-/**
- * Utility that determines whether an instance of one of several types
- * has non-empty Javadoc.
- *
- * If only we had traits - or JDK 8, at the very least.
- */
-public final class JavadocUtil {
-    private JavadocUtil() {
-        // no instances
+import com.microsoft.thrifty.schema.Field;
+import com.microsoft.thrifty.schema.FieldNamingPolicy;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+class FieldNamer {
+    private final Map<Field, String> nameCache = new LinkedHashMap<>();
+    private final FieldNamingPolicy namingPolicy;
+
+    FieldNamer(FieldNamingPolicy namingPolicy) {
+        this.namingPolicy = namingPolicy;
     }
 
-    public static boolean isNonEmptyJavadoc(String doc) {
-        if (doc == null) return false;
-        if (doc.isEmpty()) return false;
-
-        for (int i = 0; i < doc.length(); ++i) {
-            char c = doc.charAt(i);
-            if (!Character.isWhitespace(c)) {
-                return true;
-            }
+    public String getName(Field field) {
+        String name = nameCache.get(field);
+        if (name == null) {
+            name = namingPolicy.apply(field.name());
+            nameCache.put(field, name);
         }
-
-        return false;
+        return name;
     }
 }

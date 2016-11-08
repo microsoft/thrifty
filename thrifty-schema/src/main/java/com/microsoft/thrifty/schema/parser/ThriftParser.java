@@ -259,20 +259,13 @@ public final class ThriftParser {
                 break;
             }
 
-            EnumMemberElement member = readEnumMember(memberDoc);
+            EnumMemberElement member = readEnumMember(memberDoc, nextId);
 
-            int value;
-            if (member.value() == null) {
-                value = nextId++;
-                member = member.withValue(value);
-            } else {
-                //noinspection ConstantConditions
-                value = member.value();
-                nextId = value + 1;
-            }
+            // value is either the default, or an explicit number.  Either way, the next default is n + 1.
+            nextId = member.value() + 1;
 
-            if (!ids.add(value)) {
-                throw unexpected(member.location(), "duplicate enum value: " + value);
+            if (!ids.add(member.value())) {
+                throw unexpected(member.location(), "duplicate enum value: " + member.value());
             }
 
             members.add(member);
@@ -286,14 +279,14 @@ public final class ThriftParser {
                 .build();
     }
 
-    private EnumMemberElement readEnumMember(String doc) {
+    private EnumMemberElement readEnumMember(String doc, int defaultValue) {
         // enum member:
         //   identifier ('=' IntValue)? Separator? Comment? '\n'
         Location location = location();
         String name = readIdentifier();
 
         char next = peekChar(false);
-        Integer value = null;
+        int value = defaultValue;
         if (next == '=') {
             ++pos;
             value = readInt();
@@ -380,7 +373,7 @@ public final class ThriftParser {
     }
 
     private ImmutableList<FieldElement> readFieldList(char terminator, boolean requiredByDefault) {
-        int currentId = 1;
+        int nextId = 1;
         Set<Integer> ids = Sets.newHashSet();
 
         ImmutableList.Builder<FieldElement> fields = ImmutableList.builder();
@@ -391,28 +384,19 @@ public final class ThriftParser {
                 break;
             }
 
-            FieldElement field = readField(fieldDoc, requiredByDefault);
+            FieldElement field = readField(fieldDoc, requiredByDefault, nextId);
 
-            Integer id = field.fieldId();
-            if (id != null) {
-                if (id < 1) {
-                    throw unexpected("field ID must be a positive integer");
-                }
+            int id = field.fieldId();
+            if (id < 1) {
+                throw unexpected("field ID must be a positive integer");
+            }
 
-                if (!ids.add(id)) {
-                    throw unexpected("duplicate field ID: " + id);
-                }
+            if (!ids.add(id)) {
+                throw unexpected("duplicate field ID: " + field.fieldId());
+            }
 
-                if (id >= currentId) {
-                    currentId = id + 1;
-                }
-            } else {
-                int fieldId = currentId++;
-                if (!ids.add(fieldId)) {
-                    throw unexpected("duplicate field ID: " + fieldId);
-                }
-
-                field = field.withId(fieldId);
+            if (id >= nextId) {
+                nextId = id + 1;
             }
 
             fields.add(field);
@@ -421,7 +405,7 @@ public final class ThriftParser {
         return fields.build();
     }
 
-    private FieldElement readField(String doc, boolean requiredByDefault) {
+    private FieldElement readField(String doc, boolean requiredByDefault, int defaultFieldId) {
         if (pos == data.length) {
             throw new AssertionError();
         }
@@ -446,6 +430,8 @@ public final class ThriftParser {
             }
 
             field.fieldId(fieldId);
+        } else {
+            field.fieldId(defaultFieldId);
         }
 
         TypeElement typeName = readTypeName();

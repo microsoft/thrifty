@@ -25,138 +25,93 @@ import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public class Constant extends Named {
+/**
+ * Represents a Thrift const definition.
+ */
+public class Constant implements UserElement {
     private final ConstElement element;
+    private final ImmutableMap<NamespaceScope, String> namespaces;
+    private final UserElementMixin mixin;
+
     private ThriftType type;
 
-    Constant(ConstElement element, Map<NamespaceScope, String> namespaces) {
-        super(element.name(), namespaces);
+    Constant(ConstElement element, ImmutableMap<NamespaceScope, String> namespaces) {
         this.element = element;
+        this.namespaces = namespaces;
+        this.mixin = new UserElementMixin(
+                element.name(),
+                element.location(),
+                element.documentation(),
+                null); // No annotations allowed on Thrift constants
     }
 
-    private Constant(Builder builder) {
-        super(builder.element.name(), builder.namespaces);
-        this.element = builder.element;
-        this.type = builder.type;
-    }
-
-    @Override
     public ThriftType type() {
         return type;
-    }
-
-    public String documentation() {
-        return element.documentation();
-    }
-
-    @Override
-    public Location location() {
-        return element.location();
     }
 
     public ConstValueElement value() {
         return element.value();
     }
 
-    public Builder toBuilder() {
-        return new Builder(element, namespaces(), type);
+    @Nullable
+    public String getNamespaceFor(NamespaceScope scope) {
+        String ns = namespaces.get(scope);
+        if (ns == null && scope != NamespaceScope.ALL) {
+            ns = namespaces.get(NamespaceScope.ALL);
+        }
+        return ns;
+    }
+
+    @Override
+    public String name() {
+        return mixin.name();
+    }
+
+    @Override
+    public Location location() {
+        return mixin.location();
+    }
+
+    @Override
+    public String documentation() {
+        return mixin.documentation();
+    }
+
+    @Override
+    public ImmutableMap<String, String> annotations() {
+        return ImmutableMap.of();
+    }
+
+    @Override
+    public boolean hasJavadoc() {
+        return mixin.hasJavadoc();
+    }
+
+    @Override
+    public boolean isDeprecated() {
+        return mixin.isDeprecated();
     }
 
     void link(Linker linker) {
-        this.type = linker.resolveType(element.type());
+        type = linker.resolveType(element.type());
     }
 
     void validate(Linker linker) {
-        if (type == null) {
-            throw new IllegalStateException("Constants must be linked before validation");
-        }
-
-        ConstValueElement value = this.element.value();
-        ThriftType type = this.type;
-
-        try {
-            validate(linker, value, type);
-        } catch (IllegalStateException e) {
-            linker.addError(location(), e.getMessage());
-        }
+        validate(linker, element.value(), type);
     }
 
-    @SuppressWarnings("unchecked")
     @VisibleForTesting
-    static void validate(Linker linker, ConstValueElement value, ThriftType expectedType) {
-        ThriftType trueExpectedType = expectedType.getTrueType();
-        Validators.forType(trueExpectedType).validate(linker, trueExpectedType, value);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        Constant constant = (Constant) o;
-
-        if (element != null ? !element.equals(constant.element) : constant.element != null) {
-            return false;
-        }
-        return type != null ? type.equals(constant.type) : constant.type == null;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = element != null ? element.hashCode() : 0;
-        result = 31 * result + (type != null ? type.hashCode() : 0);
-        return result;
+    static void validate(Linker linker, ConstValueElement value, ThriftType expected) {
+        ThriftType trueType = expected.getTrueType();
+        Validators.forType(trueType).validate(linker, trueType, value);
     }
 
     interface ConstValueValidator {
         void validate(Linker linker, ThriftType expected, ConstValueElement value);
-    }
-
-    public static final class Builder {
-        private ConstElement element;
-        private Map<NamespaceScope, String> namespaces;
-        private ThriftType type;
-
-        Builder(ConstElement element,
-                       Map<NamespaceScope, String> namespaces,
-                       ThriftType type) {
-            this.element = element;
-            this.namespaces = namespaces;
-            this.type = type;
-        }
-
-        public Builder element(ConstElement element) {
-            if (element == null) {
-                throw new NullPointerException("element may not be null.");
-            }
-            this.element = element;
-            return this;
-        }
-
-        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
-            Map<NamespaceScope, String> immutableNamespaces = namespaces;
-            if (!(immutableNamespaces instanceof ImmutableMap)) {
-                immutableNamespaces = ImmutableMap.copyOf(namespaces);
-            }
-            this.namespaces = immutableNamespaces;
-            return this;
-        }
-
-        public Builder type(ThriftType type) {
-            this.type = type;
-            return this;
-        }
-
-        public Constant build() {
-            return new Constant(this);
-        }
     }
 
     private static class Validators {
@@ -178,19 +133,19 @@ public class Constant extends Named {
             }
 
             if (type.isBuiltin()) {
-                if (type.equals(ThriftType.BOOL))   return BOOL;
-                if (type.equals(ThriftType.BYTE))   return BYTE;
-                if (type.equals(ThriftType.I16))    return I16;
-                if (type.equals(ThriftType.I32))    return I32;
-                if (type.equals(ThriftType.I64))    return I64;
-                if (type.equals(ThriftType.DOUBLE)) return DOUBLE;
-                if (type.equals(ThriftType.STRING)) return STRING;
+                if (type.equals(BuiltinType.BOOL))   return BOOL;
+                if (type.equals(BuiltinType.BYTE))   return BYTE;
+                if (type.equals(BuiltinType.I16))    return I16;
+                if (type.equals(BuiltinType.I32))    return I32;
+                if (type.equals(BuiltinType.I64))    return I64;
+                if (type.equals(BuiltinType.DOUBLE)) return DOUBLE;
+                if (type.equals(BuiltinType.STRING)) return STRING;
 
-                if (type.equals(ThriftType.BINARY)) {
+                if (type.equals(BuiltinType.BINARY)) {
                     throw new IllegalStateException("Binary constants are unsupported");
                 }
 
-                if (type.equals(ThriftType.VOID)) {
+                if (type.equals(BuiltinType.VOID)) {
                     throw new IllegalStateException("Cannot declare a constant of type 'void'");
                 }
 
@@ -228,7 +183,7 @@ public class Constant extends Named {
                 }
 
                 Constant constant = linker.lookupConst(identifier);
-                if (constant != null && constant.type().getTrueType().equals(ThriftType.BOOL)) {
+                if (constant != null && constant.type().getTrueType().equals(BuiltinType.BOOL)) {
                     return;
                 }
             }
@@ -254,15 +209,15 @@ public class Constant extends Named {
 
             if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                 String id = (String) value.value();
-                Named named = linker.lookupConst(id);
+                Constant constant = linker.lookupConst(id);
 
-                if (named == null) {
+                if (constant == null) {
                     throw new IllegalStateException("Unrecognized const identifier: " + id);
                 }
 
-                if (!named.type().getTrueType().equals(expected)) {
+                if (!constant.type().getTrueType().equals(expected)) {
                     throw new IllegalStateException("Expected a value of type " + expected.name()
-                            + ", but got " + named.type().name());
+                            + ", but got " + constant.type().name());
                 }
             } else {
                 throw new IllegalStateException(
@@ -300,73 +255,81 @@ public class Constant extends Named {
     private static class EnumValidator implements ConstValueValidator {
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
-            Named named = linker.lookupSymbol(expected);
-            if (named instanceof EnumType) {
-                EnumType et = (EnumType) named;
+            if (!expected.isEnum()) {
+                throw new IllegalStateException("bad enum literal");
+            }
 
-                if (value.kind() == ConstValueElement.Kind.INTEGER) {
-                    long id = (Long) value.value();
-                    for (EnumType.Member member : et.members()) {
-                        if (member.value().longValue() == id) {
+            EnumType et = (EnumType) expected;
+
+            if (value.kind() == ConstValueElement.Kind.INTEGER) {
+                long id = value.getAsLong();
+                for (EnumMember member : et.members()) {
+                    if (member.value() == id) {
+                        return;
+                    }
+                }
+                throw new IllegalStateException("'" + id + "' is not a valid value for " + et.name());
+            } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
+                // An IDENTIFIER enum value could be one of four kinds of entities:
+                // 1. Another constant, possibly of the correct type
+                // 2. A fully-qualified imported enum value, e.g. file.Enum.Member
+                // 3. An imported, partially-qualified enum value, e.g. Enum.Member (where Enum is imported)
+                // 4. A fully-qualified, non-imported enum value, e.g. Enum.Member
+                //
+                // Apache accepts all of these, and so do we.
+
+                String id = (String) value.value();
+
+                // An unusual edge case is when a named constant has the same name as an enum
+                // member; in this case, constants take precedence over members.  Make sure that
+                // the type is as expected!
+                Constant constant = linker.lookupConst(id);
+                if (constant != null && constant.type().getTrueType().equals(expected)) {
+                    return;
+                }
+
+                int ix = id.lastIndexOf('.');
+                if (ix == -1) {
+                    throw new IllegalStateException(
+                            "Unqualified name '" + id + "' is not a valid enum constant value: ("
+                                    + value.location() + ")");
+                }
+
+                String typeName = id.substring(0, ix); // possibly qualified
+                String memberName = id.substring(ix + 1);
+
+                // Does the literal name match the expected type name?
+                // It could be that typeName is qualified; handle that case.
+                boolean typeNameMatches = false;
+                ix = typeName.indexOf('.');
+                if (ix == -1) {
+                    // unqualified
+                    if (expected.name().equals(typeName)) {
+                        typeNameMatches = true;
+                    }
+                } else {
+                    // qualified
+                    String qualifier = typeName.substring(0, ix);
+                    String actualName = typeName.substring(ix + 1);
+
+                    // Does the qualifier match?
+                    if (et.location().getProgramName().equals(qualifier) && et.name().equals(actualName)) {
+                        typeNameMatches = true;
+                    }
+                }
+
+                if (typeNameMatches) {
+                    for (EnumMember member : et.members()) {
+                        if (member.name().equals(memberName)) {
                             return;
                         }
                     }
-                    throw new IllegalStateException("'" + id + "' is not a valid value for " + et.name());
-                } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
-                    // An IDENTIFIER enum value could be one of four kinds of entities:
-                    // 1. Another constant, possibly of the correct type
-                    // 2. A fully-qualified imported enum value, e.g. file.Enum.Member
-                    // 3. An imported, partially-qualified enum value, e.g. Enum.Member (where Enum is imported)
-                    // 4. A fully-qualified, non-imported enum value, e.g. Enum.Member
-                    //
-                    // Apache accepts all of these, and so do we.
-
-                    String id = (String) value.value();
-
-                    // An unusual edge case is when a named constant has the same name as an enum
-                    // member; in this case, constants take precedence over members.  Make sure that
-                    // the type is as expected!
-                    Constant constant = linker.lookupConst(id);
-                    if (constant != null && constant.type().getTrueType().equals(expected)) {
-                        return;
-                    }
-
-                    int ix = id.lastIndexOf('.');
-                    if (ix == -1) {
-                        throw new IllegalStateException(
-                                "Unqualified name '" + id + "' is not a valid enum constant value: ("
-                                        + value.location() + ")");
-                    }
-
-                    String typeName = id.substring(0, ix); // possibly qualified
-                    String memberName = id.substring(ix + 1);
-
-                    int matches = 0;
-                    List<Named> matchingTypes = linker.findMatchingSymbols(typeName);
-                    for (Named namedType : matchingTypes) {
-                        if (namedType.type().equals(expected)) {
-                            for (EnumType.Member member : et.members()) {
-                                if (member.name().equals(memberName)) {
-                                    matches++;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (matches == 0) {
-                        throw new IllegalStateException(
-                                "'" + id + "' is not a member of enum type " + et.name() + ": members=" + et.members());
-                    } else if (matches != 1) {
-                        throw new IllegalStateException(
-                                "More than one visible enum type matches '" + id
-                                + "'; please consider using the full qualified name here.");
-                    }
-                } else {
-                    throw new IllegalStateException("bad enum literal: " + value.value());
                 }
+
+                throw new IllegalStateException(
+                        "'" + id + "' is not a member of enum type " + et.name() + ": members=" + et.members());
             } else {
-                throw new IllegalStateException("bad enum literal");
+                throw new IllegalStateException("bad enum literal: " + value.value());
             }
         }
     }
@@ -376,13 +339,13 @@ public class Constant extends Named {
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
             if (value.kind() == ConstValueElement.Kind.LIST) {
-                List<ConstValueElement> list = (List<ConstValueElement>) value.value();
+                List<ConstValueElement> list = value.getAsList();
 
                 ThriftType elementType;
                 if (expected.isList()) {
-                    elementType = ((ThriftType.ListType) expected).elementType().getTrueType();
+                    elementType = ((ListType) expected).elementType().getTrueType();
                 } else if (expected.isSet()) {
-                    elementType = ((ThriftType.SetType) expected).elementType().getTrueType();
+                    elementType = ((SetType) expected).elementType().getTrueType();
                 } else {
                     throw new AssertionError();
                 }
@@ -392,10 +355,9 @@ public class Constant extends Named {
                 }
             } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                 String id = (String) value.value();
-                Named named = linker.lookupSymbol(id);
+                Constant named = linker.lookupConst(id);
 
-                boolean isConstantOfCorrectType =
-                        named instanceof Constant
+                boolean isConstantOfCorrectType = named != null
                         && named.type().getTrueType().equals(expected);
 
                 if (!isConstantOfCorrectType) {
@@ -408,14 +370,12 @@ public class Constant extends Named {
     }
 
     private static class MapValidator implements ConstValueValidator {
-        @SuppressWarnings("unchecked")
         @Override
         public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
             if (value.kind() == ConstValueElement.Kind.MAP) {
-                Map<ConstValueElement, ConstValueElement> map =
-                        (Map<ConstValueElement, ConstValueElement>) value.value();
+                Map<ConstValueElement, ConstValueElement> map = value.getAsMap();
 
-                ThriftType.MapType mapType = (ThriftType.MapType) expected;
+                MapType mapType = (MapType) expected;
                 ThriftType keyType = mapType.keyType().getTrueType();
                 ThriftType valueType = mapType.valueType().getTrueType();
 
@@ -425,11 +385,10 @@ public class Constant extends Named {
                 }
             } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                 String id = (String) value.value();
-                Named named = linker.lookupSymbol(id);
+                Constant named = linker.lookupConst(id);
 
-                boolean isConstantOfCorrectType =
-                        named instanceof Constant
-                                && named.type().getTrueType().equals(expected);
+                boolean isConstantOfCorrectType = named != null
+                        && named.type().getTrueType().equals(expected);
 
                 if (!isConstantOfCorrectType) {
                     throw new IllegalStateException("Expected a value with type " + expected.name());

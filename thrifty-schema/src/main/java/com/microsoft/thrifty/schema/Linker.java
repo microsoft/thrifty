@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.ListTypeElement;
@@ -34,8 +35,6 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -100,6 +99,7 @@ class Linker {
 
             // Only validate the schema if linking succeeded; no point otherwise.
             if (!reporter.hasError()) {
+                validateTypedefs();
                 validateConstants();
                 validateStructs();
                 validateExceptions();
@@ -169,7 +169,7 @@ class Linker {
             register(anEnum);
         }
 
-        for (Service service : program.services()) {
+        for (ServiceType service : program.services()) {
             register(service);
         }
     }
@@ -184,13 +184,13 @@ class Linker {
         // typedefs.  In the latter case, linking fails.
         // TODO: Surely there must be a more efficient way to do this.
 
-        List<Typedef> typedefs = new LinkedList<>(program.typedefs());
+        List<TypedefType> typedefs = new LinkedList<>(program.typedefs());
         while (!typedefs.isEmpty()) {
             boolean atLeastOneResolved = false;
-            Iterator<Typedef> iter = typedefs.iterator();
+            Iterator<TypedefType> iter = typedefs.iterator();
 
             while (iter.hasNext()) {
-                Typedef typedef = iter.next();
+                TypedefType typedef = iter.next();
                 try {
                     typedef.link(this);
                     register(typedef);
@@ -201,7 +201,7 @@ class Linker {
             }
 
             if (!atLeastOneResolved) {
-                for (Typedef typedef : typedefs) {
+                for (TypedefType typedef : typedefs) {
                     reporter.error(typedef.location(), "Unresolvable typedef '" + typedef.name() + "'");
                 }
                 break;
@@ -254,7 +254,7 @@ class Linker {
     }
 
     private void linkServices() {
-        for (Service service : program.services()) {
+        for (ServiceType service : program.services()) {
             try {
                 service.link(this);
             } catch (LinkFailureException e) {
@@ -291,20 +291,25 @@ class Linker {
         }
     }
 
+    private void validateTypedefs() {
+        for (TypedefType typedef : program.typedefs()) {
+            typedef.validate(this);
+        }
+    }
+
     private void validateServices() {
         // Services form an inheritance tree
-        Set<Service> visited = new HashSet<>(program.services().size());
-        Multimap<Service, Service> parentToChildren = HashMultimap.create();
-        Queue<Service> servicesToValidate = new ArrayDeque<>(program.services().size());
+        Set<ServiceType> visited = new LinkedHashSet<>(program.services().size());
+        Multimap<ServiceType, ServiceType> parentToChildren = HashMultimap.create();
+        Queue<ServiceType> servicesToValidate = new ArrayDeque<>(program.services().size());
 
-        for (Service service : program.services()) {
+        for (ServiceType service : program.services()) {
             // If this service extends another, add the parent -> child relationship to the multmap.
             // Otherwise, this is a root node, and should be added to the processing queue.
             ThriftType baseType = service.extendsService();
             if (baseType != null) {
-                Named named = lookupSymbol(baseType);
-                if (named instanceof Service) {
-                    parentToChildren.put((Service) named, service);
+                if (baseType.isService()) {
+                    parentToChildren.put((ServiceType) baseType, service);
                 } else {
                     // We know that this is an error condition; queue this type up for validation anyways
                     // so that any other errors lurking here can be reported.
@@ -319,10 +324,10 @@ class Linker {
         checkForCircularInheritance();
 
         while (!servicesToValidate.isEmpty()) {
-            Service service = servicesToValidate.remove();
+            ServiceType service = servicesToValidate.remove();
             if (visited.add(service)) {
                 service.validate(this);
-                for (Service child : parentToChildren.get(service)) {
+                for (ServiceType child : parentToChildren.get(service)) {
                     servicesToValidate.add(child);
                 }
             }
@@ -334,8 +339,8 @@ class Linker {
         List<ThriftType> stack = new ArrayList<>();
         Set<ThriftType> totalVisited = new LinkedHashSet<>();
 
-        for (Service svc : program.services()) {
-            ThriftType type = svc.type();
+        for (ServiceType svc : program.services()) {
+            ThriftType type = svc;
 
             if (totalVisited.contains(type)) {
                 // We've already validated this hierarchy
@@ -362,31 +367,30 @@ class Linker {
                     break;
                 }
 
-                Named named = lookupSymbol(type);
-                if (!(named instanceof Service)) {
+                if (!type.isService()) {
                     // Service extends a non-service type?
                     // This is an error but is reported in
                     // Service#validate(Linker).
                     break;
                 }
 
-                type = ((Service) named).extendsService();
+                type = ((ServiceType) type).extendsService();
             }
 
             totalVisited.addAll(visited);
         }
     }
 
-    private void register(Named type) {
-        typesByName.put(type.name(), type.type());
+    private void register(UserType type) {
+        typesByName.put(type.name(), type);
     }
 
     @Nonnull
     ThriftType resolveType(TypeElement type) {
         AnnotationElement annotationElement = type.annotations();
-        Map<String, String> annotations = annotationElement != null
+        ImmutableMap<String, String> annotations = annotationElement != null
                 ? annotationElement.values()
-                : Collections.<String, String>emptyMap();
+                : ImmutableMap.<String, String>of();
 
         ThriftType tt = typesByName.get(type.name());
         if (tt != null) {
@@ -401,124 +405,35 @@ class Linker {
 
         if (type instanceof ListTypeElement) {
             ThriftType elementType = resolveType(((ListTypeElement) type).elementType());
-            ThriftType listType = ThriftType.list(elementType);
+            ThriftType listType = new ListType(elementType);
             typesByName.put(type.name(), listType);
             return listType.withAnnotations(annotations);
         } else if (type instanceof SetTypeElement) {
             ThriftType elementType = resolveType(((SetTypeElement) type).elementType());
-            ThriftType setType = ThriftType.set(elementType);
+            ThriftType setType = new SetType(elementType);
             typesByName.put(type.name(), setType);
             return setType.withAnnotations(annotations);
         } else if (type instanceof MapTypeElement) {
             MapTypeElement element = (MapTypeElement) type;
             ThriftType keyType = resolveType(element.keyType());
             ThriftType valueType = resolveType(element.valueType());
-            ThriftType mapType = ThriftType.map(keyType, valueType);
+            ThriftType mapType = new MapType(keyType, valueType);
             typesByName.put(type.name(), mapType);
             return mapType.withAnnotations(annotations);
         } else if (type instanceof ScalarTypeElement) {
-            tt = ThriftType.get(
-                    type.name(),
-                    Collections.<NamespaceScope, String>emptyMap(), // Any map will do
-                    annotations);
-
             // At this point, all user-defined types should have been registered.
             // If we are resolving a built-in type, then that's fine.  If not, then
             // we have an error.
-            if (tt.isBuiltin()) {
-                return tt;
+            tt = BuiltinType.get(type.name());
+
+            if (tt != null) {
+                return tt.withAnnotations(annotations);
             }
 
             throw new LinkFailureException(type.name());
         } else {
             throw new AssertionError("Unexpected TypeElement: " + type.getClass());
         }
-    }
-
-    /**
-     * Looks up a {@link Named} symbol from a given name.
-     */
-    @Nullable
-    Named lookupSymbol(String symbol) {
-        Named named = program.symbols().get(symbol);
-        if (named == null) {
-            // Symbol may be a qualified name
-            int ix = symbol.indexOf('.');
-            if (ix != -1) {
-                String includeName = symbol.substring(0, ix);
-                String qualifiedName = symbol.substring(ix + 1);
-                String expectedPath = includeName + ".thrift";
-                for (Program includedProgram : program.includes()) {
-                    if (includedProgram.location().path().equals(expectedPath)) {
-                        named = includedProgram.symbols().get(qualifiedName);
-                        if (named != null) {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return named;
-    }
-
-    /**
-     * Finds all symbols in the current program and its inclusions, whose name
-     * matches the given symbol.  The qualifier, if present, will be used to
-     * filter included programs.
-     *
-     * @return a list of all symbols matching the given name.
-     */
-    List<Named> findMatchingSymbols(String symbol) {
-        List<Named> result = new ArrayList<>();
-
-        String qualifier = null;
-        String typename = symbol;
-
-        int ix = symbol.indexOf('.');
-        if (ix != -1) {
-            qualifier = symbol.substring(0, ix) + ".thrift";
-            typename = symbol.substring(ix + 1);
-        }
-
-        Named named = program.symbols().get(typename);
-        if (named != null) {
-            result.add(named);
-        }
-
-        for (Program includedProgram : program.includes()) {
-            if (qualifier != null && !includedProgram.location().path().equals(qualifier)) {
-                continue;
-            }
-
-            named = includedProgram.symbols().get(typename);
-            if (named != null) {
-                result.add(named);
-            }
-        }
-
-        return result;
-    }
-
-    @Nullable
-    Named lookupSymbol(ThriftType type) {
-        // This differs from the above because, instead of a possibly-qualified
-        // name, we have a ThriftType that is not qualified, and wish to find
-        // its defining element.  It could feasibly be in this program, or in
-        // one of its direct inclusions.
-        //
-        // (Symbols from direct inclusions are available in IDL, but those from
-        // transitive inclusions are not).
-        Named named = program.symbols().get(type.name());
-        if (named == null) {
-            for (Program p : program.includes()) {
-                named = p.symbols().get(type.name());
-                if (named != null) {
-                    break;
-                }
-            }
-        }
-
-        return named;
     }
 
     @Nullable

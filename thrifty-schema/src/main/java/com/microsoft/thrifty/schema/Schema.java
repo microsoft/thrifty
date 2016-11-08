@@ -22,8 +22,6 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.NoSuchElementException;
-
 /**
  * Encapsulates all types, values, and services defined in a set of Thrift
  * files.
@@ -40,8 +38,8 @@ public class Schema {
     private final ImmutableList<StructType> exceptions;
     private final ImmutableList<EnumType> enums;
     private final ImmutableList<Constant> constants;
-    private final ImmutableList<Typedef> typedefs;
-    private final ImmutableList<Service> services;
+    private final ImmutableList<TypedefType> typedefs;
+    private final ImmutableList<ServiceType> services;
 
     Schema(Iterable<Program> programs) {
         ImmutableList.Builder<StructType> structs    = ImmutableList.builder();
@@ -49,8 +47,8 @@ public class Schema {
         ImmutableList.Builder<StructType> exceptions = ImmutableList.builder();
         ImmutableList.Builder<EnumType>   enums      = ImmutableList.builder();
         ImmutableList.Builder<Constant>   constants  = ImmutableList.builder();
-        ImmutableList.Builder<Typedef>    typedefs   = ImmutableList.builder();
-        ImmutableList.Builder<Service>    services   = ImmutableList.builder();
+        ImmutableList.Builder<TypedefType>    typedefs   = ImmutableList.builder();
+        ImmutableList.Builder<ServiceType>    services   = ImmutableList.builder();
 
         for (Program program : programs) {
             structs.addAll(program.structs());
@@ -101,21 +99,12 @@ public class Schema {
         return constants;
     }
 
-    public ImmutableList<Typedef> typedefs() {
+    public ImmutableList<TypedefType> typedefs() {
         return typedefs;
     }
 
-    public ImmutableList<Service> services() {
+    public ImmutableList<ServiceType> services() {
         return services;
-    }
-
-    public EnumType findEnumByType(ThriftType type) {
-        for (EnumType enumType : enums) {
-            if (enumType.type().equals(type)) {
-                return enumType;
-            }
-        }
-        throw new NoSuchElementException("No enum type matching " + type.name());
     }
 
     public Builder toBuilder() {
@@ -128,16 +117,16 @@ public class Schema {
         private ImmutableList<StructType> exceptions;
         private ImmutableList<EnumType> enums;
         private ImmutableList<Constant> constants;
-        private ImmutableList<Typedef> typedefs;
-        private ImmutableList<Service> services;
+        private ImmutableList<TypedefType> typedefs;
+        private ImmutableList<ServiceType> services;
 
         Builder(ImmutableList<StructType> structs,
                 ImmutableList<StructType> unions,
                 ImmutableList<StructType> exceptions,
                 ImmutableList<EnumType> enums,
                 ImmutableList<Constant> constants,
-                ImmutableList<Typedef> typedefs,
-                ImmutableList<Service> services) {
+                ImmutableList<TypedefType> typedefs,
+                ImmutableList<ServiceType> services) {
             this.structs = structs;
             this.unions = unions;
             this.exceptions = exceptions;
@@ -187,7 +176,7 @@ public class Schema {
             return this;
         }
 
-        public Builder typedefs(ImmutableList<Typedef> typedefs) {
+        public Builder typedefs(ImmutableList<TypedefType> typedefs) {
             if (typedefs == null) {
                 throw new NullPointerException("typedefs may not be null");
             }
@@ -195,7 +184,7 @@ public class Schema {
             return this;
         }
 
-        public Builder services(ImmutableList<Service> services) {
+        public Builder services(ImmutableList<ServiceType> services) {
             if (services == null) {
                 throw new NullPointerException("services may not be null");
             }

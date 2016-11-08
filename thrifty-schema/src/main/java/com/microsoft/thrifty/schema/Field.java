@@ -20,163 +20,57 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 
-import java.util.Locale;
-
 import javax.annotation.Nullable;
 
-public final class Field {
+public class Field implements UserElement {
     private final FieldElement element;
-    private final FieldNamingPolicy fieldNamingPolicy;
-    private final ImmutableMap<String, String> annotations;
+    private final UserElementMixin mixin;
+
     private ThriftType type;
 
-    private transient String javaName;
-
-    Field(FieldElement element, FieldNamingPolicy fieldNamingPolicy) {
+    Field(FieldElement element) {
         this.element = element;
-        this.fieldNamingPolicy = fieldNamingPolicy;
-
-        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
-        AnnotationElement anno = element.annotations();
-        if (anno != null) {
-            annotationBuilder.putAll(anno.values());
-        }
-        this.annotations = annotationBuilder.build();
+        this.mixin = new UserElementMixin(element);
     }
 
     private Field(Builder builder) {
-        this.element = builder.element;
-        this.fieldNamingPolicy = builder.fieldNamingPolicy;
-        this.annotations = builder.annotations;
-        this.type = builder.type;
-    }
-
-    public Location location() {
-        return element.location();
-    }
-
-    public int id() {
-        Integer id = element.fieldId();
-        if (id == null) {
-            // IDs should have been definitively assigned during parse.
-            // A missing ID at this point is a parser error.
-            throw new AssertionError("Field ID should not be null");
-        }
-        return id;
-    }
-
-    public String thriftName() {
-        return element.name();
-    }
-
-    public String name() {
-        if (javaName == null) {
-            javaName = fieldNamingPolicy.apply(element.name());
-        }
-        return javaName;
-    }
-
-    public boolean required() {
-        return element.requiredness() == Requiredness.REQUIRED;
-    }
-
-    public boolean optional() {
-        return element.requiredness() == Requiredness.OPTIONAL;
-    }
-
-    public String documentation() {
-        return element.documentation();
-    }
-
-    public boolean hasJavadoc() {
-        return JavadocUtil.hasJavadoc(this);
-    }
-
-    public ConstValueElement defaultValue() {
-        return element.constValue();
+        this.mixin = builder.mixin;
+        this.element = builder.fieldElement;
+        this.type = builder.fieldType;
     }
 
     public ThriftType type() {
         return type;
     }
 
-    public ImmutableMap<String, String> annotations() {
-        return annotations;
+    public int id() {
+        return element.fieldId();
+    }
+
+    public boolean optional() {
+        return element.requiredness() == Requiredness.OPTIONAL;
+    }
+
+    public boolean required() {
+        return element.requiredness() == Requiredness.REQUIRED;
+    }
+
+    @Nullable
+    public ConstValueElement defaultValue() {
+        return element.constValue();
     }
 
     public boolean isRedacted() {
-        return annotations.containsKey("thrifty.redacted")
-                || annotations.containsKey("redacted")
-                || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@redacted"));
+        return mixin.hasThriftOrJavadocAnnotation("redacted");
     }
 
     public boolean isObfuscated() {
-        return annotations.containsKey("thrifty.obfuscated")
-                || annotations.containsKey("obfuscated")
-                || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@obfuscated"));
-    }
-
-    public boolean isDeprecated() {
-        return annotations.containsKey("deprecated")
-                || annotations.containsKey("thrifty.deprecated")
-                || (hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@deprecated"));
-    }
-
-    public Builder toBuilder() {
-        return new Builder(element, fieldNamingPolicy, annotations, type);
-    }
-
-    public static final class Builder {
-        private FieldElement element;
-        private FieldNamingPolicy fieldNamingPolicy;
-        private ImmutableMap<String, String> annotations;
-        private ThriftType type;
-
-        Builder(FieldElement element,
-                       FieldNamingPolicy fieldNamingPolicy,
-                       ImmutableMap<String, String> annotations,
-                       ThriftType type) {
-            this.element = element;
-            this.fieldNamingPolicy = fieldNamingPolicy;
-            this.annotations = annotations;
-            this.type = type;
-        }
-
-        public Builder element(FieldElement element) {
-            if (element == null) {
-                throw new NullPointerException("element may not be null.");
-            }
-            this.element = element;
-            return this;
-        }
-
-        public Builder fieldNamingPolicy(FieldNamingPolicy fieldNamingPolicy) {
-            this.fieldNamingPolicy = fieldNamingPolicy;
-            return this;
-        }
-
-        public Builder annotations(ImmutableMap<String, String> annotations) {
-            this.annotations = annotations;
-            return this;
-        }
-
-        public Builder type(ThriftType type) {
-            this.type = type;
-            return this;
-        }
-
-        public Field build() {
-            return new Field(this);
-        }
-    }
-
-    void setType(ThriftType type) {
-        this.type = type;
+        return mixin.hasThriftOrJavadocAnnotation("obfuscated");
     }
 
     @Nullable
@@ -188,8 +82,42 @@ public final class Field {
         return name;
     }
 
+    @Override
+    public String name() {
+        return mixin.name();
+    }
+
+    @Override
+    public Location location() {
+        return mixin.location();
+    }
+
+    @Override
+    public String documentation() {
+        return mixin.documentation();
+    }
+
+    @Override
+    public ImmutableMap<String, String> annotations() {
+        return mixin.annotations();
+    }
+
+    @Override
+    public boolean hasJavadoc() {
+        return mixin.hasJavadoc();
+    }
+
+    @Override
+    public boolean isDeprecated() {
+        return mixin.isDeprecated();
+    }
+
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     void link(Linker linker) {
-        type = linker.resolveType(element.type());
+        this.type = linker.resolveType(element.type());
     }
 
     void validate(Linker linker) {
@@ -203,36 +131,24 @@ public final class Field {
         }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
+    public static final class Builder extends AbstractUserElementBuilder<Field, Builder> {
+        private FieldElement fieldElement;
+        private ThriftType fieldType;
+
+        Builder(Field field) {
+            super(field.mixin);
+            this.fieldElement = field.element;
+            this.fieldType = field.type;
         }
 
-        Field field = (Field) o;
+        public Builder type(ThriftType type) {
+            this.fieldType = Preconditions.checkNotNull(type, "type");
+            return this;
+        }
 
-        if (!element.equals(field.element)) {
-            return false;
+        @Override
+        public Field build() {
+            return new Field(this);
         }
-        if (fieldNamingPolicy != null ? !fieldNamingPolicy.equals(field.fieldNamingPolicy)
-                : field.fieldNamingPolicy != null) {
-            return false;
-        }
-        if (annotations != null ? !annotations.equals(field.annotations) : field.annotations != null) {
-            return false;
-        }
-        return type != null ? type.equals(field.type) : field.type == null;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = element.hashCode();
-        result = 31 * result + (fieldNamingPolicy != null ? fieldNamingPolicy.hashCode() : 0);
-        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
-        result = 31 * result + (type != null ? type.hashCode() : 0);
-        return result;
     }
 }

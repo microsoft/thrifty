@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.gen;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
@@ -32,16 +33,23 @@ import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
 import com.microsoft.thrifty.protocol.Protocol;
+import com.microsoft.thrifty.schema.BuiltinType;
 import com.microsoft.thrifty.schema.Constant;
+import com.microsoft.thrifty.schema.EnumMember;
 import com.microsoft.thrifty.schema.EnumType;
 import com.microsoft.thrifty.schema.Field;
+import com.microsoft.thrifty.schema.FieldNamingPolicy;
+import com.microsoft.thrifty.schema.ListType;
 import com.microsoft.thrifty.schema.Location;
-import com.microsoft.thrifty.schema.Named;
+import com.microsoft.thrifty.schema.MapType;
 import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.Schema;
-import com.microsoft.thrifty.schema.Service;
+import com.microsoft.thrifty.schema.ServiceType;
+import com.microsoft.thrifty.schema.SetType;
 import com.microsoft.thrifty.schema.StructType;
 import com.microsoft.thrifty.schema.ThriftType;
+import com.microsoft.thrifty.schema.TypedefType;
+import com.microsoft.thrifty.schema.UserType;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
@@ -82,6 +90,7 @@ public final class ThriftyCodeGenerator {
 
     private final TypeResolver typeResolver = new TypeResolver();
     private final Schema schema;
+    private final FieldNamer fieldNamer;
     private final ConstantBuilder constantBuilder;
     private final ServiceBuilder serviceBuilder;
     private TypeProcessor typeProcessor;
@@ -89,8 +98,13 @@ public final class ThriftyCodeGenerator {
     private boolean emitParcelable;
 
     public ThriftyCodeGenerator(Schema schema) {
+        this(schema, FieldNamingPolicy.DEFAULT);
+    }
+
+    public ThriftyCodeGenerator(Schema schema, FieldNamingPolicy namingPolicy) {
         this(
                 schema,
+                namingPolicy,
                 ClassName.get(ArrayList.class),
                 ClassName.get(HashSet.class),
                 ClassName.get(HashMap.class));
@@ -98,22 +112,25 @@ public final class ThriftyCodeGenerator {
 
     private ThriftyCodeGenerator(
             Schema schema,
+            FieldNamingPolicy namingPolicy,
             ClassName listClassName,
             ClassName setClassName,
             ClassName mapClassName) {
 
         Preconditions.checkNotNull(schema, "schema");
+        Preconditions.checkNotNull(namingPolicy, "namingPolicy");
         Preconditions.checkNotNull(listClassName, "listClassName");
         Preconditions.checkNotNull(setClassName, "setClassName");
         Preconditions.checkNotNull(mapClassName, "mapClassName");
 
         this.schema = schema;
+        this.fieldNamer = new FieldNamer(namingPolicy);
         typeResolver.setListClass(listClassName);
         typeResolver.setSetClass(setClassName);
         typeResolver.setMapClass(mapClassName);
 
         constantBuilder = new ConstantBuilder(typeResolver, schema);
-        serviceBuilder = new ServiceBuilder(typeResolver, constantBuilder);
+        serviceBuilder = new ServiceBuilder(typeResolver, constantBuilder, fieldNamer);
     }
 
     public ThriftyCodeGenerator withListType(String listClassName) {
@@ -218,7 +235,7 @@ public final class ThriftyCodeGenerator {
             }
         }
 
-        for (Service type : schema.services()) {
+        for (ServiceType type : schema.services()) {
             TypeSpec spec = serviceBuilder.buildServiceInterface(type);
             JavaFile file = assembleJavaFile(type, spec);
             if (file == null) {
@@ -248,7 +265,7 @@ public final class ThriftyCodeGenerator {
     }
 
     @Nullable
-    private JavaFile assembleJavaFile(Named named, TypeSpec spec) {
+    private JavaFile assembleJavaFile(UserType named, TypeSpec spec) {
         String packageName = named.getNamespaceFor(NamespaceScope.JAVA);
         if (Strings.isNullOrEmpty(packageName)) {
             throw new IllegalArgumentException("A Java package name must be given for java code generation");
@@ -282,6 +299,8 @@ public final class ThriftyCodeGenerator {
         return file.build();
     }
 
+    @VisibleForTesting
+    @SuppressWarnings("WeakerAccess")
     TypeSpec buildStruct(StructType type) {
         String packageName = type.getNamespaceFor(NamespaceScope.JAVA);
         ClassName structTypeName = ClassName.get(packageName, type.name());
@@ -322,7 +341,8 @@ public final class ThriftyCodeGenerator {
                 .addParameter(builderTypeName, "builder");
 
         for (Field field : type.fields()) {
-            String name = field.name();
+
+            String name = fieldNamer.getName(field);
             ThriftType fieldType = field.type();
             ThriftType trueType = fieldType.getTrueType();
             TypeName fieldTypeName = typeResolver.getJavaClass(trueType);
@@ -431,10 +451,11 @@ public final class ThriftyCodeGenerator {
                 .addParameter(int.class, "flags");
 
         for (Field field : structType.fields()) {
+            String name = fieldNamer.getName(field);
             TypeName fieldType = typeResolver.getJavaClass(field.type().getTrueType());
-            parcelCtor.addStatement("this.$N = ($T) in.readValue(CLASS_LOADER)", field.name(), fieldType);
+            parcelCtor.addStatement("this.$N = ($T) in.readValue(CLASS_LOADER)", name, fieldType);
 
-            parcelWriter.addStatement("dest.writeValue(this.$N)", field.name());
+            parcelWriter.addStatement("dest.writeValue(this.$N)", name);
         }
 
         FieldSpec creatorField = FieldSpec.builder(creatorType, "CREATOR")
@@ -487,14 +508,15 @@ public final class ThriftyCodeGenerator {
         // Add fields to the struct and set them in the ctor
         NameAllocator allocator = new NameAllocator();
         for (Field field : structType.fields()) {
-            allocator.newName(field.name(), field.name());
+            String name = fieldNamer.getName(field);
+            allocator.newName(name, name);
         }
 
         AtomicInteger tempNameId = new AtomicInteger(0); // used for generating unique names of temporary values
         for (Field field : structType.fields()) {
             ThriftType fieldType = field.type().getTrueType();
             TypeName javaTypeName = typeResolver.getJavaClass(fieldType);
-            String fieldName = field.name();
+            String fieldName = fieldNamer.getName(field);
             FieldSpec.Builder f = FieldSpec.builder(javaTypeName, fieldName, Modifier.PRIVATE);
 
             if (field.hasJavadoc()) {
@@ -507,7 +529,7 @@ public final class ThriftyCodeGenerator {
                         initializer,
                         allocator,
                         tempNameId,
-                        "this." + field.name(),
+                        "this." + fieldName,
                         fieldType.getTrueType(),
                         field.defaultValue(),
                         false);
@@ -593,7 +615,7 @@ public final class ThriftyCodeGenerator {
         final MethodSpec.Builder read = MethodSpec.methodBuilder("read")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
-                .returns(typeResolver.getJavaClass(structType.type()))
+                .returns(typeResolver.getJavaClass(structType))
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addParameter(builderClassName, "builder")
                 .addException(TypeNames.IO_EXCEPTION);
@@ -601,7 +623,7 @@ public final class ThriftyCodeGenerator {
         final MethodSpec readHelper = MethodSpec.methodBuilder("read")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
-                .returns(typeResolver.getJavaClass(structType.type()))
+                .returns(typeResolver.getJavaClass(structType))
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addException(TypeNames.IO_EXCEPTION)
                 .addStatement("return read(protocol, new $T())", builderClassName)
@@ -623,6 +645,7 @@ public final class ThriftyCodeGenerator {
         }
 
         for (Field field : structType.fields()) {
+            String fieldName = fieldNamer.getName(field);
             boolean optional = !field.required(); // could also be default, but same-same to us.
             final ThriftType tt = field.type().getTrueType();
             byte typeCode = typeResolver.getTypeCode(tt);
@@ -636,17 +659,17 @@ public final class ThriftyCodeGenerator {
 
             // Write
             if (optional) {
-                write.beginControlFlow("if (struct.$N != null)", field.name());
+                write.beginControlFlow("if (struct.$N != null)", fieldName);
             }
 
             write.addStatement(
                     "protocol.writeFieldBegin($S, $L, $T.$L)",
-                    field.thriftName(),
+                    field.name(), // make sure that we write the Thrift IDL name, and not the name of the Java field
                     field.id(),
                     TypeNames.TTYPE,
                     typeCodeName);
 
-            tt.accept(new GenerateWriterVisitor(typeResolver, write, "protocol", "struct", field));
+            tt.accept(new GenerateWriterVisitor(typeResolver, write, "protocol", "struct", fieldName));
 
             write.addStatement("protocol.writeFieldEnd()");
 
@@ -656,7 +679,7 @@ public final class ThriftyCodeGenerator {
 
             // Read
             read.beginControlFlow("case $L:", field.id());
-            new GenerateReaderVisitor(typeResolver, read, field).generate();
+            new GenerateReaderVisitor(typeResolver, read, fieldName, field.type().getTrueType()).generate();
             read.endControlFlow(); // end case block
             read.addStatement("break");
         }
@@ -713,6 +736,8 @@ public final class ThriftyCodeGenerator {
 
         boolean isFirst = true;
         for (Field field : struct.fields()) {
+            String fieldName = fieldNamer.getName(field);
+
             if (isFirst) {
                 equals.addCode("$[return ");
                 isFirst = false;
@@ -721,10 +746,10 @@ public final class ThriftyCodeGenerator {
             }
 
             if (field.required()) {
-                equals.addCode("(this.$1N == that.$1N || this.$1N.equals(that.$1N))", field.name());
+                equals.addCode("(this.$1N == that.$1N || this.$1N.equals(that.$1N))", fieldName);
             } else {
                 equals.addCode("(this.$1N == that.$1N || (this.$1N != null && this.$1N.equals(that.$1N)))",
-                        field.name());
+                        fieldName);
             }
         }
 
@@ -745,10 +770,12 @@ public final class ThriftyCodeGenerator {
                 .addStatement("int code = 16777619");
 
         for (Field field : struct.fields()) {
+            String fieldName = fieldNamer.getName(field);
+
             if (field.required()) {
-                hashCode.addStatement("code ^= this.$N.hashCode()", field.name());
+                hashCode.addStatement("code ^= this.$N.hashCode()", fieldName);
             } else {
-                hashCode.addStatement("code ^= (this.$1N == null) ? 0 : this.$1N.hashCode()", field.name());
+                hashCode.addStatement("code ^= (this.$1N == null) ? 0 : this.$1N.hashCode()", fieldName);
             }
             hashCode.addStatement("code *= 0x811c9dc5");
         }
@@ -773,10 +800,10 @@ public final class ThriftyCodeGenerator {
      */
     private MethodSpec buildToStringFor(StructType struct) {
         class Chunk {
-            final String format;
-            final Object[] args;
+            private final String format;
+            private final Object[] args;
 
-            Chunk(String format, Object ...args) {
+            private Chunk(String format, Object ...args) {
                 this.format = format;
                 this.args = args;
             }
@@ -792,13 +819,15 @@ public final class ThriftyCodeGenerator {
         StringBuilder sb = new StringBuilder(struct.name()).append("{");
         boolean appendedOneField = false;
         for (Field field : struct.fields()) {
+            String fieldName = fieldNamer.getName(field);
+
             if (appendedOneField) {
                 sb.append(", ");
             } else {
                 appendedOneField = true;
             }
 
-            sb.append(field.name()).append("=");
+            sb.append(fieldName).append("=");
 
             if (field.isRedacted()) {
                 sb.append("<REDACTED>");
@@ -813,37 +842,37 @@ public final class ThriftyCodeGenerator {
                     String elementType;
                     if (fieldType.isList()) {
                         type = "list";
-                        elementType = ((ThriftType.ListType) fieldType).elementType().name();
+                        elementType = ((ListType) fieldType).elementType().name();
                     } else {
                         type = "set";
-                        elementType = ((ThriftType.SetType) fieldType).elementType().name();
+                        elementType = ((SetType) fieldType).elementType().name();
                     }
 
                     chunk = new Chunk(
                             "$T.summarizeCollection(this.$L, $S, $S)",
                             TypeNames.OBFUSCATION_UTIL,
-                            field.name(),
+                            fieldName,
                             type,
                             elementType);
                 } else if (fieldType.isMap()) {
-                    ThriftType.MapType mapType = (ThriftType.MapType) fieldType;
+                    MapType mapType = (MapType) fieldType;
                     String keyType = mapType.keyType().name();
                     String valueType = mapType.valueType().name();
 
                     chunk = new Chunk(
                             "$T.summarizeMap(this.$L, $S, $S)",
                             TypeNames.OBFUSCATION_UTIL,
-                            field.name(),
+                            fieldName,
                             keyType,
                             valueType);
                 } else {
-                    chunk = new Chunk("$T.hash(this.$L)", TypeNames.OBFUSCATION_UTIL, field.name());
+                    chunk = new Chunk("$T.hash(this.$L)", TypeNames.OBFUSCATION_UTIL, fieldName);
                 }
 
                 chunks.add(chunk);
             } else {
                 chunks.add(new Chunk("$S", sb.toString()));
-                chunks.add(new Chunk("this.$L", field.name()));
+                chunks.add(new Chunk("this.$L", fieldName));
 
                 sb.setLength(0);
             }
@@ -872,6 +901,8 @@ public final class ThriftyCodeGenerator {
         return toString.build();
     }
 
+    @VisibleForTesting
+    @SuppressWarnings("WeakerAccess")
     TypeSpec buildConst(Collection<Constant> constants) {
         TypeSpec.Builder builder = TypeSpec.classBuilder("Constants")
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -891,7 +922,7 @@ public final class ThriftyCodeGenerator {
             final ThriftType type = constant.type().getTrueType();
 
             TypeName javaType = typeResolver.getJavaClass(type);
-            if (type.isBuiltin() && type.equals(ThriftType.STRING)) {
+            if (type.isBuiltin() && type.equals(BuiltinType.STRING)) {
                 javaType = javaType.unbox();
             }
             final FieldSpec.Builder field = FieldSpec.builder(javaType, constant.name())
@@ -913,13 +944,13 @@ public final class ThriftyCodeGenerator {
                 }
 
                 @Override
-                public Void visitEnum(ThriftType userType) {
+                public Void visitEnum(EnumType userType) {
                     field.initializer(constantBuilder.renderConstValue(null, allocator, scope, type, constant.value()));
                     return null;
                 }
 
                 @Override
-                public Void visitList(ThriftType.ListType listType) {
+                public Void visitList(ListType listType) {
                     if (constant.value().getAsList().isEmpty()) {
                         field.initializer("$T.emptyList()", TypeNames.COLLECTIONS);
                         return null;
@@ -929,7 +960,7 @@ public final class ThriftyCodeGenerator {
                 }
 
                 @Override
-                public Void visitSet(ThriftType.SetType setType) {
+                public Void visitSet(SetType setType) {
                     if (constant.value().getAsList().isEmpty()) {
                         field.initializer("$T.emptySet()", TypeNames.COLLECTIONS);
                         return null;
@@ -939,7 +970,7 @@ public final class ThriftyCodeGenerator {
                 }
 
                 @Override
-                public Void visitMap(ThriftType.MapType mapType) {
+                public Void visitMap(MapType mapType) {
                     if (constant.value().getAsMap().isEmpty()) {
                         field.initializer("$T.emptyMap()", TypeNames.COLLECTIONS);
                         return null;
@@ -968,13 +999,18 @@ public final class ThriftyCodeGenerator {
                 }
 
                 @Override
-                public Void visitUserType(ThriftType userType) {
+                public Void visitStruct(StructType userType) {
                     throw new UnsupportedOperationException("Struct-type constants are not supported");
                 }
 
                 @Override
-                public Void visitTypedef(ThriftType.TypedefType typedefType) {
+                public Void visitTypedef(TypedefType typedefType) {
                     throw new AssertionError("Typedefs should have been resolved before now");
+                }
+
+                @Override
+                public Void visitService(ServiceType serviceType) {
+                    throw new AssertionError("Services cannot be constant values");
                 }
             });
 
@@ -1001,6 +1037,8 @@ public final class ThriftyCodeGenerator {
         return ann.build();
     }
 
+    @VisibleForTesting
+    @SuppressWarnings("WeakerAccess")
     TypeSpec buildEnum(EnumType type) {
         ClassName enumClassName = ClassName.get(
                 type.getNamespaceFor(NamespaceScope.JAVA),
@@ -1028,7 +1066,7 @@ public final class ThriftyCodeGenerator {
                 .addParameter(int.class, "value")
                 .beginControlFlow("switch (value)");
 
-        for (EnumType.Member member : type.members()) {
+        for (EnumMember member : type.members()) {
             String name = member.name();
 
             int value = member.value();

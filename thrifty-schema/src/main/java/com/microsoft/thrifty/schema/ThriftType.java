@@ -20,204 +20,166 @@
  */
 package com.microsoft.thrifty.schema;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 /**
- * Represents a type name and all containing namespaces.
+ * A type defined in Thrift.
+ *
+ * <p>Nearly every top-level entity in the Thrift IDL is a type of some sort;
+ * only consts are not.  A type can be a built-in "primitive" like the numeric
+ * types, user-defined types like structs, unions, exceptions, services, and
+ * typedefs, or containers like lists, sets, and maps.
+ *
+ * A ThriftType represents either the definition of a new type or a reference
+ * to an existing type; the distinction after parsing is minimal, and surfaces
+ * primarily in what annotations are present.  For example, a
+ * <code>StructType</code> could define a struct, but it could also be the
+ * type of a field in another struct.  In both cases, it would contain the full
+ * definition, but the field's type might carry additional annotations which
+ * would only be present on the instance held by that field.
+ *
+ * Confusing?  Yep, a little.  Take this sample thrift for example:
+ * <pre><code>struct Foo {
+ *   // fields
+ * } (label = "foo")
+ *
+ * struct Bar {
+ *   1: required Foo (immutable = "true") foo;
+ * }
+ * </code></pre>
+ *
+ * After parsing, we have (among others) three instances of
+ * <code>StructType</code>.  One for <code>Bar</code>, and two for
+ * <code>Foo</code>.  The first instance is the initial definition of
+ * the struct; the second is that held by the sole field of <code>Bar</code>.
+ * The first instance has a single annotation, <code>(label = "foo")</code>.
+ * The second has <i>two</i> annotations:
+ * <code>(label = "foo", immutable = "true")</code>.
  */
-@SuppressWarnings("StaticInitializerReferencesSubClass") // Safe here because we don't lock on any static data
 public abstract class ThriftType {
-    private static final String LIST_PREFIX = "list<";
-    private static final String SET_PREFIX = "set<";
-    private static final String MAP_PREFIX = "map<";
-
-    public static final ThriftType BOOL = new BuiltinType("bool");
-    public static final ThriftType BYTE = new BuiltinType("byte");
-    public static final ThriftType I8 = new BuiltinType("i8");
-    public static final ThriftType I16 = new BuiltinType("i16");
-    public static final ThriftType I32 = new BuiltinType("i32");
-    public static final ThriftType I64 = new BuiltinType("i64");
-    public static final ThriftType DOUBLE = new BuiltinType("double");
-    public static final ThriftType STRING = new BuiltinType("string");
-    public static final ThriftType BINARY = new BuiltinType("binary");
-
-    // Only valid as a "return type" for service methods
-    public static final ThriftType VOID = new BuiltinType("void");
-
-    private static final ImmutableMap<String, ThriftType> BUILTINS;
-    static {
-        ImmutableMap.Builder<String, ThriftType> builtins = ImmutableMap.builder();
-        builtins.put(BOOL.name, BOOL);
-        builtins.put(BYTE.name, BYTE);
-        builtins.put(I8.name, I8);
-        builtins.put(I16.name, I16);
-        builtins.put(I32.name, I32);
-        builtins.put(I64.name, I64);
-        builtins.put(DOUBLE.name, DOUBLE);
-        builtins.put(STRING.name, STRING);
-        builtins.put(BINARY.name, BINARY);
-        BUILTINS = builtins.build();
-    }
-
-    /**
-     * Merge two maps, with keys in {@code newAnnotations} taking precedence
-     * over keys in {@code baseAnnotations}.
-     */
-    private static <K, V> ImmutableMap<K, V> merge(
-            Map<K, V> baseAnnotations,
-            Map<K, V> newAnnotations) {
-        Map<K, V> map = new HashMap<>(baseAnnotations);
-        map.putAll(newAnnotations);
-        return ImmutableMap.copyOf(map);
-    }
-
     private final String name;
-    private final ImmutableMap<String, String> annotations;
 
-    private ThriftType(String name) {
-        this(name, ImmutableMap.<String, String>of());
-    }
-
-    private ThriftType(String name, Map<String, String> annotations) {
+    ThriftType(String name) {
         this.name = name;
-        this.annotations = ImmutableMap.copyOf(annotations);
-    }
-
-    public static ThriftType list(ThriftType elementType) {
-        return list(elementType, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType list(ThriftType elementType, Map<String, String> annotations) {
-        String name = LIST_PREFIX + elementType.name + ">";
-        return new ListType(name, elementType, annotations);
-    }
-
-    public static ThriftType set(ThriftType elementType) {
-        return set(elementType, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType set(ThriftType elementType, Map<String, String> annotations) {
-        String name = SET_PREFIX + elementType.name + ">";
-        return new SetType(name, elementType, annotations);
-    }
-
-    public static ThriftType map(ThriftType keyType, ThriftType valueType) {
-        return map(keyType, valueType, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType map(ThriftType keyType, ThriftType valueType, Map<String, String> annotations) {
-        String name = MAP_PREFIX + keyType.name + "," + valueType.name + ">";
-        return new MapType(name, keyType, valueType, annotations);
     }
 
     /**
-     * Gets a {@link ThriftType} for the given type name.
+     * Gets the name of this type.
      *
-     * Preconditions:
-     * The given name is non-null, non-empty, and is the product
-     * of ThriftParser.  In particular, it is assumed that collection
-     * types are already validated.
-     *
-     * @param name the name of the type.
-     * @param namespaces all defined namespaces for this type.
-     * @return a {@link ThriftType} representing the given typename.
+     * @return the name of this type.
      */
-    public static ThriftType get(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
-        return get(name, namespaces, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType get(
-            @Nonnull String name,
-            Map<NamespaceScope, String> namespaces,
-            Map<String, String> annotations) {
-        ThriftType t = BUILTINS.get(name);
-        if (t != null && annotations.isEmpty()) {
-            return t;
-        } else if (t != null) {
-            return new BuiltinType(name, annotations);
-        }
-
-        return new UserType(name, namespaces, false, annotations);
-    }
-
-    public static ThriftType enumType(@Nonnull String name, Map<NamespaceScope, String> namespaces) {
-        return enumType(name, namespaces, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType enumType(
-            @Nonnull String name,
-            Map<NamespaceScope, String> namespaces,
-            Map<String, String> annotations) {
-        return new UserType(name, namespaces, true, annotations);
-    }
-    public static ThriftType typedefOf(ThriftType oldType,
-            String name,
-            Map<NamespaceScope, String> namespaces) {
-        return typedefOf(oldType, name, namespaces, ImmutableMap.<String, String>of());
-    }
-
-    public static ThriftType typedefOf(ThriftType oldType,
-            String name,
-            Map<NamespaceScope, String> namespaces,
-            Map<String, String> annotations) {
-        if (BUILTINS.get(name) != null) {
-            throw new IllegalArgumentException("Cannot redefine built-in type: " + name);
-        }
-        return new TypedefType(name, oldType, namespaces, annotations);
-    }
-
     public String name() {
-        return this.name;
+        return name;
     }
 
-    public ImmutableMap<String, String> annotations() {
-        return annotations;
-    }
+    /**
+     * Accepts a {@link Visitor}, performing an arbitrary operation and
+     * returning its result.
+     *
+     * @param visitor the visitor to invoke.
+     * @param <T> the type returned by the visitor.
+     * @return the value returned by the visitor, if any.
+     */
+    public abstract <T> T accept(Visitor<T> visitor);
 
+    /**
+     * @return true if this type is a built-in type, e.g. i32, bool, etc.
+     */
     public boolean isBuiltin() {
         return false;
     }
 
-    public boolean isTypedef() {
+    /**
+     * @return true if this is a list type.
+     */
+    public boolean isList() {
         return false;
     }
 
-    public boolean isList() {
-        return getTrueType() instanceof ListType;
-    }
-
+    /**
+     * @return true if this is a set type.
+     */
     public boolean isSet() {
-        return getTrueType() instanceof SetType;
+        return false;
     }
 
+    /**
+     * @return true if this is a map type.
+     */
     public boolean isMap() {
-        return getTrueType() instanceof MapType;
+        return false;
     }
 
+    /**
+     * @return true if this is an enumeration type.
+     */
     public boolean isEnum() {
         return false;
     }
 
+    /**
+     * True if this is a structured user-defined type such as a struct, union,
+     * or exception.  This does <em>not</em> mean that this type is actually
+     * a struct!
+     *
+     * @return true if this is a structured type.
+     */
+    public boolean isStruct() {
+        return false;
+    }
+
+    /**
+     * @return true if this is a typedef of another type.
+     */
+    public boolean isTypedef() {
+        return false;
+    }
+
+    /**
+     * @return true if this is a user-defined RPC service type.
+     */
+    public boolean isService() {
+        return false;
+    }
+
+    /**
+     * Returns the aliased type if this is a typedef or, if not,
+     * returns <code>this</code>.  A convenience function for
+     * codegen.
+     *
+     * @return true if this is a typedef.
+     */
     public ThriftType getTrueType() {
         return this;
     }
 
-    public abstract <T> T accept(Visitor<? extends T> visitor);
-
+    /**
+     * Returns a copy of this type with the given annotations applied.
+     *
+     * Annotations in the new map will overwrite duplicate names on this type;
+     * this instance is left unmodified.
+     *
+     * @param annotations the annotations to add to the returned type.
+     * @return a copy of <code>this</code> with the given
+     *         <code>annotations</code>.
+     */
     public abstract ThriftType withAnnotations(Map<String, String> annotations);
 
-    public ThriftType withNamespaces(Map<NamespaceScope, String> namespaces) {
-        return this;
-    }
+    /**
+     * @return all annotations present on this type.
+     */
+    public abstract ImmutableMap<String, String> annotations();
 
-    public String getNamespace(NamespaceScope scope) {
-        return "";
+    protected static ImmutableMap<String, String> merge(
+            ImmutableMap<String, String> baseAnnotations,
+            Map<String, String> newAnnotations) {
+        LinkedHashMap<String, String> merged = new LinkedHashMap<>();
+        merged.putAll(baseAnnotations);
+        merged.putAll(newAnnotations);
+        return ImmutableMap.copyOf(merged);
     }
 
     @Override
@@ -235,317 +197,142 @@ public abstract class ThriftType {
         return name.hashCode();
     }
 
-    public static final class BuiltinType extends ThriftType {
-        BuiltinType(String name) {
-            super(name);
-        }
-
-        BuiltinType(String name, Map<String, String> annotations) {
-            super(name, annotations);
-        }
-
-        @Override
-        public boolean isBuiltin() {
-            return true;
-        }
-
-        @Override
-        public <T> T accept(Visitor<? extends T> visitor) {
-            if (this.equals(BOOL)) {
-                return visitor.visitBool();
-            } else if (this.equals(BYTE) || equals(I8)) {
-                return visitor.visitByte();
-            } else if (this.equals(I16)) {
-                return visitor.visitI16();
-            } else if (this.equals(I32)) {
-                return visitor.visitI32();
-            } else if (this.equals(I64)) {
-                return visitor.visitI64();
-            } else if (this.equals(DOUBLE)) {
-                return visitor.visitDouble();
-            } else if (this.equals(STRING)) {
-                return visitor.visitString();
-            } else if (this.equals(BINARY)) {
-                return visitor.visitBinary();
-            } else if (this.equals(VOID)) {
-                return visitor.visitVoid();
-            } else {
-                throw new AssertionError("Unexpected built-in type: " + name());
-            }
-        }
-
-        @Override
-        public ThriftType withAnnotations(Map<String, String> annotations) {
-            return new BuiltinType(this.name(), merge(this.annotations(), annotations));
-        }
-    }
-
-    public static final class UserType extends ThriftType {
-        private final Map<NamespaceScope, String> namespaces;
-        private final boolean isEnum;
-
-        UserType(
-                String name,
-                Map<NamespaceScope, String> namespaces,
-                boolean isEnum,
-                Map<String, String> annotations) {
-            super(name, annotations);
-            this.namespaces = namespaces;
-            this.isEnum = isEnum;
-        }
-
-        @Override
-        public String getNamespace(NamespaceScope scope) {
-            String ns = namespaces.get(scope);
-            if (ns == null && scope != NamespaceScope.ALL) {
-                ns = namespaces.get(NamespaceScope.ALL);
-            }
-            return ns == null ? "" : ns;
-        }
-
-        @Override
-        public boolean isEnum() {
-            return isEnum;
-        }
-
-        @Override
-        public <T> T accept(Visitor<? extends T> visitor) {
-            if (isEnum) {
-                return visitor.visitEnum(this);
-            } else {
-                return visitor.visitUserType(this);
-            }
-        }
-
-        @Override
-        public ThriftType withAnnotations(Map<String, String> annotations) {
-            return new UserType(name(), namespaces, isEnum, merge(this.annotations(), annotations));
-        }
-
-        @Override
-        public ThriftType withNamespaces(Map<NamespaceScope, String> newNamespaces) {
-            return new UserType(name(), merge(namespaces, newNamespaces), isEnum, annotations());
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return super.equals(o) && isEnum == ((UserType) o).isEnum;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(super.hashCode(), isEnum);
-        }
-    }
-
-    public static class ListType extends ThriftType {
-        private final ThriftType elementType;
-
-        ListType(String name, ThriftType elementType, Map<String, String> annotations) {
-            super(name, annotations);
-            this.elementType = elementType;
-        }
-
-        public ThriftType elementType() {
-            return elementType;
-        }
-
-        @Override
-        public <T> T accept(Visitor<? extends T> visitor) {
-            return visitor.visitList(this);
-        }
-
-        @Override
-        public ThriftType withAnnotations(Map<String, String> annotations) {
-            return new ListType(name(), elementType, merge(this.annotations(), annotations));
-        }
-
-        public ListType withElementType(ThriftType newElementType) {
-            return new ListType(name(), newElementType, annotations());
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return super.equals(o)
-                    && elementType.equals(((ListType) o).elementType);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(super.hashCode(), elementType.hashCode());
-        }
-    }
-
-    public static final class SetType extends ThriftType {
-        private final ThriftType elementType;
-
-        SetType(String name, ThriftType elementType, Map<String, String> annotations) {
-            super(name, annotations);
-            this.elementType = elementType;
-        }
-
-        public ThriftType elementType() {
-            return elementType;
-        }
-
-        @Override
-        public <T> T accept(Visitor<? extends T> visitor) {
-            return visitor.visitSet(this);
-        }
-
-        @Override
-        public ThriftType withAnnotations(Map<String, String> annotations) {
-            return new SetType(name(), elementType, merge(this.annotations(), annotations));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return super.equals(o)
-                    && elementType.equals(((SetType) o).elementType);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(super.hashCode(), elementType.hashCode());
-        }
-    }
-
-    public static final class MapType extends ThriftType {
-        private final ThriftType keyType;
-        private final ThriftType valueType;
-
-        MapType(String name, ThriftType keyType, ThriftType valueType, Map<String, String> annotations) {
-            super(name, annotations);
-            this.keyType = keyType;
-            this.valueType = valueType;
-        }
-
-        public ThriftType keyType() {
-            return keyType;
-        }
-
-        public ThriftType valueType() {
-            return valueType;
-        }
-
-        @Override
-        public <T> T accept(Visitor<? extends T> visitor) {
-            return visitor.visitMap(this);
-        }
-
-        @Override
-        public ThriftType withAnnotations(Map<String, String> annotations) {
-            return new MapType(name(), keyType, valueType, merge(this.annotations(), annotations));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (super.equals(o)) {
-                MapType that = (MapType) o;
-                return this.keyType.equals(that.keyType)
-                        && this.valueType.equals(that.valueType);
-            }
-            return false;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(
-                    super.hashCode(),
-                    keyType.hashCode(),
-                    valueType.hashCode());
-        }
-    }
-
-    public static final class TypedefType extends ThriftType {
-        private final ThriftType originalType;
-        private final Map<NamespaceScope, String> namespaces;
-
-        TypedefType(String name,
-                ThriftType originalType,
-                Map<NamespaceScope, String> namespaces,
-                Map<String, String> annotations) {
-            super(name, annotations);
-            this.originalType = originalType;
-            this.namespaces = namespaces;
-        }
-
-        @Override
-        public boolean isTypedef() {
-            return true;
-        }
-
-        public ThriftType originalType() {
-            return originalType;
-        }
-
-        @Override
-        public String getNamespace(NamespaceScope scope) {
-            String ns = namespaces.get(scope);
-            if (ns == null && scope != NamespaceScope.ALL) {
-                ns = namespaces.get(NamespaceScope.ALL);
-            }
-            return ns == null ? "" : ns;
-        }
-
-        @Override
-        public ThriftType getTrueType() {
-            ThriftType t = originalType();
-            while (t instanceof TypedefType) {
-                t = ((TypedefType) t).originalType();
-            }
-            return t;
-        }
-
-        @Override
-        public <T> T accept(Visitor<? extends T> visitor) {
-            return visitor.visitTypedef(this);
-        }
-
-        @Override
-        public ThriftType withAnnotations(Map<String, String> annotations) {
-            return new TypedefType(name(), originalType, namespaces, merge(this.annotations(), annotations));
-        }
-
-        @Override
-        public ThriftType withNamespaces(Map<NamespaceScope, String> newNamespaces) {
-            return new TypedefType(name(), originalType, merge(namespaces, newNamespaces), annotations());
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!super.equals(o)) {
-                return false;
-            }
-            TypedefType that = (TypedefType) o;
-
-            return originalType.equals(that.originalType);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = super.hashCode();
-            result = 31 * result + originalType.hashCode();
-            return result;
-        }
-    }
-
+    /**
+     * Represents an arbitrary computation on a {@link ThriftType}.
+     *
+     * <p>Just your standard visitor from the Gang of Four book.  Very useful
+     * for code generation, which is all about type-hierarchy-specific
+     * operations; visitors let us effectively augment a complicated hierarchy
+     * without bloating the ThriftType classes themselves.
+     *
+     * @param <T> the type of value returned by the visit methods.
+     */
     public interface Visitor<T> {
-        T visitBool();
-        T visitByte();
-        T visitI16();
-        T visitI32();
-        T visitI64();
-        T visitDouble();
-        T visitString();
-        T visitBinary();
-        T visitVoid();
-        T visitEnum(ThriftType userType);
+        /**
+         * Visit a {@link BuiltinType#VOID}.
+         *
+         * @param voidType the BuiltinType instance being visited.
+         * @return the result of the operation.
+         */
+        T visitVoid(BuiltinType voidType);
+
+        /**
+         * Visit a {@link BuiltinType#BOOL}.
+         *
+         * @param boolType the BuiltinType instance being visited.
+         * @return the result of the operation.
+         */
+        T visitBool(BuiltinType boolType);
+
+        /** Visit a {@link BuiltinType#BYTE} or {@link BuiltinType#I8}.
+         *
+         * @param byteType BuiltinType instance being visited.
+         * @return the result of the operation.
+         */
+        T visitByte(BuiltinType byteType);
+
+        /**
+         * Visit a {@link BuiltinType#I16}.
+         *
+         * @param i16Type the BuiltinType being visited.
+         * @return the result of the operation.
+         */
+        T visitI16(BuiltinType i16Type);
+
+        /**
+         * Visit a {@link BuiltinType#I32}.
+         *
+         * @param i32Type the BuiltinType being visited.
+         * @return the result of the operation.
+         */
+        T visitI32(BuiltinType i32Type);
+
+        /**
+         * Visit a {@link BuiltinType#I64}.
+         *
+         * @param i64Type the BuiltinType being visited.
+         * @return the result of the operation.
+         */
+        T visitI64(BuiltinType i64Type);
+
+        /**
+         * Visit a {@link BuiltinType#DOUBLE}.
+         *
+         * @param doubleType the BuiltinType being visited.
+         * @return the result of the operation.
+         */
+        T visitDouble(BuiltinType doubleType);
+
+        /**
+         * Visit a {@link BuiltinType#STRING}.
+         *
+         * @param stringType the BuiltinType being visited.
+         * @return the result of the operation.
+         */
+        T visitString(BuiltinType stringType);
+
+        /**
+         * Visit a {@link BuiltinType#BINARY}.
+         *
+         * @param binaryType the BuiltinType being visited.
+         * @return the result of the operation.
+         */
+        T visitBinary(BuiltinType binaryType);
+
+        /**
+         * Visit a user-defined enum.
+         *
+         * @param enumType the EnumType instance being visited.
+         * @return the result of the operation.
+         */
+        T visitEnum(EnumType enumType);
+
+        /**
+         * Visit a list type.
+         *
+         * @param listType the ListType instance being visited.
+         * @return the result of the operation.
+         */
         T visitList(ListType listType);
+
+        /**
+         * Visit a set type.
+         *
+         * @param setType the SetType instance being visited.
+         * @return the result of the operation.
+         */
         T visitSet(SetType setType);
+
+        /**
+         * Visit a map type.
+         *
+         * @param mapType the MapType instance being visited.
+         * @return the result of the operation.
+         */
         T visitMap(MapType mapType);
-        T visitUserType(ThriftType userType);
+
+        /**
+         * Visit a user-defined struct, union, or exception type.
+         *
+         * @param structType the StructType instance being visited.
+         * @return the result of the operation.
+         */
+        T visitStruct(StructType structType);
+
+        /**
+         * Visit a typedef type.
+         *
+         * @param typedefType the TypedefType instance being visited.
+         * @return the result of the operation.
+         */
         T visitTypedef(TypedefType typedefType);
+
+        /**
+         * Visit a service type.
+         *
+         * @param serviceType the ServiceType instance being visited.
+         * @return the result of the operation.
+         */
+        T visitService(ServiceType serviceType);
     }
 }

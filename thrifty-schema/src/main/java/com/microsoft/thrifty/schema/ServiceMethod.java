@@ -22,172 +22,105 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.FunctionElement;
 
-import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-public final class ServiceMethod {
+public class ServiceMethod implements UserElement {
+    private final UserElementMixin mixin;
     private final FunctionElement element;
-    private final ImmutableList<Field> paramTypes;
-    private final ImmutableList<Field> exceptionTypes;
-    private final ImmutableMap<String, String> annotations;
-
+    private final ImmutableList<Field> parameters;
+    private final ImmutableList<Field> exceptions;
     private ThriftType returnType;
 
-    public ServiceMethod(FunctionElement element, FieldNamingPolicy fieldNamingPolicy) {
+    ServiceMethod(FunctionElement element) {
+        this.mixin = new UserElementMixin(element);
         this.element = element;
 
-        ImmutableList.Builder<Field> params = ImmutableList.builder();
-        for (FieldElement field : element.params()) {
-            params.add(new Field(field, fieldNamingPolicy));
+        ImmutableList.Builder<Field> paramsBuilder = ImmutableList.builder();
+        for (FieldElement parameter : element.params()) {
+            paramsBuilder.add(new Field(parameter));
         }
-        this.paramTypes = params.build();
+        this.parameters = paramsBuilder.build();
 
-        ImmutableList.Builder<Field> exceptions = ImmutableList.builder();
-        for (FieldElement field : element.exceptions()) {
-            exceptions.add(new Field(field, fieldNamingPolicy));
+        ImmutableList.Builder<Field> exceptionsBuilder = ImmutableList.builder();
+        for (FieldElement exception : element.exceptions()) {
+            exceptionsBuilder.add(new Field(exception));
         }
-        this.exceptionTypes = exceptions.build();
-
-        ImmutableMap.Builder<String, String> annotationBuilder = ImmutableMap.builder();
-        AnnotationElement anno = element.annotations();
-        if (anno != null) {
-            annotationBuilder.putAll(anno.values());
-        }
-        this.annotations = annotationBuilder.build();
+        this.exceptions = exceptionsBuilder.build();
     }
 
-    private ServiceMethod(Builder builder) {
-        this.element = builder.element;
-        this.paramTypes = builder.paramTypes;
-        this.exceptionTypes = builder.exceptionTypes;
-        this.annotations = builder.annotations;
-        this.returnType = builder.returnType;
+    public ImmutableList<Field> parameters() {
+        return parameters;
     }
 
-    public Location location() {
-        return element.location();
-    }
-
-    public String documentation() {
-        return element.documentation();
-    }
-
-    public boolean hasJavadoc() {
-        return JavadocUtil.hasJavadoc(this);
-    }
-
-    public String name() {
-        return element.name();
-    }
-
-    public boolean oneWay() {
-        return element.oneWay();
+    public ImmutableList<Field> exceptions() {
+        return exceptions;
     }
 
     public ThriftType returnType() {
         return returnType;
     }
 
-    public List<Field> paramTypes() {
-        return paramTypes;
+    public boolean oneWay() {
+        return element.oneWay();
     }
 
-    public List<Field> exceptionTypes() {
-        return exceptionTypes;
+    @Override
+    public String name() {
+        return mixin.name();
     }
 
+    @Override
+    public Location location() {
+        return mixin.location();
+    }
+
+    @Override
+    public String documentation() {
+        return mixin.documentation();
+    }
+
+    @Override
     public ImmutableMap<String, String> annotations() {
-        return annotations;
+        return mixin.annotations();
     }
 
-    public Builder toBuilder() {
-        return new Builder(element, paramTypes, exceptionTypes, annotations, returnType);
+    @Override
+    public boolean hasJavadoc() {
+        return mixin.hasJavadoc();
     }
 
-    public static final class Builder {
-        private FunctionElement element;
-        private ImmutableList<Field> paramTypes;
-        private ImmutableList<Field> exceptionTypes;
-        private ImmutableMap<String, String> annotations;
-        private ThriftType returnType;
-
-        Builder(FunctionElement element,
-                       ImmutableList<Field> paramTypes,
-                       ImmutableList<Field> exceptionTypes,
-                       ImmutableMap<String, String> annotations,
-                       ThriftType thriftType) {
-            this.element = element;
-            this.paramTypes = paramTypes;
-            this.exceptionTypes = exceptionTypes;
-            this.annotations = annotations;
-            this.returnType = thriftType;
-        }
-
-        public Builder element(FunctionElement element) {
-            if (element == null) {
-                throw new NullPointerException("element can't be null.");
-            }
-            this.element = element;
-            return this;
-        }
-
-        public Builder paramTypes(ImmutableList<Field> paramTypes) {
-            this.paramTypes = paramTypes;
-            return this;
-        }
-
-        public Builder exceptionTypes(ImmutableList<Field> exceptionTypes) {
-            this.exceptionTypes = exceptionTypes;
-            return this;
-        }
-
-        public Builder annotations(ImmutableMap<String, String> annotations) {
-            this.annotations = annotations;
-            return this;
-        }
-
-        public Builder returnType(ThriftType returnType) {
-            this.returnType = returnType;
-            return this;
-        }
-
-        public ServiceMethod build() {
-            return new ServiceMethod(this);
-        }
+    @Override
+    public boolean isDeprecated() {
+        return mixin.isDeprecated();
     }
 
     void link(Linker linker) {
-        if (element.returnType().name().equals("void")) {
-            returnType = ThriftType.VOID;
-        } else {
-            returnType = linker.resolveType(element.returnType());
+        for (Field parameter : parameters) {
+            parameter.link(linker);
         }
 
-        for (Field field : paramTypes) {
-            field.link(linker);
+        for (Field exception : exceptions) {
+            exception.link(linker);
         }
 
-        for (Field field : exceptionTypes) {
-            field.link(linker);
-        }
+        returnType = linker.resolveType(element.returnType());
     }
 
     void validate(Linker linker) {
-        if (oneWay() && !ThriftType.VOID.equals(returnType)) {
+        if (oneWay() && !BuiltinType.VOID.equals(returnType)) {
             linker.addError(location(), "oneway methods may not have a non-void return type");
         }
 
-        if (oneWay() && !exceptionTypes().isEmpty()) {
+        if (oneWay() && !exceptions.isEmpty()) {
             linker.addError(location(), "oneway methods may not throw exceptions");
         }
 
-        Map<Integer, Field> fieldsById = new HashMap<>();
-        for (Field param : paramTypes) {
+        Map<Integer, Field> fieldsById = new LinkedHashMap<>();
+        for (Field param : parameters) {
             Field oldParam = fieldsById.put(param.id(), param);
             if (oldParam != null) {
                 String fmt = "Duplicate parameters; param '%s' has the same ID (%s) as param '%s'";
@@ -198,7 +131,7 @@ public final class ServiceMethod {
         }
 
         fieldsById.clear();
-        for (Field exn : exceptionTypes) {
+        for (Field exn : exceptions) {
             Field oldExn = fieldsById.put(exn.id(), exn);
             if (oldExn != null) {
                 String fmt = "Duplicate exceptions; exception '%s' has the same ID (%s) as exception '%s'";
@@ -208,12 +141,10 @@ public final class ServiceMethod {
             }
         }
 
-        for (Field field : exceptionTypes) {
+        for (Field field : exceptions) {
             ThriftType type = field.type();
-
-            Named named = linker.lookupSymbol(type);
-            if (named instanceof StructType) {
-                StructType struct = (StructType) named;
+            if (type.isStruct()) {
+                StructType struct = (StructType) type;
                 if (struct.isException()) {
                     continue;
                 }
@@ -221,42 +152,5 @@ public final class ServiceMethod {
 
             linker.addError(field.location(), "Only exception types can be thrown");
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        ServiceMethod that = (ServiceMethod) o;
-
-        if (!element.equals(that.element)) {
-            return false;
-        }
-        if (paramTypes != null ? !paramTypes.equals(that.paramTypes) : that.paramTypes != null) {
-            return false;
-        }
-        if (exceptionTypes != null ? !exceptionTypes.equals(that.exceptionTypes) : that.exceptionTypes != null) {
-            return false;
-        }
-        if (annotations != null ? !annotations.equals(that.annotations) : that.annotations != null) {
-            return false;
-        }
-        return returnType != null ? returnType.equals(that.returnType) : that.returnType == null;
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = element.hashCode();
-        result = 31 * result + (paramTypes != null ? paramTypes.hashCode() : 0);
-        result = 31 * result + (exceptionTypes != null ? exceptionTypes.hashCode() : 0);
-        result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
-        result = 31 * result + (returnType != null ? returnType.hashCode() : 0);
-        return result;
     }
 }
