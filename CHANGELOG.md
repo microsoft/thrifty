@@ -1,3 +1,29 @@
+0.3.0 (released 9 November 2016)
+------------------
+- #73: Breaking change: Massive refactor of `thrifty-schema`, unifying `ThriftType` with `Named`
+- #74: Add `.withNamespaces` API for `ThriftType` (thanks @hzsweers)
+- #72: Add namespaces for `TypedefType` (thanks @hzsweers)
+- #71: Fix: Include `@Nullable` fields in `.equals()` (thanks @naturalwarren)
+- #70: Behavior change: Allow typedefs to be used with `TypeResolver`
+- #67: Fix: Improve validation of enum constants whose types are imported
+- #65: Add `DecoratingProtocol` (thanks @gabrielittner)
+- #62: Fix: Remove `name` from `Field#hashcode()`
+- #61: Add builders for most `thrifty-schema` types (thanks @naturalwarren)
+- #60: Fix: Const validation when a typedef is assigned an enum literal value
+- #59: Fix: Allow constants and types with the same name
+- #58: Behavior change: Obfuscated fields that are missing are printed as 'null'
+- #56: Breaking change: Change return type of `ServiceMethod#returnType()`.
+- #55: Add check for circular Service inheritance
+- #54: Replace TreeSet with HashMap in service method validation
+- #53: Fix: Apply naming policy to method parameter names
+- #52: Fix: Crash when parsing certain trailing documentation comments
+- #50: Add link-time validation of services and methods
+- #48: Fix: keep annotations on type references
+- #47: Use `.equals()` instead of reference equality for `ThriftType` comparision
+- #43: Add source-type annotations to `Typedef`
+- #42: Add `@Deprecated` annotation to generated classes as appropriate
+- #40: Add `Struct` interface to generated structured types (thanks @seanabraham)
+
 0.2.3 (released 8 July 2016)
 ------------------
 - #37: Add Obfuscated and Redacted annotations, along with codegen support for PII obfuscation

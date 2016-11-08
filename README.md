@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-  compile 'com.microsoft.thrifty:thrifty-runtime:0.2.3'
+  compile 'com.microsoft.thrifty:thrifty-runtime:0.3.0'
 }
 ```
 
@@ -135,6 +135,7 @@ package com.foo.bar;
 
 import android.support.annotation.NonNull;
 import com.microsoft.thrifty.Adapter;
+import com.microsoft.thrifty.Struct;
 import com.microsoft.thrifty.StructBuilder;
 import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.ThriftField;
@@ -147,7 +148,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class SearchResult {
+public final class SearchResult implements Struct {
   public static final Adapter<SearchResult, Builder> ADAPTER = new SearchResultAdapter();
 
   @ThriftField(
@@ -209,6 +210,11 @@ public final class SearchResult {
   @Override
   public String toString() {
     return "SearchResult{url=" + this.url + ", keywords=" + this.keywords + ", lastUpdatedMillis=" + this.lastUpdatedMillis + "}";
+  }
+
+  @Override
+  public void write(Protocol protocol) {
+    ADAPTER.write(protocol, this);
   }
 
   public static final class Builder implements StructBuilder<SearchResult> {
@@ -361,7 +367,7 @@ The Thrift annotations `(thrifty.redacted)` and `(thrifty.obfuscated)` are also 
 The Thrift example above leads to code similar to the following:
 
 ```java
-public final class User {
+public final class User implements Struct {
   @ThriftField(
     fieldId = 1,
     required = true)
