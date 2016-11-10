@@ -672,8 +672,8 @@ public final class ThriftParser {
                         number = number.substring(2);
                         radix = 16;
                     }
-                    int i = Integer.parseInt(number, radix);
-                    return ConstValueElement.integer(location, i);
+                    long value = Long.parseLong(number, radix);
+                    return ConstValueElement.integer(location, value);
                 } catch (NumberFormatException e) {
                     throw unexpected(location, "invalid integer constant: " + number);
                 }
