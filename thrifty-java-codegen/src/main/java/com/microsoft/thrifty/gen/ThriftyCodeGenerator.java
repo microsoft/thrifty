@@ -96,6 +96,7 @@ public final class ThriftyCodeGenerator {
     private TypeProcessor typeProcessor;
     private boolean emitAndroidAnnotations;
     private boolean emitParcelable;
+    private boolean emitFileComment = true;
 
     public ThriftyCodeGenerator(Schema schema) {
         this(schema, FieldNamingPolicy.DEFAULT);
@@ -155,6 +156,11 @@ public final class ThriftyCodeGenerator {
 
     public ThriftyCodeGenerator emitParcelable(boolean emitParcelable) {
         this.emitParcelable = emitParcelable;
+        return this;
+    }
+
+    public ThriftyCodeGenerator emitFileComment(boolean emitFileComment) {
+        this.emitFileComment = emitFileComment;
         return this;
     }
 
@@ -289,11 +295,14 @@ public final class ThriftyCodeGenerator {
         }
 
         JavaFile.Builder file = JavaFile.builder(packageName, spec)
-                .skipJavaLangImports(true)
-                .addFileComment(FILE_COMMENT + DATE_FORMATTER.print(System.currentTimeMillis()));
+                .skipJavaLangImports(true);
 
-        if (location != null) {
-            file.addFileComment("\nSource: $L", location);
+        if (emitFileComment) {
+            file.addFileComment(FILE_COMMENT + DATE_FORMATTER.print(System.currentTimeMillis()));
+
+            if (location != null) {
+                file.addFileComment("\nSource: $L", location);
+            }
         }
 
         return file.build();
@@ -922,9 +931,13 @@ public final class ThriftyCodeGenerator {
             final ThriftType type = constant.type().getTrueType();
 
             TypeName javaType = typeResolver.getJavaClass(type);
-            if (type.isBuiltin() && type.equals(BuiltinType.STRING)) {
+
+            // Primitive-typed const fields should be unboxed, but be careful -
+            // while strings are builtin, they are *not* primitive!
+            if (type.isBuiltin() && !type.equals(BuiltinType.STRING)) {
                 javaType = javaType.unbox();
             }
+
             final FieldSpec.Builder field = FieldSpec.builder(javaType, constant.name())
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
 

@@ -22,26 +22,23 @@ package com.microsoft.thrifty.gen;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.testing.compile.JavaFileObjects;
-import com.google.testing.compile.JavaSourcesSubjectFactory;
 import com.microsoft.thrifty.schema.Loader;
 import com.microsoft.thrifty.schema.Schema;
 import com.squareup.javapoet.JavaFile;
+import okio.BufferedSink;
+import okio.Okio;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import javax.tools.JavaFileObject;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.google.testing.compile.JavaSourceSubjectFactory.javaSource;
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.testing.compile.JavaSourceSubjectFactory.javaSource;
 import static com.google.testing.compile.JavaSourcesSubjectFactory.javaSources;
 
 /**
@@ -218,20 +215,92 @@ public class ThriftyCodeGeneratorTest {
         assertThat(java).contains("@Deprecated\n  ONE(1)");
     }
 
+    @Test
+    public void stringConstantsAreNotUnboxed() throws Exception {
+        String thrift = "" +
+                "namespace java string_consts\n" +
+                "\n" +
+                "const string STR = 'foo'";
+
+        // This check validates that we can successfully compile a string constant,
+        // and that we don't regress on issue #77.
+        //
+        // The regression here would be if an UnsupportedOperationException were thrown,
+        // due to a logic bug where we attempt to unbox TypeNames.STRING.
+        compile("string_consts.thrift", thrift);
+    }
+
+    @Test
+    public void byteConstants() throws Exception {
+        String thrift = "" +
+                "namespace java byte_consts\n" +
+                "\n" +
+                "const i8 I8 = 123";
+
+        JavaFile file = compile("bytes.thrift", thrift).get(0);
+        assertThat(file.toString()).isEqualTo("" +
+                "package byte_consts;\n" +
+                "\n" +
+                "public final class Constants {\n" +
+                "  public static final byte I8 = (byte) 123;\n" +
+                "\n" +
+                "  private Constants() {\n" +
+                "    // no instances\n" +
+                "  }\n" +
+                "}\n");
+    }
+
+    @Test
+    public void shortConstants() throws Exception {
+        String thrift = "" +
+                "namespace java short_consts\n" +
+                "\n" +
+                "const i16 INT = 0xFF";
+
+        JavaFile file = compile("shorts.thrift", thrift).get(0);
+        assertThat(file.toString()).isEqualTo("" +
+                "package short_consts;\n" +
+                "\n" +
+                "public final class Constants {\n" +
+                "  public static final short INT = (short) 255;\n" +
+                "\n" +
+                "  private Constants() {\n" +
+                "    // no instances\n" +
+                "  }\n" +
+                "}\n");
+    }
+
+    @Test
+    public void intConstants() throws Exception {
+        String thrift = "" +
+                "namespace java int_consts\n" +
+                "\n" +
+                "const i32 INT = 12345";
+
+        JavaFile file = compile("ints.thrift", thrift).get(0);
+        assertThat(file.toString()).isEqualTo("" +
+                "package int_consts;\n" +
+                "\n" +
+                "public final class Constants {\n" +
+                "  public static final int INT = 12345;\n" +
+                "\n" +
+                "  private Constants() {\n" +
+                "    // no instances\n" +
+                "  }\n" +
+                "}\n");
+    }
+
+    private ImmutableList<JavaFile> compile(String filename, String text) throws Exception {
+        Schema schema = parse(filename, text);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema).emitFileComment(false);
+        return gen.generateTypes();
+    }
+
     private Schema parse(String filename, String text) throws Exception {
         File file = tmp.newFile(filename);
-        PrintWriter writer = new PrintWriter(file, "UTF-8");
-        BufferedWriter buf = new BufferedWriter(writer);
-        try {
-            buf.write(text);
-            buf.flush();
-        } finally {
-            try {
-                buf.close();
-            } catch (IOException e) {
-                // ignore
-            }
-            writer.close();
+        try (BufferedSink sink = Okio.buffer(Okio.sink(file))) {
+            sink.writeUtf8(text);
+            sink.flush();
         }
 
         Loader loader = new Loader();
