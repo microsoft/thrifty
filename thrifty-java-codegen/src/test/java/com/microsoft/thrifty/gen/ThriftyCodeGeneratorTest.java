@@ -290,6 +290,26 @@ public class ThriftyCodeGeneratorTest {
                 "}\n");
     }
 
+    @Test
+    public void longConstants() throws Exception {
+        String thrift = "" +
+                "namespace java long_consts\n" +
+                "\n" +
+                "const i64 LONG = 0xFFFFFFFFFF";
+
+        JavaFile file = compile("longs.thrift", thrift).get(0);
+        assertThat(file.toString()).isEqualTo("" +
+                "package long_consts;\n" +
+                "\n" +
+                "public final class Constants {\n" +
+                "  public static final long LONG = 1099511627775L;\n" +
+                "\n" +
+                "  private Constants() {\n" +
+                "    // no instances\n" +
+                "  }\n" +
+                "}\n");
+    }
+
     private ImmutableList<JavaFile> compile(String filename, String text) throws Exception {
         Schema schema = parse(filename, text);
         ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema).emitFileComment(false);

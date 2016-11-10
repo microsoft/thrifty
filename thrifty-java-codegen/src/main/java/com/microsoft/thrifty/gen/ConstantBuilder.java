@@ -244,7 +244,7 @@ final class ConstantBuilder {
         @Override
         public CodeBlock visitI64(BuiltinType i64Type) {
             if (value.isInt()) {
-                return CodeBlock.builder().add("$L", value.getAsLong()).build();
+                return CodeBlock.builder().add("$LL", value.getAsLong()).build();
             } else {
                 return constantOrError("Invalid i64 constant");
             }

@@ -680,6 +680,22 @@ public class ThriftParserTest {
     }
 
     @Test
+    public void veryLargeConst() {
+        String thrift = "const i64 Yuuuuuge = 0xFFFFFFFFFF";
+        Location location = Location.get("", "veryLargeConst.thrift");
+
+        ThriftFileElement expected = ThriftFileElement.builder(location)
+                .constants(ImmutableList.of(ConstElement.builder(location.at(1, 1))
+                        .name("Yuuuuuge")
+                        .type(TypeElement.scalar(location.at(1, 7), "i64", null))
+                        .value(ConstValueElement.integer(location.at(1, 22), 0xFFFFFFFFFFL))
+                        .build()))
+                .build();
+
+        assertThat(parse(thrift, location), is(expected));
+    }
+
+    @Test
     public void listConst() {
         String thrift = "const list<string> Names = [\"foo\" \"bar\", \"baz\"; \"quux\"]";
         Location location = Location.get("", "listConst.thrift");
