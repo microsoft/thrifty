@@ -1,3 +1,8 @@
+0.3.1 (released 13 November 2016)
+------------------
+- #82: Fix i64 constants greater than Integer.MAX_VALUE
+- #78: Fix bug preventing string const values from generating correctly
+
 0.3.0 (released 9 November 2016)
 ------------------
 - #73: Breaking change: Massive refactor of `thrifty-schema`, unifying `ThriftType` with `Named`
