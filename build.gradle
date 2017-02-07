@@ -30,7 +30,7 @@ allprojects {
     project.ext {
         libraries = [
                 okio: [
-                        'com.squareup.okio:okio:1.6.0'
+                        'com.squareup.okio:okio:1.11.0'
                 ],
 
                 javaPoet: [
