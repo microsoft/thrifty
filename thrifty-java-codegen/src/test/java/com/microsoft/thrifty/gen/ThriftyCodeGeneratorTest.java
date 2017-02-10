@@ -310,6 +310,31 @@ public class ThriftyCodeGeneratorTest {
                 "}\n");
     }
 
+    @Test
+    public void numberEqualityWarningsAreSuppressedForI32() throws Exception {
+        String thrift = "" +
+                "namespace java number_equality\n" +
+                "\n" +
+                "struct HasNumber {\n" +
+                "  1: optional i32 n;\n" +
+                "}";
+
+        String expectedEqualsMethod = "" +
+                "  @Override\n" +
+                "  @SuppressWarnings(\"NumberEquality\")\n" +
+                "  public boolean equals(Object other) {\n" +
+                "    if (this == other) return true;\n" +
+                "    if (other == null) return false;\n" +
+                "    if (!(other instanceof HasNumber)) return false;\n" +
+                "    HasNumber that = (HasNumber) other;\n" +
+                "    return (this.n == that.n || (this.n != null && this.n.equals(that.n)));\n" +
+                "  }\n";
+
+        JavaFile file = compile("numberEquality.thrift", thrift).get(0);
+
+        assertThat(file.toString()).contains(expectedEqualsMethod);
+    }
+
     private ImmutableList<JavaFile> compile(String filename, String text) throws Exception {
         Schema schema = parse(filename, text);
         ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema).emitFileComment(false);

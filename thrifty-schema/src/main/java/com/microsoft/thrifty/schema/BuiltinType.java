@@ -73,6 +73,14 @@ public class BuiltinType extends ThriftType {
         return true;
     }
 
+    public boolean isNumeric() {
+        return this.equals(I8)
+                || this.equals(I16)
+                || this.equals(I32)
+                || this.equals(I64)
+                || this.equals(DOUBLE);
+    }
+
     @Override
     public <T> T accept(Visitor<T> visitor) {
         if (this.equals(BOOL)) {
