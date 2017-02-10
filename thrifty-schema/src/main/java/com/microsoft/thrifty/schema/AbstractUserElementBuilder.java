@@ -34,6 +34,7 @@ import java.util.Map;
 abstract class AbstractUserElementBuilder<
         TElement extends UserElement,
         TBuilder extends AbstractUserElementBuilder<TElement, TBuilder>> {
+
     UserElementMixin mixin;
 
     AbstractUserElementBuilder(UserElementMixin mixin) {
@@ -61,6 +62,17 @@ abstract class AbstractUserElementBuilder<
     public TBuilder annotations(Map<String, String> annotations) {
         Preconditions.checkNotNull(annotations, "annotations");
         mixin = mixin.toBuilder().annotations(annotations).build();
+        return (TBuilder) this;
+    }
+
+    public TBuilder type(TElement type) {
+        Preconditions.checkNotNull(type, "type");
+        mixin = mixin.toBuilder()
+                .name(type.name())
+                .location(type.location())
+                .documentation(type.documentation())
+                .annotations(type.annotations())
+                .build();
         return (TBuilder) this;
     }
 
