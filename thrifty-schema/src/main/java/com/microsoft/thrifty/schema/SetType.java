@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
@@ -63,5 +64,38 @@ public class SetType extends ThriftType {
     @Override
     public ThriftType withAnnotations(Map<String, String> annotations) {
         return new SetType(elementType, merge(this.annotations, annotations));
+    }
+
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
+    public static final class Builder {
+        private ThriftType elementType;
+        private ImmutableMap<String, String> annotations;
+
+        public Builder(ThriftType elementType, ImmutableMap<String, String> annotations) {
+            this.elementType = Preconditions.checkNotNull(elementType, "elementType");
+            this.annotations = Preconditions.checkNotNull(annotations, "annotations");
+        }
+
+        Builder(SetType type) {
+            this.elementType = type;
+            this.annotations = type.annotations;
+        }
+
+        public Builder elementType(ThriftType elementType) {
+            this.elementType = Preconditions.checkNotNull(elementType, "elementType");
+            return this;
+        }
+
+        public Builder annotations(ImmutableMap<String, String> annotations) {
+            this.annotations = Preconditions.checkNotNull(annotations, "annotations");
+            return this;
+        }
+
+        public SetType build() {
+            return new SetType(elementType, annotations);
+        }
     }
 }

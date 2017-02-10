@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
@@ -69,5 +70,46 @@ public class MapType extends ThriftType {
     @Override
     public ThriftType withAnnotations(Map<String, String> annotations) {
         return new MapType(keyType, valueType, merge(this.annotations, annotations));
+    }
+
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
+    public static final class Builder {
+        private ThriftType keyType;
+        private ThriftType valueType;
+        private ImmutableMap<String, String> annotations;
+
+        public Builder(ThriftType keyType, ThriftType valueType, ImmutableMap<String, String> annotations) {
+            this.keyType = Preconditions.checkNotNull(keyType, "keyType");
+            this.valueType = Preconditions.checkNotNull(valueType, "valueType");
+            this.annotations = Preconditions.checkNotNull(annotations, "annotations");
+        }
+
+        Builder(MapType type) {
+            this.keyType = type.keyType;
+            this.valueType = type.valueType;
+            this.annotations = type.annotations;
+        }
+
+        public Builder keyType(ThriftType keyType) {
+            this.keyType = Preconditions.checkNotNull(keyType, "keyType");
+            return this;
+        }
+
+        public Builder valueType(ThriftType valueType) {
+            this.valueType = Preconditions.checkNotNull(valueType, "valueType");
+            return this;
+        }
+
+        public Builder annotations(ImmutableMap<String, String> annotations) {
+            this.annotations = Preconditions.checkNotNull(annotations, "annotations");
+            return this;
+        }
+
+        public MapType build() {
+            return new MapType(keyType, valueType, annotations);
+        }
     }
 }
