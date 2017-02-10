@@ -65,7 +65,7 @@ abstract class AbstractUserElementBuilder<
         return (TBuilder) this;
     }
 
-    public TBuilder type(UserType type) {
+    public TBuilder type(TElement type) {
         Preconditions.checkNotNull(type, "type");
         mixin = mixin.toBuilder()
                 .name(type.name())
