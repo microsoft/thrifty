@@ -20,15 +20,18 @@
  */
 package com.microsoft.thrifty.schema;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.FunctionElement;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ServiceMethod implements UserElement {
+
     private final UserElementMixin mixin;
     private final FunctionElement element;
     private final ImmutableList<Field> parameters;
@@ -50,6 +53,14 @@ public class ServiceMethod implements UserElement {
             exceptionsBuilder.add(new Field(exception));
         }
         this.exceptions = exceptionsBuilder.build();
+    }
+
+    protected ServiceMethod(Builder builder) {
+        mixin = builder.mixin;
+        element = builder.element;
+        parameters = builder.parameters;
+        exceptions = builder.exceptions;
+        returnType = builder.returnType;
     }
 
     public ImmutableList<Field> parameters() {
@@ -96,6 +107,10 @@ public class ServiceMethod implements UserElement {
     @Override
     public boolean isDeprecated() {
         return mixin.isDeprecated();
+    }
+
+    public Builder toBuilder() {
+        return new Builder(this);
     }
 
     void link(Linker linker) {
@@ -151,6 +166,82 @@ public class ServiceMethod implements UserElement {
             }
 
             linker.addError(field.location(), "Only exception types can be thrown");
+        }
+    }
+
+    public static final class Builder {
+
+        private UserElementMixin mixin;
+        private FunctionElement element;
+        private ImmutableList<Field> parameters;
+        private ImmutableList<Field> exceptions;
+        private ThriftType returnType;
+
+        Builder(ServiceMethod method) {
+            this.mixin = method.mixin;
+            this.element = method.element;
+            this.parameters = method.parameters;
+            this.exceptions = method.exceptions;
+            this.returnType = method.returnType;
+        }
+
+        public Builder name(String name) {
+            Preconditions.checkNotNull(name, "name");
+            mixin = mixin.toBuilder().name(name).build();
+            return this;
+        }
+
+        public Builder location(Location location) {
+            Preconditions.checkNotNull(location, "location");
+            mixin = mixin.toBuilder().location(location).build();
+            return this;
+        }
+
+        public Builder documentation(String documentation) {
+            Preconditions.checkNotNull(documentation, "documentation");
+            mixin = mixin.toBuilder().documentation(documentation).build();
+            return this;
+        }
+
+        public Builder annotations(Map<String, String> annotations) {
+            Preconditions.checkNotNull(annotations, "annotations");
+            mixin = mixin.toBuilder().annotations(annotations).build();
+            return this;
+        }
+
+        public Builder type(ServiceMethod type) {
+            Preconditions.checkNotNull(type, "type");
+            mixin = mixin.toBuilder()
+                    .name(type.name())
+                    .location(type.location())
+                    .documentation(type.documentation())
+                    .annotations(type.annotations())
+                    .build();
+            return this;
+        }
+
+        public Builder element(FunctionElement element) {
+            this.element = element;
+            return this;
+        }
+
+        public Builder parameters(List<Field> parameters) {
+            this.parameters = ImmutableList.copyOf(parameters);
+            return this;
+        }
+
+        public Builder exceptions(List<Field> exceptions) {
+            this.exceptions = ImmutableList.copyOf(exceptions);
+            return this;
+        }
+
+        public Builder returnType(ThriftType val) {
+            returnType = val;
+            return this;
+        }
+
+        public ServiceMethod build() {
+            return new ServiceMethod(this);
         }
     }
 }

@@ -30,6 +30,7 @@ public abstract class ConstElement {
     public abstract TypeElement type();
     public abstract String name();
     public abstract ConstValueElement value();
+    public abstract Builder toBuilder();
 
     public static Builder builder(Location location) {
         return new AutoValue_ConstElement.Builder()

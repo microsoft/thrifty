@@ -49,6 +49,7 @@ public abstract class FunctionElement {
     public abstract ImmutableList<FieldElement> params();
     public abstract ImmutableList<FieldElement> exceptions();
     @Nullable public abstract AnnotationElement annotations();
+    public abstract Builder toBuilder();
 
     FunctionElement() { }
 

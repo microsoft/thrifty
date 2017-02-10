@@ -21,9 +21,12 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
+import com.microsoft.thrifty.schema.parser.FunctionElement;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -47,6 +50,12 @@ public class Constant implements UserElement {
                 element.location(),
                 element.documentation(),
                 null); // No annotations allowed on Thrift constants
+    }
+
+    protected Constant(Builder builder) {
+        this.element = builder.element;
+        this.namespaces = builder.namespaces;
+        this.mixin = builder.mixin;
     }
 
     public ThriftType type() {
@@ -104,10 +113,76 @@ public class Constant implements UserElement {
         validate(linker, element.value(), type);
     }
 
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     @VisibleForTesting
     static void validate(Linker linker, ConstValueElement value, ThriftType expected) {
         ThriftType trueType = expected.getTrueType();
         Validators.forType(trueType).validate(linker, trueType, value);
+    }
+
+    public static final class Builder {
+
+        private ConstElement element;
+        private ImmutableMap<NamespaceScope, String> namespaces;
+        private UserElementMixin mixin;
+
+        Builder(Constant constant) {
+            this.mixin = constant.mixin;
+            this.element = constant.element;
+            this.namespaces = constant.namespaces;
+        }
+
+        public Builder name(String name) {
+            Preconditions.checkNotNull(name, "name");
+            mixin = mixin.toBuilder().name(name).build();
+            return this;
+        }
+
+        public Builder location(Location location) {
+            Preconditions.checkNotNull(location, "location");
+            mixin = mixin.toBuilder().location(location).build();
+            return this;
+        }
+
+        public Builder documentation(String documentation) {
+            Preconditions.checkNotNull(documentation, "documentation");
+            mixin = mixin.toBuilder().documentation(documentation).build();
+            return this;
+        }
+
+        public Builder annotations(Map<String, String> annotations) {
+            Preconditions.checkNotNull(annotations, "annotations");
+            mixin = mixin.toBuilder().annotations(annotations).build();
+            return this;
+        }
+
+        public Builder type(Constant constant) {
+            Preconditions.checkNotNull(constant, "constant");
+            mixin = mixin.toBuilder()
+                    .name(constant.name())
+                    .location(constant.location())
+                    .documentation(constant.documentation())
+                    .annotations(constant.annotations())
+                    .build();
+            return this;
+        }
+
+        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = ImmutableMap.copyOf(namespaces);
+            return this;
+        }
+
+        public Builder element(ConstElement element) {
+            this.element = element;
+            return this;
+        }
+
+        public Constant build() {
+            return new Constant(this);
+        }
     }
 
     interface ConstValueValidator {
