@@ -31,9 +31,10 @@ import com.microsoft.thrifty.schema.parser.ServiceElement;
 import com.microsoft.thrifty.schema.parser.StructElement;
 import com.microsoft.thrifty.schema.parser.TypedefElement;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /**
  * A mixin encapsulating a common implementation of {@link UserElement},
@@ -93,7 +94,7 @@ class UserElementMixin implements UserElement {
         this.name = builder.name;
         this.location = builder.location;
         this.documentation = builder.documentation;
-        this.annotations = builder.annotations.build();
+        this.annotations = builder.annotations;
     }
 
     @Override
@@ -186,15 +187,13 @@ class UserElementMixin implements UserElement {
         private String name;
         private Location location;
         private String documentation;
-        private ImmutableMap.Builder<String, String> annotations;
+        private ImmutableMap<String, String> annotations;
 
         private Builder(UserElement userElement) {
             this.name = userElement.name();
             this.location = userElement.location();
             this.documentation = userElement.documentation();
-            this.annotations = ImmutableMap.builder();
-
-            this.annotations.putAll(userElement.annotations());
+            this.annotations = userElement.annotations();
         }
 
         Builder name(String name) {
@@ -217,7 +216,7 @@ class UserElementMixin implements UserElement {
         }
 
         Builder annotations(Map<String, String> annotations) {
-            this.annotations.putAll(annotations);
+            this.annotations = ImmutableMap.copyOf(Preconditions.checkNotNull(annotations));
             return this;
         }
 
