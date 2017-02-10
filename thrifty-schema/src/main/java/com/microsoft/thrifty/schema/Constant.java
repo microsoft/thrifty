@@ -22,15 +22,14 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
-import com.microsoft.thrifty.schema.parser.FunctionElement;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /**
  * Represents a Thrift const definition.
@@ -172,11 +171,6 @@ public class Constant implements UserElement {
 
         public Builder namespaces(Map<NamespaceScope, String> namespaces) {
             this.namespaces = ImmutableMap.copyOf(namespaces);
-            return this;
-        }
-
-        public Builder element(ConstElement element) {
-            this.element = element;
             return this;
         }
 

@@ -220,11 +220,6 @@ public class ServiceMethod implements UserElement {
             return this;
         }
 
-        public Builder element(FunctionElement element) {
-            this.element = element;
-            return this;
-        }
-
         public Builder parameters(List<Field> parameters) {
             this.parameters = ImmutableList.copyOf(parameters);
             return this;
