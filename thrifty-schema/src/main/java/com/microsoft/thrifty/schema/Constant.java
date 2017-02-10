@@ -25,9 +25,10 @@ import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /**
  * Represents a Thrift const definition.
@@ -47,6 +48,12 @@ public class Constant implements UserElement {
                 element.location(),
                 element.documentation(),
                 null); // No annotations allowed on Thrift constants
+    }
+
+    protected Constant(Builder builder) {
+        this.element = builder.element;
+        this.namespaces = builder.namespaces;
+        this.mixin = builder.mixin;
     }
 
     public ThriftType type() {
@@ -108,10 +115,35 @@ public class Constant implements UserElement {
         validate(linker, element.value(), type);
     }
 
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     @VisibleForTesting
     static void validate(Linker linker, ConstValueElement value, ThriftType expected) {
         ThriftType trueType = expected.getTrueType();
         Validators.forType(trueType).validate(linker, trueType, value);
+    }
+
+    public static final class Builder extends AbstractUserElementBuilder<Constant, Builder> {
+
+        private ConstElement element;
+        private ImmutableMap<NamespaceScope, String> namespaces;
+
+        Builder(Constant constant) {
+            super(constant.mixin);
+            this.element = constant.element;
+            this.namespaces = constant.namespaces;
+        }
+
+        public Builder namespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = ImmutableMap.copyOf(namespaces);
+            return this;
+        }
+
+        public Constant build() {
+            return new Constant(this);
+        }
     }
 
     interface ConstValueValidator {

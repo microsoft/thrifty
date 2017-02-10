@@ -26,9 +26,11 @@ import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.FunctionElement;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ServiceMethod implements UserElement {
+
     private final UserElementMixin mixin;
     private final FunctionElement element;
     private final ImmutableList<Field> parameters;
@@ -50,6 +52,14 @@ public class ServiceMethod implements UserElement {
             exceptionsBuilder.add(new Field(exception));
         }
         this.exceptions = exceptionsBuilder.build();
+    }
+
+    protected ServiceMethod(Builder builder) {
+        mixin = builder.mixin;
+        element = builder.element;
+        parameters = builder.parameters;
+        exceptions = builder.exceptions;
+        returnType = builder.returnType;
     }
 
     public ImmutableList<Field> parameters() {
@@ -96,6 +106,10 @@ public class ServiceMethod implements UserElement {
     @Override
     public boolean isDeprecated() {
         return mixin.isDeprecated();
+    }
+
+    public Builder toBuilder() {
+        return new Builder(this);
     }
 
     void link(Linker linker) {
@@ -151,6 +165,41 @@ public class ServiceMethod implements UserElement {
             }
 
             linker.addError(field.location(), "Only exception types can be thrown");
+        }
+    }
+
+    public static final class Builder extends AbstractUserElementBuilder<ServiceMethod, Builder> {
+
+        private FunctionElement element;
+        private ImmutableList<Field> parameters;
+        private ImmutableList<Field> exceptions;
+        private ThriftType returnType;
+
+        Builder(ServiceMethod method) {
+            super(method.mixin);
+            this.element = method.element;
+            this.parameters = method.parameters;
+            this.exceptions = method.exceptions;
+            this.returnType = method.returnType;
+        }
+
+        public Builder parameters(List<Field> parameters) {
+            this.parameters = ImmutableList.copyOf(parameters);
+            return this;
+        }
+
+        public Builder exceptions(List<Field> exceptions) {
+            this.exceptions = ImmutableList.copyOf(exceptions);
+            return this;
+        }
+
+        public Builder returnType(ThriftType val) {
+            returnType = val;
+            return this;
+        }
+
+        public ServiceMethod build() {
+            return new ServiceMethod(this);
         }
     }
 }
