@@ -54,6 +54,7 @@ public class Constant implements UserElement {
         this.element = builder.element;
         this.namespaces = builder.namespaces;
         this.mixin = builder.mixin;
+        this.type = builder.type;
     }
 
     public ThriftType type() {
@@ -129,11 +130,13 @@ public class Constant implements UserElement {
 
         private ConstElement element;
         private ImmutableMap<NamespaceScope, String> namespaces;
+        private final ThriftType type;
 
         Builder(Constant constant) {
             super(constant.mixin);
             this.element = constant.element;
             this.namespaces = constant.namespaces;
+            this.type = constant.type;
         }
 
         public Builder namespaces(Map<NamespaceScope, String> namespaces) {
