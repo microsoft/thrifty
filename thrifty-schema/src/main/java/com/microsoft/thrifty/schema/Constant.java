@@ -96,6 +96,10 @@ public class Constant implements UserElement {
         return mixin.isDeprecated();
     }
 
+    public ImmutableMap<NamespaceScope, String> namespaces() {
+        return namespaces;
+    }
+
     void link(Linker linker) {
         type = linker.resolveType(element.type());
     }
