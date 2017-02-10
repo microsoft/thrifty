@@ -744,7 +744,9 @@ public final class ThriftyCodeGenerator {
         }
 
         boolean isFirst = true;
+        boolean hasSuppressedNumberEquality = false;
         for (Field field : struct.fields()) {
+            ThriftType type = field.type().getTrueType();
             String fieldName = fieldNamer.getName(field);
 
             if (isFirst) {
@@ -759,6 +761,16 @@ public final class ThriftyCodeGenerator {
             } else {
                 equals.addCode("(this.$1N == that.$1N || (this.$1N != null && this.$1N.equals(that.$1N)))",
                         fieldName);
+            }
+
+            if (type.isBuiltin() && ((BuiltinType) type).isNumeric()) {
+                if (!hasSuppressedNumberEquality) {
+                    hasSuppressedNumberEquality = true;
+                    equals.addAnnotation(AnnotationSpec
+                            .builder(SuppressWarnings.class)
+                            .addMember("value", "$S", "NumberEquality")
+                            .build());
+                }
             }
         }
 
