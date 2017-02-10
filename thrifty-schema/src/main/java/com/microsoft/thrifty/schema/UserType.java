@@ -100,7 +100,7 @@ public abstract class UserType extends ThriftType implements UserElement {
         return Objects.hash(super.hashCode(), mixin, namespaces);
     }
 
-    abstract static class UserTypeBuilder<
+    public abstract static class UserTypeBuilder<
             TType extends UserType,
             TBuilder extends UserTypeBuilder<TType, TBuilder>> extends AbstractUserElementBuilder<TType, TBuilder> {
 
@@ -112,7 +112,7 @@ public abstract class UserType extends ThriftType implements UserElement {
         }
 
         @SuppressWarnings("unchecked")
-        TBuilder namespaces(ImmutableMap<NamespaceScope, String> namespaces) {
+        public TBuilder namespaces(ImmutableMap<NamespaceScope, String> namespaces) {
             this.namespaces = Preconditions.checkNotNull(namespaces, "namespaces");
             return (TBuilder) this;
         }
