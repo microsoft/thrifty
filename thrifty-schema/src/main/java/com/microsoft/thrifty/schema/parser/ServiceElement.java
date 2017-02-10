@@ -24,6 +24,8 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 @AutoValue
@@ -50,7 +52,7 @@ public abstract class ServiceElement {
         Builder documentation(String documentation);
         Builder name(String name);
         Builder extendsService(TypeElement serviceName);
-        Builder functions(ImmutableList<FunctionElement> functions);
+        Builder functions(List<FunctionElement> functions);
         Builder annotations(AnnotationElement annotations);
 
         ServiceElement build();

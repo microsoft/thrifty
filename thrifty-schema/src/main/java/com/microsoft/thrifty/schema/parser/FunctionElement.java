@@ -24,6 +24,8 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 @AutoValue
@@ -59,8 +61,8 @@ public abstract class FunctionElement {
         Builder oneWay(boolean oneWay);
         Builder returnType(TypeElement returnType);
         Builder name(String name);
-        Builder params(ImmutableList<FieldElement> params);
-        Builder exceptions(ImmutableList<FieldElement> params);
+        Builder params(List<FieldElement> params);
+        Builder exceptions(List<FieldElement> params);
         Builder annotations(AnnotationElement annotations);
 
         FunctionElement build();

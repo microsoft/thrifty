@@ -24,6 +24,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import javax.annotation.Nullable;
+
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -112,8 +114,8 @@ public abstract class UserType extends ThriftType implements UserElement {
         }
 
         @SuppressWarnings("unchecked")
-        public TBuilder namespaces(ImmutableMap<NamespaceScope, String> namespaces) {
-            this.namespaces = Preconditions.checkNotNull(namespaces, "namespaces");
+        public TBuilder namespaces(Map<NamespaceScope, String> namespaces) {
+            this.namespaces = ImmutableMap.copyOf(Preconditions.checkNotNull(namespaces, "namespaces"));
             return (TBuilder) this;
         }
     }

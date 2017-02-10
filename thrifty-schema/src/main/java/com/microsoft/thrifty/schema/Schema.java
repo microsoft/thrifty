@@ -22,6 +22,8 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.List;
+
 /**
  * Encapsulates all types, values, and services defined in a set of Thrift
  * files.
@@ -136,59 +138,59 @@ public class Schema {
             this.services = services;
         }
 
-        public Builder structs(ImmutableList<StructType> structs) {
+        public Builder structs(List<StructType> structs) {
             if (structs == null) {
                 throw new NullPointerException("structs may not be null");
             }
-            this.structs = structs;
+            this.structs = ImmutableList.copyOf(structs);
             return this;
         }
 
-        public Builder unions(ImmutableList<StructType> unions) {
+        public Builder unions(List<StructType> unions) {
             if (unions == null) {
                 throw new NullPointerException("unions may not be null");
             }
-            this.unions = unions;
+            this.unions = ImmutableList.copyOf(unions);
             return this;
         }
 
-        public Builder exceptions(ImmutableList<StructType> exceptions) {
+        public Builder exceptions(List<StructType> exceptions) {
             if (exceptions == null) {
                 throw new NullPointerException("exceptions may not be null");
             }
-            this.exceptions = exceptions;
+            this.exceptions = ImmutableList.copyOf(exceptions);
             return this;
         }
 
-        public Builder enums(ImmutableList<EnumType> enums) {
+        public Builder enums(List<EnumType> enums) {
             if (enums == null) {
                 throw new NullPointerException("enums may not be null");
             }
-            this.enums = enums;
+            this.enums = ImmutableList.copyOf(enums);
             return this;
         }
 
-        public Builder constants(ImmutableList<Constant> constants) {
+        public Builder constants(List<Constant> constants) {
             if (constants == null) {
                 throw new NullPointerException("constants may not be null");
             }
-            this.constants = constants;
+            this.constants = ImmutableList.copyOf(constants);
             return this;
         }
 
-        public Builder typedefs(ImmutableList<TypedefType> typedefs) {
+        public Builder typedefs(List<TypedefType> typedefs) {
             if (typedefs == null) {
                 throw new NullPointerException("typedefs may not be null");
             }
-            this.typedefs = typedefs;
+            this.typedefs = ImmutableList.copyOf(typedefs);
             return this;
         }
 
-        public Builder services(ImmutableList<ServiceType> services) {
+        public Builder services(List<ServiceType> services) {
             if (services == null) {
                 throw new NullPointerException("services may not be null");
             }
-            this.services = services;
+            this.services = ImmutableList.copyOf(services);
             return this;
         }
 
