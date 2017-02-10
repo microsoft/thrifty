@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.schema;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.FieldElement;
@@ -169,55 +168,19 @@ public class ServiceMethod implements UserElement {
         }
     }
 
-    public static final class Builder {
+    public static final class Builder extends AbstractUserElementBuilder<ServiceMethod, Builder> {
 
-        private UserElementMixin mixin;
         private FunctionElement element;
         private ImmutableList<Field> parameters;
         private ImmutableList<Field> exceptions;
         private ThriftType returnType;
 
         Builder(ServiceMethod method) {
-            this.mixin = method.mixin;
+            super(method.mixin);
             this.element = method.element;
             this.parameters = method.parameters;
             this.exceptions = method.exceptions;
             this.returnType = method.returnType;
-        }
-
-        public Builder name(String name) {
-            Preconditions.checkNotNull(name, "name");
-            mixin = mixin.toBuilder().name(name).build();
-            return this;
-        }
-
-        public Builder location(Location location) {
-            Preconditions.checkNotNull(location, "location");
-            mixin = mixin.toBuilder().location(location).build();
-            return this;
-        }
-
-        public Builder documentation(String documentation) {
-            Preconditions.checkNotNull(documentation, "documentation");
-            mixin = mixin.toBuilder().documentation(documentation).build();
-            return this;
-        }
-
-        public Builder annotations(Map<String, String> annotations) {
-            Preconditions.checkNotNull(annotations, "annotations");
-            mixin = mixin.toBuilder().annotations(annotations).build();
-            return this;
-        }
-
-        public Builder type(ServiceMethod type) {
-            Preconditions.checkNotNull(type, "type");
-            mixin = mixin.toBuilder()
-                    .name(type.name())
-                    .location(type.location())
-                    .documentation(type.documentation())
-                    .annotations(type.annotations())
-                    .build();
-            return this;
         }
 
         public Builder parameters(List<Field> parameters) {

@@ -21,7 +21,6 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
@@ -122,51 +121,15 @@ public class Constant implements UserElement {
         Validators.forType(trueType).validate(linker, trueType, value);
     }
 
-    public static final class Builder {
+    public static final class Builder extends AbstractUserElementBuilder<Constant, Builder> {
 
         private ConstElement element;
         private ImmutableMap<NamespaceScope, String> namespaces;
-        private UserElementMixin mixin;
 
         Builder(Constant constant) {
-            this.mixin = constant.mixin;
+            super(constant.mixin);
             this.element = constant.element;
             this.namespaces = constant.namespaces;
-        }
-
-        public Builder name(String name) {
-            Preconditions.checkNotNull(name, "name");
-            mixin = mixin.toBuilder().name(name).build();
-            return this;
-        }
-
-        public Builder location(Location location) {
-            Preconditions.checkNotNull(location, "location");
-            mixin = mixin.toBuilder().location(location).build();
-            return this;
-        }
-
-        public Builder documentation(String documentation) {
-            Preconditions.checkNotNull(documentation, "documentation");
-            mixin = mixin.toBuilder().documentation(documentation).build();
-            return this;
-        }
-
-        public Builder annotations(Map<String, String> annotations) {
-            Preconditions.checkNotNull(annotations, "annotations");
-            mixin = mixin.toBuilder().annotations(annotations).build();
-            return this;
-        }
-
-        public Builder type(Constant constant) {
-            Preconditions.checkNotNull(constant, "constant");
-            mixin = mixin.toBuilder()
-                    .name(constant.name())
-                    .location(constant.location())
-                    .documentation(constant.documentation())
-                    .annotations(constant.annotations())
-                    .build();
-            return this;
         }
 
         public Builder namespaces(Map<NamespaceScope, String> namespaces) {
