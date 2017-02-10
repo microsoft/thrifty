@@ -24,6 +24,8 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
+import java.util.List;
+
 @AutoValue
 public abstract class ThriftFileElement {
     public abstract Location location();
@@ -56,15 +58,15 @@ public abstract class ThriftFileElement {
     @AutoValue.Builder
     public interface Builder {
         Builder location(Location location);
-        Builder namespaces(ImmutableList<NamespaceElement> namespaces);
-        Builder includes(ImmutableList<IncludeElement> includes);
-        Builder constants(ImmutableList<ConstElement> constants);
-        Builder typedefs(ImmutableList<TypedefElement> typedefs);
-        Builder enums(ImmutableList<EnumElement> enums);
-        Builder structs(ImmutableList<StructElement> structs);
-        Builder unions(ImmutableList<StructElement> unions);
-        Builder exceptions(ImmutableList<StructElement> exceptions);
-        Builder services(ImmutableList<ServiceElement> services);
+        Builder namespaces(List<NamespaceElement> namespaces);
+        Builder includes(List<IncludeElement> includes);
+        Builder constants(List<ConstElement> constants);
+        Builder typedefs(List<TypedefElement> typedefs);
+        Builder enums(List<EnumElement> enums);
+        Builder structs(List<StructElement> structs);
+        Builder unions(List<StructElement> unions);
+        Builder exceptions(List<StructElement> exceptions);
+        Builder services(List<ServiceElement> services);
 
         ThriftFileElement build();
     }

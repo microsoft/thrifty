@@ -24,6 +24,8 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 /**
@@ -53,7 +55,7 @@ public abstract class StructElement {
         Builder documentation(String documentation);
         Builder type(Type type);
         Builder name(String name);
-        Builder fields(ImmutableList<FieldElement> fields);
+        Builder fields(List<FieldElement> fields);
         Builder annotations(AnnotationElement annotations);
 
         StructElement build();

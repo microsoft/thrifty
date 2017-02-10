@@ -24,6 +24,8 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 @AutoValue
@@ -47,7 +49,7 @@ public abstract class EnumElement {
         Builder location(Location location);
         Builder documentation(String documentation);
         Builder name(String name);
-        Builder members(ImmutableList<EnumMemberElement> members);
+        Builder members(List<EnumMemberElement> members);
         Builder annotations(AnnotationElement annotations);
 
         EnumElement build();
