@@ -1,3 +1,10 @@
+0.3.2 (released 11 February 2017)
+------------------
+- #98, #99, #100, #101, #102: Improvements to builder APIs in thrifty-schema (thanks, @hzsweers)
+- #96: Add builders to collection ThriftTypes
+- #90: Upgrade JavaPoet in thrifty-java-codegen to 1.8.0
+- #88: Upgrade Okio in thrifty-runtime to 1.11.0
+
 0.3.1 (released 13 November 2016)
 ------------------
 - #82: Fix i64 constants greater than Integer.MAX_VALUE
