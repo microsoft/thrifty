@@ -20,6 +20,7 @@
  */
 plugins {
     id "com.ewerk.gradle.plugins.auto-value" version "1.0.4"
+    id 'antlr'
 }
 
 description = 'A simple Thrift IDL parser and validator'
@@ -29,6 +30,9 @@ autoValue {
 }
 
 dependencies {
+    antlr "org.antlr:antlr4:4.6"
+    compile "org.antlr:antlr4:4.6"
+
     compile project(':thrifty-runtime')
 
     compile 'com.google.code.findbugs:jsr305:3.0.1'

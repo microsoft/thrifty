@@ -69,6 +69,10 @@ subprojects { sp ->
         sourceSets = [sourceSets.main]
     }
 
+    tasks.withType(Checkstyle) {
+        exclude '**/antlr/**'
+    }
+
     task javadocJar(type: Jar, dependsOn: javadoc) {
         from 'build/docs/javadoc'
         classifier = 'javadoc'
