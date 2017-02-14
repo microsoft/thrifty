@@ -17,10 +17,12 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class ThriftListener extends AntlrThriftBaseListener {
     private final CommonTokenStream tokenStream;
@@ -105,28 +107,63 @@ public class ThriftListener extends AntlrThriftBaseListener {
         errorReporter.error(locationOf(ctx), "'xsd_namespace' is unsupported");
     }
 
-    private List<EnumMemberElement> enumMembers = new ArrayList<>();
-
-    @Override
-    public void enterT_enum(AntlrThriftParser.T_enumContext ctx) {
-        enumMembers.clear();
-    }
-
     @Override
     public void exitT_enum(AntlrThriftParser.T_enumContext ctx) {
+        String enumName = ctx.IDENTIFIER().getText();
 
+        int nextValue = 0;
+        Set<Integer> values = new HashSet<>();
 
-        enumMembers.clear();
-    }
+        List<EnumMemberElement> members = new ArrayList<>(ctx.enum_member().size());
+        for (AntlrThriftParser.Enum_memberContext memberContext : ctx.enum_member()) {
+            List<Token> docComments = new ArrayList<>();
+            docComments.addAll(getLeadingComments(memberContext.getStart()));
+            docComments.addAll(getTrailingComments(memberContext.getStop()));
 
-    @Override
-    public void exitEnum_member(AntlrThriftParser.Enum_memberContext ctx) {
-        List<Token> trailingDoc = getTrailingComments(ctx.getStop());
+            String doc = formatJavadoc(docComments);
 
+            int value = nextValue;
+            TerminalNode valueToken = memberContext.INTEGER();
+            if (valueToken != null) {
+                value = parseInt(valueToken);
+            }
 
+            if (!values.add(value)) {
+                errorReporter.error(locationOf(valueToken), "duplicate enum value: " + value);
+                continue;
+            }
+
+            nextValue = value + 1;
+
+            EnumMemberElement element = EnumMemberElement.builder(locationOf(memberContext))
+                    .name(memberContext.IDENTIFIER().getText())
+                    .value(value)
+                    .documentation(doc)
+                    .annotations(fromAntlr(memberContext.annotationList()))
+                    .build();
+
+            members.add(element);
+        }
     }
 
     // region Utilities
+
+    private List<Token> getLeadingComments(Token token) {
+        List<Token> hiddenTokens = tokenStream.getHiddenTokensToLeft(token.getTokenIndex(), Lexer.HIDDEN);
+
+        if (hiddenTokens == null || hiddenTokens.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Token> comments = new ArrayList<>(hiddenTokens.size());
+        for (Token hiddenToken : hiddenTokens) {
+            if (isComment(hiddenToken) && !trailingDocTokenIndexes.get(hiddenToken.getTokenIndex())) {
+                comments.add(hiddenToken);
+            }
+        }
+
+        return comments;
+    }
 
     private List<Token> getTrailingComments(Token endToken) {
         List<Token> hiddenTokens = tokenStream.getHiddenTokensToRight(endToken.getTokenIndex(), Lexer.HIDDEN);
@@ -258,6 +295,100 @@ public class ThriftListener extends AntlrThriftBaseListener {
             default:
                 return false;
         }
+    }
+
+    private static String formatJavadoc(List<Token> commentTokens) {
+        StringBuilder sb = new StringBuilder();
+
+        for (Token token : commentTokens) {
+            String text = token.getText();
+            int commentStart;
+            switch (token.getType()) {
+                case AntlrThriftLexer.SLASH_SLASH_COMMENT:
+                    formatSingleLineComment(sb, text, "//");
+                    break;
+
+                case AntlrThriftLexer.HASH_COMMENT:
+                    formatSingleLineComment(sb, text, "#");
+                    break;
+
+                case AntlrThriftLexer.MULTILINE_COMMENT:
+                    formatMultilineComment(sb, text);
+                    break;
+
+                default:
+                    // wut
+                    break;
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private static void formatSingleLineComment(StringBuilder sb, String text, String prefix) {
+        int start = prefix.length();
+        int end = text.length();
+
+        while (Character.isWhitespace( text.charAt(start) )) {
+            ++start;
+        }
+
+        while (Character.isWhitespace( text.charAt(end - 1) )) {
+            --end;
+        }
+
+        sb.append(text.substring(start, end));
+        sb.append("\n");
+    }
+
+    private static void formatMultilineComment(StringBuilder sb, String text) {
+        char[] chars = text.toCharArray();
+        int pos = "/*".length();
+        int length = chars.length;
+        boolean isStartOfLine = true;
+
+        for (; pos + 1 < length; ++pos) {
+            char c = chars[pos];
+            if (c == '*' && chars[pos + 1] == '/') {
+                sb.append("\n");
+                return;
+            }
+
+            if (c == '\n') {
+                sb.append(c);
+                isStartOfLine = true;
+            } else if (!isStartOfLine) {
+                sb.append(c);
+            } else if (c == '*') {
+                sb.append(c);
+
+                // skip a single subsequent space, if it exists
+                if (Character.isWhitespace( chars[pos + 1] )) {
+                    ++pos;
+                }
+
+                isStartOfLine = false;
+            } else if (! Character.isWhitespace( c )) {
+                sb.append(c);
+                isStartOfLine = false;
+            }
+        }
+    }
+
+    private static int parseInt(TerminalNode node) {
+        return parseInt(node.getSymbol());
+    }
+
+    private static int parseInt(Token token) {
+        String text = token.getText();
+
+        int radix = 10;
+        if (text.startsWith("0x") || text.startsWith("0X")) {
+            radix = 16;
+            text = text.substring(2);
+        }
+
+        return Integer.parseInt(text, radix);
     }
 
     // endregion

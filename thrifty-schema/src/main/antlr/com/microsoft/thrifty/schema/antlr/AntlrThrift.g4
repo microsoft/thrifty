@@ -97,11 +97,11 @@ typedef
 
 // prefixed because 'enum' is a reserved keyword in Java
 t_enum
-    : 'enum' IDENTIFIER '{' enum_member* '}'
+    : 'enum' IDENTIFIER '{' enum_member* '}' annotationList?
     ;
 
 enum_member
-    : IDENTIFIER ('=' INTEGER)? SEPARATOR?
+    : IDENTIFIER ('=' INTEGER)? SEPARATOR? annotationList?
     ;
 
 senum
@@ -247,11 +247,11 @@ fragment EXP
     ;
 
 SLASH_SLASH_COMMENT
-    : '//' ~[\r\n]*? -> channel(HIDDEN)
+    : '//' ~[\r\n]*? NL -> channel(HIDDEN)
     ;
 
 HASH_COMMENT
-    : '#' ~[\r\n]*? -> channel(HIDDEN)
+    : '#' ~[\r\n]* NL -> channel(HIDDEN)
     ;
 
 MULTILINE_COMMENT
@@ -259,7 +259,11 @@ MULTILINE_COMMENT
     ;
 
 NEWLINE
-    : ('\r')? '\n' -> channel(HIDDEN)
+    : NL -> channel(HIDDEN)
+    ;
+
+fragment NL
+    : '\r'? '\n'
     ;
 
 WHITESPACE
