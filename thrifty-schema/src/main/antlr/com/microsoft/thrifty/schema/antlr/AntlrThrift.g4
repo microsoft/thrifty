@@ -59,44 +59,44 @@ xsd_namespace
     ;
 
 definition
-    : t_const
+    : constDef
     | typedef
-    | t_enum
+    | enumDef
     | senum
-    | struct
-    | union
-    | exception
-    | service
+    | structDef
+    | unionDef
+    | exceptionDef
+    | serviceDef
     ;
 
 // prefixed because 'const' is a reserved keyword in Java
-t_const
-    : 'const' fieldType IDENTIFIER '=' t_const_value SEPARATOR?
+constDef
+    : 'const' fieldType IDENTIFIER '=' constValue SEPARATOR?
     ;
 
-t_const_value
+constValue
     : INTEGER
     | DOUBLE
     | LITERAL
     | IDENTIFIER
-    | t_const_list
-    | t_const_map
+    | constList
+    | constMap
     ;
 
-t_const_list
-    : '[' (t_const_list SEPARATOR?)* ']'
+constList
+    : '[' (constList SEPARATOR?)* ']'
     ;
 
-t_const_map
-    : '{' (t_const_value ':' t_const_value SEPARATOR?)* '}'
+constMap
+    : '{' (constValue ':' constValue SEPARATOR?)* '}'
     ;
 
 typedef
-    : 'typedef' definitionType IDENTIFIER SEPARATOR?
+    : 'typedef' fieldType IDENTIFIER SEPARATOR? annotationList?
     ;
 
 // prefixed because 'enum' is a reserved keyword in Java
-t_enum
+enumDef
     : 'enum' IDENTIFIER '{' enum_member* '}' annotationList?
     ;
 
@@ -108,24 +108,24 @@ senum
     : 'senum' IDENTIFIER '{' enum_member* '}' { System.err.println("WARNING: 'senum' is deprecated and unsupported!"); }
     ;
 
-struct
+structDef
     : 'struct' IDENTIFIER '{' field* '}'
     ;
 
-union
+unionDef
     : 'union' IDENTIFIER '{' field* '}'
     ;
 
-exception
+exceptionDef
     : 'exception' IDENTIFIER '{' field* '}'
     ;
 
-service
+serviceDef
     : 'service' IDENTIFIER '{' function* '}'
     ;
 
 function
-    : 'oneway'? ('void' | definitionType) IDENTIFIER fieldList throwsList? SEPARATOR?
+    : 'oneway'? ('void' | fieldType) IDENTIFIER fieldList throwsList? SEPARATOR?
     ;
 
 fieldList
@@ -133,7 +133,7 @@ fieldList
     ;
 
 field
-    : NATURAL_INTEGER ':' ('required' | 'optional')? fieldType IDENTIFIER ('=' t_const)? SEPARATOR?
+    : NATURAL_INTEGER ':' ('required' | 'optional')? fieldType IDENTIFIER ('=' constDef)? SEPARATOR?
     ;
 
 throwsList
@@ -144,12 +144,6 @@ fieldType
     : baseType annotationList?
     | containerType annotationList?
     | IDENTIFIER annotationList?
-    ;
-
-definitionType
-    : baseType
-    | containerType
-    | IDENTIFIER
     ;
 
 baseType
@@ -166,9 +160,21 @@ baseType
     ;
 
 containerType
-    : 'map' cppType? '<' fieldType ',' fieldType '>'
-    | 'set' cppType? '<' fieldType '>'
-    | 'list' '<' fieldType '>' cppType?
+    : mapType
+    | setType
+    | listType
+    ;
+
+mapType
+    : 'map' cppType? '<' key=fieldType COMMA value=fieldType '>'
+    ;
+
+listType
+    : 'list' '<' fieldType '>' cppType?
+    ;
+
+setType
+    : 'set' cppType? '<' fieldType '>'
     ;
 
 cppType
@@ -207,7 +213,16 @@ fragment ESCAPE_CHAR
     ;
 
 SEPARATOR
-    : ',' | ';'
+    : COMMA
+    | SEMICOLON
+    ;
+
+COMMA
+    : ','
+    ;
+
+SEMICOLON
+    : ';'
     ;
 
 IDENTIFIER

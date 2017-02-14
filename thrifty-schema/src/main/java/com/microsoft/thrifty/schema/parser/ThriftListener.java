@@ -1,13 +1,19 @@
-package com.microsoft.thrifty.schema.antlr;
+package com.microsoft.thrifty.schema.parser;
 
 import com.microsoft.thrifty.schema.ErrorReporter;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.NamespaceScope;
+import com.microsoft.thrifty.schema.antlr.AntlrThriftBaseListener;
+import com.microsoft.thrifty.schema.antlr.AntlrThriftLexer;
+import com.microsoft.thrifty.schema.antlr.AntlrThriftParser;
 import com.microsoft.thrifty.schema.parser.AnnotationElement;
+import com.microsoft.thrifty.schema.parser.EnumElement;
 import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 import com.microsoft.thrifty.schema.parser.IncludeElement;
 import com.microsoft.thrifty.schema.parser.NamespaceElement;
 import com.microsoft.thrifty.schema.parser.ThriftFileElement;
+import com.microsoft.thrifty.schema.parser.TypeElement;
+import com.microsoft.thrifty.schema.parser.TypedefElement;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -34,8 +40,10 @@ public class ThriftListener extends AntlrThriftBaseListener {
     // We can do this with a bitset tracking token indices of trailing-comment tokens.
     private final BitSet trailingDocTokenIndexes = new BitSet();
 
-    private final List<IncludeElement> includes = new ArrayList<>();
-    private final List<NamespaceElement> namespaces = new ArrayList<>();
+    final List<IncludeElement> includes = new ArrayList<>();
+    final List<NamespaceElement> namespaces = new ArrayList<>();
+    final List<EnumElement> enums = new ArrayList<>();
+    final List<TypedefElement> typedefs = new ArrayList<>();
 
     ThriftListener(CommonTokenStream tokenStream, ErrorReporter errorReporter, Location location) {
         this.tokenStream = tokenStream;
@@ -108,7 +116,7 @@ public class ThriftListener extends AntlrThriftBaseListener {
     }
 
     @Override
-    public void exitT_enum(AntlrThriftParser.T_enumContext ctx) {
+    public void exitEnumDef(AntlrThriftParser.EnumDefContext ctx) {
         String enumName = ctx.IDENTIFIER().getText();
 
         int nextValue = 0;
@@ -116,20 +124,15 @@ public class ThriftListener extends AntlrThriftBaseListener {
 
         List<EnumMemberElement> members = new ArrayList<>(ctx.enum_member().size());
         for (AntlrThriftParser.Enum_memberContext memberContext : ctx.enum_member()) {
-            List<Token> docComments = new ArrayList<>();
-            docComments.addAll(getLeadingComments(memberContext.getStart()));
-            docComments.addAll(getTrailingComments(memberContext.getStop()));
-
-            String doc = formatJavadoc(docComments);
-
             int value = nextValue;
+
             TerminalNode valueToken = memberContext.INTEGER();
             if (valueToken != null) {
                 value = parseInt(valueToken);
             }
 
             if (!values.add(value)) {
-                errorReporter.error(locationOf(valueToken), "duplicate enum value: " + value);
+                errorReporter.error(locationOf(memberContext), "duplicate enum value: " + value);
                 continue;
             }
 
@@ -138,12 +141,36 @@ public class ThriftListener extends AntlrThriftBaseListener {
             EnumMemberElement element = EnumMemberElement.builder(locationOf(memberContext))
                     .name(memberContext.IDENTIFIER().getText())
                     .value(value)
-                    .documentation(doc)
+                    .documentation(formatJavadoc(memberContext))
                     .annotations(fromAntlr(memberContext.annotationList()))
                     .build();
 
             members.add(element);
         }
+
+        String doc = formatJavadoc(ctx);
+        EnumElement element = EnumElement.builder(locationOf(ctx))
+                .name(enumName)
+                .documentation(doc)
+                .annotations(fromAntlr(ctx.annotationList()))
+                .members(members)
+                .build();
+
+        enums.add(element);
+    }
+
+    @Override
+    public void exitTypedef(AntlrThriftParser.TypedefContext ctx) {
+        TypeElement oldType = typeElementOf(ctx.fieldType());
+
+        TypedefElement typedef = TypedefElement.builder(locationOf(ctx))
+                .documentation(formatJavadoc(ctx))
+                .annotations(fromAntlr(ctx.annotationList()))
+                .oldType(oldType)
+                .newName(ctx.IDENTIFIER().getText())
+                .build();
+
+        typedefs.add(typedef);
     }
 
     // region Utilities
@@ -212,7 +239,7 @@ public class ThriftListener extends AntlrThriftBaseListener {
 
     private Location locationOf(Token token) {
         int line = token.getLine();
-        int col = token.getCharPositionInLine();
+        int col = token.getCharPositionInLine() + 1; // Location.col is 1-based, Token.col is 0-based
         return location.at(line, col);
     }
 
@@ -285,6 +312,53 @@ public class ThriftListener extends AntlrThriftBaseListener {
         return sb.toString();
     }
 
+    private TypeElement typeElementOf(AntlrThriftParser.FieldTypeContext context) {
+        if (context.baseType() != null) {
+            return TypeElement.scalar(
+                    locationOf(context),
+                    context.baseType().getText(),
+                    fromAntlr(context.annotationList()));
+        }
+
+        if (context.IDENTIFIER() != null) {
+            return TypeElement.scalar(
+                    locationOf(context),
+                    context.IDENTIFIER().getText(),
+                    fromAntlr(context.annotationList()));
+        }
+
+        if (context.containerType() != null) {
+            AntlrThriftParser.ContainerTypeContext containerContext = context.containerType();
+            if (containerContext.mapType() != null) {
+                TypeElement keyType = typeElementOf(containerContext.mapType().key);
+                TypeElement valueType = typeElementOf(containerContext.mapType().value);
+                return TypeElement.map(
+                        locationOf(containerContext.mapType()),
+                        keyType,
+                        valueType,
+                        fromAntlr(context.annotationList()));
+            }
+
+            if (containerContext.setType() != null) {
+                return TypeElement.set(
+                        locationOf(containerContext.setType()),
+                        typeElementOf(containerContext.setType().fieldType()),
+                        fromAntlr(context.annotationList()));
+            }
+
+            if (containerContext.listType() != null) {
+                return TypeElement.list(
+                        locationOf(containerContext.listType()),
+                        typeElementOf(containerContext.listType().fieldType()),
+                        fromAntlr(context.annotationList()));
+            }
+
+            throw new AssertionError("Unexpected container type - grammar error!");
+        }
+
+        throw new AssertionError("Unexpected type - grammar error!");
+    }
+
     private static boolean isComment(Token token) {
         switch (token.getType()) {
             case AntlrThriftLexer.SLASH_SLASH_COMMENT:
@@ -297,12 +371,19 @@ public class ThriftListener extends AntlrThriftBaseListener {
         }
     }
 
+    private String formatJavadoc(ParserRuleContext context) {
+        List<Token> tokens = new ArrayList<>();
+        tokens.addAll(getLeadingComments(context.getStart()));
+        tokens.addAll(getTrailingComments(context.getStop()));
+
+        return formatJavadoc(tokens);
+    }
+
     private static String formatJavadoc(List<Token> commentTokens) {
         StringBuilder sb = new StringBuilder();
 
         for (Token token : commentTokens) {
             String text = token.getText();
-            int commentStart;
             switch (token.getType()) {
                 case AntlrThriftLexer.SLASH_SLASH_COMMENT:
                     formatSingleLineComment(sb, text, "//");
