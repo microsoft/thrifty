@@ -285,6 +285,11 @@ public final class ThriftParser {
         Location location = location();
         String name = readIdentifier();
 
+        // Hack, as in readField(), to handle members that have no
+        // separator, annotations, or trailing doc, where a following
+        // member has a leading doc comment.
+        int currentLine = location().line();
+
         char next = peekChar(false);
         int value = defaultValue;
         if (next == '=') {
@@ -294,7 +299,9 @@ public final class ThriftParser {
 
         AnnotationElement annotation = readAnnotations();
 
-        doc = readTrailingDoc(doc, true);
+        if (annotation != null || location().line() == currentLine) {
+            doc = readTrailingDoc(doc, true);
+        }
 
         return EnumMemberElement.builder(location)
                 .documentation(formatJavadoc(doc))

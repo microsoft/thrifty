@@ -1124,6 +1124,45 @@ public class ThriftParserTest {
     }
 
     @Test
+    public void enumJavadocWithoutSeparators() {
+        String thrift = "/**\n" +
+                " * Some Javadoc\n" +
+                " */\n" +
+                "enum Value {\n" +
+                "    /**\n" +
+                "     * This is not trailing doc.\n" +
+                "     */\n" +
+                "    FIRST\n" +
+                "    /**\n" +
+                "     * Neither is this.\n" +
+                "     */\n" +
+                "    SECOND\n" +
+                "}";
+
+        Location loc = Location.get("foo", "bar.thrift");
+        EnumElement expected = EnumElement.builder(loc.at(4,1))
+                .documentation("Some Javadoc\n")
+                .name("Value")
+                .members(ImmutableList.<EnumMemberElement>builder()
+                        .add(EnumMemberElement.builder(loc.at(8, 5))
+                                .name("FIRST")
+                                .value(0)
+                                .documentation("This is not trailing doc.\n")
+                                .build())
+                        .add(EnumMemberElement.builder(loc.at(12, 5))
+                                .name("SECOND")
+                                .value(1)
+                                .documentation("Neither is this.\n")
+                                .build())
+                        .build())
+                .build();
+
+        ThriftFileElement file = parse(thrift, loc);
+
+        assertThat(file.enums().get(0), equalTo(expected));
+    }
+
+    @Test
     public void structsCanOmitAndReorderFieldIds() {
         ThriftFileElement element = parse("" +
                 "struct Struct {\n" +
