@@ -70,7 +70,6 @@ definition
     | serviceDef
     ;
 
-// prefixed because 'const' is a reserved keyword in Java
 constDef
     : 'const' fieldType IDENTIFIER '=' constValue separator?
     ;
@@ -100,7 +99,6 @@ typedef
     : 'typedef' fieldType IDENTIFIER annotationList? separator?
     ;
 
-// prefixed because 'enum' is a reserved keyword in Java
 enumDef
     : 'enum' IDENTIFIER '{' enumMember* '}' annotationList?
     ;
@@ -110,7 +108,7 @@ enumMember
     ;
 
 senum
-    : 'senum' IDENTIFIER '{' enumMember* '}' { System.err.println("WARNING: 'senum' is deprecated and unsupported!"); }
+    : 'senum' IDENTIFIER '{' enumMember* '}'
     ;
 
 structDef
@@ -166,7 +164,7 @@ baseType
     | 'double'
     | 'string'
     | 'binary'
-    | 'slist' { System.err.println("WARNING: 'slist' is deprecated and should be replaced with 'string'"); }
+    | 'slist'
     ;
 
 containerType

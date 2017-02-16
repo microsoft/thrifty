@@ -20,9 +20,9 @@
  */
 package com.microsoft.thrifty.schema.parser;
 
-import autovalue.shaded.com.google.common.common.collect.ImmutableList;
-import autovalue.shaded.com.google.common.common.collect.ImmutableMap;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.ErrorReporter;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.NamespaceScope;
@@ -163,7 +163,7 @@ class ThriftListener extends AntlrThriftBaseListener {
 
     @Override
     public void exitSenum(AntlrThriftParser.SenumContext ctx) {
-        errorReporter.error(locationOf(ctx), "'senum' is unsupported");
+        errorReporter.error(locationOf(ctx), "'senum' is unsupported; use 'enum' instead");
     }
 
     @Override
@@ -545,6 +545,10 @@ class ThriftListener extends AntlrThriftBaseListener {
 
     private TypeElement typeElementOf(AntlrThriftParser.FieldTypeContext context) {
         if (context.baseType() != null) {
+            if (context.baseType().getText().equals("slist")) {
+                errorReporter.error(locationOf(context), "slist is unsupported; use list<string> instead");
+            }
+
             return TypeElement.scalar(
                     locationOf(context),
                     context.baseType().getText(),
