@@ -37,25 +37,25 @@ cppInclude
     ;
 
 namespace
-    : standard_namespace
-    | php_namespace
-    | xsd_namespace
+    : standardNamespace
+    | phpNamespace
+    | xsdNamespace
     ;
 
-standard_namespace
-    : 'namespace' namespace_scope ns=IDENTIFIER annotationList? separator?
+standardNamespace
+    : 'namespace' namespaceScope ns=IDENTIFIER annotationList? separator?
     ;
 
-namespace_scope
+namespaceScope
     : '*'
     | IDENTIFIER
     ;
 
-php_namespace
+phpNamespace
     : 'php_namespace' ns=LITERAL annotationList? separator?
     ;
 
-xsd_namespace
+xsdNamespace
     : 'xsd_namespace' ns=LITERAL annotationList? separator?
     ;
 

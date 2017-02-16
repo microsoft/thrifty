@@ -1,3 +1,23 @@
+/*
+ * Thrifty
+ *
+ * Copyright (c) Microsoft Corporation
+ *
+ * All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * THIS CODE IS PROVIDED ON AN  *AS IS* BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+ * WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE,
+ * FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+ *
+ * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
+ */
 package com.microsoft.thrifty.schema.parser;
 
 import autovalue.shaded.com.google.common.common.collect.ImmutableList;
@@ -26,7 +46,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * A set of callbacks that, when used with a {@link org.antlr.v4.runtime.tree.ParseTreeWalker},
+ * assemble a {@link ThriftFileElement} from an {@link AntlrThriftParser}.
+ *
+ * Instances of this class are single-use; after walking a parse tree, it will contain
+ * that parser's state as thrifty-schema parser elements.
+ */
 class ThriftListener extends AntlrThriftBaseListener {
+    // A number of tokens that should comfortably accommodate most input files
+    // without wildly re-allocating.  Estimated based on the ClientTestThrift
+    // and TestThrift files, which contain around ~1200 tokens each.
+    private static final int INITIAL_BITSET_CAPACITY = 2048;
+
     private final CommonTokenStream tokenStream;
     private final ErrorReporter errorReporter;
     private final Location location;
@@ -34,18 +66,27 @@ class ThriftListener extends AntlrThriftBaseListener {
     // We need to record which comment tokens have been treated as trailing documentation,
     // so that scanning for leading doc tokens for subsequent elements knows where to stop.
     // We can do this with a bitset tracking token indices of trailing-comment tokens.
-    private final BitSet trailingDocTokenIndexes = new BitSet();
+    private final BitSet trailingDocTokenIndexes = new BitSet(INITIAL_BITSET_CAPACITY);
 
-    final List<IncludeElement> includes = new ArrayList<>();
-    final List<NamespaceElement> namespaces = new ArrayList<>();
-    final List<EnumElement> enums = new ArrayList<>();
-    final List<TypedefElement> typedefs = new ArrayList<>();
-    final List<StructElement> structs = new ArrayList<>();
-    final List<StructElement> unions = new ArrayList<>();
-    final List<StructElement> exceptions = new ArrayList<>();
-    final List<ConstElement> consts = new ArrayList<>();
-    final List<ServiceElement> services = new ArrayList<>();
+    private final List<IncludeElement> includes = new ArrayList<>();
+    private final List<NamespaceElement> namespaces = new ArrayList<>();
+    private final List<EnumElement> enums = new ArrayList<>();
+    private final List<TypedefElement> typedefs = new ArrayList<>();
+    private final List<StructElement> structs = new ArrayList<>();
+    private final List<StructElement> unions = new ArrayList<>();
+    private final List<StructElement> exceptions = new ArrayList<>();
+    private final List<ConstElement> consts = new ArrayList<>();
+    private final List<ServiceElement> services = new ArrayList<>();
 
+    /**
+     * Creates a new ThriftListener instance.
+     *
+     * @param tokenStream the same token stream used with the corresponding {@link AntlrThriftParser};
+     *                    this stream will be queried for "hidden" tokens containing parsed doc
+     *                    comments.
+     * @param errorReporter an error reporting mechanism, used to communicate errors during parsing.
+     * @param location a location pointing at the beginning of the file being parsed.
+     */
     ThriftListener(CommonTokenStream tokenStream, ErrorReporter errorReporter, Location location) {
         this.tokenStream = tokenStream;
         this.errorReporter = errorReporter;
@@ -67,16 +108,6 @@ class ThriftListener extends AntlrThriftBaseListener {
     }
 
     @Override
-    public void enterDocument(AntlrThriftParser.DocumentContext ctx) {
-        namespaces.clear();
-    }
-
-    @Override
-    public void exitDocument(AntlrThriftParser.DocumentContext ctx) {
-        super.exitDocument(ctx);
-    }
-
-    @Override
     public void exitInclude(AntlrThriftParser.IncludeContext ctx) {
         TerminalNode pathNode = ctx.LITERAL();
         String path = unquote(locationOf(pathNode), pathNode.getText(), false);
@@ -93,16 +124,16 @@ class ThriftListener extends AntlrThriftBaseListener {
     }
 
     @Override
-    public void exitStandard_namespace(AntlrThriftParser.Standard_namespaceContext ctx) {
-        String scopeName = ctx.namespace_scope().getText();
+    public void exitStandardNamespace(AntlrThriftParser.StandardNamespaceContext ctx) {
+        String scopeName = ctx.namespaceScope().getText();
         String name = ctx.ns.getText();
 
         AnnotationElement annotations = annotationsFromAntlr(ctx.annotationList());
 
         NamespaceScope scope = NamespaceScope.forThriftName(scopeName);
         if (scope == null) {
-            errorReporter.warn(locationOf(ctx.namespace_scope()), "Unknown namespace scope '" + scopeName + "'");
-            scope = NamespaceScope.UNKNOWN;
+            errorReporter.warn(locationOf(ctx.namespaceScope()), "Unknown namespace scope '" + scopeName + "'");
+            return;
         }
 
         NamespaceElement element = NamespaceElement.builder(locationOf(ctx))
@@ -115,7 +146,7 @@ class ThriftListener extends AntlrThriftBaseListener {
     }
 
     @Override
-    public void exitPhp_namespace(AntlrThriftParser.Php_namespaceContext ctx) {
+    public void exitPhpNamespace(AntlrThriftParser.PhpNamespaceContext ctx) {
         NamespaceElement element = NamespaceElement.builder(locationOf(ctx))
                 .scope(NamespaceScope.PHP)
                 .namespace(unquote(locationOf(ctx.LITERAL()), ctx.LITERAL().getText()))
@@ -126,7 +157,7 @@ class ThriftListener extends AntlrThriftBaseListener {
     }
 
     @Override
-    public void exitXsd_namespace(AntlrThriftParser.Xsd_namespaceContext ctx) {
+    public void exitXsdNamespace(AntlrThriftParser.XsdNamespaceContext ctx) {
         errorReporter.error(locationOf(ctx), "'xsd_namespace' is unsupported");
     }
 
@@ -248,7 +279,9 @@ class ThriftListener extends AntlrThriftBaseListener {
         return parseFieldList(contexts, Requiredness.DEFAULT);
     }
 
-    private ImmutableList<FieldElement> parseFieldList(List<AntlrThriftParser.FieldContext> contexts, Requiredness defaultRequiredness) {
+    private ImmutableList<FieldElement> parseFieldList(
+            List<AntlrThriftParser.FieldContext> contexts,
+            Requiredness defaultRequiredness) {
         ImmutableList.Builder<FieldElement> builder = ImmutableList.builder();
         Set<Integer> ids = new HashSet<>();
 
@@ -278,7 +311,10 @@ class ThriftListener extends AntlrThriftBaseListener {
         return builder.build();
     }
 
-    private FieldElement parseField(int defaultValue, AntlrThriftParser.FieldContext ctx, Requiredness defaultRequiredness) {
+    private FieldElement parseField(
+            int defaultValue,
+            AntlrThriftParser.FieldContext ctx,
+            Requiredness defaultRequiredness) {
         int fieldId = defaultValue;
         if (ctx.INTEGER() != null) {
             fieldId = parseInt(ctx.INTEGER());
@@ -372,7 +408,9 @@ class ThriftListener extends AntlrThriftBaseListener {
                     throw new AssertionError("Function has no return type, and no VOID token - grammar error");
                 }
                 Location loc = locationOf(token);
-                returnType = TypeElement.scalar(loc, "void", null); // Do people actually annotation 'void'?  We'll find out!
+
+                // Do people actually annotation 'void'?  We'll find out!
+                returnType = TypeElement.scalar(loc, "void", null);
             }
 
             boolean isOneway = ctx.ONEWAY() != null;
@@ -383,7 +421,7 @@ class ThriftListener extends AntlrThriftBaseListener {
                     .name(name)
                     .documentation(formatJavadoc(ctx))
                     .annotations(annotationsFromAntlr(ctx.annotationList()))
-                    .params(parseFieldList(ctx.fieldList().field(), Requiredness.REQUIRED)); // params are required by default
+                    .params(parseFieldList(ctx.fieldList().field(), Requiredness.REQUIRED));
 
             if (ctx.throwsList() != null) {
                 builder = builder.exceptions(parseFieldList(ctx.throwsList().fieldList().field()));
@@ -665,8 +703,8 @@ class ThriftListener extends AntlrThriftBaseListener {
      * top-down, left-to-right, then the assumption underpinning the separation of leading
      * and trailing comments is broken.
      *
-     * @param endToken
-     * @return
+     * @param endToken the token from which to search for trailing comment tokens.
+     * @return a list, possibly empty, of all trailing comment tokens.
      */
     private List<Token> getTrailingComments(Token endToken) {
         List<Token> hiddenTokens = tokenStream.getHiddenTokensToRight(endToken.getTokenIndex(), Lexer.HIDDEN);
@@ -722,11 +760,11 @@ class ThriftListener extends AntlrThriftBaseListener {
         int start = prefix.length();
         int end = text.length();
 
-        while (Character.isWhitespace( text.charAt(start) )) {
+        while (Character.isWhitespace(text.charAt(start))) {
             ++start;
         }
 
-        while (Character.isWhitespace( text.charAt(end - 1) )) {
+        while (Character.isWhitespace(text.charAt(end - 1))) {
             --end;
         }
 
@@ -759,7 +797,7 @@ class ThriftListener extends AntlrThriftBaseListener {
                 }
 
                 isStartOfLine = false;
-            } else if (! Character.isWhitespace( c )) {
+            } else if (! Character.isWhitespace(c)) {
                 sb.append(c);
                 isStartOfLine = false;
             }
