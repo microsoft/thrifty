@@ -1,23 +1,20 @@
 package com.microsoft.thrifty.schema.parser;
 
+import autovalue.shaded.com.google.common.common.collect.ImmutableList;
+import autovalue.shaded.com.google.common.common.collect.ImmutableMap;
+import com.google.common.base.Strings;
 import com.microsoft.thrifty.schema.ErrorReporter;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.NamespaceScope;
+import com.microsoft.thrifty.schema.Requiredness;
 import com.microsoft.thrifty.schema.antlr.AntlrThriftBaseListener;
 import com.microsoft.thrifty.schema.antlr.AntlrThriftLexer;
 import com.microsoft.thrifty.schema.antlr.AntlrThriftParser;
-import com.microsoft.thrifty.schema.parser.AnnotationElement;
-import com.microsoft.thrifty.schema.parser.EnumElement;
-import com.microsoft.thrifty.schema.parser.EnumMemberElement;
-import com.microsoft.thrifty.schema.parser.IncludeElement;
-import com.microsoft.thrifty.schema.parser.NamespaceElement;
-import com.microsoft.thrifty.schema.parser.ThriftFileElement;
-import com.microsoft.thrifty.schema.parser.TypeElement;
-import com.microsoft.thrifty.schema.parser.TypedefElement;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
@@ -26,11 +23,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public class ThriftListener extends AntlrThriftBaseListener {
+class ThriftListener extends AntlrThriftBaseListener {
     private final CommonTokenStream tokenStream;
     private final ErrorReporter errorReporter;
     private final Location location;
@@ -44,11 +40,30 @@ public class ThriftListener extends AntlrThriftBaseListener {
     final List<NamespaceElement> namespaces = new ArrayList<>();
     final List<EnumElement> enums = new ArrayList<>();
     final List<TypedefElement> typedefs = new ArrayList<>();
+    final List<StructElement> structs = new ArrayList<>();
+    final List<StructElement> unions = new ArrayList<>();
+    final List<StructElement> exceptions = new ArrayList<>();
+    final List<ConstElement> consts = new ArrayList<>();
+    final List<ServiceElement> services = new ArrayList<>();
 
     ThriftListener(CommonTokenStream tokenStream, ErrorReporter errorReporter, Location location) {
         this.tokenStream = tokenStream;
         this.errorReporter = errorReporter;
         this.location = location;
+    }
+
+    public ThriftFileElement buildFileElement() {
+        return ThriftFileElement.builder(location)
+                .includes(includes)
+                .namespaces(namespaces)
+                .typedefs(typedefs)
+                .enums(enums)
+                .structs(structs)
+                .unions(unions)
+                .exceptions(exceptions)
+                .constants(consts)
+                .services(services)
+                .build();
     }
 
     @Override
@@ -63,7 +78,7 @@ public class ThriftListener extends AntlrThriftBaseListener {
 
     @Override
     public void exitInclude(AntlrThriftParser.IncludeContext ctx) {
-        TerminalNode pathNode = ctx.UNESCAPED_LITERAL();
+        TerminalNode pathNode = ctx.LITERAL();
         String path = unquote(locationOf(pathNode), pathNode.getText(), false);
 
         includes.add(IncludeElement.create(locationOf(ctx), false, path));
@@ -71,7 +86,7 @@ public class ThriftListener extends AntlrThriftBaseListener {
 
     @Override
     public void exitCppInclude(AntlrThriftParser.CppIncludeContext ctx) {
-        TerminalNode pathNode = ctx.UNESCAPED_LITERAL();
+        TerminalNode pathNode = ctx.LITERAL();
         String path = unquote(locationOf(pathNode), pathNode.getText(), false);
 
         includes.add(IncludeElement.create(locationOf(ctx), true, path));
@@ -79,14 +94,14 @@ public class ThriftListener extends AntlrThriftBaseListener {
 
     @Override
     public void exitStandard_namespace(AntlrThriftParser.Standard_namespaceContext ctx) {
-        String scopeName = ctx.scope.getText();
+        String scopeName = ctx.namespace_scope().getText();
         String name = ctx.ns.getText();
 
-        AnnotationElement annotations = fromAntlr(ctx.annotationList());
+        AnnotationElement annotations = annotationsFromAntlr(ctx.annotationList());
 
         NamespaceScope scope = NamespaceScope.forThriftName(scopeName);
         if (scope == null) {
-            errorReporter.warn(locationOf(ctx.scope), "Unknown namespace scope '" + scopeName + "'");
+            errorReporter.warn(locationOf(ctx.namespace_scope()), "Unknown namespace scope '" + scopeName + "'");
             scope = NamespaceScope.UNKNOWN;
         }
 
@@ -103,8 +118,8 @@ public class ThriftListener extends AntlrThriftBaseListener {
     public void exitPhp_namespace(AntlrThriftParser.Php_namespaceContext ctx) {
         NamespaceElement element = NamespaceElement.builder(locationOf(ctx))
                 .scope(NamespaceScope.PHP)
-                .namespace(ctx.LITERAL().getText())
-                .annotations(fromAntlr(ctx.annotationList()))
+                .namespace(unquote(locationOf(ctx.LITERAL()), ctx.LITERAL().getText()))
+                .annotations(annotationsFromAntlr(ctx.annotationList()))
                 .build();
 
         namespaces.add(element);
@@ -116,14 +131,19 @@ public class ThriftListener extends AntlrThriftBaseListener {
     }
 
     @Override
+    public void exitSenum(AntlrThriftParser.SenumContext ctx) {
+        errorReporter.error(locationOf(ctx), "'senum' is unsupported");
+    }
+
+    @Override
     public void exitEnumDef(AntlrThriftParser.EnumDefContext ctx) {
         String enumName = ctx.IDENTIFIER().getText();
 
         int nextValue = 0;
         Set<Integer> values = new HashSet<>();
 
-        List<EnumMemberElement> members = new ArrayList<>(ctx.enum_member().size());
-        for (AntlrThriftParser.Enum_memberContext memberContext : ctx.enum_member()) {
+        List<EnumMemberElement> members = new ArrayList<>(ctx.enumMember().size());
+        for (AntlrThriftParser.EnumMemberContext memberContext : ctx.enumMember()) {
             int value = nextValue;
 
             TerminalNode valueToken = memberContext.INTEGER();
@@ -142,7 +162,7 @@ public class ThriftListener extends AntlrThriftBaseListener {
                     .name(memberContext.IDENTIFIER().getText())
                     .value(value)
                     .documentation(formatJavadoc(memberContext))
-                    .annotations(fromAntlr(memberContext.annotationList()))
+                    .annotations(annotationsFromAntlr(memberContext.annotationList()))
                     .build();
 
             members.add(element);
@@ -152,11 +172,140 @@ public class ThriftListener extends AntlrThriftBaseListener {
         EnumElement element = EnumElement.builder(locationOf(ctx))
                 .name(enumName)
                 .documentation(doc)
-                .annotations(fromAntlr(ctx.annotationList()))
+                .annotations(annotationsFromAntlr(ctx.annotationList()))
                 .members(members)
                 .build();
 
         enums.add(element);
+    }
+
+    @Override
+    public void exitStructDef(AntlrThriftParser.StructDefContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        ImmutableList<FieldElement> fields = parseFieldList(ctx.field());
+
+        StructElement element = StructElement.builder(locationOf(ctx))
+                .name(name)
+                .fields(fields)
+                .type(StructElement.Type.STRUCT)
+                .documentation(formatJavadoc(ctx))
+                .annotations(annotationsFromAntlr(ctx.annotationList()))
+                .build();
+
+        structs.add(element);
+    }
+
+    @Override
+    public void exitUnionDef(AntlrThriftParser.UnionDefContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        ImmutableList<FieldElement> fields = parseFieldList(ctx.field());
+
+        int numFieldsWithDefaultValues = 0;
+        for (int i = 0; i < fields.size(); ++i) {
+            FieldElement element = fields.get(i);
+            if (element.requiredness() == Requiredness.REQUIRED) {
+                AntlrThriftParser.FieldContext fieldContext = ctx.field(i);
+                errorReporter.error(locationOf(fieldContext), "unions cannot have required fields");
+            }
+
+            if (element.constValue() != null) {
+                ++numFieldsWithDefaultValues;
+            }
+        }
+
+        if (numFieldsWithDefaultValues > 1) {
+            errorReporter.error(locationOf(ctx), "unions can have at most one default value");
+        }
+
+        StructElement element = StructElement.builder(locationOf(ctx))
+                .name(name)
+                .fields(fields)
+                .type(StructElement.Type.UNION)
+                .documentation(formatJavadoc(ctx))
+                .annotations(annotationsFromAntlr(ctx.annotationList()))
+                .build();
+
+        unions.add(element);
+    }
+
+    @Override
+    public void exitExceptionDef(AntlrThriftParser.ExceptionDefContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        ImmutableList<FieldElement> fields = parseFieldList(ctx.field());
+
+        StructElement element = StructElement.builder(locationOf(ctx))
+                .name(name)
+                .fields(fields)
+                .type(StructElement.Type.EXCEPTION)
+                .documentation(formatJavadoc(ctx))
+                .annotations(annotationsFromAntlr(ctx.annotationList()))
+                .build();
+
+        exceptions.add(element);
+    }
+
+    private ImmutableList<FieldElement> parseFieldList(List<AntlrThriftParser.FieldContext> contexts) {
+        return parseFieldList(contexts, Requiredness.DEFAULT);
+    }
+
+    private ImmutableList<FieldElement> parseFieldList(List<AntlrThriftParser.FieldContext> contexts, Requiredness defaultRequiredness) {
+        ImmutableList.Builder<FieldElement> builder = ImmutableList.builder();
+        Set<Integer> ids = new HashSet<>();
+
+        int nextValue = 1;
+        for (AntlrThriftParser.FieldContext fieldContext : contexts) {
+            FieldElement element = parseField(nextValue, fieldContext, defaultRequiredness);
+            if (element != null) {
+                builder = builder.add(element);
+
+                if (!ids.add(element.fieldId())) {
+                    errorReporter.error(locationOf(fieldContext), "duplicate field ID: " + element.fieldId());
+                }
+
+                if (element.fieldId() <= 0) {
+                    errorReporter.error(locationOf(fieldContext), "field ID must be greater than zero");
+                }
+
+                if (element.fieldId() >= nextValue) {
+                    nextValue = element.fieldId() + 1;
+                }
+            } else {
+                // assert-fail here?
+                ++nextValue; // this represents an error condition
+            }
+        }
+
+        return builder.build();
+    }
+
+    private FieldElement parseField(int defaultValue, AntlrThriftParser.FieldContext ctx, Requiredness defaultRequiredness) {
+        int fieldId = defaultValue;
+        if (ctx.INTEGER() != null) {
+            fieldId = parseInt(ctx.INTEGER());
+        }
+
+        String fieldName = ctx.IDENTIFIER().getText();
+
+        Requiredness requiredness = defaultRequiredness;
+        if (ctx.requiredness() != null) {
+            if (ctx.requiredness().getText().equals("required")) {
+                requiredness = Requiredness.REQUIRED;
+            } else if (ctx.requiredness().getText().equals("optional")) {
+                requiredness = Requiredness.OPTIONAL;
+            } else {
+                throw new AssertionError("Unexpected requiredness value: " + ctx.requiredness().getText());
+            }
+        }
+
+        return FieldElement.builder(locationOf(ctx))
+                .documentation(formatJavadoc(ctx))
+                .fieldId(fieldId)
+                .requiredness(requiredness)
+                .type(typeElementOf(ctx.fieldType()))
+                .name(fieldName)
+                .annotations(annotationsFromAntlr(ctx.annotationList()))
+                .constValue(constValueElementOf(ctx.constValue()))
+                .build();
     }
 
     @Override
@@ -165,7 +314,7 @@ public class ThriftListener extends AntlrThriftBaseListener {
 
         TypedefElement typedef = TypedefElement.builder(locationOf(ctx))
                 .documentation(formatJavadoc(ctx))
-                .annotations(fromAntlr(ctx.annotationList()))
+                .annotations(annotationsFromAntlr(ctx.annotationList()))
                 .oldType(oldType)
                 .newName(ctx.IDENTIFIER().getText())
                 .build();
@@ -173,43 +322,87 @@ public class ThriftListener extends AntlrThriftBaseListener {
         typedefs.add(typedef);
     }
 
+    @Override
+    public void exitConstDef(AntlrThriftParser.ConstDefContext ctx) {
+        ConstElement element = ConstElement.builder(locationOf(ctx))
+                .documentation(formatJavadoc(ctx))
+                .type(typeElementOf(ctx.fieldType()))
+                .name(ctx.IDENTIFIER().getText())
+                .value(constValueElementOf(ctx.constValue()))
+                .build();
+
+        consts.add(element);
+    }
+
+    @Override
+    public void exitServiceDef(AntlrThriftParser.ServiceDefContext ctx) {
+        String name = ctx.name.getText();
+
+        ServiceElement.Builder builder = ServiceElement.builder(locationOf(ctx))
+                .name(name)
+                .functions(parseFunctionList(ctx.function()))
+                .documentation(formatJavadoc(ctx))
+                .annotations(annotationsFromAntlr(ctx.annotationList()));
+
+        if (ctx.superType != null) {
+            TypeElement superType = typeElementOf(ctx.superType);
+
+            if (!(superType instanceof ScalarTypeElement)) {
+                errorReporter.error(locationOf(ctx), "services cannot extend collections");
+            }
+
+            builder = builder.extendsService(superType);
+        }
+
+        services.add(builder.build());
+    }
+
+    private ImmutableList<FunctionElement> parseFunctionList(List<AntlrThriftParser.FunctionContext> functionContexts) {
+        ImmutableList.Builder<FunctionElement> functions = ImmutableList.builder();
+
+        for (AntlrThriftParser.FunctionContext ctx : functionContexts) {
+            String name = ctx.IDENTIFIER().getText();
+
+            TypeElement returnType;
+            if (ctx.fieldType() != null) {
+                returnType = typeElementOf(ctx.fieldType());
+            } else {
+                TerminalNode token = ctx.getToken(AntlrThriftLexer.VOID, 0);
+                if (token == null) {
+                    throw new AssertionError("Function has no return type, and no VOID token - grammar error");
+                }
+                Location loc = locationOf(token);
+                returnType = TypeElement.scalar(loc, "void", null); // Do people actually annotation 'void'?  We'll find out!
+            }
+
+            boolean isOneway = ctx.ONEWAY() != null;
+
+            FunctionElement.Builder builder = FunctionElement.builder(locationOf(ctx))
+                    .oneWay(isOneway)
+                    .returnType(returnType)
+                    .name(name)
+                    .documentation(formatJavadoc(ctx))
+                    .annotations(annotationsFromAntlr(ctx.annotationList()))
+                    .params(parseFieldList(ctx.fieldList().field(), Requiredness.REQUIRED)); // params are required by default
+
+            if (ctx.throwsList() != null) {
+                builder = builder.exceptions(parseFieldList(ctx.throwsList().fieldList().field()));
+            }
+
+            functions.add(builder.build());
+        }
+
+        return functions.build();
+    }
+
+    @Override
+    public void visitErrorNode(ErrorNode node) {
+        errorReporter.error(locationOf(node), node.getText());
+    }
+
     // region Utilities
 
-    private List<Token> getLeadingComments(Token token) {
-        List<Token> hiddenTokens = tokenStream.getHiddenTokensToLeft(token.getTokenIndex(), Lexer.HIDDEN);
-
-        if (hiddenTokens == null || hiddenTokens.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<Token> comments = new ArrayList<>(hiddenTokens.size());
-        for (Token hiddenToken : hiddenTokens) {
-            if (isComment(hiddenToken) && !trailingDocTokenIndexes.get(hiddenToken.getTokenIndex())) {
-                comments.add(hiddenToken);
-            }
-        }
-
-        return comments;
-    }
-
-    private List<Token> getTrailingComments(Token endToken) {
-        List<Token> hiddenTokens = tokenStream.getHiddenTokensToRight(endToken.getTokenIndex(), Lexer.HIDDEN);
-
-        if (hiddenTokens == null || hiddenTokens.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        Token maybeTrailingDoc = hiddenTokens.get(0); // only one trailing comment is possible
-
-        if (isComment(maybeTrailingDoc)) {
-            trailingDocTokenIndexes.set(maybeTrailingDoc.getTokenIndex());
-            return Collections.singletonList(maybeTrailingDoc);
-        }
-
-        return Collections.emptyList();
-    }
-
-    private AnnotationElement fromAntlr(AntlrThriftParser.AnnotationListContext ctx) {
+    private AnnotationElement annotationsFromAntlr(AntlrThriftParser.AnnotationListContext ctx) {
         if (ctx == null) {
             return null;
         }
@@ -219,9 +412,9 @@ public class ThriftListener extends AntlrThriftBaseListener {
             String name = annotationContext.IDENTIFIER().getText();
             String value;
             if (annotationContext.LITERAL() != null) {
-                value = annotationContext.LITERAL().getText();
+                value = unquote(locationOf(annotationContext.LITERAL()), annotationContext.LITERAL().getText());
             } else {
-                value = "";
+                value = "true";
             }
             annotations.put(name, value);
         }
@@ -317,14 +510,14 @@ public class ThriftListener extends AntlrThriftBaseListener {
             return TypeElement.scalar(
                     locationOf(context),
                     context.baseType().getText(),
-                    fromAntlr(context.annotationList()));
+                    annotationsFromAntlr(context.annotationList()));
         }
 
         if (context.IDENTIFIER() != null) {
             return TypeElement.scalar(
                     locationOf(context),
                     context.IDENTIFIER().getText(),
-                    fromAntlr(context.annotationList()));
+                    annotationsFromAntlr(context.annotationList()));
         }
 
         if (context.containerType() != null) {
@@ -336,27 +529,92 @@ public class ThriftListener extends AntlrThriftBaseListener {
                         locationOf(containerContext.mapType()),
                         keyType,
                         valueType,
-                        fromAntlr(context.annotationList()));
+                        annotationsFromAntlr(context.annotationList()));
             }
 
             if (containerContext.setType() != null) {
                 return TypeElement.set(
                         locationOf(containerContext.setType()),
                         typeElementOf(containerContext.setType().fieldType()),
-                        fromAntlr(context.annotationList()));
+                        annotationsFromAntlr(context.annotationList()));
             }
 
             if (containerContext.listType() != null) {
                 return TypeElement.list(
                         locationOf(containerContext.listType()),
                         typeElementOf(containerContext.listType().fieldType()),
-                        fromAntlr(context.annotationList()));
+                        annotationsFromAntlr(context.annotationList()));
             }
 
             throw new AssertionError("Unexpected container type - grammar error!");
         }
 
         throw new AssertionError("Unexpected type - grammar error!");
+    }
+
+    private ConstValueElement constValueElementOf(AntlrThriftParser.ConstValueContext ctx) {
+        if (ctx == null) {
+            return null;
+        }
+
+        if (ctx.INTEGER() != null) {
+            String text = ctx.INTEGER().getText();
+
+            int radix = 10;
+            if (text.startsWith("0x") || text.startsWith("0X")) {
+                text = text.substring(2);
+                radix = 16;
+            }
+
+            try {
+                long value = Long.parseLong(text, radix);
+
+                return ConstValueElement.integer(locationOf(ctx), value);
+            } catch (NumberFormatException e) {
+                throw new AssertionError("Invalid integer accepted by ANTLR grammar: " + ctx.INTEGER().getText());
+            }
+        }
+
+        if (ctx.DOUBLE() != null) {
+            String text = ctx.DOUBLE().getText();
+
+            try {
+                double value = Double.parseDouble(text);
+                return ConstValueElement.real(locationOf(ctx), value);
+            } catch (NumberFormatException e) {
+                throw new AssertionError("Invalid double accepted by ANTLR grammar: " + text);
+            }
+        }
+
+        if (ctx.LITERAL() != null) {
+            String text = unquote(locationOf(ctx.LITERAL()), ctx.LITERAL().getText());
+            return ConstValueElement.literal(locationOf(ctx), text);
+        }
+
+        if (ctx.IDENTIFIER() != null) {
+            String id = ctx.IDENTIFIER().getText();
+            return ConstValueElement.identifier(locationOf(ctx), id);
+        }
+
+        if (ctx.constList() != null) {
+            ImmutableList.Builder<ConstValueElement> values = ImmutableList.builder();
+            for (AntlrThriftParser.ConstValueContext valueContext : ctx.constList().constValue()) {
+                values.add(constValueElementOf(valueContext));
+            }
+            return ConstValueElement.list(locationOf(ctx), values.build());
+        }
+
+        if (ctx.constMap() != null) {
+            ImmutableMap.Builder<ConstValueElement, ConstValueElement> values = ImmutableMap.builder();
+            for (AntlrThriftParser.ConstMapEntryContext entry : ctx.constMap().constMapEntry()) {
+                ConstValueElement key = constValueElementOf(entry.key);
+                ConstValueElement value = constValueElementOf(entry.value);
+                values.put(key, value);
+            }
+            return ConstValueElement.map(locationOf(ctx), values.build());
+        }
+
+        throw new AssertionError("unreachable");
     }
 
     private static boolean isComment(Token token) {
@@ -377,6 +635,54 @@ public class ThriftListener extends AntlrThriftBaseListener {
         tokens.addAll(getTrailingComments(context.getStop()));
 
         return formatJavadoc(tokens);
+    }
+
+    private List<Token> getLeadingComments(Token token) {
+        List<Token> hiddenTokens = tokenStream.getHiddenTokensToLeft(token.getTokenIndex(), Lexer.HIDDEN);
+
+        if (hiddenTokens == null || hiddenTokens.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Token> comments = new ArrayList<>(hiddenTokens.size());
+        for (Token hiddenToken : hiddenTokens) {
+            if (isComment(hiddenToken) && !trailingDocTokenIndexes.get(hiddenToken.getTokenIndex())) {
+                comments.add(hiddenToken);
+            }
+        }
+
+        return comments;
+    }
+
+    /**
+     * Read comments following the given token, until the first newline is encountered.
+     *
+     * INVARIANT:
+     * Assumes that the parse tree is being walked top-down, left to right!
+     *
+     * Trailing-doc tokens are marked as such, so that subsequent searches for "leading"
+     * doc don't grab tokens already used as "trailing" doc.  If the walk order is *not*
+     * top-down, left-to-right, then the assumption underpinning the separation of leading
+     * and trailing comments is broken.
+     *
+     * @param endToken
+     * @return
+     */
+    private List<Token> getTrailingComments(Token endToken) {
+        List<Token> hiddenTokens = tokenStream.getHiddenTokensToRight(endToken.getTokenIndex(), Lexer.HIDDEN);
+
+        if (hiddenTokens == null || hiddenTokens.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Token maybeTrailingDoc = hiddenTokens.get(0); // only one trailing comment is possible
+
+        if (isComment(maybeTrailingDoc)) {
+            trailingDocTokenIndexes.set(maybeTrailingDoc.getTokenIndex());
+            return Collections.singletonList(maybeTrailingDoc);
+        }
+
+        return Collections.emptyList();
     }
 
     private static String formatJavadoc(List<Token> commentTokens) {
@@ -403,7 +709,13 @@ public class ThriftListener extends AntlrThriftBaseListener {
             }
         }
 
-        return sb.toString();
+        String doc = sb.toString().trim();
+
+        if (!Strings.isNullOrEmpty(doc) && !doc.endsWith("\n")) {
+            doc += "\n";
+        }
+
+        return doc;
     }
 
     private static void formatSingleLineComment(StringBuilder sb, String text, String prefix) {
@@ -441,11 +753,9 @@ public class ThriftListener extends AntlrThriftBaseListener {
             } else if (!isStartOfLine) {
                 sb.append(c);
             } else if (c == '*') {
-                sb.append(c);
-
                 // skip a single subsequent space, if it exists
-                if (Character.isWhitespace( chars[pos + 1] )) {
-                    ++pos;
+                if (chars[pos + 1] == ' ') {
+                    pos += 1;
                 }
 
                 isStartOfLine = false;

@@ -20,10 +20,6 @@
  */
 grammar AntlrThrift;
 
-@header {
-  package com.microsoft.thrifty.schema.antlr;
-}
-
 document: header* definition*;
 
 header
@@ -33,11 +29,11 @@ header
     ;
 
 include
-    : 'include' UNESCAPED_LITERAL // unescaped to preserve Windows file paths
+    : 'include' LITERAL separator?
     ;
 
 cppInclude
-    : 'cpp_include' UNESCAPED_LITERAL // unescaped to preserve Windows file paths
+    : 'cpp_include' LITERAL separator?
     ;
 
 namespace
@@ -47,15 +43,20 @@ namespace
     ;
 
 standard_namespace
-    : 'namespace' scope=IDENTIFIER ns=IDENTIFIER annotationList? SEPARATOR?
+    : 'namespace' namespace_scope ns=IDENTIFIER annotationList? separator?
+    ;
+
+namespace_scope
+    : '*'
+    | IDENTIFIER
     ;
 
 php_namespace
-    : 'php_namespace' ns=LITERAL annotationList? SEPARATOR?
+    : 'php_namespace' ns=LITERAL annotationList? separator?
     ;
 
 xsd_namespace
-    : 'xsd_namespace' ns=LITERAL annotationList? SEPARATOR?
+    : 'xsd_namespace' ns=LITERAL annotationList? separator?
     ;
 
 definition
@@ -71,7 +72,7 @@ definition
 
 // prefixed because 'const' is a reserved keyword in Java
 constDef
-    : 'const' fieldType IDENTIFIER '=' constValue SEPARATOR?
+    : 'const' fieldType IDENTIFIER '=' constValue separator?
     ;
 
 constValue
@@ -84,48 +85,52 @@ constValue
     ;
 
 constList
-    : '[' (constList SEPARATOR?)* ']'
+    : '[' (constValue separator?)* ']'
     ;
 
 constMap
-    : '{' (constValue ':' constValue SEPARATOR?)* '}'
+    : '{' (constMapEntry separator?)* '}'
+    ;
+
+constMapEntry
+    : key=constValue ':' value=constValue
     ;
 
 typedef
-    : 'typedef' fieldType IDENTIFIER SEPARATOR? annotationList?
+    : 'typedef' fieldType IDENTIFIER annotationList? separator?
     ;
 
 // prefixed because 'enum' is a reserved keyword in Java
 enumDef
-    : 'enum' IDENTIFIER '{' enum_member* '}' annotationList?
+    : 'enum' IDENTIFIER '{' enumMember* '}' annotationList?
     ;
 
-enum_member
-    : IDENTIFIER ('=' INTEGER)? SEPARATOR? annotationList?
+enumMember
+    : IDENTIFIER ('=' INTEGER)? annotationList? separator?
     ;
 
 senum
-    : 'senum' IDENTIFIER '{' enum_member* '}' { System.err.println("WARNING: 'senum' is deprecated and unsupported!"); }
+    : 'senum' IDENTIFIER '{' enumMember* '}' { System.err.println("WARNING: 'senum' is deprecated and unsupported!"); }
     ;
 
 structDef
-    : 'struct' IDENTIFIER '{' field* '}'
+    : 'struct' IDENTIFIER '{' field* '}' annotationList?
     ;
 
 unionDef
-    : 'union' IDENTIFIER '{' field* '}'
+    : 'union' IDENTIFIER '{' field* '}' annotationList?
     ;
 
 exceptionDef
-    : 'exception' IDENTIFIER '{' field* '}'
+    : 'exception' IDENTIFIER '{' field* '}' annotationList?
     ;
 
 serviceDef
-    : 'service' IDENTIFIER '{' function* '}'
+    : 'service' name=IDENTIFIER ('extends' superType=fieldType)? '{' function* '}' annotationList?
     ;
 
 function
-    : 'oneway'? ('void' | fieldType) IDENTIFIER fieldList throwsList? SEPARATOR?
+    : ONEWAY? (VOID | fieldType) IDENTIFIER fieldList throwsList? annotationList? separator?
     ;
 
 fieldList
@@ -133,7 +138,12 @@ fieldList
     ;
 
 field
-    : NATURAL_INTEGER ':' ('required' | 'optional')? fieldType IDENTIFIER ('=' constDef)? SEPARATOR?
+    : (INTEGER ':')? requiredness? fieldType IDENTIFIER ('=' constValue)? annotationList? separator?
+    ;
+
+requiredness
+    : 'optional'
+    | 'required'
     ;
 
 throwsList
@@ -186,7 +196,12 @@ annotationList
     ;
 
 annotation
-    : IDENTIFIER ('=' LITERAL)?
+    : IDENTIFIER ('=' LITERAL)? separator?
+    ;
+
+separator
+    : COMMA
+    | SEMICOLON
     ;
 
 LITERAL
@@ -195,16 +210,11 @@ LITERAL
     ;
 
 fragment DOUBLE_QUOTE_LITERAL
-    : '"' (ESCAPE_CHAR|'\\"'|~'"')* '"'
+    : '"' (~'"')* '"'
     ;
 
 fragment SINGLE_QUOTE_LITERAL
-    : '\'' (ESCAPE_CHAR|'\\\''|~'\'')* '\''
-    ;
-
-UNESCAPED_LITERAL
-    : '"' (~["])*? '"'
-    | '\'' (~['])*? '\''
+    : '\'' (~'\'')* '\''
     ;
 
 fragment ESCAPE_CHAR
@@ -212,9 +222,12 @@ fragment ESCAPE_CHAR
     | '\\u' HEX HEX HEX HEX
     ;
 
-SEPARATOR
-    : COMMA
-    | SEMICOLON
+VOID
+    : 'void'
+    ;
+
+ONEWAY
+    : 'oneway'
     ;
 
 COMMA
@@ -229,16 +242,17 @@ IDENTIFIER
     : ID_START_CHAR ID_CHAR*
     ;
 
+NS_SCOPE
+    : '*'
+    | IDENTIFIER
+    ;
+
 fragment ID_START_CHAR : [_a-zA-Z] ;
 
 fragment ID_CHAR : [_a-zA-Z0-9.] ;
 
 fragment HEX
     : [a-fA-F0-9]
-    ;
-
-NATURAL_INTEGER
-    : [1-9] [0-9]+
     ;
 
 INTEGER

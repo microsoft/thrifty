@@ -29,6 +29,10 @@ autoValue {
     library = 'com.google.auto.value:auto-value:1.1'
 }
 
+generateGrammarSource {
+    arguments += ["-package", "com.microsoft.thrifty.schema.antlr"]
+}
+
 dependencies {
     antlr "org.antlr:antlr4:4.6"
     compile "org.antlr:antlr4:4.6"

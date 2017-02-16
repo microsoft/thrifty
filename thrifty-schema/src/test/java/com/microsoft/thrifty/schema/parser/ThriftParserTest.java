@@ -266,7 +266,7 @@ public class ThriftParserTest {
                                                 .requiredness(Requiredness.OPTIONAL)
                                                 .type(TypeElement.scalar(location.at(5, 15), "binary", null))
                                                 .name("knr")
-                                                .documentation("* K&R-style *\n")
+                                                .documentation("K&R-style *\n")
                                                 .build())
                                         .build())
                                 .build())
@@ -313,10 +313,10 @@ public class ThriftParserTest {
                 "byte minimal\n" +
                 "byte minimalWithSeparator,\n" +
                 "byte minimalWithOtherSeparator;\n" +
-                "required byte required\n" +
+                "required byte requiredWithoutSeparator\n" +
                 "required byte requiredWithComma,\n" +
                 "required byte requiredWithSemicolon;\n" +
-                "optional i16 optional\n" +
+                "optional i16 optionalWithoutSeparator\n" +
                 "optional i16 optionalWithComma,\n" +
                 "optional i16 optionalWithSemicolon;\n" +
                 "10: i32 implicitOptional\n" +
@@ -355,7 +355,7 @@ public class ThriftParserTest {
                                 .fieldId(4)
                                 .requiredness(Requiredness.REQUIRED)
                                 .type(TypeElement.scalar(location.at(5, 10), "byte", null))
-                                .name("required")
+                                .name("requiredWithoutSeparator")
                                 .build())
                         .add(FieldElement.builder(location.at(6, 1))
                                 .fieldId(5)
@@ -373,7 +373,7 @@ public class ThriftParserTest {
                                 .fieldId(7)
                                 .requiredness(Requiredness.OPTIONAL)
                                 .type(TypeElement.scalar(location.at(8, 10), "i16", null))
-                                .name("optional")
+                                .name("optionalWithoutSeparator")
                                 .build())
                         .add(FieldElement.builder(location.at(9, 1))
                                 .fieldId(8)
@@ -444,7 +444,7 @@ public class ThriftParserTest {
         }
 
         thrift = "struct ZeroId {\n" +
-                "  0: option i64 stillNope\n" +
+                "  0: optional i64 stillNope\n" +
                 "}";
         try {
             parse(thrift);

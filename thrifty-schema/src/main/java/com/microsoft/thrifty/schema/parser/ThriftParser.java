@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.schema.parser;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -30,8 +31,14 @@ import com.microsoft.thrifty.schema.JavadocUtil;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.Requiredness;
+import com.microsoft.thrifty.schema.antlr.AntlrThriftLexer;
+import com.microsoft.thrifty.schema.antlr.AntlrThriftParser;
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.Set;
 
 public final class ThriftParser {
@@ -74,9 +81,23 @@ public final class ThriftParser {
      * @return a representation of the parsed Thrift data.
      */
     public static ThriftFileElement parse(Location location, String text, ErrorReporter reporter) {
-        ThriftParser parser = new ThriftParser(location, text.toCharArray());
-        parser.errorReporter = reporter;
-        return parser.readThriftData();
+        ANTLRInputStream charStream = new ANTLRInputStream(text);
+        AntlrThriftLexer lexer = new AntlrThriftLexer(charStream);
+        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
+        AntlrThriftParser antlrParser = new AntlrThriftParser(tokenStream);
+
+        ThriftListener thriftListener = new ThriftListener(tokenStream, reporter, location);
+
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(thriftListener, antlrParser.document());
+
+        if (reporter.hasError()) {
+            String errorReports = Joiner.on('\n').join(reporter.formattedReports());
+            String message = String.format(Locale.US, "Syntax errors in %s:\n%s", location, errorReports);
+            throw new IllegalStateException(message);
+        }
+
+        return thriftListener.buildFileElement();
     }
 
     private ThriftParser(Location location, char[] data) {
