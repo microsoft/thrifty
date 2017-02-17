@@ -33,6 +33,12 @@ generateGrammarSource {
     arguments += ["-package", "com.microsoft.thrifty.schema.antlr"]
 }
 
+sourceSets {
+    main {
+        java.srcDirs += 'src/auto-value/java'
+    }
+}
+
 dependencies {
     antlr "org.antlr:antlr4:4.6"
     compile "org.antlr:antlr4:4.6"
