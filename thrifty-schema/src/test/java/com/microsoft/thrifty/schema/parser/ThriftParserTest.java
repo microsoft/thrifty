@@ -22,6 +22,7 @@ package com.microsoft.thrifty.schema.parser;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.microsoft.thrifty.schema.ErrorReporter;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.Requiredness;
@@ -99,7 +100,7 @@ public class ThriftParserTest {
                         .build())
                 .build();
 
-        assertThat(ThriftParser.parse(location, thrift), equalTo(expected));
+        assertThat(parse(thrift, location), equalTo(expected));
     }
 
     @Test
@@ -437,7 +438,7 @@ public class ThriftParserTest {
     public void invalidFieldIds() {
         String thrift = "struct NegativeId { -1: required i32 nope }";
         try {
-            ThriftParser.parse(Location.get("", ""), thrift);
+            parse(thrift);
             fail("Should not parse a struct with a negative field ID");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("field ID must be greater than zero"));
@@ -1189,7 +1190,7 @@ public class ThriftParserTest {
     }
 
     private static ThriftFileElement parse(String thrift, Location location) {
-        return ThriftParser.parse(location, thrift);
+        return ThriftParser.parse(location, thrift, new ErrorReporter());
     }
 
 }

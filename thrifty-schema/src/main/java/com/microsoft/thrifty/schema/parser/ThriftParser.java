@@ -31,6 +31,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import java.util.Locale;
 
+@SuppressWarnings({"WeakerAccess", "unused"}) // public methods are part of our "official" API surface
 public final class ThriftParser {
 
     /**
@@ -70,5 +71,9 @@ public final class ThriftParser {
         }
 
         return thriftListener.buildFileElement();
+    }
+
+    private ThriftParser() {
+        // no instances
     }
 }

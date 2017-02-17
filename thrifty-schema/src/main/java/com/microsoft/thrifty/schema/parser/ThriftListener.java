@@ -93,7 +93,7 @@ class ThriftListener extends AntlrThriftBaseListener {
         this.location = location;
     }
 
-    public ThriftFileElement buildFileElement() {
+    ThriftFileElement buildFileElement() {
         return ThriftFileElement.builder(location)
                 .includes(includes)
                 .namespaces(namespaces)
@@ -483,7 +483,7 @@ class ThriftListener extends AntlrThriftBaseListener {
         char startChar = chars[0];
         char endChar = chars[chars.length - 1];
 
-        if (startChar != endChar || (startChar != '\'' && startChar != '"') || (endChar != '\'' && endChar != '"')) {
+        if (startChar != endChar || (startChar != '\'' && startChar != '"')) {
             throw new AssertionError("Incorrect UNESCAPED_LITERAL rule: " + literal);
         }
 
