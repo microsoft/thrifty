@@ -39,7 +39,7 @@ public class ErrorReporter {
         reports.add(Report.create(Level.ERROR, location, message));
     }
 
-    boolean hasError() {
+    public boolean hasError() {
         return hasError;
     }
 

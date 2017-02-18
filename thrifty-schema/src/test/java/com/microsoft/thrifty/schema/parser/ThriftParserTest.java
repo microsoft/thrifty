@@ -22,6 +22,7 @@ package com.microsoft.thrifty.schema.parser;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.microsoft.thrifty.schema.ErrorReporter;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.Requiredness;
@@ -99,7 +100,7 @@ public class ThriftParserTest {
                         .build())
                 .build();
 
-        assertThat(ThriftParser.parse(location, thrift), equalTo(expected));
+        assertThat(parse(thrift, location), equalTo(expected));
     }
 
     @Test
@@ -266,7 +267,7 @@ public class ThriftParserTest {
                                                 .requiredness(Requiredness.OPTIONAL)
                                                 .type(TypeElement.scalar(location.at(5, 15), "binary", null))
                                                 .name("knr")
-                                                .documentation("* K&R-style *\n")
+                                                .documentation("K&R-style *\n")
                                                 .build())
                                         .build())
                                 .build())
@@ -313,10 +314,10 @@ public class ThriftParserTest {
                 "byte minimal\n" +
                 "byte minimalWithSeparator,\n" +
                 "byte minimalWithOtherSeparator;\n" +
-                "required byte required\n" +
+                "required byte requiredWithoutSeparator\n" +
                 "required byte requiredWithComma,\n" +
                 "required byte requiredWithSemicolon;\n" +
-                "optional i16 optional\n" +
+                "optional i16 optionalWithoutSeparator\n" +
                 "optional i16 optionalWithComma,\n" +
                 "optional i16 optionalWithSemicolon;\n" +
                 "10: i32 implicitOptional\n" +
@@ -355,7 +356,7 @@ public class ThriftParserTest {
                                 .fieldId(4)
                                 .requiredness(Requiredness.REQUIRED)
                                 .type(TypeElement.scalar(location.at(5, 10), "byte", null))
-                                .name("required")
+                                .name("requiredWithoutSeparator")
                                 .build())
                         .add(FieldElement.builder(location.at(6, 1))
                                 .fieldId(5)
@@ -373,7 +374,7 @@ public class ThriftParserTest {
                                 .fieldId(7)
                                 .requiredness(Requiredness.OPTIONAL)
                                 .type(TypeElement.scalar(location.at(8, 10), "i16", null))
-                                .name("optional")
+                                .name("optionalWithoutSeparator")
                                 .build())
                         .add(FieldElement.builder(location.at(9, 1))
                                 .fieldId(8)
@@ -437,14 +438,14 @@ public class ThriftParserTest {
     public void invalidFieldIds() {
         String thrift = "struct NegativeId { -1: required i32 nope }";
         try {
-            ThriftParser.parse(Location.get("", ""), thrift);
+            parse(thrift);
             fail("Should not parse a struct with a negative field ID");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("field ID must be greater than zero"));
         }
 
         thrift = "struct ZeroId {\n" +
-                "  0: option i64 stillNope\n" +
+                "  0: optional i64 stillNope\n" +
                 "}";
         try {
             parse(thrift);
@@ -1189,7 +1190,7 @@ public class ThriftParserTest {
     }
 
     private static ThriftFileElement parse(String thrift, Location location) {
-        return ThriftParser.parse(location, thrift);
+        return ThriftParser.parse(location, thrift, new ErrorReporter());
     }
 
 }
