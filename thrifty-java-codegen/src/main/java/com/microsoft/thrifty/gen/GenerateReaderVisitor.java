@@ -149,7 +149,19 @@ class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
     public Void visitEnum(EnumType enumType) {
         String target = nameStack.peek();
         String qualifiedJavaName = getFullyQualifiedJavaName(enumType);
-        read.addStatement("$1L $2N = $1L.findByValue(protocol.readI32())", qualifiedJavaName, target);
+        String intName = "i32_" + scope;
+
+        read.addStatement("int $L = protocol.readI32()", intName);
+        read.addStatement("$1L $2N = $1L.findByValue($3L)", qualifiedJavaName, target, intName);
+        read.beginControlFlow("if ($N == null)", target);
+        read.addStatement(
+                "throw new $1T($2T.PROTOCOL_ERROR, $3S + $4L)",
+                TypeNames.THRIFT_EXCEPTION,
+                TypeNames.THRIFT_EXCEPTION_KIND,
+                "Unexpected value for enum-type " + enumType.name() + ": ",
+                intName);
+        read.endControlFlow();
+
         return null;
     }
 
