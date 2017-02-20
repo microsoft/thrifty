@@ -1051,8 +1051,15 @@ public final class ThriftyCodeGenerator {
 
     private static AnnotationSpec fieldAnnotation(Field field) {
         AnnotationSpec.Builder ann = AnnotationSpec.builder(ThriftField.class)
-                .addMember("fieldId", "$L", field.id())
-                .addMember("isRequired", "$L", field.required());
+                .addMember("fieldId", "$L", field.id());
+
+        if (field.required()) {
+            ann.addMember("isRequired", "$L", field.required());
+        }
+
+        if (field.optional()) {
+            ann.addMember("isOptional", "$L", field.optional());
+        }
 
         String typedef = field.typedefName();
         if (!Strings.isNullOrEmpty(typedef)) {
