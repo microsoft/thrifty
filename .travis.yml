@@ -1,4 +1,7 @@
 language: java
+jdk:
+  - oraclejdk8
+
 sudo: false
 install: echo './gradlew check will install dependencies'
 
