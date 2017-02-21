@@ -22,7 +22,6 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.microsoft.thrifty.schema.parser.FunctionElement;
 import com.microsoft.thrifty.schema.parser.ServiceElement;
 import com.microsoft.thrifty.schema.parser.TypeElement;
 
@@ -45,12 +44,9 @@ public class ServiceType extends UserType {
         super(program, new UserElementMixin(element));
 
         this.extendsServiceType = element.extendsService();
-
-        ImmutableList.Builder<ServiceMethod> methodListBuilder = ImmutableList.builder();
-        for (FunctionElement functionElement : element.functions()) {
-            methodListBuilder.add(new ServiceMethod(functionElement));
-        }
-        this.methods = methodListBuilder.build();
+        this.methods = element.functions().stream()
+                .map(ServiceMethod::new)
+                .collect(ImmutableList.toImmutableList());
     }
 
     private ServiceType(Builder builder) {

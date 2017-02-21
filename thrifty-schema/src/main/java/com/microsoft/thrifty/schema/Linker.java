@@ -41,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 
@@ -447,14 +448,12 @@ class Linker {
                 String includeName = symbol.substring(0, ix);
                 String qualifiedName = symbol.substring(ix + 1);
                 String expectedPath = includeName + ".thrift";
-                for (Program includedProgram : program.includes()) {
-                    if (includedProgram.location().path().equals(expectedPath)) {
-                        constant = includedProgram.constantMap().get(qualifiedName);
-                        if (constant != null) {
-                            break;
-                        }
-                    }
-                }
+                constant = program.includes().stream()
+                        .filter(p -> p.location().path().equals(expectedPath))
+                        .map(p -> p.constantMap().get(qualifiedName))
+                        .filter(Objects::nonNull)
+                        .findFirst()
+                        .orElse(null);
             }
         }
         return constant;

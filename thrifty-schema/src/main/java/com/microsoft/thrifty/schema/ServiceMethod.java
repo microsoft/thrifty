@@ -22,7 +22,6 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.FunctionElement;
 
 import java.util.LinkedHashMap;
@@ -41,17 +40,13 @@ public class ServiceMethod implements UserElement {
         this.mixin = new UserElementMixin(element);
         this.element = element;
 
-        ImmutableList.Builder<Field> paramsBuilder = ImmutableList.builder();
-        for (FieldElement parameter : element.params()) {
-            paramsBuilder.add(new Field(parameter));
-        }
-        this.parameters = paramsBuilder.build();
+        this.parameters = element.params().stream()
+                .map(Field::new)
+                .collect(ImmutableList.toImmutableList());
 
-        ImmutableList.Builder<Field> exceptionsBuilder = ImmutableList.builder();
-        for (FieldElement exception : element.exceptions()) {
-            exceptionsBuilder.add(new Field(exception));
-        }
-        this.exceptions = exceptionsBuilder.build();
+        this.exceptions = element.exceptions().stream()
+                .map(Field::new)
+                .collect(ImmutableList.toImmutableList());
     }
 
     protected ServiceMethod(Builder builder) {
