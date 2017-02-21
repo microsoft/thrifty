@@ -22,7 +22,6 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.StructElement;
 
 import java.util.LinkedHashMap;
@@ -42,12 +41,9 @@ public class StructType extends UserType {
         super(program, new UserElementMixin(element));
 
         this.structType = element.type();
-
-        ImmutableList.Builder<Field> fieldsBuilder = ImmutableList.builder();
-        for (FieldElement fieldElement : element.fields()) {
-            fieldsBuilder.add(new Field(fieldElement));
-        }
-        this.fields = fieldsBuilder.build();
+        this.fields = element.fields().stream()
+                .map(Field::new)
+                .collect(ImmutableList.toImmutableList());
     }
 
     private StructType(Builder builder) {

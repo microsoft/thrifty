@@ -24,14 +24,9 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.microsoft.thrifty.schema.parser.ConstElement;
-import com.microsoft.thrifty.schema.parser.EnumElement;
 import com.microsoft.thrifty.schema.parser.IncludeElement;
 import com.microsoft.thrifty.schema.parser.NamespaceElement;
-import com.microsoft.thrifty.schema.parser.ServiceElement;
-import com.microsoft.thrifty.schema.parser.StructElement;
 import com.microsoft.thrifty.schema.parser.ThriftFileElement;
-import com.microsoft.thrifty.schema.parser.TypedefElement;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -65,65 +60,48 @@ public class Program {
     Program(ThriftFileElement element) {
         this.element = element;
 
-        ImmutableMap.Builder<NamespaceScope, String> ns = ImmutableMap.builder();
-        for (NamespaceElement namespaceElement : element.namespaces()) {
-            ns.put(namespaceElement.scope(), namespaceElement.namespace());
-        }
-        namespaces = ns.build();
+        this.namespaces = element.namespaces().stream()
+                .collect(ImmutableMap.toImmutableMap(
+                        NamespaceElement::scope,
+                        NamespaceElement::namespace));
 
-        ImmutableList.Builder<String> cppIncludes = ImmutableList.builder();
-        ImmutableList.Builder<String> thriftIncludes = ImmutableList.builder();
-        for (IncludeElement includeElement : element.includes()) {
-            if (includeElement.isCpp()) {
-                cppIncludes.add(includeElement.path());
-            } else {
-                thriftIncludes.add(includeElement.path());
-            }
-        }
-        this.cppIncludes = cppIncludes.build();
-        this.thriftIncludes = thriftIncludes.build();
+        this.cppIncludes = element.includes().stream()
+                .filter(IncludeElement::isCpp)
+                .map(IncludeElement::path)
+                .collect(toImmutableList());
 
-        ImmutableList.Builder<StructType> structs = ImmutableList.builder();
-        for (StructElement structElement : element.structs()) {
-            structs.add(new StructType(this, structElement));
-        }
-        this.structs = structs.build();
+        this.thriftIncludes = element.includes().stream()
+                .filter(includeElement -> !includeElement.isCpp())
+                .map(IncludeElement::path)
+                .collect(toImmutableList());
 
-        ImmutableList.Builder<TypedefType> typedefs = ImmutableList.builder();
-        for (TypedefElement typedefElement : element.typedefs()) {
-            typedefs.add(new TypedefType(this, typedefElement));
-        }
-        this.typedefs = typedefs.build();
+        this.structs = element.structs().stream()
+                .map(structElement -> new StructType(this, structElement))
+                .collect(toImmutableList());
 
-        ImmutableList.Builder<Constant> constants = ImmutableList.builder();
-        for (ConstElement constElement : element.constants()) {
-            constants.add(new Constant(constElement, namespaces));
-        }
-        this.constants = constants.build();
+        this.typedefs = element.typedefs().stream()
+                .map(typedefElement -> new TypedefType(this, typedefElement))
+                .collect(toImmutableList());
 
-        ImmutableList.Builder<EnumType> enums = ImmutableList.builder();
-        for (EnumElement enumElement : element.enums()) {
-            enums.add(new EnumType(this, enumElement));
-        }
-        this.enums = enums.build();
+        this.constants = element.constants().stream()
+                .map(constElement -> new Constant(constElement, namespaces))
+                .collect(toImmutableList());
 
-        ImmutableList.Builder<StructType> unions = ImmutableList.builder();
-        for (StructElement structElement : element.unions()) {
-            unions.add(new StructType(this, structElement));
-        }
-        this.unions = unions.build();
+        this.enums = element.enums().stream()
+                .map(enumElement -> new EnumType(this, enumElement))
+                .collect(toImmutableList());
 
-        ImmutableList.Builder<StructType> exceptions = ImmutableList.builder();
-        for (StructElement structElement : element.exceptions()) {
-            exceptions.add(new StructType(this, structElement));
-        }
-        this.exceptions = exceptions.build();
+        this.unions = element.unions().stream()
+                .map(structElement -> new StructType(this, structElement))
+                .collect(toImmutableList());
 
-        ImmutableList.Builder<ServiceType> services = ImmutableList.builder();
-        for (ServiceElement serviceElement : element.services()) {
-            services.add(new ServiceType(this, serviceElement));
-        }
-        this.services = services.build();
+        this.exceptions = element.exceptions().stream()
+                .map(structElement -> new StructType(this, structElement))
+                .collect(toImmutableList());
+
+        this.services = element.services().stream()
+                .map(serviceElement -> new ServiceType(this, serviceElement))
+                .collect(toImmutableList());
     }
 
     public Location location() {

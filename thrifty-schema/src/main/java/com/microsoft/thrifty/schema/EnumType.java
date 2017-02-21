@@ -23,7 +23,6 @@ package com.microsoft.thrifty.schema;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.parser.EnumElement;
-import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 
 import java.util.List;
 import java.util.Map;
@@ -38,11 +37,9 @@ public class EnumType extends UserType {
     EnumType(Program program, EnumElement element) {
         super(program, new UserElementMixin(element));
 
-        ImmutableList.Builder<EnumMember> builder = ImmutableList.builder();
-        for (EnumMemberElement memberElement : element.members()) {
-            builder.add(new EnumMember(memberElement));
-        }
-        this.members = builder.build();
+        this.members = element.members().stream()
+                .map(EnumMember::new)
+                .collect(ImmutableList.toImmutableList());
     }
 
     private EnumType(Builder builder) {
@@ -55,21 +52,17 @@ public class EnumType extends UserType {
     }
 
     public EnumMember findMemberByName(String name) {
-        for (EnumMember member : members) {
-            if (member.name().equals(name)) {
-                return member;
-            }
-        }
-        throw new NoSuchElementException();
+        return members.stream()
+                .filter(member -> member.name().equals(name))
+                .findFirst()
+                .orElseThrow(NoSuchElementException::new);
     }
 
     public EnumMember findMemberById(int id) {
-        for (EnumMember member : members) {
-            if (member.value() == id) {
-                return member;
-            }
-        }
-        throw new NoSuchElementException();
+        return members.stream()
+                .filter(member -> member.value() == id)
+                .findFirst()
+                .orElseThrow(NoSuchElementException::new);
     }
 
     @Override
