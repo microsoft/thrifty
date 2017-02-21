@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.microsoft.thrifty.Obfuscated;
 import com.microsoft.thrifty.Redacted;
@@ -73,8 +74,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -744,7 +747,7 @@ public final class ThriftyCodeGenerator {
         }
 
         boolean isFirst = true;
-        boolean hasSuppressedNumberEquality = false;
+        Set<String> warningsToSuppress = new LinkedHashSet<>();
         for (Field field : struct.fields()) {
             ThriftType type = field.type().getTrueType();
             String fieldName = fieldNamer.getName(field);
@@ -764,14 +767,16 @@ public final class ThriftyCodeGenerator {
             }
 
             if (type.isBuiltin() && ((BuiltinType) type).isNumeric()) {
-                if (!hasSuppressedNumberEquality) {
-                    hasSuppressedNumberEquality = true;
-                    equals.addAnnotation(AnnotationSpec
-                            .builder(SuppressWarnings.class)
-                            .addMember("value", "$S", "NumberEquality")
-                            .build());
-                }
+                warningsToSuppress.add("NumberEquality");
             }
+
+            if (type.equals(BuiltinType.STRING)) {
+                warningsToSuppress.add("StringEquality");
+            }
+        }
+
+        if (warningsToSuppress.size() > 0) {
+            equals.addAnnotation(suppressWarnings(warningsToSuppress));
         }
 
         if (struct.fields().size() > 0) {
@@ -781,6 +786,31 @@ public final class ThriftyCodeGenerator {
         }
 
         return equals.build();
+    }
+
+    private AnnotationSpec suppressWarnings(Collection<String> warnings) {
+        AnnotationSpec.Builder anno = AnnotationSpec.builder(SuppressWarnings.class);
+
+        if (warnings.isEmpty()) {
+            throw new IllegalArgumentException("No warnings present - compiler error?");
+        }
+
+        if (warnings.size() == 1) {
+            anno.addMember("value", "$S", Iterables.get(warnings, 0));
+        } else {
+            StringBuilder sb = new StringBuilder("{");
+            for (String warning : warnings) {
+                sb.append("\"");
+                sb.append(warning);
+                sb.append("\", ");
+            }
+            sb.setLength(sb.length() - 2);
+            sb.append("}");
+
+            anno.addMember("value", "$L", sb.toString());
+        }
+
+        return anno.build();
     }
 
     private MethodSpec buildHashCodeFor(StructType struct) {
