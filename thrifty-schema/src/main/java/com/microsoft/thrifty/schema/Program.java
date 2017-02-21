@@ -22,7 +22,6 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstElement;
@@ -35,8 +34,12 @@ import com.microsoft.thrifty.schema.parser.ThriftFileElement;
 import com.microsoft.thrifty.schema.parser.TypedefElement;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Set;
+import java.util.stream.Stream;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 /**
  * A Program is the set of elements declared in a Thrift file.  It
@@ -184,18 +187,9 @@ public class Program {
      * @return all user-defined types contained in this Program.
      */
     public Iterable<UserType> allUserTypes() {
-        // Some type-resolution subtlety eludes me.  I'd have thought that
-        // Iterable<EnumType> is castable to Iterable<UserType> (covariance),
-        // but the IDE claims otherwise.  So, instead of FluentIterable.<UserType>from(enums),
-        // we work around by making one from an empty UserType array and appending.
-        FluentIterable<UserType> iter = FluentIterable.of(new UserType[0]);
-        return iter
-                .append(enums)
-                .append(structs)
-                .append(unions)
-                .append(exceptions)
-                .append(services)
-                .append(typedefs);
+        return Stream.of(enums, structs, unions, exceptions, services, typedefs)
+                .flatMap(Collection::stream)
+                .collect(toImmutableList());
     }
 
     /**

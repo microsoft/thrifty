@@ -21,11 +21,8 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closeables;
-import com.google.common.io.Files;
 import com.microsoft.thrifty.schema.parser.IncludeElement;
 import com.microsoft.thrifty.schema.parser.ThriftFileElement;
 import com.microsoft.thrifty.schema.parser.ThriftParser;
@@ -36,6 +33,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -53,13 +51,6 @@ public final class Loader {
      * filesystem URIs ("file:///c/path").
      */
     private static final Pattern ABSOLUTE_PATH_PATTERN = Pattern.compile("^(/|\\w:\\\\).*");
-
-    private static final Predicate<File> IS_THRIFT = new Predicate<File>() {
-        @Override
-        public boolean apply(@Nullable File input) {
-            return input != null && input.getName().endsWith(".thrift");
-        }
-    };
 
     /**
      * A list of thrift files to be loaded.  If empty, all .thrift files within
@@ -110,13 +101,11 @@ public final class Loader {
         final List<String> filesToLoad = new ArrayList<>(thriftFiles);
         if (filesToLoad.isEmpty()) {
             for (File file : includePaths) {
-                FluentIterable<File> iterable = Files.fileTreeTraverser()
-                        .breadthFirstTraversal(file)
-                        .filter(IS_THRIFT);
-
-                for (File thriftFile : iterable) {
-                    filesToLoad.add(thriftFile.getAbsolutePath());
-                }
+                Files.walk(file.toPath())
+                        .filter(path -> path.getFileName() != null)
+                        .filter(path -> path.getFileName().endsWith(".thrift"))
+                        .map(path -> path.normalize().toAbsolutePath().toString())
+                        .forEach(filesToLoad::add);
             }
         }
 
