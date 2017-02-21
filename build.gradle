@@ -59,8 +59,8 @@ subprojects { sp ->
     apply plugin: 'idea'
     apply plugin: 'checkstyle'
 
-    sourceCompatibility = '1.7'
-    targetCompatibility = '1.7'
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
 
     checkstyle {
         configFile = rootProject.file("config/checkstyle/checkstyle.xml")
