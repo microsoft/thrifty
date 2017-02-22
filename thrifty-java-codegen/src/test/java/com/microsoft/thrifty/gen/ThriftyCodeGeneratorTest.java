@@ -262,7 +262,7 @@ public class ThriftyCodeGeneratorTest {
                 "package short_consts;\n" +
                 "\n" +
                 "public final class Constants {\n" +
-                "  public static final short INT = (short) 255;\n" +
+                "  public static final short INT = (short) 0xFF;\n" +
                 "\n" +
                 "  private Constants() {\n" +
                 "    // no instances\n" +
@@ -302,7 +302,7 @@ public class ThriftyCodeGeneratorTest {
                 "package long_consts;\n" +
                 "\n" +
                 "public final class Constants {\n" +
-                "  public static final long LONG = 1099511627775L;\n" +
+                "  public static final long LONG = 0xFFFFFFFFFFL;\n" +
                 "\n" +
                 "  private Constants() {\n" +
                 "    // no instances\n" +

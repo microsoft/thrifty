@@ -199,6 +199,18 @@ final class ConstantBuilder {
             this.value = value;
         }
 
+        private Object getNumberLiteral(ConstValueElement element) {
+            if (!element.isInt()) {
+                throw new AssertionError("Expected an int or double, got: " + element.kind());
+            }
+
+            if (element.thriftText().startsWith("0x") || element.thriftText().startsWith("0X")) {
+                return element.thriftText();
+            } else {
+                return element.getAsInt();
+            }
+        }
+
         @Override
         public CodeBlock visitBool(BuiltinType boolType) {
             String name;
@@ -217,7 +229,7 @@ final class ConstantBuilder {
         @Override
         public CodeBlock visitByte(BuiltinType byteType) {
             if (value.isInt()) {
-                return CodeBlock.builder().add("(byte) $L", value.getAsInt()).build();
+                return CodeBlock.builder().add("(byte) $L", getNumberLiteral(value)).build();
             } else {
                 return constantOrError("Invalid byte constant");
             }
@@ -226,7 +238,7 @@ final class ConstantBuilder {
         @Override
         public CodeBlock visitI16(BuiltinType i16Type) {
             if (value.isInt()) {
-                return CodeBlock.builder().add("(short) $L", value.getAsInt()).build();
+                return CodeBlock.builder().add("(short) $L", getNumberLiteral(value)).build();
             } else {
                 return constantOrError("Invalid i16 constant");
             }
@@ -235,7 +247,7 @@ final class ConstantBuilder {
         @Override
         public CodeBlock visitI32(BuiltinType i32Type) {
             if (value.isInt()) {
-                return CodeBlock.builder().add("$L", value.getAsInt()).build();
+                return CodeBlock.builder().add("$L", getNumberLiteral(value)).build();
             } else {
                 return constantOrError("Invalid i32 constant");
             }
@@ -244,7 +256,7 @@ final class ConstantBuilder {
         @Override
         public CodeBlock visitI64(BuiltinType i64Type) {
             if (value.isInt()) {
-                return CodeBlock.builder().add("$LL", value.getAsLong()).build();
+                return CodeBlock.builder().add("$LL", getNumberLiteral(value)).build();
             } else {
                 return constantOrError("Invalid i64 constant");
             }
