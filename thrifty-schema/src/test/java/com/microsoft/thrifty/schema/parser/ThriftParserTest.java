@@ -649,7 +649,7 @@ public class ThriftParserTest {
                                         .name("baz")
                                         .requiredness(Requiredness.DEFAULT)
                                         .type(TypeElement.scalar(location.at(4, 6), "i16", null))
-                                        .constValue(ConstValueElement.integer(location.at(4, 16), 0xFFF))
+                                        .constValue(ConstValueElement.integer(location.at(4, 16), "0x0FFF", 0xFFF))
                                         .build())
                                 .add(FieldElement.builder(location.at(5, 3))
                                         .fieldId(4)
@@ -673,7 +673,7 @@ public class ThriftParserTest {
                 .constants(ImmutableList.of(ConstElement.builder(location.at(1, 1))
                         .name("DefaultStatusCode")
                         .type(TypeElement.scalar(location.at(1, 7), "i64", null))
-                        .value(ConstValueElement.integer(location.at(1, 31), 200))
+                        .value(ConstValueElement.integer(location.at(1, 31), "200", 200))
                         .build()))
                 .build();
 
@@ -689,7 +689,7 @@ public class ThriftParserTest {
                 .constants(ImmutableList.of(ConstElement.builder(location.at(1, 1))
                         .name("Yuuuuuge")
                         .type(TypeElement.scalar(location.at(1, 7), "i64", null))
-                        .value(ConstValueElement.integer(location.at(1, 22), 0xFFFFFFFFFFL))
+                        .value(ConstValueElement.integer(location.at(1, 22), "0xFFFFFFFFFF", 0xFFFFFFFFFFL))
                         .build()))
                 .build();
 
@@ -709,11 +709,12 @@ public class ThriftParserTest {
                         null))
                 .value(ConstValueElement.list(
                         location.at(1, 28),
+                        "[\"foo\"\"bar\",\"baz\";\"quux\"]",
                         Arrays.asList(
-                                ConstValueElement.literal(location.at(1, 29), "foo"),
-                                ConstValueElement.literal(location.at(1, 35), "bar"),
-                                ConstValueElement.literal(location.at(1, 42), "baz"),
-                                ConstValueElement.literal(location.at(1, 49), "quux"))))
+                                ConstValueElement.literal(location.at(1, 29), "\"foo\"", "foo"),
+                                ConstValueElement.literal(location.at(1, 35), "\"bar\"", "bar"),
+                                ConstValueElement.literal(location.at(1, 42), "\"baz\"", "baz"),
+                                ConstValueElement.literal(location.at(1, 49), "\"quux\"", "quux"))))
                 .build();
 
         ThriftFileElement expected = ThriftFileElement.builder(location)
@@ -740,12 +741,13 @@ public class ThriftParserTest {
                         TypeElement.scalar(location.at(1, 19), "string", null),
                         null))
                 .value(ConstValueElement.map(location.at(1, 37),
+                        "{\"foo\":\"bar\",\"baz\":\"quux\";}",
                         ImmutableMap.of(
-                                ConstValueElement.literal(location.at(2, 3), "foo"),
-                                ConstValueElement.literal(location.at(2, 10), "bar"),
+                                ConstValueElement.literal(location.at(2, 3), "\"foo\"", "foo"),
+                                ConstValueElement.literal(location.at(2, 10), "\"bar\"", "bar"),
 
-                                ConstValueElement.literal(location.at(3, 3), "baz"),
-                                ConstValueElement.literal(location.at(3, 10), "quux"))))
+                                ConstValueElement.literal(location.at(3, 3), "\"baz\"", "baz"),
+                                ConstValueElement.literal(location.at(3, 10), "\"quux\"", "quux"))))
                 .build();
 
         ThriftFileElement expected = ThriftFileElement.builder(location)
@@ -772,7 +774,7 @@ public class ThriftParserTest {
                                 .requiredness(Requiredness.DEFAULT)
                                 .type(TypeElement.scalar(location.at(2, 8), "i32", null))
                                 .name("num")
-                                .constValue(ConstValueElement.integer(location.at(2, 18), 1))
+                                .constValue(ConstValueElement.integer(location.at(2, 18), "1", 1))
                                 .build()))
                         .build()))
                 .build();
