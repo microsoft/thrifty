@@ -41,6 +41,7 @@ public abstract class ConstValueElement {
 
     public abstract Location location();
     public abstract Kind kind();
+    public abstract String thriftText();
     public abstract Object value();
 
     public boolean isInt() {
@@ -119,27 +120,30 @@ public abstract class ConstValueElement {
 
     ConstValueElement() { }
 
-    public static ConstValueElement integer(Location location, long value) {
-        return new AutoValue_ConstValueElement(location, Kind.INTEGER, value);
+    public static ConstValueElement integer(Location location, String text, long value) {
+        return new AutoValue_ConstValueElement(location, Kind.INTEGER, text, value);
     }
 
-    public static ConstValueElement real(Location location, double value) {
-        return new AutoValue_ConstValueElement(location, Kind.DOUBLE, value);
+    public static ConstValueElement real(Location location, String text, double value) {
+        return new AutoValue_ConstValueElement(location, Kind.DOUBLE, text, value);
     }
 
-    public static ConstValueElement literal(Location location, String value) {
-        return new AutoValue_ConstValueElement(location, Kind.STRING, value);
+    public static ConstValueElement literal(Location location, String text, String value) {
+        return new AutoValue_ConstValueElement(location, Kind.STRING, text, value);
     }
 
-    public static ConstValueElement identifier(Location location, String value) {
-        return new AutoValue_ConstValueElement(location, Kind.IDENTIFIER, value);
+    public static ConstValueElement identifier(Location location, String text, String value) {
+        return new AutoValue_ConstValueElement(location, Kind.IDENTIFIER, text, value);
     }
 
-    public static ConstValueElement list(Location location, List<ConstValueElement> elements) {
-        return new AutoValue_ConstValueElement(location, Kind.LIST, ImmutableList.copyOf(elements));
+    public static ConstValueElement list(Location location, String text, List<ConstValueElement> elements) {
+        return new AutoValue_ConstValueElement(location, Kind.LIST, text, ImmutableList.copyOf(elements));
     }
 
-    public static ConstValueElement map(Location location, Map<ConstValueElement, ConstValueElement> elements) {
-        return new AutoValue_ConstValueElement(location, Kind.MAP, ImmutableMap.copyOf(elements));
+    public static ConstValueElement map(
+            Location location,
+            String text,
+            Map<ConstValueElement, ConstValueElement> elements) {
+        return new AutoValue_ConstValueElement(location, Kind.MAP, text, ImmutableMap.copyOf(elements));
     }
 }

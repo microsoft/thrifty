@@ -53,10 +53,10 @@ public class ConstantTest {
 
     @Test
     public void boolLiteral() {
-        Constant.validate(linker, ConstValueElement.identifier(loc, "true"), BuiltinType.BOOL);
-        Constant.validate(linker, ConstValueElement.identifier(loc, "false"), BuiltinType.BOOL);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "true", "true"), BuiltinType.BOOL);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "false", "false"), BuiltinType.BOOL);
         try {
-            Constant.validate(linker, ConstValueElement.literal(loc, "nope"), BuiltinType.BOOL);
+            Constant.validate(linker, ConstValueElement.literal(loc, "nope", "nope"), BuiltinType.BOOL);
             fail("Invalid identifier should not validate as a bool");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -73,7 +73,7 @@ public class ConstantTest {
 
         when(linker.lookupConst("aBool")).thenReturn(c);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinType.BOOL);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
     }
 
     @Test
@@ -85,7 +85,7 @@ public class ConstantTest {
         when(linker.lookupConst("aBool")).thenReturn(c);
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinType.BOOL);
+            Constant.validate(linker, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
             fail("Wrongly-typed constant should not validate");
         } catch (IllegalStateException ignored) {
         }
@@ -97,7 +97,7 @@ public class ConstantTest {
         when(s.name()).thenReturn("someStruct");
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "someStruct"), BuiltinType.BOOL);
+            Constant.validate(linker, ConstValueElement.identifier(loc, "someStruct", "someStruct"), BuiltinType.BOOL);
             fail("Non-constant identifier should not validate");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -118,7 +118,7 @@ public class ConstantTest {
 
         when(linker.lookupConst("aBool")).thenReturn(c);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool"), BuiltinType.BOOL);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
     }
 
     @Test
@@ -128,14 +128,14 @@ public class ConstantTest {
         when(td.getTrueType()).thenReturn(BuiltinType.STRING);
         when(td.name()).thenReturn("Message");
 
-        ConstValueElement value = ConstValueElement.literal(loc, "y helo thar");
+        ConstValueElement value = ConstValueElement.literal(loc, "\"y helo thar\"", "y helo thar");
 
         Constant.validate(linker, value, td);
     }
 
     @Test
     public void inRangeInt() {
-        ConstValueElement value = ConstValueElement.integer(loc, 10);
+        ConstValueElement value = ConstValueElement.integer(loc, "10", 10);
         ThriftType type = BuiltinType.I32;
 
         Constant.validate(linker, value, type);
@@ -143,7 +143,8 @@ public class ConstantTest {
 
     @Test
     public void tooLargeInt() {
-        ConstValueElement value = ConstValueElement.integer(loc, (long) Integer.MAX_VALUE + 1);
+        ConstValueElement value = ConstValueElement.integer(
+                loc, String.valueOf((long) Integer.MAX_VALUE + 1), (long) Integer.MAX_VALUE + 1);
         ThriftType type = BuiltinType.I32;
 
         try {
@@ -156,7 +157,8 @@ public class ConstantTest {
 
     @Test
     public void tooSmallInt() {
-        ConstValueElement value = ConstValueElement.integer(loc, (long) Integer.MIN_VALUE - 1);
+        ConstValueElement value = ConstValueElement.integer(
+                loc, String.valueOf((long) Integer.MIN_VALUE - 1), (long) Integer.MIN_VALUE - 1);
         ThriftType type = BuiltinType.I32;
 
         try {
@@ -178,7 +180,7 @@ public class ConstantTest {
         when(et.getTrueType()).thenReturn(et);
         when(et.isEnum()).thenReturn(true);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.TEST"), et);
+        Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.TEST", "TestEnum.TEST"), et);
     }
 
     @Test
@@ -193,7 +195,7 @@ public class ConstantTest {
         when(et.isEnum()).thenReturn(true);
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.NON_MEMBER"), et);
+            Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.NON_MEMBER", "TestEnum.NON_MEMBER"), et);
             fail("Non-member identifier should fail");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -214,7 +216,7 @@ public class ConstantTest {
         when(et.isEnum()).thenReturn(true);
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "TEST"), et);
+            Constant.validate(linker, ConstValueElement.identifier(loc, "TEST", "TEST"), et);
             fail("Expected an IllegalStateException");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("Unqualified name 'TEST' is not a valid enum constant value"));
@@ -224,10 +226,10 @@ public class ConstantTest {
     @Test
     public void listOfInts() {
         ThriftType list = new ListType(BuiltinType.I32);
-        ConstValueElement listValue = ConstValueElement.list(loc, Arrays.asList(
-                ConstValueElement.integer(loc, 0),
-                ConstValueElement.integer(loc, 1),
-                ConstValueElement.integer(loc, 2)
+        ConstValueElement listValue = ConstValueElement.list(loc, "[0, 1, 2]", Arrays.asList(
+                ConstValueElement.integer(loc, "0", 0),
+                ConstValueElement.integer(loc, "1", 1),
+                ConstValueElement.integer(loc, "2", 2)
         ));
 
         Constant.validate(linker, listValue, list);
@@ -236,10 +238,10 @@ public class ConstantTest {
     @Test
     public void heterogeneousList() {
         ThriftType list = new ListType(BuiltinType.I32);
-        ConstValueElement listValue = ConstValueElement.list(loc, Arrays.asList(
-                ConstValueElement.integer(loc, 0),
-                ConstValueElement.integer(loc, 1),
-                ConstValueElement.literal(loc, "2")
+        ConstValueElement listValue = ConstValueElement.list(loc, "[0, 1, \"2\"]", Arrays.asList(
+                ConstValueElement.integer(loc, "0", 0),
+                ConstValueElement.integer(loc, "1", 1),
+                ConstValueElement.literal(loc, "\"2\"", "2")
         ));
 
         try {
@@ -265,7 +267,7 @@ public class ConstantTest {
         when(typedefType.oldType()).thenReturn(et);
         when(typedefType.getTrueType()).thenReturn(et);
 
-        ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO");
+        ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO", "AnEnum.FOO");
 
         Constant.validate(linker, value, typedefType);
     }
@@ -294,7 +296,7 @@ public class ConstantTest {
         when(typedefType.oldType()).thenReturn(wt);
         when(typedefType.getTrueType()).thenReturn(wt);
 
-        ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO");
+        ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO", "AnEnum.FOO");
 
         try {
             Constant.validate(linker, value, typedefType);
@@ -309,10 +311,10 @@ public class ConstantTest {
     @Test
     public void setOfInts() {
         ThriftType setType = new SetType(BuiltinType.I32);
-        ConstValueElement listValue = ConstValueElement.list(loc, Arrays.asList(
-                ConstValueElement.integer(loc, 0),
-                ConstValueElement.integer(loc, 1),
-                ConstValueElement.integer(loc, 2)
+        ConstValueElement listValue = ConstValueElement.list(loc, "[0, 1, 2]", Arrays.asList(
+                ConstValueElement.integer(loc, "0", 0),
+                ConstValueElement.integer(loc, "1", 1),
+                ConstValueElement.integer(loc, "2", 2)
         ));
 
         Constant.validate(linker, listValue, setType);

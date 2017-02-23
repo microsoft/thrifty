@@ -611,7 +611,7 @@ class ThriftListener extends AntlrThriftBaseListener {
             try {
                 long value = Long.parseLong(text, radix);
 
-                return ConstValueElement.integer(locationOf(ctx), value);
+                return ConstValueElement.integer(locationOf(ctx), ctx.INTEGER().getText(), value);
             } catch (NumberFormatException e) {
                 throw new AssertionError("Invalid integer accepted by ANTLR grammar: " + ctx.INTEGER().getText());
             }
@@ -622,7 +622,7 @@ class ThriftListener extends AntlrThriftBaseListener {
 
             try {
                 double value = Double.parseDouble(text);
-                return ConstValueElement.real(locationOf(ctx), value);
+                return ConstValueElement.real(locationOf(ctx), ctx.DOUBLE().getText(), value);
             } catch (NumberFormatException e) {
                 throw new AssertionError("Invalid double accepted by ANTLR grammar: " + text);
             }
@@ -630,12 +630,12 @@ class ThriftListener extends AntlrThriftBaseListener {
 
         if (ctx.LITERAL() != null) {
             String text = unquote(locationOf(ctx.LITERAL()), ctx.LITERAL().getText());
-            return ConstValueElement.literal(locationOf(ctx), text);
+            return ConstValueElement.literal(locationOf(ctx), ctx.LITERAL().getText(), text);
         }
 
         if (ctx.IDENTIFIER() != null) {
             String id = ctx.IDENTIFIER().getText();
-            return ConstValueElement.identifier(locationOf(ctx), id);
+            return ConstValueElement.identifier(locationOf(ctx), ctx.IDENTIFIER().getText(), id);
         }
 
         if (ctx.constList() != null) {
@@ -643,7 +643,7 @@ class ThriftListener extends AntlrThriftBaseListener {
             for (AntlrThriftParser.ConstValueContext valueContext : ctx.constList().constValue()) {
                 values.add(constValueElementOf(valueContext));
             }
-            return ConstValueElement.list(locationOf(ctx), values.build());
+            return ConstValueElement.list(locationOf(ctx), ctx.constList().getText(), values.build());
         }
 
         if (ctx.constMap() != null) {
@@ -653,7 +653,7 @@ class ThriftListener extends AntlrThriftBaseListener {
                 ConstValueElement value = constValueElementOf(entry.value);
                 values.put(key, value);
             }
-            return ConstValueElement.map(locationOf(ctx), values.build());
+            return ConstValueElement.map(locationOf(ctx), ctx.constMap().getText(), values.build());
         }
 
         throw new AssertionError("unreachable");
