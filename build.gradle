@@ -73,6 +73,11 @@ subprojects { sp ->
         exclude '**/antlr/**'
     }
 
+    tasks.withType(JavaCompile) {
+        options.fork = true
+        options.incremental = true
+    }
+
     task javadocJar(type: Jar, dependsOn: javadoc) {
         from 'build/docs/javadoc'
         classifier = 'javadoc'
