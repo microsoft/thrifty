@@ -349,7 +349,7 @@ public class ThriftyCodeGeneratorTest {
         }
 
         Loader loader = new Loader();
-        loader.addThriftFile(file.getCanonicalPath());
+        loader.addThriftFile(file.toPath().toAbsolutePath().normalize());
 
         return loader.load();
     }

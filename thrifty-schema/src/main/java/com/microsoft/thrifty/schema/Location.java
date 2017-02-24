@@ -19,6 +19,7 @@ package com.microsoft.thrifty.schema;
 import com.google.common.base.Preconditions;
 
 import java.io.File;
+import java.nio.file.Paths;
 
 public final class Location {
     private final String base;
@@ -67,12 +68,8 @@ public final class Location {
      * @return the Thrift program name representing this file.
      */
     public String getProgramName() {
-        String name = path;
-        int separatorIndex = name.lastIndexOf(File.pathSeparatorChar);
-        if (separatorIndex != -1) {
-            name = name.substring(separatorIndex + 1);
-        }
-        int dotIndex = name.indexOf('.');
+        String name = Paths.get(path).getFileName().toString();
+        int dotIndex = name.lastIndexOf('.');
         if (dotIndex != -1) {
             name = name.substring(0, dotIndex);
         }

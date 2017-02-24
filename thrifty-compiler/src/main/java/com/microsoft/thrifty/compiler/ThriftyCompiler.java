@@ -27,8 +27,9 @@ import com.microsoft.thrifty.schema.LoadFailedException;
 import com.microsoft.thrifty.schema.Loader;
 import com.microsoft.thrifty.schema.Schema;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,9 +79,9 @@ public class ThriftyCompiler {
     private static final String PARCELABLE_ARG = "--parcelable";
     private static final String JAVA_NAMES_ARG = "--use-java-style-names";
 
-    private File outputDirectory;
-    private List<String> thriftFiles = new ArrayList<>();
-    private List<String> searchPath = new ArrayList<>();
+    private Path outputDirectory;
+    private List<Path> thriftFiles = new ArrayList<>();
+    private List<Path> searchPath = new ArrayList<>();
     private String listTypeName;
     private String setTypeName;
     private String mapTypeName;
@@ -91,7 +92,7 @@ public class ThriftyCompiler {
     public static void main(String[] args) {
         try {
             ThriftyCompiler compiler = withArgs(args);
-            compiler.searchPath.add(0, System.getProperty("user.dir"));
+            compiler.searchPath.add(0, Paths.get(System.getProperty("user.dir")));
             System.out.println(compiler.searchPath.get(0));
             compiler.compile();
         } catch (Exception e) {
@@ -107,7 +108,7 @@ public class ThriftyCompiler {
         for (String arg : args) {
             if (arg.startsWith(OUT_PREFIX)) {
                 String path = arg.substring(OUT_PREFIX.length());
-                compiler.setOutputDirectory(new File(path));
+                compiler.setOutputDirectory(Paths.get(path));
             } else if (arg.startsWith(PATH_PREFIX)) {
                 String dirname = arg.substring(PATH_PREFIX.length());
                 compiler.addSearchDirectory(dirname);
@@ -141,12 +142,12 @@ public class ThriftyCompiler {
     }
 
     public ThriftyCompiler addThriftFile(String path) {
-        thriftFiles.add(path);
+        thriftFiles.add(Paths.get(path));
         return this;
     }
 
     public ThriftyCompiler addSearchDirectory(String path) {
-        searchPath.add(path);
+        searchPath.add(Paths.get(path));
         return this;
     }
 
@@ -165,19 +166,19 @@ public class ThriftyCompiler {
         return this;
     }
 
-    public ThriftyCompiler setOutputDirectory(File directory) {
+    public ThriftyCompiler setOutputDirectory(Path directory) {
         outputDirectory = directory;
         return this;
     }
 
     public void compile() throws IOException {
         Loader loader = new Loader();
-        for (String thriftFile : thriftFiles) {
+        for (Path thriftFile : thriftFiles) {
             loader.addThriftFile(thriftFile);
         }
 
-        for (String dir : searchPath) {
-            loader.addIncludePath(new File(dir));
+        for (Path dir : searchPath) {
+            loader.addIncludePath(dir);
         }
 
         Schema schema;
