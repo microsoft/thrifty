@@ -30,6 +30,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -37,6 +38,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 public class LoaderTest {
     @Rule public TemporaryFolder tempDir = new TemporaryFolder();
@@ -250,9 +252,9 @@ public class LoaderTest {
         writeTo(f3, c);
 
         Loader loader = new Loader();
-        loader.addThriftFile(f1.getAbsolutePath());
-        loader.addThriftFile(f2.getAbsolutePath());
-        loader.addThriftFile(f3.getAbsolutePath());
+        loader.addThriftFile(f1.toPath());
+        loader.addThriftFile(f2.toPath());
+        loader.addThriftFile(f3.toPath());
 
         loader.load();
     }
@@ -356,12 +358,13 @@ public class LoaderTest {
     }
 
     @Test
+    @SuppressWarnings("ConstantConditions")
     public void canLoadAndLinkOfficialTestThrift() throws Exception {
         URL url = getClass().getClassLoader().getResource("cases/TestThrift.thrift");
         File file = new File(url.getFile());
 
         Loader loader = new Loader();
-        loader.addThriftFile(file.getAbsolutePath());
+        loader.addThriftFile(file.toPath());
 
         loader.load();
     }
@@ -793,19 +796,110 @@ public class LoaderTest {
         }
     }
 
+    @Test
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    public void addingNullStringFileThrows() {
+        String file = null;
+        Loader loader = new Loader();
+        try {
+            loader.addThriftFile(file);
+            fail("Expected an NPE, but nothing was thrown");
+        } catch (NullPointerException e) {
+            assertThat(e, hasMessage(containsString("file")));
+        }
+    }
+
+    @Test
+    @SuppressWarnings("ConstantConditions")
+    public void addingNullPathFileThrows() {
+        Loader loader = new Loader();
+        Path nullFile = null;
+        try {
+            loader.addThriftFile(nullFile);
+            fail("Expected an NPE, but nothing was thrown");
+        } catch (NullPointerException e) {
+            assertThat(e, hasMessage(containsString("file")));
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    public void addNullIncludeFileThrows() {
+        Loader loader = new Loader();
+        File nullFile = null;
+        try {
+            loader.addIncludePath(nullFile);
+            fail("Expected an NPE, but nothing was thrown");
+        } catch (NullPointerException e) {
+            assertThat(e, hasMessage(containsString("path")));
+        }
+    }
+
+    @Test
+    @SuppressWarnings("ConstantConditions")
+    public void addNullIncludePathThrows() {
+        Loader loader = new Loader();
+        Path nullPath = null;
+        try {
+            loader.addIncludePath(nullPath);
+            fail("Expected an NPE, but nothing was thrown");
+        } catch (NullPointerException e) {
+            assertThat(e, hasMessage(containsString("path")));
+        }
+    }
+
+    @Test
+    public void addingNonExistentFileThrows() throws Exception {
+        Path folder = tempDir.newFolder().toPath();
+        Path doesNotExist = folder.resolve("nope.thrift");
+        Loader loader = new Loader();
+        try {
+            loader.addThriftFile(doesNotExist);
+            fail("Expected an IllegalArgumentException, but nothing was thrown");
+        } catch (IllegalArgumentException e) {
+            assertThat(e, hasMessage(equalTo("thrift file must be a regular file")));
+        }
+    }
+
+    @Test
+    public void addingNonExistentIncludeDirectoryThrows() {
+        Path doesNotExist = tempDir.getRoot().toPath().resolve("notCreatedYet");
+        Loader loader = new Loader();
+        try {
+            loader.addIncludePath(doesNotExist);
+            fail("Expected an IllegalArgumentException, but nothing was thrown");
+        } catch (IllegalArgumentException e) {
+            assertThat(e, hasMessage(equalTo("path must be a directory")));
+        }
+    }
+
+    @Test
+    public void loadingWithoutFilesOrIncludesThrows() {
+        Loader loader = new Loader();
+        try {
+            loader.load();
+            fail("Expected a LoadFailedException, but nothing was thrown");
+        } catch (LoadFailedException expected) {
+            Throwable cause = expected.getCause();
+            assertThat(
+                    cause,
+                    hasMessage(equalTo("No files and no include paths containing Thrift files were provided")));
+        }
+    }
+
     private Schema load(String thrift) throws Exception {
         File f = tempDir.newFile();
         writeTo(f, thrift);
 
         Loader loader = new Loader();
-        loader.addThriftFile(f.getAbsolutePath());
+        loader.addThriftFile(f.toPath());
         return loader.load();
     }
 
     private Schema load(File ...files) throws Exception {
         Loader loader = new Loader();
         for (File f : files) {
-            loader.addThriftFile(f.getAbsolutePath());
+            loader.addThriftFile(f.toPath());
         }
         return loader.load();
     }

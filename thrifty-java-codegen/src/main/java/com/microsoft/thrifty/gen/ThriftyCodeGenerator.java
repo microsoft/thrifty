@@ -70,6 +70,7 @@ import javax.annotation.Nullable;
 import javax.lang.model.element.Modifier;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -170,6 +171,17 @@ public final class ThriftyCodeGenerator {
     public ThriftyCodeGenerator usingTypeProcessor(TypeProcessor typeProcessor) {
         this.typeProcessor = typeProcessor;
         return this;
+    }
+
+    public void generate(final Path directory) throws IOException {
+        generate(new FileWriter() {
+            @Override
+            public void write(@Nullable JavaFile file) throws IOException {
+                if (file != null) {
+                    file.writeTo(directory);
+                }
+            }
+        });
     }
 
     public void generate(final File directory) throws IOException {

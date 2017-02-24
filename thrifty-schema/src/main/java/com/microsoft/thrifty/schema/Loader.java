@@ -34,6 +34,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -42,47 +44,134 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
+/**
+ * Loads a {@link Schema} from a set of Thrift files and include paths.
+ *
+ * This is the entry-point of the Thrifty parser.
+ */
 public final class Loader {
-    /**
-     * Attempts to identify strings that represent absolute filesystem paths.
-     * Does not attempt to support more unusual paths like UNC ("\\c\path") or
-     * filesystem URIs ("file:///c/path").
-     */
-    private static final Pattern ABSOLUTE_PATH_PATTERN = Pattern.compile("^(/|\\w:\\\\).*");
-
     /**
      * A list of thrift files to be loaded.  If empty, all .thrift files within
      * {@link #includePaths} will be loaded.
      */
-    private final List<String> thriftFiles = new ArrayList<>();
+    private final List<Path> thriftFiles = new ArrayList<>();
 
     /**
      * The search path for imported thrift files.  If {@link #thriftFiles} is
      * empty, then all .thrift files located on the search path will be loaded.
      */
-    private final Deque<File> includePaths = new ArrayDeque<>();
+    private final Deque<Path> includePaths = new ArrayDeque<>();
 
     private ErrorReporter errorReporter = new ErrorReporter();
 
     private final LinkEnvironment environment = new LinkEnvironment(errorReporter);
 
-    private Map<String, Program> loadedPrograms;
+    private Map<Path, Program> loadedPrograms;
 
+    /**
+     * Adds the file identified by the given string to the set of Thrift files
+     * to be parsed.
+     *
+     * {@code file} must resolve to a regular file that exists.
+     *
+     * @param file the path to a Thrift file to be parsed; must exist.
+     *
+     * @return this loader
+     *
+     * @throws NullPointerException
+     *         if {@code file} is {@code null}.
+     *
+     * @throws IllegalArgumentException
+     *         if {@code file} is not a regular file.
+     *
+     * @deprecated Prefer {@link #addThriftFile(Path)} to this method.
+     */
+    @Deprecated
     public Loader addThriftFile(String file) {
         Preconditions.checkNotNull(file, "file");
+        Path path = Paths.get(file);
+        return addThriftFile(path);
+    }
+
+    /**
+     * Adds the given path to the set of Thrift files to be parsed.
+     *
+     * {@code file} must be a regular file that exists.
+     *
+     * @param file the path to a Thrift file to be parsed; must exist.
+     *
+     * @return this loader
+     *
+     * @throws NullPointerException
+     *         if {@code file} is {@code null}.
+     *
+     * @throws IllegalArgumentException
+     *         if {@code file} is not a regular file.
+     */
+    public Loader addThriftFile(Path file) {
+        Preconditions.checkNotNull(file, "file");
+        Preconditions.checkArgument(Files.isRegularFile(file), "thrift file must be a regular file");
         thriftFiles.add(file);
         return this;
     }
 
+    /**
+     * Adds the given {@code path} to the set of directories from which included
+     * files will be located.
+     *
+     * @param path A {@link File} identifying a directory, containing files to
+     *             include.
+     * @return this loader.
+     *
+     * @throws NullPointerException
+     *         if {@code path} is {@code null}
+     * @throws IllegalArgumentException
+     *         if {@code path} is not an existing directory
+     *
+     * @deprecated Prefer {@link #addIncludePath(Path)} to this method.
+     */
+    @Deprecated
     public Loader addIncludePath(File path) {
         Preconditions.checkNotNull(path, "path");
-        Preconditions.checkArgument(path.isDirectory(), "path must be a directory");
-        includePaths.add(path.getAbsoluteFile());
+        return addIncludePath(path.toPath());
+    }
+
+    /**
+     * Adds the given {@code path} to the set of directories from which included
+     * files will be located.
+     *
+     * @param path A {@link Path} identifying a directory, containing files to
+     *             include.
+     *
+     * @return this loader.
+     *
+     * @throws NullPointerException
+     *         if {@code path} is {@code null}
+     * @throws IllegalArgumentException
+     *         if {@code path} is not an existing directory
+     */
+    public Loader addIncludePath(Path path) {
+        Preconditions.checkNotNull(path, "path");
+        Preconditions.checkArgument(Files.isDirectory(path), "path must be a directory");
+        includePaths.add(path.toAbsolutePath());
         return this;
     }
 
+    /**
+     * Parses all previously-given Thrift files, returning a {@link Schema}
+     * containing the parse results.
+     *
+     * If no Thrift files were specified, then all Thrift files on the include
+     * path are parsed.  If the include path is also empty, an exception is
+     * thrown.
+     *
+     * @return a {@link Schema} containing the parsed structs, consts, etc
+     *         from the specified Thrift files.
+     *
+     * @throws LoadFailedException
+     *         if parsing fails for any reason.
+     */
     public Schema load() throws LoadFailedException {
         try {
             loadFromDisk();
@@ -98,31 +187,39 @@ public final class Loader {
     }
 
     private void loadFromDisk() throws IOException {
-        final List<String> filesToLoad = new ArrayList<>(thriftFiles);
+        final List<Path> filesToLoad = new ArrayList<>(thriftFiles);
         if (filesToLoad.isEmpty()) {
-            for (File file : includePaths) {
-                Files.walk(file.toPath())
-                        .filter(path -> path.getFileName() != null)
-                        .filter(path -> path.getFileName().endsWith(".thrift"))
-                        .map(path -> path.normalize().toAbsolutePath().toString())
+            for (Path path : includePaths) {
+                Files.walk(path)
+                        .filter(p -> p.getFileName() != null)
+                        .filter(p -> p.getFileName().endsWith(".thrift"))
+                        .map(p -> p.normalize().toAbsolutePath())
                         .forEach(filesToLoad::add);
             }
         }
 
-        Map<String, ThriftFileElement> loadedFiles = new LinkedHashMap<>();
-        for (String path : filesToLoad) {
+        if (filesToLoad.isEmpty()) {
+            throw new IllegalStateException("No files and no include paths containing Thrift files were provided");
+        }
+
+        Map<Path, ThriftFileElement> loadedFiles = new LinkedHashMap<>();
+        for (Path path : filesToLoad) {
             loadFileRecursively(path, loadedFiles);
         }
 
         // Convert to Programs
         loadedPrograms = new LinkedHashMap<>();
         for (ThriftFileElement fileElement : loadedFiles.values()) {
-            File file = new File(fileElement.location().base(), fileElement.location().path());
-            if (!file.exists()) throw new AssertionError(
-                    "We have a parsed ThriftFileElement with a non-existing location");
-            if (!file.isAbsolute()) throw new AssertionError("We have a non-canonical path");
+            Path file = Paths.get(fileElement.location().base(), fileElement.location().path());
+            if (!Files.exists(file)) {
+                throw new AssertionError(
+                        "We have a parsed ThriftFileElement with a non-existing location");
+            }
+            if (!file.isAbsolute()) {
+                throw new AssertionError("We have a non-canonical path");
+            }
             Program program = new Program(fileElement);
-            loadedPrograms.put(file.getCanonicalPath(), program);
+            loadedPrograms.put(file.normalize().toAbsolutePath(), program);
         }
 
         // Link included programs together
@@ -139,22 +236,22 @@ public final class Loader {
      * @param path A relative or absolute path to a Thrift file.
      * @param loadedFiles A mapping of absolute paths to parsed Thrift files.
      */
-    private void loadFileRecursively(String path, Map<String, ThriftFileElement> loadedFiles) throws IOException {
+    private void loadFileRecursively(Path path, Map<Path, ThriftFileElement> loadedFiles) throws IOException {
         ThriftFileElement element = null;
-        File dir = null;
+        Path dir = null;
 
-        File file = findFirstExisting(path, null);
+        Path file = findFirstExisting(path, null);
 
         if (file != null) {
             // Resolve symlinks, redundant '.' and '..' segments.
-            file = file.getCanonicalFile();
+            file = file.normalize();
 
-            if (loadedFiles.containsKey(file.getAbsolutePath())) {
+            if (loadedFiles.containsKey(file.toAbsolutePath())) {
                 return;
             }
 
-            dir = file.getParentFile();
-            element = loadSingleFile(file.getParentFile(), file.getName());
+            dir = file.getParent();
+            element = loadSingleFile(dir, file.getFileName());
         }
 
         if (element == null) {
@@ -162,14 +259,14 @@ public final class Loader {
                     "Failed to locate " + path + " in " + includePaths);
         }
 
-        loadedFiles.put(file.getAbsolutePath(), element);
+        loadedFiles.put(file.normalize().toAbsolutePath(), element);
 
         ImmutableList<IncludeElement> includes = element.includes();
         if (includes.size() > 0) {
             includePaths.addFirst(dir);
             for (IncludeElement include : includes) {
                 if (!include.isCpp()) {
-                    loadFileRecursively(include.path(), loadedFiles);
+                    loadFileRecursively(Paths.get(include.path()), loadedFiles);
                 }
             }
             includePaths.removeFirst();
@@ -189,34 +286,31 @@ public final class Loader {
         }
     }
 
-    private ThriftFileElement loadSingleFile(File base, String path) throws IOException {
-        File file = new File(base, path).getAbsoluteFile();
-        if (!file.exists()) {
+    private ThriftFileElement loadSingleFile(Path base, Path fileName) throws IOException {
+        Path file = base.resolve(fileName);
+        if (!Files.exists(file)) {
             return null;
         }
 
         Source source = Okio.source(file);
         try {
-            Location location = Location.get(base.toString(), path);
+            Location location = Location.get(base.toString(), fileName.toString());
             String data = Okio.buffer(source).readUtf8();
             return ThriftParser.parse(location, data, errorReporter);
         } catch (IOException e) {
-            throw new IOException("Failed to load " + path + " from " + base, e);
+            throw new IOException("Failed to load " + fileName + " from " + base, e);
         } finally {
             Closeables.close(source, true);
         }
     }
 
-    Program resolveIncludedProgram(Location currentPath, String importPath) throws IOException {
-        File resolved = findFirstExisting(importPath, currentPath);
+    Program resolveIncludedProgram(Location currentPath, String importPath) {
+        Path importPathPath = Paths.get(importPath);
+        Path resolved = findFirstExisting(importPathPath, currentPath);
         if (resolved == null) {
             throw new AssertionError("Included thrift file not found: " + importPath);
         }
-        try {
-            return getAndCheck(resolved.getCanonicalPath());
-        } catch (IOException e) {
-            throw new IOException("Failed to get canonical path for file " + resolved.getAbsolutePath(), e);
-        }
+        return getAndCheck(resolved.normalize().toAbsolutePath());
     }
 
     /**
@@ -231,42 +325,31 @@ public final class Loader {
      * @param currentLocation the current working directory.
      * @return the first matching file on the search path, or {@code null}.
      */
-    private File findFirstExisting(String path, @Nullable  Location currentLocation) {
-        if (isAbsolutePath(path)) {
+    private Path findFirstExisting(Path path, @Nullable  Location currentLocation) {
+        if (path.isAbsolute()) {
             // absolute path, should be loaded as-is
-            File f = new File(path);
-            return f.exists() ? f : null;
+            return Files.exists(path) ? path : null;
         }
 
         if (currentLocation != null) {
-            File maybeFile = new File(currentLocation.base(), path).getAbsoluteFile();
-            if (maybeFile.exists()) {
-                return maybeFile;
+            Path maybePath = Paths.get(currentLocation.base(), path.toString());
+            if (Files.exists(maybePath)) {
+                return maybePath;
             }
         }
 
-        for (File includePath : includePaths) {
-            File maybeFile = new File(includePath, path).getAbsoluteFile();
-            if (maybeFile.exists()) {
-                return maybeFile;
-            }
-        }
-
-        return null;
+        return includePaths.stream()
+                .map(include -> include.resolve(path).normalize())
+                .filter(Files::exists)
+                .findFirst()
+                .orElse(null);
     }
 
-    private Program getAndCheck(String absolutePath) {
+    private Program getAndCheck(Path absolutePath) {
         Program p = loadedPrograms.get(absolutePath);
         if (p == null) {
             throw new AssertionError("All includes should have been resolved by now: " + absolutePath);
         }
         return p;
-    }
-
-    /**
-     * Checks if the path is absolute in an attempted cross-platform manner.
-     */
-    private static boolean isAbsolutePath(String path) {
-        return ABSOLUTE_PATH_PATTERN.matcher(path).matches();
     }
 }
