@@ -21,15 +21,15 @@
 description = 'Converts Thrifty Schemas into Java source files'
 
 dependencies {
-    compile project(":thrifty-schema")
-    compile project(":thrifty-runtime")
-    compile project(":thrifty-compiler-plugins")
-    compile libraries.okio
-    compile libraries.javaPoet
+    api project(":thrifty-schema")
+    api project(":thrifty-compiler-plugins")
+    api libraries.okio
+    api libraries.javaPoet
 
-    compile 'joda-time:joda-time:2.9.1'
+    implementation project(':thrifty-runtime')
+    implementation 'joda-time:joda-time:2.9.1'
 
-    testCompile libraries.testing
+    testImplementation libraries.testing
 
-    testCompile 'com.google.testing.compile:compile-testing:0.9'
+    testImplementation 'com.google.testing.compile:compile-testing:0.9'
 }

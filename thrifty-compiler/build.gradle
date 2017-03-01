@@ -18,14 +18,10 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    compile project(':thrifty-schema')
-    compile project(':thrifty-java-codegen')
-    compile project(':thrifty-compiler-plugins')
+    implementation project(':thrifty-schema')
+    implementation project(':thrifty-java-codegen')
+    implementation project(':thrifty-compiler-plugins')
 }
 
 sourceSets {
@@ -40,9 +36,9 @@ sourceSets {
 }
 
 jar {
-    from {
-        (configurations.runtime).collect() {
-            it.isDirectory() ? it : zipTree(it)
+    [configurations.default, configurations.runtime].each { config ->
+        from(config.collect { it.isDirectory() ? it : zipTree(it) }) {
+            exclude 'META-INF/services/*'
         }
     }
 
