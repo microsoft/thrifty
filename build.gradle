@@ -29,6 +29,10 @@ allprojects {
 
     project.ext {
         libraries = [
+                guava: [
+                        'com.google.guava:guava:21.0'
+                ],
+
                 okio: [
                         'com.squareup.okio:okio:1.11.0'
                 ],
@@ -55,7 +59,7 @@ buildscript {
 }
 
 subprojects { sp ->
-    apply plugin: 'java'
+    apply plugin: 'java-library'
     apply plugin: 'idea'
     apply plugin: 'checkstyle'
 

@@ -18,13 +18,15 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
+
 dependencies {
-    compile project(':thrifty-compiler')
+    implementation project(':thrifty-compiler')
 
-    testCompile project(':thrifty-runtime')
-    testCompile project(':thrifty-test-server')
+    testImplementation project(':thrifty-runtime')
+    testImplementation project(':thrifty-test-server')
+    testImplementation libraries.guava
 
-    testCompile 'junit:junit:4.11'
+    testImplementation 'junit:junit:4.11'
 }
 
 uploadArchives.enabled = false
@@ -36,8 +38,10 @@ sourceSets {
 }
 
 jar {
-    from(configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }) {
-        exclude 'META-INF/services/*'
+    [configurations.default].each { config ->
+        from(config.collect { it.isDirectory() ? it : zipTree(it) }) {
+            exclude 'META-INF/services/*'
+        }
     }
 
     manifest {

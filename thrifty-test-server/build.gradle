@@ -19,8 +19,8 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 dependencies {
-    compile group: 'junit', name: 'junit', version: '4.11'
-    compile 'org.apache.thrift:libthrift:0.9.3'
+    api group: 'junit', name: 'junit', version: '4.12'
+    implementation 'org.apache.thrift:libthrift:0.9.3'
 }
 
 uploadArchives.enabled = false
