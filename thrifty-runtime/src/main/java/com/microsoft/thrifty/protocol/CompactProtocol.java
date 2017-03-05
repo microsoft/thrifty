@@ -571,20 +571,20 @@ public class CompactProtocol extends Protocol {
     }
 
     private static final class CompactTypes {
-        public static final byte BOOLEAN_TRUE   = 0x01;
-        public static final byte BOOLEAN_FALSE  = 0x02;
-        public static final byte BYTE           = 0x03;
-        public static final byte I16            = 0x04;
-        public static final byte I32            = 0x05;
-        public static final byte I64            = 0x06;
-        public static final byte DOUBLE         = 0x07;
-        public static final byte BINARY         = 0x08;
-        public static final byte LIST           = 0x09;
-        public static final byte SET            = 0x0A;
-        public static final byte MAP            = 0x0B;
-        public static final byte STRUCT         = 0x0C;
+        static final byte BOOLEAN_TRUE   = 0x01;
+        static final byte BOOLEAN_FALSE  = 0x02;
+        static final byte BYTE           = 0x03;
+        static final byte I16            = 0x04;
+        static final byte I32            = 0x05;
+        static final byte I64            = 0x06;
+        static final byte DOUBLE         = 0x07;
+        static final byte BINARY         = 0x08;
+        static final byte LIST           = 0x09;
+        static final byte SET            = 0x0A;
+        static final byte MAP            = 0x0B;
+        static final byte STRUCT         = 0x0C;
 
-        public static byte ttypeToCompact(byte typeId) {
+        static byte ttypeToCompact(byte typeId) {
             switch (typeId) {
                 case TType.STOP:   return TType.STOP;
                 case TType.VOID:   throw new IllegalArgumentException("Unexpected VOID type");
@@ -606,7 +606,7 @@ public class CompactProtocol extends Protocol {
             }
         }
 
-        public static byte compactToTtype(byte compactId) {
+        static byte compactToTtype(byte compactId) {
             switch (compactId) {
                 case TType.STOP:    return TType.STOP;
                 case BOOLEAN_TRUE:  return TType.BOOL;

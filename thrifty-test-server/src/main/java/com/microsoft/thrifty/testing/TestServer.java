@@ -59,12 +59,9 @@ public class TestServer implements TestRule {
         server = startServer(processor, factory);
 
         final CountDownLatch latch = new CountDownLatch(1);
-        serverThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                latch.countDown();
-                server.serve();
-            }
+        serverThread = new Thread(() -> {
+            latch.countDown();
+            server.serve();
         });
 
         serverThread.start();

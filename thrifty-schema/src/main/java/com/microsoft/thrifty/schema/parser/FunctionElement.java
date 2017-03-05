@@ -35,8 +35,8 @@ public abstract class FunctionElement {
                 .location(location)
                 .documentation("")
                 .oneWay(false)
-                .params(ImmutableList.<FieldElement>of())
-                .exceptions(ImmutableList.<FieldElement>of());
+                .params(ImmutableList.of())
+                .exceptions(ImmutableList.of());
     }
 
     public static Builder builder(FunctionElement element) {

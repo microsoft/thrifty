@@ -33,7 +33,7 @@ public class SetType extends ThriftType {
     private final ImmutableMap<String, String> annotations;
 
     SetType(ThriftType elementType) {
-        this(elementType, ImmutableMap.<String, String>of());
+        this(elementType, ImmutableMap.of());
     }
 
     SetType(ThriftType elementType, ImmutableMap<String, String> annotations) {

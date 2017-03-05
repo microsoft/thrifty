@@ -43,7 +43,7 @@ public abstract class ServiceElement {
         return new AutoValue_ServiceElement.Builder()
                 .location(location)
                 .documentation("")
-                .functions(ImmutableList.<FunctionElement>of());
+                .functions(ImmutableList.of());
     }
 
     @AutoValue.Builder

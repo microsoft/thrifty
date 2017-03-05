@@ -174,34 +174,25 @@ public final class ThriftyCodeGenerator {
     }
 
     public void generate(final Path directory) throws IOException {
-        generate(new FileWriter() {
-            @Override
-            public void write(@Nullable JavaFile file) throws IOException {
-                if (file != null) {
-                    file.writeTo(directory);
-                }
+        generate(file -> {
+            if (file != null) {
+                file.writeTo(directory);
             }
         });
     }
 
     public void generate(final File directory) throws IOException {
-        generate(new FileWriter() {
-            @Override
-            public void write(JavaFile file) throws IOException {
-                if (file != null) {
-                    file.writeTo(directory);
-                }
+        generate(file -> {
+            if (file != null) {
+                file.writeTo(directory);
             }
         });
     }
 
     public void generate(final Appendable appendable) throws IOException {
-        generate(new FileWriter() {
-            @Override
-            public void write(JavaFile file) throws IOException {
-                if (file != null) {
-                    file.writeTo(appendable);
-                }
+        generate(file -> {
+            if (file != null) {
+                file.writeTo(appendable);
             }
         });
     }

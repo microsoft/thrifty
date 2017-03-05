@@ -68,15 +68,15 @@ class ThriftListener extends AntlrThriftBaseListener {
     // We can do this with a bitset tracking token indices of trailing-comment tokens.
     private final BitSet trailingDocTokenIndexes = new BitSet(INITIAL_BITSET_CAPACITY);
 
-    private final List<IncludeElement> includes = new ArrayList<>();
+    private final List<IncludeElement>   includes   = new ArrayList<>();
     private final List<NamespaceElement> namespaces = new ArrayList<>();
-    private final List<EnumElement> enums = new ArrayList<>();
-    private final List<TypedefElement> typedefs = new ArrayList<>();
-    private final List<StructElement> structs = new ArrayList<>();
-    private final List<StructElement> unions = new ArrayList<>();
-    private final List<StructElement> exceptions = new ArrayList<>();
-    private final List<ConstElement> consts = new ArrayList<>();
-    private final List<ServiceElement> services = new ArrayList<>();
+    private final List<EnumElement>      enums      = new ArrayList<>();
+    private final List<TypedefElement>   typedefs   = new ArrayList<>();
+    private final List<StructElement>    structs    = new ArrayList<>();
+    private final List<StructElement>    unions     = new ArrayList<>();
+    private final List<StructElement>    exceptions = new ArrayList<>();
+    private final List<ConstElement>     consts     = new ArrayList<>();
+    private final List<ServiceElement>   services   = new ArrayList<>();
 
     /**
      * Creates a new ThriftListener instance.

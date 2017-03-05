@@ -186,12 +186,7 @@ final class TypeResolver {
             }
 
             String key = packageName + "##" + userType.name();
-            ClassName cn = nameCache.get(key);
-            if (cn == null) {
-                cn = ClassName.get(packageName, userType.name());
-                nameCache.put(key, cn);
-            }
-            return cn;
+            return nameCache.computeIfAbsent(key, k -> ClassName.get(packageName, userType.name()));
         }
     };
 
