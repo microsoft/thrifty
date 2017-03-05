@@ -101,7 +101,7 @@ public class LoaderTest {
         Field param = method.parameters().get(0);
         assertThat(param.name(), is("arg1"));
         assertThat(param.type().name(), is("S"));
-        assertThat(param.type(), equalTo((ThriftType) st));
+        assertThat(param.type(), equalTo(st));
     }
 
     @Test
@@ -138,7 +138,7 @@ public class LoaderTest {
         assertThat(et.name(), is("TestEnum"));
 
         TypedefType td = schema.typedefs().get(0);
-        assertThat(td.oldType(), equalTo((ThriftType) et));
+        assertThat(td.oldType(), equalTo(et));
     }
 
     @Test
@@ -316,8 +316,8 @@ public class LoaderTest {
         assertThat(map.oldType().isMap(), is(true));
 
         MapType mt = (MapType) map.oldType();
-        assertThat(mt.keyType(), equalTo((ThriftType) code));
-        assertThat(mt.valueType(), equalTo((ThriftType) msg));
+        assertThat(mt.keyType(), equalTo(code));
+        assertThat(mt.valueType(), equalTo(msg));
     }
 
     @Test
@@ -675,7 +675,7 @@ public class LoaderTest {
         Field field = method.exceptions().get(0);
         ThriftType type = field.type();
 
-        assertThat(type, equalTo((ThriftType) struct));
+        assertThat(type, equalTo(struct));
     }
 
     @Test
