@@ -22,16 +22,15 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.microsoft.thrifty.schema.parser.*;
+import com.microsoft.thrifty.schema.parser.ConstValueElement;
+import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.Arrays;
-import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -318,39 +317,5 @@ public class ConstantTest {
         ));
 
         Constant.validate(linker, listValue, setType);
-    }
-
-    @Test
-    @Ignore
-    // TODO: Reimplement me
-    public void builderCreatesCorrectConstant() {
-        ConstElement constructorElement = mock(ConstElement.class);
-        when(constructorElement.name()).thenReturn("name");
-        Constant constant = new Constant(constructorElement, ImmutableMap.<NamespaceScope, String>of());
-
-        ConstElement constElement = mock(ConstElement.class);
-        when(constElement.name()).thenReturn("name");
-        Map<NamespaceScope, String> namespaces = mock(Map.class);
-        ThriftType thriftType = mock(ThriftType.class);
-
-//        Constant builderConstant = constant.toBuilder()
-//                .element(constElement)
-//                .namespaces(namespaces)
-//                .type(thriftType)
-//                .build();
-//
-//        assertEquals(builderConstant.namespaces(), namespaces);
-//        assertEquals(builderConstant.type(), thriftType);
-    }
-
-    @Test
-    @Ignore
-    // TODO: Reimplement me
-    public void toBuilderCreatesCorrectConstant() {
-        ConstElement constructorElement = mock(ConstElement.class);
-        when(constructorElement.name()).thenReturn("name");
-        //Constant constant = new Constant(constructorElement, new HashMap<NamespaceScope, String>());
-
-        //assertEquals(constant.toBuilder().build(), constant);
     }
 }

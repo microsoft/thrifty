@@ -152,10 +152,10 @@ public class ThriftTypeTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void typeAnnotationsAreImmutable() {
         ThriftType one = BuiltinType.get("i32").withAnnotations(Collections.singletonMap("i32", "bar"));
         try {
-            //noinspection deprecation
             one.annotations().put("baz", "quux");
             fail("Expected ThriftType#annotations() to be immutable!");
         } catch (UnsupportedOperationException ignored) {
