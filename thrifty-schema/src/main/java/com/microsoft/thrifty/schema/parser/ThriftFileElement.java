@@ -42,15 +42,15 @@ public abstract class ThriftFileElement {
     public static Builder builder(Location location) {
         return new AutoValue_ThriftFileElement.Builder()
                 .location(location)
-                .namespaces(ImmutableList.<NamespaceElement>of())
-                .includes(ImmutableList.<IncludeElement>of())
-                .constants(ImmutableList.<ConstElement>of())
-                .typedefs(ImmutableList.<TypedefElement>of())
-                .enums(ImmutableList.<EnumElement>of())
-                .structs(ImmutableList.<StructElement>of())
-                .unions(ImmutableList.<StructElement>of())
-                .exceptions(ImmutableList.<StructElement>of())
-                .services(ImmutableList.<ServiceElement>of());
+                .namespaces(ImmutableList.of())
+                .includes(ImmutableList.of())
+                .constants(ImmutableList.of())
+                .typedefs(ImmutableList.of())
+                .enums(ImmutableList.of())
+                .structs(ImmutableList.of())
+                .unions(ImmutableList.of())
+                .exceptions(ImmutableList.of())
+                .services(ImmutableList.of());
     }
 
     ThriftFileElement() { }

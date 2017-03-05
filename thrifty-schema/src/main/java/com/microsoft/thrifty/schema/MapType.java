@@ -34,7 +34,7 @@ public class MapType extends ThriftType {
     private final ImmutableMap<String, String> annotations;
 
     MapType(ThriftType keyType, ThriftType valueType) {
-        this(keyType, valueType, ImmutableMap.<String, String>of());
+        this(keyType, valueType, ImmutableMap.of());
     }
 
     MapType(ThriftType keyType, ThriftType valueType, ImmutableMap<String, String> annotations) {

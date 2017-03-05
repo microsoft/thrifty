@@ -33,7 +33,7 @@ public class ListType extends ThriftType {
     private final ImmutableMap<String, String> annotations;
 
     ListType(ThriftType elementType) {
-        this(elementType, ImmutableMap.<String, String>of());
+        this(elementType, ImmutableMap.of());
     }
 
     ListType(ThriftType elementType, ImmutableMap<String, String> annotations) {

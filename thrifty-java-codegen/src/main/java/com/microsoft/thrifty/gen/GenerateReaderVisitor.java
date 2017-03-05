@@ -67,7 +67,7 @@ class GenerateReaderVisitor implements ThriftType.Visitor<Void> {
         this.fieldType = fieldType;
     }
 
-    public void generate() {
+    void generate() {
         byte fieldTypeCode = resolver.getTypeCode(fieldType);
         if (fieldTypeCode == TType.ENUM) {
             // Enums are I32 on the wire

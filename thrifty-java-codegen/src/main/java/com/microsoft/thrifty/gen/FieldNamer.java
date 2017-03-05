@@ -34,12 +34,7 @@ class FieldNamer {
         this.namingPolicy = namingPolicy;
     }
 
-    public String getName(Field field) {
-        String name = nameCache.get(field);
-        if (name == null) {
-            name = namingPolicy.apply(field.name());
-            nameCache.put(field, name);
-        }
-        return name;
+    String getName(Field field) {
+        return nameCache.computeIfAbsent(field, k -> namingPolicy.apply(field.name()));
     }
 }

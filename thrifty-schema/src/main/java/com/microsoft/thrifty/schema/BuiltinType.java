@@ -60,7 +60,7 @@ public class BuiltinType extends ThriftType {
     private ImmutableMap<String, String> annotations;
 
     BuiltinType(String name) {
-        this(name, ImmutableMap.<String, String>of());
+        this(name, ImmutableMap.of());
     }
 
     BuiltinType(String name, ImmutableMap<String, String> annotations) {
