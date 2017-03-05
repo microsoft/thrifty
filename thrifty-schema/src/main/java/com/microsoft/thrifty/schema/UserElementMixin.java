@@ -118,11 +118,6 @@ class UserElementMixin implements UserElement {
     }
 
     @Override
-    public boolean hasJavadoc() {
-        return JavadocUtil.isNonEmptyJavadoc(documentation());
-    }
-
-    @Override
     public boolean isDeprecated() {
         return hasThriftOrJavadocAnnotation("deprecated");
     }
@@ -207,7 +202,7 @@ class UserElementMixin implements UserElement {
         }
 
         Builder documentation(String documentation) {
-            if (JavadocUtil.isNonEmptyJavadoc(documentation)) {
+            if (UserElement.isNonEmptyJavadoc(documentation)) {
                 this.documentation = documentation;
             } else {
                 this.documentation = "";

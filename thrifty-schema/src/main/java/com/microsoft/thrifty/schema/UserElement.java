@@ -48,18 +48,20 @@ public interface UserElement {
     String documentation();
 
     /**
+     * Gets a value indicating whether the element contains non-empty Javadoc.
+     *
+     * @return true if this element contains non-empty Javadoc.
+     */
+    default boolean hasJavadoc() {
+        return isNonEmptyJavadoc(documentation());
+    }
+
+    /**
      * Gets an immutable map containing any annotations present on the element.
      *
      * @return all annotations present on this element.
      */
     ImmutableMap<String, String> annotations();
-
-    /**
-     * Gets a value indicating whether the element contains non-empty Javadoc.
-     *
-     * @return true if this element contains non-empty Javadoc.
-     */
-    boolean hasJavadoc();
 
     /**
      * Gets a value indicating whether the element has been marked as
@@ -69,4 +71,22 @@ public interface UserElement {
      * @return true if this element has been marked as deprecated.
      */
     boolean isDeprecated();
+
+    /**
+     * Returns {@code true} if {@code doc} is non-empty Javadoc, otherwise
+     * {@code false}.
+     */
+    static boolean isNonEmptyJavadoc(String doc) {
+        if (doc == null) return false;
+        if (doc.isEmpty()) return false;
+
+        for (int i = 0; i < doc.length(); ++i) {
+            char c = doc.charAt(i);
+            if (!Character.isWhitespace(c)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
