@@ -34,7 +34,7 @@ import java.util.Objects;
  */
 public abstract class UserType extends ThriftType implements UserElement {
     private final ImmutableMap<NamespaceScope, String> namespaces;
-    private final UserElementMixin mixin; // visible for subtype builders
+    private final UserElementMixin mixin;
 
     UserType(Program program, UserElementMixin mixin) {
         super(mixin.name());
