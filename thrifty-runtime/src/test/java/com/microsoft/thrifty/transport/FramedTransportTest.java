@@ -53,7 +53,7 @@ public class FramedTransportTest {
         assertThat(transport.read(readBuffer, 0, 5), is(5));
         assertThat(buffer.size(), is(5L)); // 4 bytes of header plus 5 bytes of frame data were read
 
-        assertThat(new String(readBuffer), is("abcde"));
+        assertThat(new String(readBuffer, Charsets.US_ASCII), is("abcde"));
     }
 
     @Test
