@@ -162,7 +162,7 @@ public class ClientBase implements Closeable {
             }
         }
 
-        callbackExecutor.submit(new Runnable() {
+        callbackExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 if (error != null) {
@@ -282,6 +282,7 @@ public class ClientBase implements Closeable {
                 if (error != null) {
                     call.callback.onError(error);
                 } else {
+                    //noinspection RedundantCast
                     ((MethodCall) call).callback.onSuccess(result);
                 }
             }
@@ -289,7 +290,7 @@ public class ClientBase implements Closeable {
     }
 
     private void complete(final MethodCall call, final Object result) {
-        callbackExecutor.submit(new Runnable() {
+        callbackExecutor.execute(new Runnable() {
             @SuppressWarnings("unchecked")
             @Override
             public void run() {
@@ -299,7 +300,7 @@ public class ClientBase implements Closeable {
     }
 
     private void fail(final MethodCall<?> call, final Throwable error) {
-        callbackExecutor.submit(new Runnable() {
+        callbackExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 call.callback.onError(error);

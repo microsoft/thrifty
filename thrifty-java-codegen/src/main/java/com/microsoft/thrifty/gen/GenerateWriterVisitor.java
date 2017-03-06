@@ -94,6 +94,7 @@ class GenerateWriterVisitor implements ThriftType.Visitor<Void> {
         nameStack.push(subject + "." + fieldName);
     }
 
+    @Override
     public Void visitBool(BuiltinType boolType) {
         write.addStatement("$N.writeBool($L)", proto, nameStack.peek());
         return null;

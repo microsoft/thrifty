@@ -64,7 +64,7 @@ public class SimpleJsonProtocol extends Protocol {
         UNICODE,
     }
 
-    private class WriteContext {
+    private static class WriteContext {
         void beforeWrite() throws IOException {
 
         }
