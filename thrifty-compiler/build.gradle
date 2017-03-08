@@ -53,7 +53,13 @@ task compileTestCase(type: Exec) {
     dependsOn jarTask
 
     executable 'java'
-    args('-jar', jarTask.archivePath.absolutePath, "--use-java-style-names", "--out=$projectDir/build/generated-src/gen/java", "$projectDir/TestThrift.thrift")
+    args = ['-jar', jarTask.archivePath.absolutePath, "--use-java-style-names", "--out=$projectDir/build/generated-src/gen/java", "$projectDir/TestThrift.thrift"]
+}
+
+test {
+    jacoco {
+        enabled = false
+    }
 }
 
 afterEvaluate {

@@ -36,3 +36,9 @@ tasks['checkstyleMain'].enabled = false
 compileJava {
     options.compilerArgs += [ '-Xep:MissingOverride:OFF', '-Xep:NonOverridingEquals:OFF' ]
 }
+
+test {
+    jacoco {
+        enabled = false
+    }
+}
