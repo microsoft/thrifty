@@ -887,6 +887,44 @@ public class LoaderTest {
         }
     }
 
+    @Test
+    public void loadingProgramWithDuplicateSymbolsThrows() throws Exception {
+        String thrift = "" +
+                "namespace java duplicateSymbols;\n" +
+                "\n" +
+                "struct Foo {\n" +
+                "  1: required string foo;\n" +
+                "}\n" +
+                "\n" +
+                "enum Foo {\n" +
+                "  FOO\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail();
+        } catch (LoadFailedException expected) {
+            assertThat(expected, hasMessage(containsString("Duplicate symbols: Foo defined at")));
+        }
+    }
+
+    @Test
+    public void loadingProgramWithDuplicatedConstantNamesThrows() throws Exception {
+        String thrift = "" +
+                "namespace java duplicateConstants;\n" +
+                "\n" +
+                "const i32 Foo = 10 \n" +
+                "\n" +
+                "const string Foo = 'bar'\n";
+
+        try {
+            load(thrift);
+            fail();
+        } catch (LoadFailedException expected) {
+            assertThat(expected, hasMessage(containsString("Duplicate symbols: Foo defined at")));
+        }
+    }
+
     private Schema load(String thrift) throws Exception {
         File f = tempDir.newFile();
         writeTo(f, thrift);

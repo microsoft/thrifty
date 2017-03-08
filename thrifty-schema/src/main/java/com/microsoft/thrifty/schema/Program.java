@@ -200,7 +200,7 @@ public class Program {
         for (UserType userType : allUserTypes()) {
             UserType oldValue = symbolMap.put(userType.name(), userType);
             if (oldValue != null) {
-                throw duplicateSymbol(userType.name(), oldValue, userType);
+                reportDuplicateSymbol(loader.errorReporter(), oldValue, userType);
             }
         }
 
@@ -210,17 +210,20 @@ public class Program {
         for (Constant constant : constants()) {
             Constant oldValue = constSymbolMap.put(constant.name(), constant);
             if (oldValue != null) {
-                throw duplicateSymbol(constant.name(), oldValue, constant);
+                reportDuplicateSymbol(loader.errorReporter(), oldValue, constant);
             }
         }
 
         this.constSymbols = ImmutableMap.copyOf(constSymbolMap);
     }
 
-    private IllegalStateException duplicateSymbol(String symbol, UserElement oldValue, UserElement newValue) {
-        throw new IllegalStateException(
-                "Duplicate symbols: '" + symbol + "' defined at "
-                + oldValue.location() + " and at " + newValue.location());
+    private void reportDuplicateSymbol(
+            ErrorReporter reporter,
+            UserElement oldValue,
+            UserElement newValue) {
+        String message = "Duplicate symbols: " + oldValue.name() + " defined at "
+                + oldValue.location() + " and at " + newValue.location();
+        reporter.error(newValue.location(), message);
     }
 
     @Override
