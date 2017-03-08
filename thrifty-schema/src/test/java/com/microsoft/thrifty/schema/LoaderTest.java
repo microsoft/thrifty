@@ -925,6 +925,94 @@ public class LoaderTest {
         }
     }
 
+    @Test
+    public void constRefToConstantList() throws Exception {
+        String thrift = "" +
+                "const list<i32> SOME_LIST = [1, 2, 3, 4, 5];\n" +
+                "\n" +
+                "struct Sample {\n" +
+                "  1: required list<i32> value = SOME_LIST;\n" +
+                "}\n";
+
+        load(thrift);
+    }
+
+    @Test
+    public void constRefToConstantListOfIncorrectType() throws Exception {
+        String thrift = "" +
+                "const list<i32> SOME_LIST = [1, 2, 3, 4, 5];\n" +
+                "\n" +
+                "struct Incorrect {\n" +
+                "  1: required list<string> value = SOME_LIST;\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail();
+        } catch (LoadFailedException expected) {
+            assertThat(expected, hasMessage(containsString("Expected a value with type list<string>")));
+        }
+    }
+
+    @Test
+    public void nonListConstRefOnListTypeThrows() throws Exception {
+        String thrift = "" +
+                "struct Nope {\n" +
+                "  1: required set<binary> bytes = 3.14159;\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail();
+        } catch (LoadFailedException expected) {
+            assertThat(expected, hasMessage(containsString("Expected a list literal, got: 3.14159")));
+        }
+    }
+
+    @Test
+    public void constRefToConstantMap() throws Exception {
+        String thrift = "" +
+                "const map<i8, i8> MAP = {1: 2}\n" +
+                "\n" +
+                "struct ByteMapHolder {\n" +
+                "  1: required map<i8, i8> theMap = MAP;\n" +
+                "}\n";
+
+        load(thrift);
+    }
+
+    @Test
+    public void constRefToConstMapOfIncorrectTypeThrows() throws Exception {
+        String thrift = "" +
+                "const map<i16, i16> MAP = {3: 4}\n" +
+                "\n" +
+                "struct ByteMapHolder {\n" +
+                "  1: required map<i8, i8> theMap = MAP;\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail();
+        } catch (LoadFailedException expected) {
+            assertThat(expected, hasMessage(containsString("Expected a value with type map<i8, i8>")));
+        }
+    }
+
+    @Test
+    public void constRefToNonMapTypeThrows() throws Exception {
+        String thrift = "" +
+                "struct StillNope {\n" +
+                "  1: required map<binary, binary> cache = 'foo';\n" +
+                "}\n";
+
+        try {
+            load(thrift);
+            fail();
+        } catch (LoadFailedException expected) {
+            assertThat(expected, hasMessage(containsString("Expected a map literal, got: foo")));
+        }
+    }
+
     private Schema load(String thrift) throws Exception {
         File f = tempDir.newFile();
         writeTo(f, thrift);
