@@ -6,15 +6,16 @@ sudo: false
 install: echo './gradlew check will install dependencies'
 
 script:
-  - ./gradlew check
-  - ./gradlew codeCoverageReport
+  - ./gradlew check codeCoverageReport
 
 after_success:
   - .ci/deploy-snapshots.sh
   - THRIFTY_SONATYPE_USERNAME= THRIFTY_SONATYPE_PASSWORD= bash <(curl -s https://codecov.io/bash)
 
 before_cache:
-  - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -rf $HOME/.gradle/caches/*/plugin-resolution/
+  - rm -rf $HOME/.gradle/caches/*/fileHashes/
 
 cache:
   directories:
