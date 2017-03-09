@@ -56,12 +56,6 @@ task compileTestCase(type: Exec) {
     args = ['-jar', jarTask.archivePath.absolutePath, "--use-java-style-names", "--out=$projectDir/build/generated-src/gen/java", "$projectDir/TestThrift.thrift"]
 }
 
-test {
-    jacoco {
-        enabled = false
-    }
-}
-
 afterEvaluate {
     if (project.tasks.getByName('compileTestCase') != null) {
         project.tasks['compileJava'].dependsOn project.tasks.create('deleteTestCaseJava', Delete) {

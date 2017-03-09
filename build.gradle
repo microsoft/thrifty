@@ -122,6 +122,41 @@ subprojects { sp ->
     }
 }
 
+apply plugin: 'jacoco'
+
+task codeCoverageReport(type: JacocoReport) {
+    executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
+
+    subprojects.each {
+        sourceSets it.sourceSets.main
+    }
+
+    reports {
+        xml.enabled true
+        xml.destination "$buildDir/reports/jacoco/report.xml"
+        html.enabled true
+        csv.enabled false
+    }
+
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it,
+            exclude: [
+                    // leave out auto-generated code in thrifty-schema
+                    '**/AutoValue_*',
+                    '**/antlr/*',
+
+                    // ditto for Apache-compiler-generated test classes
+                    'com/microsoft/thrifty/test/gen/*',
+            ])
+        })
+    }
+}
+
+codeCoverageReport.dependsOn {
+    subprojects*.test
+}
+
 afterEvaluate {
     subprojects {
         apply from: file("${rootDir}/gradle/gradle-mvn-push.gradle")

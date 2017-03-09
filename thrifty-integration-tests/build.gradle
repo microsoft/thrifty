@@ -67,8 +67,3 @@ tasks['javadoc'].configure {
     exclude '**/generated-src/**'
 }
 
-test {
-    jacoco {
-        enabled = false
-    }
-}

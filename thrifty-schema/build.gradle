@@ -51,11 +51,3 @@ dependencies {
 compileTestJava {
     options.compilerArgs += [ '-Xep:ImmutableModification:OFF', '-Xlint:deprecation,unchecked' ]
 }
-
-jacocoTestReport {
-    afterEvaluate {
-        classDirectories = files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/AutoValue_*', '**/antlr/*'])
-        })
-    }
-}
