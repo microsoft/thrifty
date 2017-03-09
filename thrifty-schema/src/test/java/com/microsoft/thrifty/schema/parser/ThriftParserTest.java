@@ -32,7 +32,10 @@ import org.junit.Test;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.*;
 
 public class ThriftParserTest {
@@ -183,7 +186,7 @@ public class ThriftParserTest {
                         .add(StructElement.builder(location.at(1, 1))
                                 .name("Empty")
                                 .type(StructElement.Type.STRUCT)
-                                .fields(ImmutableList.<FieldElement>of())
+                                .fields(ImmutableList.of())
                                 .build())
                         .build())
                 .build();
@@ -1185,6 +1188,16 @@ public class ThriftParserTest {
         assertThat(fields.get(3).fieldId(), equalTo(6));
         assertThat(fields.get(4).fieldId(), equalTo(4));
         assertThat(fields.get(5).fieldId(), equalTo(7));
+    }
+
+    @Test
+    public void commentsThatAreEmptyDoNotCrash() {
+        ThriftFileElement file = parse("" +
+                "//\n" +
+                "const i32 foo = 2");
+
+        ConstElement element = file.constants().get(0);
+        assertThat(element.documentation(), isEmptyString());
     }
     
     private static ThriftFileElement parse(String thrift) {
