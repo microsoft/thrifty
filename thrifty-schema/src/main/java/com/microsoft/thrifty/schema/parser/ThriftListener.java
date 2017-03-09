@@ -764,15 +764,18 @@ class ThriftListener extends AntlrThriftBaseListener {
         int start = prefix.length();
         int end = text.length();
 
-        while (Character.isWhitespace(text.charAt(start))) {
+        while (start < end && Character.isWhitespace(text.charAt(start))) {
             ++start;
         }
 
-        while (Character.isWhitespace(text.charAt(end - 1))) {
+        while (end > start && Character.isWhitespace(text.charAt(end - 1))) {
             --end;
         }
 
-        sb.append(text.substring(start, end));
+        if (start != end) {
+            sb.append(text.substring(start, end));
+        }
+
         sb.append("\n");
     }
 
