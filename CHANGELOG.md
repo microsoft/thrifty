@@ -1,3 +1,20 @@
+0.4.0 (released 8 March 2017)
+------------------
+- #127: Add JaCoCo reports to the build
+- #126: Update Gradle to 3.4.1m
+- #124: Add ErrorProne checks to the build
+- #121: Replace 'java' plugin with 'java-library-plugin'
+- #119: Use java.nio.file.Path in the Loader API
+- #117: Update Gradle to 3.4
+- #116: Emit hex literals from Thrift as hex literals in Java
+- #115: Start using the Stream API
+- #114: Update Guava
+- #110: Update compiler to Java 8
+- #109: Suppress StringEquality and NumberEquality on gen'd equals() methods
+- #108: Improve generated ThriftField annotations
+- #107: Fix: throw ThriftException on reading unrecognized enum values
+- #104: Rewrite parser with ANTLR
+
 0.3.2 (released 11 February 2017)
 ------------------
 - #98, #99, #100, #101, #102: Improvements to builder APIs in thrifty-schema (thanks, @hzsweers)
