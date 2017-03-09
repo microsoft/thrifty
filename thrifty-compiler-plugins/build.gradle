@@ -22,9 +22,3 @@ dependencies {
     api libraries.javaPoet
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
-
-test {
-    jacoco {
-        enabled = false
-    }
-}
