@@ -2,6 +2,8 @@ Thrifty
 =======
 
 [![Build Status](https://travis-ci.org/Microsoft/thrifty.svg?branch=master)](https://travis-ci.org/Microsoft/thrifty) [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-Thrifty-green.svg?style=true)](https://android-arsenal.com/details/1/3227)
+[![codecov](https://codecov.io/gh/Microsoft/thrifty/branch/master/graph/badge.svg)](https://codecov.io/gh/Microsoft/thrifty)
+
 
 Thrifty is an implementation of the Apache Thrift software stack for Android, which uses 1/4 of the method count taken by 
 the Apache Thrift compiler.
