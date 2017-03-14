@@ -1,3 +1,7 @@
+0.4.1 (released π 2017)
+------------------
+- #133: Fix IndexOutOfBoundsException parsing empty comments
+
 0.4.0 (released 8 March 2017)
 ------------------
 - #127: Add JaCoCo reports to the build
