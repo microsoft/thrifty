@@ -326,7 +326,7 @@ public final class ThriftyCodeGenerator {
                 .addSuperinterface(Struct.class);
 
         if (type.hasJavadoc()) {
-            structBuilder.addJavadoc(type.documentation());
+            structBuilder.addJavadoc("$L", type.documentation());
         }
 
         if (type.isException()) {
@@ -373,7 +373,7 @@ public final class ThriftyCodeGenerator {
             }
 
             if (field.hasJavadoc()) {
-                fieldBuilder = fieldBuilder.addJavadoc(field.documentation());
+                fieldBuilder = fieldBuilder.addJavadoc("$L", field.documentation());
             }
 
             if (field.isRedacted()) {
@@ -535,7 +535,7 @@ public final class ThriftyCodeGenerator {
             FieldSpec.Builder f = FieldSpec.builder(javaTypeName, fieldName, Modifier.PRIVATE);
 
             if (field.hasJavadoc()) {
-                f.addJavadoc(field.documentation());
+                f.addJavadoc("$L", field.documentation());
             }
 
             if (field.defaultValue() != null) {
@@ -987,7 +987,7 @@ public final class ThriftyCodeGenerator {
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
 
             if (constant.hasJavadoc()) {
-                field.addJavadoc(constant.documentation() + "\n\nGenerated from: " + constant.location());
+                field.addJavadoc("$L", constant.documentation() + "\n\nGenerated from: " + constant.location() + "\n");
             }
 
             if (constant.isDeprecated()) {
@@ -1118,7 +1118,7 @@ public final class ThriftyCodeGenerator {
                         .build());
 
         if (type.hasJavadoc()) {
-            builder.addJavadoc(type.documentation());
+            builder.addJavadoc("$L", type.documentation());
         }
 
         if (type.isDeprecated()) {
@@ -1138,7 +1138,7 @@ public final class ThriftyCodeGenerator {
 
             TypeSpec.Builder memberBuilder = TypeSpec.anonymousClassBuilder("$L", value);
             if (member.hasJavadoc()) {
-                memberBuilder.addJavadoc(member.documentation());
+                memberBuilder.addJavadoc("$L", member.documentation());
             }
 
             if (member.isDeprecated()) {
