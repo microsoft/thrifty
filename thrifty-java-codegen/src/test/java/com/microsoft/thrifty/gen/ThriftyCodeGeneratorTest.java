@@ -335,14 +335,133 @@ public class ThriftyCodeGeneratorTest {
         assertThat(file.toString()).contains(expectedEqualsMethod);
     }
 
+    @Test
+    public void constantsWithSigilsInJavadoc() throws Exception {
+        String thrift = "" +
+                "namespace java sigils.consts\n" +
+                "\n" +
+                "// This comment has $Dollar $Signs\n" +
+                "const i32 INT = 12345";
+
+        String expectedFormat = "" +
+                "package sigils.consts;\n" +
+                "\n" +
+                "public final class Constants {\n" +
+                "  /**\n" +
+                "   * This comment has $Dollar $Signs\n" +
+                "   *\n" +
+                "   *\n" +
+                "   * Generated from: %s at 4:1\n" +
+                "   */\n" +
+                "  public static final int INT = 12345;\n" +
+                "\n" +
+                "  private Constants() {\n" +
+                "    // no instances\n" +
+                "  }\n" +
+                "}\n";
+
+        File thriftFile = tmp.newFile("sigils_consts.thrift");
+        JavaFile javaFile = compile(thriftFile, thrift).get(0);
+
+        String javaText = javaFile.toString();
+        String expected = String.format(expectedFormat, thriftFile.getAbsolutePath());
+
+        assertThat(javaText).isEqualTo(expected);
+    }
+
+    @Test
+    public void enumsWithSigilsInJavadoc() throws Exception {
+        String thrift = "" +
+                "namespace java sigils.enums\n" +
+                "\n" +
+                "// $Sigil here\n" +
+                "enum TestEnum {\n" +
+                "  // $Good, here's another\n" +
+                "  FOO\n" +
+                "}\n";
+
+        String expected = "" +
+                "package sigils.enums;\n" +
+                "\n" +
+                "/**\n" +
+                " * $Sigil here\n" +
+                " */\n" +
+                "public enum TestEnum {\n" +
+                "  /**\n" +
+                "   * $Good, here's another\n" +
+                "   */\n" +
+                "  FOO(0);\n" +
+                "\n" +
+                "  public final int value;\n" +
+                "\n" +
+                "  TestEnum(int value) {\n" +
+                "    this.value = value;\n" +
+                "  }\n" +
+                "\n" +
+                "  public static TestEnum findByValue(int value) {\n" +
+                "    switch (value) {\n" +
+                "      case 0: return FOO;\n" +
+                "      default: return null;\n" +
+                "    }\n" +
+                "  }\n" +
+                "}\n";
+
+        File thriftFile = tmp.newFile("sigil_enums.thrift");
+        JavaFile javaFile = compile(thriftFile, thrift).get(0);
+
+        assertThat(javaFile.toString()).isEqualTo(expected);
+    }
+
+    @Test
+    public void structsWithSigilsInJavadoc() throws Exception {
+        String thrift = "" +
+                "namespace java sigils.structs\n" +
+                "\n" +
+                "// $A $B $C $D $E\n" +
+                "struct Foo {\n" +
+                "  // $F $G $H $I $J\n" +
+                "  1: required string bar\n" +
+                "}";
+
+        String expectedClassJavadoc = "" +
+                "/**\n" +
+                " * $A $B $C $D $E\n" +
+                " */\n" +
+                "public final class Foo implements Struct {\n";
+
+        String expectedFieldJavadoc = "" +
+                "  /**\n" +
+                "   * $F $G $H $I $J\n" +
+                "   */\n" +
+                "  @ThriftField(\n" +
+                "      fieldId = 1,\n" +
+                "      isRequired = true\n" +
+                "  )\n" +
+                "  public final String bar;\n";
+
+        File thriftFile = tmp.newFile("sigil_enums.thrift");
+        JavaFile javaFile = compile(thriftFile, thrift).get(0);
+        assertThat(javaFile.toString()).contains(expectedClassJavadoc);
+        assertThat(javaFile.toString()).contains(expectedFieldJavadoc);
+    }
+
     private ImmutableList<JavaFile> compile(String filename, String text) throws Exception {
         Schema schema = parse(filename, text);
         ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema).emitFileComment(false);
         return gen.generateTypes();
     }
 
+    private ImmutableList<JavaFile> compile(File file, String text) throws Exception {
+        Schema schema = parse(file, text);
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema).emitFileComment(false);
+        return gen.generateTypes();
+    }
+
     private Schema parse(String filename, String text) throws Exception {
-        File file = tmp.newFile(filename);
+        return parse(tmp.newFile(filename), text);
+    }
+
+    private Schema parse(File file, String text) throws Exception {
         try (BufferedSink sink = Okio.buffer(Okio.sink(file))) {
             sink.writeUtf8(text);
             sink.flush();
