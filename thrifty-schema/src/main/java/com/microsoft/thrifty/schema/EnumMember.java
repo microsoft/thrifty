@@ -80,6 +80,10 @@ public class EnumMember implements UserElement {
         return name();
     }
 
+    public Builder toBuilder() {
+        return new Builder(this);
+    }
+
     public static class Builder extends AbstractUserElementBuilder<EnumMember, Builder> {
         private int value;
 
