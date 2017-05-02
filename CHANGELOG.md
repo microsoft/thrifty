@@ -1,3 +1,8 @@
+0.4.2 (released 2 May 2017)
+------------------
+- #141: Add missing method EnumMember#toBuilder()
+- #139: Fix crash when thrift doc comments had `$L` or other JavaPoet sigils
+
 0.4.1 (released π 2017)
 ------------------
 - #133: Fix IndexOutOfBoundsException parsing empty comments

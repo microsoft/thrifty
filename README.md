@@ -33,7 +33,7 @@ repositories {
 }
 
 dependencies {
-  compile 'com.microsoft.thrifty:thrifty-runtime:0.4.1'
+  compile 'com.microsoft.thrifty:thrifty-runtime:0.4.2'
 }
 ```
 
