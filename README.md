@@ -1,6 +1,8 @@
 Thrifty
 =======
 
+[![Join the chat at https://gitter.im/Microsoft/thrifty](https://badges.gitter.im/Microsoft/thrifty.svg)](https://gitter.im/Microsoft/thrifty?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status](https://travis-ci.org/Microsoft/thrifty.svg?branch=master)](https://travis-ci.org/Microsoft/thrifty) [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-Thrifty-green.svg?style=true)](https://android-arsenal.com/details/1/3227)
 [![codecov](https://codecov.io/gh/Microsoft/thrifty/branch/master/graph/badge.svg)](https://codecov.io/gh/Microsoft/thrifty)
 
