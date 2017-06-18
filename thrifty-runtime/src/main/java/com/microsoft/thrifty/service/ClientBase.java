@@ -88,54 +88,54 @@ public class ClientBase implements Closeable {
         }
     }
 
-        final Object invokeRequest(MethodCall<?> call) throws Exception {
-            boolean isOneWay = call.callTypeId == TMessageType.ONEWAY;
-            int sid = seqId.incrementAndGet();
+    final Object invokeRequest(MethodCall<?> call) throws Exception {
+        boolean isOneWay = call.callTypeId == TMessageType.ONEWAY;
+        int sid = seqId.incrementAndGet();
 
-            protocol.writeMessageBegin(call.name, call.callTypeId, sid);
-            call.send(protocol);
-            protocol.writeMessageEnd();
-            protocol.flush();
+        protocol.writeMessageBegin(call.name, call.callTypeId, sid);
+        call.send(protocol);
+        protocol.writeMessageEnd();
+        protocol.flush();
 
-            if (isOneWay) {
-                // No response will be received
-                return null;
-            }
-
-            MessageMetadata metadata = protocol.readMessageBegin();
-
-            if (metadata.seqId != sid) {
-                throw new ThriftException(
-                        ThriftException.Kind.BAD_SEQUENCE_ID,
-                        "Unrecognized sequence ID");
-            }
-
-            if (metadata.type == TMessageType.EXCEPTION) {
-                ThriftException e = ThriftException.read(protocol);
-                protocol.readMessageEnd();
-                handleExceptionMessage(call, e);
-                //TODO there was no throw/return here before but the sync impl of handleExceptionMessage throws
-            } else if (metadata.type != TMessageType.REPLY) {
-                throw new ThriftException(
-                        ThriftException.Kind.INVALID_MESSAGE_TYPE,
-                        "Invalid message type: " + metadata.type);
-            }
-
-            if (metadata.seqId != seqId.get()) {
-                throw new ThriftException(
-                        ThriftException.Kind.BAD_SEQUENCE_ID,
-                        "Out-of-order response");
-            }
-
-            if (!metadata.name.equals(call.name)) {
-                throw new ThriftException(
-                        ThriftException.Kind.WRONG_METHOD_NAME,
-                        "Unexpected method name in reply; expected " + call.name
-                                + " but received " + metadata.name);
-            }
-
-            return call.receive(protocol, metadata);
+        if (isOneWay) {
+            // No response will be received
+            return null;
         }
+
+        MessageMetadata metadata = protocol.readMessageBegin();
+
+        if (metadata.seqId != sid) {
+            throw new ThriftException(
+                    ThriftException.Kind.BAD_SEQUENCE_ID,
+                    "Unrecognized sequence ID");
+        }
+
+        if (metadata.type == TMessageType.EXCEPTION) {
+            ThriftException e = ThriftException.read(protocol);
+            protocol.readMessageEnd();
+            handleExceptionMessage(call, e);
+            //TODO there was no throw/return here before but the sync impl of handleExceptionMessage throws
+        } else if (metadata.type != TMessageType.REPLY) {
+            throw new ThriftException(
+                    ThriftException.Kind.INVALID_MESSAGE_TYPE,
+                    "Invalid message type: " + metadata.type);
+        }
+
+        if (metadata.seqId != seqId.get()) {
+            throw new ThriftException(
+                    ThriftException.Kind.BAD_SEQUENCE_ID,
+                    "Out-of-order response");
+        }
+
+        if (!metadata.name.equals(call.name)) {
+            throw new ThriftException(
+                    ThriftException.Kind.WRONG_METHOD_NAME,
+                    "Unexpected method name in reply; expected " + call.name
+                            + " but received " + metadata.name);
+        }
+
+        return call.receive(protocol, metadata);
+    }
 
     void handleExceptionMessage(MethodCall<?> call, ThriftException e) {
         throw e;
