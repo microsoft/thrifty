@@ -20,8 +20,8 @@
  */
 package com.microsoft.thrifty.service;
 
+import com.microsoft.thrifty.Struct;
 import com.microsoft.thrifty.ThriftException;
-import com.microsoft.thrifty.protocol.MessageMetadata;
 import com.microsoft.thrifty.protocol.Protocol;
 
 import java.io.Closeable;
@@ -34,8 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Implements a basic service client that executes methods asynchronously.
@@ -47,7 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * configure your {@link Protocol} and {@link com.microsoft.thrifty.transport.Transport}
  * objects appropriately.
  */
-public class AsyncClientBase implements Closeable {
+public class AsyncClientBase extends ClientBase implements Closeable {
     /**
      * Exposes important events in the client's lifecycle.
      */
@@ -77,17 +75,6 @@ public class AsyncClientBase implements Closeable {
     }
 
     /**
-     * A sequence ID generator; contains the most-recently-used
-     * sequence ID (or zero, if no calls have been made).
-     */
-    private final AtomicInteger seqId = new AtomicInteger(0);
-
-    /**
-     * A flag indicating whether the client is active and connected.
-     */
-    private final AtomicBoolean running = new AtomicBoolean(true);
-
-    /**
      * A single-thread executor on which to invoke method callbacks.
      *
      * <p>I expect that we'll revisit this design choice; it guarantees
@@ -106,6 +93,7 @@ public class AsyncClientBase implements Closeable {
     private final WorkerThread workerThread;
 
     protected AsyncClientBase(Protocol protocol, Listener listener) {
+        super(protocol);
         this.protocol = protocol;
         this.listener = listener;
         this.workerThread = new WorkerThread();
@@ -216,57 +204,21 @@ public class AsyncClientBase implements Closeable {
                 return;
             }
 
-            boolean isOneWay = call.callTypeId == TMessageType.ONEWAY;
-            int sid = seqId.incrementAndGet();
-
-            protocol.writeMessageBegin(call.name, call.callTypeId, sid);
-            call.send(protocol);
-            protocol.writeMessageEnd();
-            protocol.flush();
-
-            if (isOneWay) {
-                // No response will be received
-                complete(call, null);
-                return;
-            }
-
-            MessageMetadata metadata = protocol.readMessageBegin();
-
-            if (metadata.seqId != sid) {
-                throw new ThriftException(
-                        ThriftException.Kind.BAD_SEQUENCE_ID,
-                        "Unrecognized sequence ID");
-            }
-
-            if (metadata.type == TMessageType.EXCEPTION) {
-                ThriftException e = ThriftException.read(protocol);
-                fail(call, e);
-                protocol.readMessageEnd();
-            } else if (metadata.type != TMessageType.REPLY) {
-                throw new ThriftException(
-                        ThriftException.Kind.INVALID_MESSAGE_TYPE,
-                        "Invalid message type: " + metadata.type);
-            }
-
-            if (metadata.seqId != seqId.get()) {
-                throw new ThriftException(
-                        ThriftException.Kind.BAD_SEQUENCE_ID,
-                        "Out-of-order response");
-            }
-
-            if (!metadata.name.equals(call.name)) {
-                throw new ThriftException(
-                        ThriftException.Kind.WRONG_METHOD_NAME,
-                        "Unexpected method name in reply; expected " + call.name
-                                + " but received " + metadata.name);
-            }
-
             Object result = null;
             Exception error = null;
             try {
-                result = call.receive(protocol, metadata);
+                result = AsyncClientBase.this.invokeRequest(call);
+            //TODO a nicer way would be a struct exception base class and only catch that
+            } catch (IOException | RuntimeException e) {
+                throw e;
             } catch (Exception e) {
-                error = e;
+                if (e instanceof Struct) {
+                    error = e;
+                } else {
+                    // invokeRequest should only throw IOException, RuntimeExceptions
+                    // (like ThriftException) and the Struct Exception from MethodCall
+                    throw new AssertionError("Unexcepted exception", e);
+                }
             }
 
             try {
@@ -287,6 +239,11 @@ public class AsyncClientBase implements Closeable {
                 }
             }
         }
+    }
+
+    @Override
+    void handleExceptionMessage(MethodCall<?> call, ThriftException e) {
+        fail(call, e);
     }
 
     private void complete(final MethodCall call, final Object result) {
