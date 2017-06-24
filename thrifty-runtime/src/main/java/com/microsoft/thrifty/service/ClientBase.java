@@ -73,14 +73,17 @@ public class ClientBase implements Closeable {
     /**
      * Closes this service client and the underlying protocol.
      *
-     * Subclasses that override this method need to set {@link #running} to false.
+     * Subclasses that override this method need to set {@link #running} to false and call {@link #closeProtocol()}.
      */
     @Override
     public void close() throws IOException {
         if (!running.compareAndSet(true, false)) {
             return;
         }
+        closeProtocol();
+    }
 
+    void closeProtocol() {
         try {
             protocol.close();
         } catch (IOException ignored) {

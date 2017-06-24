@@ -88,13 +88,11 @@ public class AsyncClientBase extends ClientBase implements Closeable {
      */
     private final BlockingQueue<MethodCall<?>> pendingCalls = new LinkedBlockingQueue<>();
 
-    private final Protocol protocol;
     private final Listener listener;
     private final WorkerThread workerThread;
 
     protected AsyncClientBase(Protocol protocol, Listener listener) {
         super(protocol);
-        this.protocol = protocol;
         this.listener = listener;
         this.workerThread = new WorkerThread();
 
@@ -131,11 +129,7 @@ public class AsyncClientBase extends ClientBase implements Closeable {
 
         workerThread.interrupt();
 
-        try {
-            protocol.close();
-        } catch (IOException ignored) {
-            // nope
-        }
+        closeProtocol();
 
         if (!pendingCalls.isEmpty()) {
             List<MethodCall<?>> incompleteCalls = new ArrayList<>();
