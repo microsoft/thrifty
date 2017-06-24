@@ -88,6 +88,16 @@ public class ClientBase implements Closeable {
         }
     }
 
+    /**
+     * Send the given call to the server.
+     *
+     * @param call the remote method call to be invoked
+     * @return the result of the method call
+     * @throws AbortException thrown after {@link #handleExceptionMessage(MethodCall, ThriftException)} was called to
+     *   indicate that there is no further result or exception
+     * @throws IOException from the protocol
+     * @throws Exception exception received from server implements {@link com.microsoft.thrifty.Struct}
+     */
     final Object invokeRequest(MethodCall<?> call) throws Exception {
         boolean isOneWay = call.callTypeId == TMessageType.ONEWAY;
         int sid = seqId.incrementAndGet();
@@ -114,7 +124,7 @@ public class ClientBase implements Closeable {
             ThriftException e = ThriftException.read(protocol);
             protocol.readMessageEnd();
             handleExceptionMessage(call, e);
-            //TODO there was no throw/return here before but the sync impl of handleExceptionMessage throws
+            throw new AbortException();
         } else if (metadata.type != TMessageType.REPLY) {
             throw new ThriftException(
                     ThriftException.Kind.INVALID_MESSAGE_TYPE,
@@ -140,4 +150,6 @@ public class ClientBase implements Closeable {
     void handleExceptionMessage(MethodCall<?> call, ThriftException e) {
         throw e;
     }
+
+    static class AbortException extends Exception { }
 }

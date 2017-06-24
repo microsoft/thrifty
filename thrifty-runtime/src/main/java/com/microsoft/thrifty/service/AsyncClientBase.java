@@ -208,16 +208,15 @@ public class AsyncClientBase extends ClientBase implements Closeable {
             Exception error = null;
             try {
                 result = AsyncClientBase.this.invokeRequest(call);
-            //TODO a nicer way would be a struct exception base class and only catch that
             } catch (IOException | RuntimeException e) {
                 throw e;
             } catch (Exception e) {
                 if (e instanceof Struct) {
                     error = e;
-                } else {
-                    // invokeRequest should only throw IOException, RuntimeExceptions
+                } else if (!(e instanceof AbortException)) {
+                    // invokeRequest should only throw AbortException, IOException, RuntimeExceptions
                     // (like ThriftException) and the Struct Exception from MethodCall
-                    throw new AssertionError("Unexcepted exception", e);
+                    throw new AssertionError("Unexpected exception", e);
                 }
             }
 
