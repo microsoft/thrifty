@@ -31,7 +31,7 @@ import com.microsoft.thrifty.integration.gen.Xception2;
 import com.microsoft.thrifty.integration.gen.Xtruct;
 import com.microsoft.thrifty.integration.gen.Xtruct2;
 import com.microsoft.thrifty.protocol.Protocol;
-import com.microsoft.thrifty.service.ClientBase;
+import com.microsoft.thrifty.service.AsyncClientBase;
 import com.microsoft.thrifty.testing.ServerProtocol;
 import com.microsoft.thrifty.testing.ServerTransport;
 import com.microsoft.thrifty.testing.TestServer;
@@ -94,7 +94,7 @@ public abstract class ConformanceBase {
 
         this.transport = decorateTransport(transport);
         this.protocol = createProtocol(this.transport);
-        this.client = new ThriftTestClient(protocol, new ClientBase.Listener() {
+        this.client = new ThriftTestClient(protocol, new AsyncClientBase.Listener() {
             @Override
             public void onTransportClosed() {
 
