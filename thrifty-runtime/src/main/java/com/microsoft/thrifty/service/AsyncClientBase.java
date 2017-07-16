@@ -21,7 +21,6 @@
 package com.microsoft.thrifty.service;
 
 import com.microsoft.thrifty.Struct;
-import com.microsoft.thrifty.ThriftException;
 import com.microsoft.thrifty.protocol.Protocol;
 
 import java.io.Closeable;
@@ -204,12 +203,14 @@ public class AsyncClientBase extends ClientBase implements Closeable {
                 result = AsyncClientBase.this.invokeRequest(call);
             } catch (IOException | RuntimeException e) {
                 throw e;
+            } catch (UndeclaredServerException e) {
+                error = e.thriftException;
             } catch (Exception e) {
                 if (e instanceof Struct) {
                     error = e;
-                } else if (!(e instanceof AbortException)) {
-                    // invokeRequest should only throw AbortException, IOException, RuntimeExceptions
-                    // (like ThriftException) and the Struct Exception from MethodCall
+                } else {
+                    // invokeRequest should only throw UndeclaredServerException, IOException,
+                    // RuntimeExceptions (like ThriftException) and the Struct Exception from MethodCall
                     throw new AssertionError("Unexpected exception", e);
                 }
             }
@@ -232,11 +233,6 @@ public class AsyncClientBase extends ClientBase implements Closeable {
                 }
             }
         }
-    }
-
-    @Override
-    void handleExceptionMessage(MethodCall<?> call, ThriftException e) {
-        fail(call, e);
     }
 
     private void complete(final MethodCall call, final Object result) {
