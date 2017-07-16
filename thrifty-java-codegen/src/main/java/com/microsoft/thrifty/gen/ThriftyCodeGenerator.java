@@ -73,6 +73,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -96,23 +97,24 @@ public final class ThriftyCodeGenerator {
     private final Schema schema;
     private final FieldNamer fieldNamer;
     private final ConstantBuilder constantBuilder;
-    private final ServiceBuilder serviceBuilder;
+    private final List<ServiceBuilder> serviceBuilders;
     private TypeProcessor typeProcessor;
     private boolean emitAndroidAnnotations;
     private boolean emitParcelable;
     private boolean emitFileComment = true;
 
     public ThriftyCodeGenerator(Schema schema) {
-        this(schema, FieldNamingPolicy.DEFAULT);
+        this(schema, FieldNamingPolicy.DEFAULT, Collections.singletonList(ServiceMode.ASYNC));
     }
 
-    public ThriftyCodeGenerator(Schema schema, FieldNamingPolicy namingPolicy) {
+    public ThriftyCodeGenerator(Schema schema, FieldNamingPolicy namingPolicy, List<ServiceMode> serviceModes) {
         this(
                 schema,
                 namingPolicy,
                 ClassName.get(ArrayList.class),
                 ClassName.get(HashSet.class),
-                ClassName.get(HashMap.class));
+                ClassName.get(HashMap.class),
+                serviceModes);
     }
 
     private ThriftyCodeGenerator(
@@ -120,13 +122,16 @@ public final class ThriftyCodeGenerator {
             FieldNamingPolicy namingPolicy,
             ClassName listClassName,
             ClassName setClassName,
-            ClassName mapClassName) {
+            ClassName mapClassName,
+            List<ServiceMode> serviceModes) {
 
         Preconditions.checkNotNull(schema, "schema");
         Preconditions.checkNotNull(namingPolicy, "namingPolicy");
         Preconditions.checkNotNull(listClassName, "listClassName");
         Preconditions.checkNotNull(setClassName, "setClassName");
         Preconditions.checkNotNull(mapClassName, "mapClassName");
+        Preconditions.checkNotNull(serviceModes, "serviceModes");
+        Preconditions.checkArgument(serviceModes.size() > 0, "serviceModes is empty");
 
         this.schema = schema;
         this.fieldNamer = new FieldNamer(namingPolicy);
@@ -135,7 +140,19 @@ public final class ThriftyCodeGenerator {
         typeResolver.setMapClass(mapClassName);
 
         constantBuilder = new ConstantBuilder(typeResolver, schema);
-        serviceBuilder = new AsyncServiceBuilder(typeResolver, constantBuilder, fieldNamer);
+        serviceBuilders = new ArrayList<>();
+        for (ServiceMode serviceMode : serviceModes) {
+            switch (serviceMode) {
+                case ASYNC:
+                    serviceBuilders.add(new AsyncServiceBuilder(typeResolver, constantBuilder, fieldNamer));
+                    break;
+                case SYNC:
+                    serviceBuilders.add(new SyncServiceBuilder(typeResolver, constantBuilder, fieldNamer));
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown ServiceMode " + serviceMode.name());
+            }
+        }
     }
 
     public ThriftyCodeGenerator withListType(String listClassName) {
@@ -247,19 +264,21 @@ public final class ThriftyCodeGenerator {
             }
         }
 
-        for (ServiceType type : schema.services()) {
-            TypeSpec spec = serviceBuilder.buildServiceInterface(type);
-            JavaFile file = assembleJavaFile(type, spec);
-            if (file == null) {
-                continue;
-            }
+        for (ServiceBuilder serviceBuilder : serviceBuilders) {
+            for (ServiceType type : schema.services()) {
+                TypeSpec spec = serviceBuilder.buildServiceInterface(type);
+                JavaFile file = assembleJavaFile(type, spec);
+                if (file == null) {
+                    continue;
+                }
 
-            generatedTypes.add(file);
-
-            spec = serviceBuilder.buildService(type, spec);
-            file = assembleJavaFile(type, spec);
-            if (file != null) {
                 generatedTypes.add(file);
+
+                spec = serviceBuilder.buildService(type, spec);
+                file = assembleJavaFile(type, spec);
+                if (file != null) {
+                    generatedTypes.add(file);
+                }
             }
         }
 
