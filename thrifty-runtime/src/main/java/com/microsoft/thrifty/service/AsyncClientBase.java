@@ -86,7 +86,7 @@ public class AsyncClientBase extends ClientBase implements Closeable {
     /**
      * An unbounded queue holding RPC calls awaiting execution.
      */
-    private final BlockingQueue<MethodCall<?>> pendingCalls = new LinkedBlockingQueue<>();
+    private final BlockingQueue<AsyncMethodCall<?>> pendingCalls = new LinkedBlockingQueue<>();
 
     private final Listener listener;
     private final WorkerThread workerThread;
@@ -106,7 +106,7 @@ public class AsyncClientBase extends ClientBase implements Closeable {
      *
      * @param methodCall the remote method call to be invoked
      */
-    protected void enqueue(MethodCall<?> methodCall) {
+    protected void enqueue(AsyncMethodCall<?> methodCall) {
         if (!running.get()) {
             throw new IllegalStateException("Cannot write to a closed service client");
         }
@@ -132,10 +132,10 @@ public class AsyncClientBase extends ClientBase implements Closeable {
         closeProtocol();
 
         if (!pendingCalls.isEmpty()) {
-            List<MethodCall<?>> incompleteCalls = new ArrayList<>();
+            List<AsyncMethodCall<?>> incompleteCalls = new ArrayList<>();
             pendingCalls.drainTo(incompleteCalls);
             CancellationException e = new CancellationException();
-            for (MethodCall<?> call : incompleteCalls) {
+            for (AsyncMethodCall<?> call : incompleteCalls) {
                 try {
                     fail(call, e);
                 } catch (Exception ignored) {
@@ -186,7 +186,7 @@ public class AsyncClientBase extends ClientBase implements Closeable {
         }
 
         private void invokeRequest() throws ThriftException, IOException, InterruptedException {
-            MethodCall<?> call = pendingCalls.take();
+            AsyncMethodCall<?> call = pendingCalls.take();
             if (!running.get()) {
                 if (call != null) {
                     fail(call, new CancellationException());
@@ -230,13 +230,13 @@ public class AsyncClientBase extends ClientBase implements Closeable {
                     call.callback.onError(error);
                 } else {
                     //noinspection RedundantCast
-                    ((MethodCall) call).callback.onSuccess(result);
+                    ((AsyncMethodCall) call).callback.onSuccess(result);
                 }
             }
         }
     }
 
-    private void complete(final MethodCall call, final Object result) {
+    private void complete(final AsyncMethodCall call, final Object result) {
         callbackExecutor.execute(new Runnable() {
             @SuppressWarnings("unchecked")
             @Override
@@ -246,7 +246,7 @@ public class AsyncClientBase extends ClientBase implements Closeable {
         });
     }
 
-    private void fail(final MethodCall<?> call, final Throwable error) {
+    private void fail(final AsyncMethodCall<?> call, final Throwable error) {
         callbackExecutor.execute(new Runnable() {
             @Override
             public void run() {
