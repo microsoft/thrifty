@@ -135,7 +135,7 @@ public final class ThriftyCodeGenerator {
         typeResolver.setMapClass(mapClassName);
 
         constantBuilder = new ConstantBuilder(typeResolver, schema);
-        serviceBuilder = new ServiceBuilder(typeResolver, constantBuilder, fieldNamer);
+        serviceBuilder = new AsyncServiceBuilder(typeResolver, constantBuilder, fieldNamer);
     }
 
     public ThriftyCodeGenerator withListType(String listClassName) {
