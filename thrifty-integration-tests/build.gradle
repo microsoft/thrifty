@@ -55,7 +55,7 @@ task compileTestThrift(type: Exec) {
     dependsOn jarTask
 
     executable 'java'
-    args = ['-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/generated-src/thrifty", "$projectDir/ClientThriftTest.thrift"]
+    args = ['-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/generated-src/thrifty", "--async", "--sync", "$projectDir/ClientThriftTest.thrift"]
 }
 
 compileTestJava {
