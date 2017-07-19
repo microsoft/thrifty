@@ -69,7 +69,7 @@ public class ClientBase implements Closeable {
 
         try {
             return invokeRequest(methodCall);
-        } catch (UndeclaredServerException e) {
+        } catch (ServerException e) {
             throw e.thriftException;
         }
     }
@@ -100,8 +100,8 @@ public class ClientBase implements Closeable {
      *
      * @param call the remote method call to be invoked
      * @return the result of the method call
+     * @throws ServerException wrapper around {@link ThriftException}. Callers should catch and unwrap this.
      * @throws IOException from the protocol
-     * @throws UndeclaredServerException exception received from server that was not declared in schema
      * @throws Exception exception received from server implements {@link com.microsoft.thrifty.Struct}
      */
     final Object invokeRequest(MethodCall<?> call) throws Exception {
@@ -129,7 +129,7 @@ public class ClientBase implements Closeable {
         if (metadata.type == TMessageType.EXCEPTION) {
             ThriftException e = ThriftException.read(protocol);
             protocol.readMessageEnd();
-            throw new UndeclaredServerException(e);
+            throw new ServerException(e);
         } else if (metadata.type != TMessageType.REPLY) {
             throw new ThriftException(
                     ThriftException.Kind.INVALID_MESSAGE_TYPE,
@@ -152,10 +152,10 @@ public class ClientBase implements Closeable {
         return call.receive(protocol, metadata);
     }
 
-    static class UndeclaredServerException extends Exception {
+    static class ServerException extends Exception {
         final ThriftException thriftException;
 
-        UndeclaredServerException(ThriftException thriftException) {
+        ServerException(ThriftException thriftException) {
             this.thriftException = thriftException;
         }
     }
