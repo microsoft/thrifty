@@ -23,6 +23,7 @@ package com.microsoft.thrifty.protocol;
 import com.microsoft.thrifty.Adapter;
 import com.microsoft.thrifty.StructBuilder;
 import com.microsoft.thrifty.TType;
+import com.microsoft.thrifty.ThriftException;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.util.ProtocolUtil;
 
@@ -216,7 +217,7 @@ public final class Xtruct {
         }
 
         @Override
-        public Xtruct read(Protocol protocol, Builder builder) throws IOException {
+        public Xtruct read(Protocol protocol, Builder builder) throws ThriftException, IOException {
             protocol.readStructBegin();
             while (true) {
                 FieldMetadata field = protocol.readFieldBegin();
@@ -280,7 +281,7 @@ public final class Xtruct {
         }
 
         @Override
-        public Xtruct read(Protocol protocol) throws IOException {
+        public Xtruct read(Protocol protocol) throws ThriftException, IOException {
             return read(protocol, new Builder());
         }
     }
