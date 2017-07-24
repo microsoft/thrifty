@@ -56,13 +56,14 @@ final class SyncServiceBuilder extends ServiceBuilder {
     @Override
     List<TypeName> getDeclaredServiceMethodExceptions(ServiceMethod method) {
         List<TypeName> exceptions = new ArrayList<>(method.exceptions().size() + 1);
-        exceptions.add(TypeNames.IO_EXCEPTION);
         for (Field exception : method.exceptions()) {
             ThriftType exceptionType = exception.type().getTrueType();
             TypeName exceptionTypeName = typeResolver.getJavaClass(exceptionType);
 
             exceptions.add(exceptionTypeName);
         }
+        exceptions.add(TypeNames.THRIFT_EXCEPTION);
+        exceptions.add(TypeNames.IO_EXCEPTION);
         return exceptions;
     }
 
@@ -108,19 +109,24 @@ final class SyncServiceBuilder extends ServiceBuilder {
 
         body.add("));\n$]");
 
-        CodeBlock.Builder catchCode = CodeBlock.builder()
-                .add("catch(");
-        for (TypeName exception : methodSpec.exceptions) {
-            catchCode.add("$T | ", exception);
+        List<TypeName> exceptions = new ArrayList<>(methodSpec.exceptions);
+        exceptions.add(TypeName.get(RuntimeException.class));
+
+        body.unindent().add("} catch(");
+        for (int i = 0; i < exceptions.size(); i++) {
+            if (i > 0) {
+                body.add(" | ");
+            }
+            body.add("$T", exceptions.get(i));
         }
-        catchCode.add("$T e)", RuntimeException.class);
-        return body.nextControlFlow(catchCode.build().toString())
-                .addStatement("throw e")
-                .nextControlFlow("catch($T e)", TypeNames.EXCEPTION)
+        body.add(" e) {\n")
+                .indent()
+                .addStatement("throw e");
+
+        return body.nextControlFlow("catch($T e)", TypeNames.EXCEPTION)
                 .addStatement("throw new $T($S, e)", AssertionError.class, "Unexpected exception")
                 .endControlFlow()
                 .build();
-
     }
 
     @Override
