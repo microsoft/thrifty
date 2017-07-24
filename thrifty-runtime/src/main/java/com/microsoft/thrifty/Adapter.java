@@ -38,7 +38,7 @@ public interface Adapter<T, B extends StructBuilder<T>> {
      * @return an instance of {@link T} populated with the data just read.
      * @throws IOException if reading fails, or if the struct is malformed.
      */
-    T read(Protocol protocol) throws IOException;
+    T read(Protocol protocol) throws ThriftException, IOException;
 
     /**
      * Reads a new instane of {@link T} from the given {@code protocol}, using
@@ -49,7 +49,7 @@ public interface Adapter<T, B extends StructBuilder<T>> {
      * @return an instance of {@link T} populated with the data just read.
      * @throws IOException if reading fails, or if the struct is malformed.
      */
-    T read(Protocol protocol, B builder) throws IOException;
+    T read(Protocol protocol, B builder) throws ThriftException, IOException;
 
     /**
      * Writes the given {@code struct} to the given {@code protocol}.

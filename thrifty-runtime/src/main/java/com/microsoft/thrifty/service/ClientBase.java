@@ -67,7 +67,11 @@ public class ClientBase implements Closeable {
             throw new IllegalStateException("Cannot write to a closed service client");
         }
 
-        return invokeRequest(methodCall);
+        try {
+            return invokeRequest(methodCall);
+        } catch (ServerException e) {
+            throw e.thriftException;
+        }
     }
 
     /**
@@ -96,8 +100,7 @@ public class ClientBase implements Closeable {
      *
      * @param call the remote method call to be invoked
      * @return the result of the method call
-     * @throws AbortException thrown after {@link #handleExceptionMessage(MethodCall, ThriftException)} was called to
-     *   indicate that there is no further result or exception
+     * @throws ServerException wrapper around {@link ThriftException}. Callers should catch and unwrap this.
      * @throws IOException from the protocol
      * @throws Exception exception received from server implements {@link com.microsoft.thrifty.Struct}
      */
@@ -126,8 +129,7 @@ public class ClientBase implements Closeable {
         if (metadata.type == TMessageType.EXCEPTION) {
             ThriftException e = ThriftException.read(protocol);
             protocol.readMessageEnd();
-            handleExceptionMessage(call, e);
-            throw new AbortException();
+            throw new ServerException(e);
         } else if (metadata.type != TMessageType.REPLY) {
             throw new ThriftException(
                     ThriftException.Kind.INVALID_MESSAGE_TYPE,
@@ -150,9 +152,11 @@ public class ClientBase implements Closeable {
         return call.receive(protocol, metadata);
     }
 
-    void handleExceptionMessage(MethodCall<?> call, ThriftException e) {
-        throw e;
-    }
+    static class ServerException extends Exception {
+        final ThriftException thriftException;
 
-    static class AbortException extends Exception { }
+        ServerException(ThriftException thriftException) {
+            this.thriftException = thriftException;
+        }
+    }
 }

@@ -185,7 +185,7 @@ public class AsyncClientBase extends ClientBase implements Closeable {
             }
         }
 
-        private void invokeRequest() throws IOException, InterruptedException {
+        private void invokeRequest() throws ThriftException, IOException, InterruptedException {
             MethodCall<?> call = pendingCalls.take();
             if (!running.get()) {
                 if (call != null) {
@@ -202,14 +202,16 @@ public class AsyncClientBase extends ClientBase implements Closeable {
             Exception error = null;
             try {
                 result = AsyncClientBase.this.invokeRequest(call);
-            } catch (IOException | RuntimeException e) {
+            } catch (ThriftException | IOException | RuntimeException e) {
                 throw e;
+            } catch (ServerException e) {
+                error = e.thriftException;
             } catch (Exception e) {
                 if (e instanceof Struct) {
                     error = e;
-                } else if (!(e instanceof AbortException)) {
-                    // invokeRequest should only throw AbortException, IOException, RuntimeExceptions
-                    // (like ThriftException) and the Struct Exception from MethodCall
+                } else {
+                    // invokeRequest should only throw one of the caught Exception types or
+                    // an Exception extending Struct from MethodCall
                     throw new AssertionError("Unexpected exception", e);
                 }
             }
@@ -232,11 +234,6 @@ public class AsyncClientBase extends ClientBase implements Closeable {
                 }
             }
         }
-    }
-
-    @Override
-    void handleExceptionMessage(MethodCall<?> call, ThriftException e) {
-        fail(call, e);
     }
 
     private void complete(final MethodCall call, final Object result) {
