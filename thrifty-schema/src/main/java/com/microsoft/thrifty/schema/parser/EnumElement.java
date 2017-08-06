@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
 import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -33,6 +34,7 @@ public abstract class EnumElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract String name();
+    public abstract UUID uuid();
     public abstract ImmutableList<EnumMemberElement> members();
     @Nullable public abstract AnnotationElement annotations();
 
@@ -41,7 +43,8 @@ public abstract class EnumElement {
     public static Builder builder(Location location) {
         return new AutoValue_EnumElement.Builder()
                 .location(location)
-                .documentation("");
+                .documentation("")
+                .uuid(UUID.randomUUID());
     }
 
     @AutoValue.Builder
@@ -49,6 +52,7 @@ public abstract class EnumElement {
         Builder location(Location location);
         Builder documentation(String documentation);
         Builder name(String name);
+        Builder uuid(UUID uuid);
         Builder members(List<EnumMemberElement> members);
         Builder annotations(AnnotationElement annotations);
 

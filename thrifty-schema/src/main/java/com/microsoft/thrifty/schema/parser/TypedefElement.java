@@ -23,6 +23,8 @@ package com.microsoft.thrifty.schema.parser;
 import com.google.auto.value.AutoValue;
 import com.microsoft.thrifty.schema.Location;
 
+import java.util.UUID;
+
 import javax.annotation.Nullable;
 
 @AutoValue
@@ -31,6 +33,7 @@ public abstract class TypedefElement {
     public abstract String documentation();
     public abstract TypeElement oldType();
     public abstract String newName();
+    public abstract UUID uuid();
 
     @Nullable
     public abstract AnnotationElement annotations();
@@ -40,7 +43,8 @@ public abstract class TypedefElement {
     public static Builder builder(Location location) {
         return new AutoValue_TypedefElement.Builder()
                 .location(location)
-                .documentation("");
+                .documentation("")
+                .uuid(UUID.randomUUID());
     }
 
     @AutoValue.Builder
@@ -49,6 +53,7 @@ public abstract class TypedefElement {
         Builder documentation(String documentation);
         Builder oldType(TypeElement oldType);
         Builder newName(String newName);
+        Builder uuid(UUID uuid);
         Builder annotations(AnnotationElement annotations);
 
         TypedefElement build();

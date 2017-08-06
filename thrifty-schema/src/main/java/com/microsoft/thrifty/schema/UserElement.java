@@ -22,10 +22,21 @@ package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.util.UUID;
+
 /**
  * Represents data common to user-defined elements of a Thrift program.
  */
 public interface UserElement {
+    /**
+     * A globally unique ID for this element. This is useful for cases where you newBuilder() an element to change it
+     * (such as in a Schema preprocessor) and want to update references from other objects in a deterministic way that
+     * matches IDs. If you want a new instance of an object that is unrelated, you should change this value.
+     *
+     * @return the uuid of this element.
+     */
+    UUID uuid();
+
     /**
      * Gets the name of the element.
      *

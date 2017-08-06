@@ -24,6 +24,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 
+import java.util.UUID;
+
 /**
  * A named member of an {@link EnumType}.
  */
@@ -43,6 +45,11 @@ public class EnumMember implements UserElement {
 
     public int value() {
         return value;
+    }
+
+    @Override
+    public UUID uuid() {
+        return mixin.uuid();
     }
 
     @Override

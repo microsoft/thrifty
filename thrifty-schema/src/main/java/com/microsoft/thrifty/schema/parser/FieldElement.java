@@ -24,6 +24,8 @@ import com.google.auto.value.AutoValue;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.Requiredness;
 
+import java.util.UUID;
+
 import javax.annotation.Nullable;
 
 @AutoValue
@@ -32,7 +34,8 @@ public abstract class FieldElement {
         return new AutoValue_FieldElement.Builder()
                 .location(location)
                 .documentation("")
-                .requiredness(Requiredness.DEFAULT);
+                .requiredness(Requiredness.DEFAULT)
+                .uuid(UUID.randomUUID());
     }
 
     public FieldElement withId(int fieldId) {
@@ -47,6 +50,7 @@ public abstract class FieldElement {
     public abstract Requiredness requiredness();
     public abstract TypeElement type();
     public abstract String name();
+    public abstract UUID uuid();
     @Nullable public abstract ConstValueElement constValue();
     @Nullable public abstract AnnotationElement annotations();
 
@@ -60,6 +64,7 @@ public abstract class FieldElement {
         Builder requiredness(Requiredness requiredness);
         Builder type(TypeElement type);
         Builder name(String name);
+        Builder uuid(UUID uuid);
         Builder constValue(ConstValueElement constValue);
         Builder annotations(AnnotationElement annotations);
 

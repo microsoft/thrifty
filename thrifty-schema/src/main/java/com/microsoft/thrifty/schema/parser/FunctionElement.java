@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
 import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -36,7 +37,8 @@ public abstract class FunctionElement {
                 .documentation("")
                 .oneWay(false)
                 .params(ImmutableList.of())
-                .exceptions(ImmutableList.of());
+                .exceptions(ImmutableList.of())
+                .uuid(UUID.randomUUID());
     }
 
     public static Builder builder(FunctionElement element) {
@@ -48,6 +50,7 @@ public abstract class FunctionElement {
     public abstract boolean oneWay();
     public abstract TypeElement returnType();
     public abstract String name();
+    public abstract UUID uuid();
     public abstract ImmutableList<FieldElement> params();
     public abstract ImmutableList<FieldElement> exceptions();
     @Nullable public abstract AnnotationElement annotations();
@@ -61,6 +64,7 @@ public abstract class FunctionElement {
         Builder oneWay(boolean oneWay);
         Builder returnType(TypeElement returnType);
         Builder name(String name);
+        Builder uuid(UUID uuid);
         Builder params(List<FieldElement> params);
         Builder exceptions(List<FieldElement> params);
         Builder annotations(AnnotationElement annotations);

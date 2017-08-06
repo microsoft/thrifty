@@ -23,18 +23,22 @@ package com.microsoft.thrifty.schema.parser;
 import com.google.auto.value.AutoValue;
 import com.microsoft.thrifty.schema.Location;
 
+import java.util.UUID;
+
 @AutoValue
 public abstract class ConstElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract TypeElement type();
     public abstract String name();
+    public abstract UUID uuid();
     public abstract ConstValueElement value();
 
     public static Builder builder(Location location) {
         return new AutoValue_ConstElement.Builder()
                 .location(location)
-                .documentation("");
+                .documentation("")
+                .uuid(UUID.randomUUID());
     }
 
     ConstElement() { }
@@ -45,6 +49,7 @@ public abstract class ConstElement {
         Builder documentation(String documentation);
         Builder type(TypeElement type);
         Builder name(String name);
+        Builder uuid(UUID uuid);
         Builder value(ConstValueElement value);
 
         ConstElement build();

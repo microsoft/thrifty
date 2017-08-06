@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Base type of all user-defined Thrift IDL types, including structs, unions,
@@ -60,6 +61,11 @@ public abstract class UserType extends ThriftType implements UserElement {
 
     public ImmutableMap<NamespaceScope, String> namespaces() {
         return namespaces;
+    }
+
+    @Override
+    public UUID uuid() {
+        return mixin.uuid();
     }
 
     @Override

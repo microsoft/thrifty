@@ -27,6 +27,7 @@ import com.microsoft.thrifty.schema.parser.FunctionElement;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class ServiceMethod implements UserElement {
 
@@ -71,6 +72,11 @@ public class ServiceMethod implements UserElement {
 
     public boolean oneWay() {
         return element.oneWay();
+    }
+
+    @Override
+    public UUID uuid() {
+        return mixin.uuid();
     }
 
     @Override

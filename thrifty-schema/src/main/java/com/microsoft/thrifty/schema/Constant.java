@@ -27,6 +27,7 @@ import com.microsoft.thrifty.schema.parser.ConstValueElement;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -44,6 +45,7 @@ public class Constant implements UserElement {
         this.element = element;
         this.namespaces = namespaces;
         this.mixin = new UserElementMixin(
+                element.uuid(),
                 element.name(),
                 element.location(),
                 element.documentation(),
@@ -72,6 +74,11 @@ public class Constant implements UserElement {
             ns = namespaces.get(NamespaceScope.ALL);
         }
         return ns;
+    }
+
+    @Override
+    public UUID uuid() {
+        return mixin.uuid();
     }
 
     @Override

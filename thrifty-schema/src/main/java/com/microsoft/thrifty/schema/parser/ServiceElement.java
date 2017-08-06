@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
 import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -33,6 +34,7 @@ public abstract class ServiceElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract String name();
+    public abstract UUID uuid();
     @Nullable public abstract TypeElement extendsService();
     public abstract ImmutableList<FunctionElement> functions();
     @Nullable public abstract AnnotationElement annotations();
@@ -43,7 +45,8 @@ public abstract class ServiceElement {
         return new AutoValue_ServiceElement.Builder()
                 .location(location)
                 .documentation("")
-                .functions(ImmutableList.of());
+                .functions(ImmutableList.of())
+                .uuid(UUID.randomUUID());
     }
 
     @AutoValue.Builder
@@ -51,6 +54,7 @@ public abstract class ServiceElement {
         Builder location(Location location);
         Builder documentation(String documentation);
         Builder name(String name);
+        Builder uuid(UUID uuid);
         Builder extendsService(TypeElement serviceName);
         Builder functions(List<FunctionElement> functions);
         Builder annotations(AnnotationElement annotations);
