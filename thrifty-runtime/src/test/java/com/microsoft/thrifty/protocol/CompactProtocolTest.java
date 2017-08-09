@@ -84,6 +84,7 @@ public class CompactProtocolTest {
                 .i64_thing(0xFFFFFFFFL)
                 .string_thing("foo")
                 .double_thing(Math.PI)
+                .bool_thing(true)
                 .build();
 
         Buffer buffer = new Buffer();

@@ -381,7 +381,8 @@ public class CompactProtocol extends Protocol {
         }
 
         if (typeId == TType.BOOL) {
-            booleanFieldType = compactId;
+            // the bool value is encoded in the lower nibble of the ID
+            booleanFieldType = (byte) (compactId & 0x0F);
         }
 
         lastReadingField = fieldId;
