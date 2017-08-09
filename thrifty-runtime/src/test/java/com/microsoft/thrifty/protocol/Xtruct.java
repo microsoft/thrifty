@@ -21,46 +21,46 @@
 package com.microsoft.thrifty.protocol;
 
 import com.microsoft.thrifty.Adapter;
+import com.microsoft.thrifty.Struct;
 import com.microsoft.thrifty.StructBuilder;
 import com.microsoft.thrifty.TType;
-import com.microsoft.thrifty.ThriftException;
 import com.microsoft.thrifty.ThriftField;
 import com.microsoft.thrifty.util.ProtocolUtil;
 
 import java.io.IOException;
 
-public final class Xtruct {
+public final class Xtruct implements Struct {
     public static final Adapter<Xtruct, Builder> ADAPTER = new XtructAdapter();
 
     @ThriftField(
-            fieldId = 1,
-            isRequired = false
+            fieldId = 1
     )
     public final String string_thing;
 
     @ThriftField(
-            fieldId = 4,
-            isRequired = false
+            fieldId = 4
     )
     public final Byte byte_thing;
 
     @ThriftField(
-            fieldId = 9,
-            isRequired = false
+            fieldId = 9
     )
     public final Integer i32_thing;
 
     @ThriftField(
-            fieldId = 11,
-            isRequired = false
+            fieldId = 11
     )
     public final Long i64_thing;
 
     @ThriftField(
-            fieldId = 13,
-            isRequired = false
+            fieldId = 13
     )
     public final Double double_thing;
+
+    @ThriftField(
+            fieldId = 15
+    )
+    public final Boolean bool_thing;
 
     private Xtruct(Builder builder) {
         this.string_thing = builder.string_thing;
@@ -68,9 +68,11 @@ public final class Xtruct {
         this.i32_thing = builder.i32_thing;
         this.i64_thing = builder.i64_thing;
         this.double_thing = builder.double_thing;
+        this.bool_thing = builder.bool_thing;
     }
 
     @Override
+    @SuppressWarnings({"StringEquality", "NumberEquality"})
     public boolean equals(Object other) {
         if (this == other) return true;
         if (other == null) return false;
@@ -80,7 +82,8 @@ public final class Xtruct {
                 && (this.byte_thing == that.byte_thing || (this.byte_thing != null && this.byte_thing.equals(that.byte_thing)))
                 && (this.i32_thing == that.i32_thing || (this.i32_thing != null && this.i32_thing.equals(that.i32_thing)))
                 && (this.i64_thing == that.i64_thing || (this.i64_thing != null && this.i64_thing.equals(that.i64_thing)))
-                && (this.double_thing == that.double_thing || (this.double_thing != null && this.double_thing.equals(that.double_thing)));
+                && (this.double_thing == that.double_thing || (this.double_thing != null && this.double_thing.equals(that.double_thing)))
+                && (this.bool_thing == that.bool_thing || (this.bool_thing != null && this.bool_thing.equals(that.bool_thing)));
     }
 
     @Override
@@ -96,29 +99,19 @@ public final class Xtruct {
         code *= 0x811c9dc5;
         code ^= (this.double_thing == null) ? 0 : this.double_thing.hashCode();
         code *= 0x811c9dc5;
+        code ^= (this.bool_thing == null) ? 0 : this.bool_thing.hashCode();
+        code *= 0x811c9dc5;
         return code;
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Xtruct").append("{\n  ");
-        sb.append("string_thing=");
-        sb.append(this.string_thing == null ? "null" : this.string_thing);
-        sb.append(",\n  ");
-        sb.append("byte_thing=");
-        sb.append(this.byte_thing == null ? "null" : this.byte_thing);
-        sb.append(",\n  ");
-        sb.append("i32_thing=");
-        sb.append(this.i32_thing == null ? "null" : this.i32_thing);
-        sb.append(",\n  ");
-        sb.append("i64_thing=");
-        sb.append(this.i64_thing == null ? "null" : this.i64_thing);
-        sb.append(",\n  ");
-        sb.append("double_thing=");
-        sb.append(this.double_thing == null ? "null" : this.double_thing);
-        sb.append("\n}");
-        return sb.toString();
+        return "Xtruct{string_thing=" + this.string_thing + ", byte_thing=" + this.byte_thing + ", i32_thing=" + this.i32_thing + ", i64_thing=" + this.i64_thing + ", double_thing=" + this.double_thing + ", bool_thing=" + this.bool_thing + "}";
+    }
+
+    @Override
+    public void write(Protocol protocol) throws IOException {
+        ADAPTER.write(protocol, this);
     }
 
     public static final class Builder implements StructBuilder<Xtruct> {
@@ -132,6 +125,8 @@ public final class Xtruct {
 
         private Double double_thing;
 
+        private Boolean bool_thing;
+
         public Builder() {
         }
 
@@ -141,6 +136,7 @@ public final class Xtruct {
             this.i32_thing = struct.i32_thing;
             this.i64_thing = struct.i64_thing;
             this.double_thing = struct.double_thing;
+            this.bool_thing = struct.bool_thing;
         }
 
         public Builder string_thing(String string_thing) {
@@ -168,6 +164,11 @@ public final class Xtruct {
             return this;
         }
 
+        public Builder bool_thing(Boolean bool_thing) {
+            this.bool_thing = bool_thing;
+            return this;
+        }
+
         @Override
         public Xtruct build() {
             return new Xtruct(this);
@@ -180,6 +181,7 @@ public final class Xtruct {
             this.i32_thing = null;
             this.i64_thing = null;
             this.double_thing = null;
+            this.bool_thing = null;
         }
     }
 
@@ -212,12 +214,17 @@ public final class Xtruct {
                 protocol.writeDouble(struct.double_thing);
                 protocol.writeFieldEnd();
             }
+            if (struct.bool_thing != null) {
+                protocol.writeFieldBegin("bool_thing", 15, TType.BOOL);
+                protocol.writeBool(struct.bool_thing);
+                protocol.writeFieldEnd();
+            }
             protocol.writeFieldStop();
             protocol.writeStructEnd();
         }
 
         @Override
-        public Xtruct read(Protocol protocol, Builder builder) throws ThriftException, IOException {
+        public Xtruct read(Protocol protocol, Builder builder) throws IOException {
             protocol.readStructBegin();
             while (true) {
                 FieldMetadata field = protocol.readFieldBegin();
@@ -270,6 +277,15 @@ public final class Xtruct {
                         }
                     }
                     break;
+                    case 15: {
+                        if (field.typeId == TType.BOOL) {
+                            boolean value = protocol.readBool();
+                            builder.bool_thing(value);
+                        } else {
+                            ProtocolUtil.skip(protocol, field.typeId);
+                        }
+                    }
+                    break;
                     default: {
                         ProtocolUtil.skip(protocol, field.typeId);
                     }
@@ -277,13 +293,13 @@ public final class Xtruct {
                 }
                 protocol.readFieldEnd();
             }
+            protocol.readStructEnd();
             return builder.build();
         }
 
         @Override
-        public Xtruct read(Protocol protocol) throws ThriftException, IOException {
+        public Xtruct read(Protocol protocol) throws IOException {
             return read(protocol, new Builder());
         }
     }
 }
-
