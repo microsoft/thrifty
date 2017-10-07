@@ -27,10 +27,14 @@ import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.NamespaceScope;
 import com.microsoft.thrifty.schema.Requiredness;
 import okio.Okio;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -39,6 +43,19 @@ import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.*;
 
 public class ThriftParserTest {
+
+    private static final UUID TEST_UUID = UUID.fromString("ecafa042-668a-4403-a6d3-70983866ffbe");
+
+    @Before
+    public void setup() {
+        ThriftyParserPlugins.setUUIDProvider(() -> TEST_UUID);
+    }
+
+    @After
+    public void tearDown() {
+        ThriftyParserPlugins.reset();
+    }
+
     @Test
     public void namespaces() {
         String thrift =
