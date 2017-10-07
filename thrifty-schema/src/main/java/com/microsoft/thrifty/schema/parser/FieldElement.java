@@ -35,7 +35,7 @@ public abstract class FieldElement {
                 .location(location)
                 .documentation("")
                 .requiredness(Requiredness.DEFAULT)
-                .uuid(UUID.randomUUID());
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     public FieldElement withId(int fieldId) {

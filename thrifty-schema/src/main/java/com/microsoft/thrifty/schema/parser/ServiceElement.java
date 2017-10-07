@@ -46,7 +46,7 @@ public abstract class ServiceElement {
                 .location(location)
                 .documentation("")
                 .functions(ImmutableList.of())
-                .uuid(UUID.randomUUID());
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     @AutoValue.Builder

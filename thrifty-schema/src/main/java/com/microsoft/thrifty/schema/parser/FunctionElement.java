@@ -38,7 +38,7 @@ public abstract class FunctionElement {
                 .oneWay(false)
                 .params(ImmutableList.of())
                 .exceptions(ImmutableList.of())
-                .uuid(UUID.randomUUID());
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     public static Builder builder(FunctionElement element) {

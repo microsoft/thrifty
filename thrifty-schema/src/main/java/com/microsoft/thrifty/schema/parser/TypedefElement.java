@@ -44,7 +44,7 @@ public abstract class TypedefElement {
         return new AutoValue_TypedefElement.Builder()
                 .location(location)
                 .documentation("")
-                .uuid(UUID.randomUUID());
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     @AutoValue.Builder

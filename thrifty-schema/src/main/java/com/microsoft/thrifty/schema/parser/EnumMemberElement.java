@@ -40,7 +40,7 @@ public abstract class EnumMemberElement {
         return new AutoValue_EnumMemberElement.Builder()
                 .location(location)
                 .documentation("")
-                .uuid(UUID.randomUUID());
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     EnumMemberElement() { }

@@ -47,7 +47,7 @@ public abstract class StructElement {
         return new AutoValue_StructElement.Builder()
                 .location(location)
                 .documentation("")
-                .uuid(UUID.randomUUID());
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     StructElement() { }

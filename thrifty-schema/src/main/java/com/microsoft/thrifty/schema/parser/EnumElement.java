@@ -44,7 +44,7 @@ public abstract class EnumElement {
         return new AutoValue_EnumElement.Builder()
                 .location(location)
                 .documentation("")
-                .uuid(UUID.randomUUID());
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     @AutoValue.Builder

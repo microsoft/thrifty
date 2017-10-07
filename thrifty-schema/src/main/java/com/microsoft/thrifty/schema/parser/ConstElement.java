@@ -38,7 +38,7 @@ public abstract class ConstElement {
         return new AutoValue_ConstElement.Builder()
                 .location(location)
                 .documentation("")
-                .uuid(UUID.randomUUID());
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     ConstElement() { }
