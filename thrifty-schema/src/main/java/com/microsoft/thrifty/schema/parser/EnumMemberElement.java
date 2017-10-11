@@ -23,6 +23,8 @@ package com.microsoft.thrifty.schema.parser;
 import com.google.auto.value.AutoValue;
 import com.microsoft.thrifty.schema.Location;
 
+import java.util.UUID;
+
 import javax.annotation.Nullable;
 
 @AutoValue
@@ -30,13 +32,15 @@ public abstract class EnumMemberElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract String name();
+    public abstract UUID uuid();
     public abstract int value();
     @Nullable public abstract AnnotationElement annotations();
 
     public static Builder builder(Location location) {
         return new AutoValue_EnumMemberElement.Builder()
                 .location(location)
-                .documentation("");
+                .documentation("")
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     EnumMemberElement() { }
@@ -46,6 +50,7 @@ public abstract class EnumMemberElement {
         Builder location(Location location);
         Builder documentation(String documentation);
         Builder name(String name);
+        Builder uuid(UUID uuid);
         Builder value(int value);
         Builder annotations(AnnotationElement annotations);
 

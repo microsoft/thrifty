@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.microsoft.thrifty.schema.Location;
 
 import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -36,6 +37,7 @@ public abstract class StructElement {
     public abstract Location location();
     public abstract String documentation();
     public abstract Type type();
+    public abstract UUID uuid();
     public abstract String name();
     public abstract ImmutableList<FieldElement> fields();
     @Nullable
@@ -44,7 +46,8 @@ public abstract class StructElement {
     public static Builder builder(Location location) {
         return new AutoValue_StructElement.Builder()
                 .location(location)
-                .documentation("");
+                .documentation("")
+                .uuid(ThriftyParserPlugins.createUUID());
     }
 
     StructElement() { }
@@ -54,6 +57,7 @@ public abstract class StructElement {
         Builder location(Location location);
         Builder documentation(String documentation);
         Builder type(Type type);
+        Builder uuid(UUID uuid);
         Builder name(String name);
         Builder fields(List<FieldElement> fields);
         Builder annotations(AnnotationElement annotations);

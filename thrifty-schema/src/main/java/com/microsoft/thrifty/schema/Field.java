@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 
+import java.util.UUID;
+
 import javax.annotation.Nullable;
 
 public class Field implements UserElement {
@@ -80,6 +82,11 @@ public class Field implements UserElement {
             name = type.name();
         }
         return name;
+    }
+
+    @Override
+    public UUID uuid() {
+        return mixin.uuid();
     }
 
     @Override

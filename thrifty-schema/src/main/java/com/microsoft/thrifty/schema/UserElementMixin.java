@@ -33,6 +33,7 @@ import com.microsoft.thrifty.schema.parser.TypedefElement;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -41,44 +42,48 @@ import javax.annotation.Nullable;
  * which does not conveniently fit in a single base class.
  */
 class UserElementMixin implements UserElement {
+    private final UUID uuid;
     private final String name;
     private final Location location;
     private final String documentation;
     private final ImmutableMap<String, String> annotations;
 
     UserElementMixin(StructElement struct) {
-        this(struct.name(), struct.location(), struct.documentation(), struct.annotations());
+        this(struct.uuid(), struct.name(), struct.location(), struct.documentation(), struct.annotations());
     }
 
     UserElementMixin(FieldElement field) {
-        this(field.name(), field.location(), field.documentation(), field.annotations());
+        this(field.uuid(), field.name(), field.location(), field.documentation(), field.annotations());
     }
 
     UserElementMixin(EnumElement enumElement) {
-        this(enumElement.name(), enumElement.location(), enumElement.documentation(), enumElement.annotations());
+        this(enumElement.uuid(), enumElement.name(), enumElement.location(), enumElement.documentation(),
+                enumElement.annotations());
     }
 
     UserElementMixin(EnumMemberElement member) {
-        this(member.name(), member.location(), member.documentation(), member.annotations());
+        this(member.uuid(), member.name(), member.location(), member.documentation(), member.annotations());
     }
 
     UserElementMixin(TypedefElement element) {
-        this(element.newName(), element.location(), element.documentation(), element.annotations());
+        this(element.uuid(), element.newName(), element.location(), element.documentation(), element.annotations());
     }
 
     UserElementMixin(ServiceElement element) {
-        this(element.name(), element.location(), element.documentation(), element.annotations());
+        this(element.uuid(), element.name(), element.location(), element.documentation(), element.annotations());
     }
 
     UserElementMixin(FunctionElement element) {
-        this(element.name(), element.location(), element.documentation(), element.annotations());
+        this(element.uuid(), element.name(), element.location(), element.documentation(), element.annotations());
     }
 
     UserElementMixin(
+            UUID uuid,
             String name,
             Location location,
             String documentation,
             @Nullable AnnotationElement annotationElement) {
+        this.uuid = uuid;
         this.name = name;
         this.location = location;
         this.documentation = documentation;
@@ -91,10 +96,16 @@ class UserElementMixin implements UserElement {
     }
 
     private UserElementMixin(Builder builder) {
+        this.uuid = builder.uuid;
         this.name = builder.name;
         this.location = builder.location;
         this.documentation = builder.documentation;
         this.annotations = builder.annotations;
+    }
+
+    @Override
+    public UUID uuid() {
+        return uuid;
     }
 
     @Override
@@ -144,7 +155,8 @@ class UserElementMixin implements UserElement {
     @Override
     public String toString() {
         return "UserElementMixin{"
-                + "name='" + name + '\''
+                + "uuid='" + uuid + '\''
+                + ", name='" + name + '\''
                 + ", location=" + location
                 + ", documentation='" + documentation + '\''
                 + ", annotations=" + annotations
@@ -158,6 +170,7 @@ class UserElementMixin implements UserElement {
 
         UserElementMixin that = (UserElementMixin) o;
 
+        if (!uuid.equals(that.uuid)) return false;
         if (!name.equals(that.name)) return false;
         if (!location.equals(that.location)) return false;
         if (!documentation.equals(that.documentation)) return false;
@@ -167,7 +180,8 @@ class UserElementMixin implements UserElement {
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
+        int result = uuid.hashCode();
+        result = 31 * result + name.hashCode();
         result = 31 * result + location.hashCode();
         result = 31 * result + documentation.hashCode();
         result = 31 * result + annotations.hashCode();
@@ -179,16 +193,23 @@ class UserElementMixin implements UserElement {
     }
 
     static class Builder {
+        private UUID uuid;
         private String name;
         private Location location;
         private String documentation;
         private ImmutableMap<String, String> annotations;
 
         private Builder(UserElement userElement) {
+            this.uuid = userElement.uuid();
             this.name = userElement.name();
             this.location = userElement.location();
             this.documentation = userElement.documentation();
             this.annotations = userElement.annotations();
+        }
+
+        Builder uuid(UUID uuid) {
+            this.uuid = Preconditions.checkNotNull(uuid, "uuid");
+            return this;
         }
 
         Builder name(String name) {
