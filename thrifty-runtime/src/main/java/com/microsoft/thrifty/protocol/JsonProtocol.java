@@ -164,7 +164,7 @@ public class JsonProtocol extends Protocol {
 
     // Convert a byte containing a hex value to its corresponding hex character
     private static byte hexChar(byte val) {
-        val &= 0x0F;
+        val = (byte) (val & 0x0F);
         if (val < 10) {
             return (byte) ((char) val + '0');
         } else {
@@ -884,7 +884,7 @@ public class JsonProtocol extends Protocol {
     // Base class for tracking Json contexts that may require inserting/reading
     // additional Json syntax characters
     // This base context does nothing.
-    protected class JsonBaseContext {
+    protected static class JsonBaseContext {
         protected void write() throws IOException {
         }
 
