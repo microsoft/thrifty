@@ -23,4 +23,5 @@ package com.microsoft.thrifty.testing;
 public enum ServerProtocol {
     BINARY,
     COMPACT,
+    JSON
 }
