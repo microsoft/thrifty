@@ -1090,6 +1090,16 @@ public class ThriftParserTest {
     }
 
     @Test
+    public void annotationsWithEscapedQuotesInValues() throws Exception {
+        String thrift = "" +
+                "namespace java x (comment = \"what a \\\"mess\\\"\")\n";
+
+        ThriftFileElement fileElement = parse(thrift);
+        NamespaceElement ns = fileElement.namespaces().get(0);
+        assertThat(ns.annotations().get("comment"), is("what a \"mess\""));
+    }
+
+    @Test
     public void newlinesAreTricky() {
         // We must take care not to confuse the return type of the second
         // function with a possible 'throws' clause from the not-definitively-finished

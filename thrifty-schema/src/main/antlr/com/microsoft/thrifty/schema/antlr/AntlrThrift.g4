@@ -208,11 +208,11 @@ LITERAL
     ;
 
 fragment DOUBLE_QUOTE_LITERAL
-    : '"' (~'"')* '"'
+    : '"' ( '\\"' | (~["\r\n]))* '"'
     ;
 
 fragment SINGLE_QUOTE_LITERAL
-    : '\'' (~'\'')* '\''
+    : '\'' ( '\\\'' | ~['\r\n])* '\''
     ;
 
 fragment ESCAPE_CHAR
