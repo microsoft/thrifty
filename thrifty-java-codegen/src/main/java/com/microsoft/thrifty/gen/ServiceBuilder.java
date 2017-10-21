@@ -196,7 +196,7 @@ final class ServiceBuilder {
         boolean hasReturnType = !returnTypeName.equals(TypeName.VOID.box());
 
         TypeSpec.Builder callBuilder = TypeSpec.classBuilder(name)
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                 .superclass(superclass);
 
         // Set up fields
@@ -204,7 +204,7 @@ final class ServiceBuilder {
             TypeName javaType = typeResolver.getJavaClass(field.type().getTrueType());
 
             callBuilder.addField(FieldSpec.builder(javaType, fieldNamer.getName(field))
-                    .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                    .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                     .build());
         }
 
@@ -223,7 +223,7 @@ final class ServiceBuilder {
     private MethodSpec buildCallCtor(ServiceMethod method, TypeName callbackTypeName) {
         NameAllocator allocator = new NameAllocator();
         AtomicInteger scope = new AtomicInteger(0);
-        MethodSpec.Builder ctor = MethodSpec.constructorBuilder()
+        MethodSpec.Builder ctor = MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC)
                 .addStatement(
                         "super($S, $T.$L, callback)",
                         method.name(),
@@ -269,7 +269,7 @@ final class ServiceBuilder {
     private MethodSpec buildSendMethod(ServiceMethod method) {
         MethodSpec.Builder send = MethodSpec.methodBuilder("send")
                 .addAnnotation(Override.class)
-                .addModifiers(Modifier.PROTECTED)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addException(TypeNames.IO_EXCEPTION);
 
@@ -314,7 +314,7 @@ final class ServiceBuilder {
     private MethodSpec buildReceiveMethod(ServiceMethod method, boolean hasReturnType) {
         final MethodSpec.Builder recv = MethodSpec.methodBuilder("receive")
                 .addAnnotation(Override.class)
-                .addModifiers(Modifier.PROTECTED)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addParameter(TypeNames.MESSAGE_METADATA, "metadata")
                 .addException(TypeNames.EXCEPTION);
