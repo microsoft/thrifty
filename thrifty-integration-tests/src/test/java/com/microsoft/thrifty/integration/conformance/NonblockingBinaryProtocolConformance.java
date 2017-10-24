@@ -46,6 +46,6 @@ public class NonblockingBinaryProtocolConformance extends ConformanceBase {
 
     @Override
     protected Protocol createProtocol(Transport transport) {
-        return new BinaryProtocol(transport);
+        return new BinaryProtocol.Builder(transport).build();
     }
 }

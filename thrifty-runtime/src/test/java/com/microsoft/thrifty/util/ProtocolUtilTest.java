@@ -54,7 +54,7 @@ public class ProtocolUtilTest {
     @Before
     public void setup() {
         buffer = new Buffer();
-        protocol = new BinaryProtocol(new BufferTransport(buffer));
+        protocol = new BinaryProtocol.Builder(new BufferTransport(buffer)).build();
         mockProtocol = mock(Protocol.class);
     }
 
@@ -166,7 +166,7 @@ public class ProtocolUtilTest {
     @Test
     public void throwsProtocolExceptionOnUnknownTTypeValue() throws Exception {
         Buffer buffer = new Buffer();
-        BinaryProtocol protocol = new BinaryProtocol(new BufferTransport(buffer));
+        BinaryProtocol protocol = new BinaryProtocol.Builder(new BufferTransport(buffer)).build();
         protocol.writeStructBegin("Test");
         protocol.writeFieldBegin("num", 1, TType.I32);
         protocol.writeI32(2);
