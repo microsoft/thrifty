@@ -562,7 +562,7 @@ public class JsonProtocol extends Protocol {
     // Read in a Json string containing base-64 encoded data and decode it.
     private ByteString readJsonBase64() throws IOException {
         ByteString str = readJsonString(false);
-        return decodeBase64Str(str);
+        return ByteString.decodeBase64(str.utf8());
     }
 
     private void readJsonObjectStart() throws IOException {
@@ -929,83 +929,6 @@ public class JsonProtocol extends Protocol {
         @Override
         protected boolean escapeNum() {
             return colon;
-        }
-    }
-
-    static ByteString decodeBase64Str(ByteString str) {
-        byte[] b = str.toByteArray();
-        int len = str.size();
-        int off = 0;
-        int size = 0;
-        // Ignore padding
-        int bound = len >= 2 ? len - 2 : 0;
-        for (int i = len - 1; i >= bound && b[i] == '='; --i) {
-            --len;
-        }
-        while (len >= 4) {
-            // Decode 4 bytes at a time
-            base64Decode(b, off, 4, b, size); // NB: decoded in place
-
-            off += 4;
-            len -= 4;
-            size += 3;
-        }
-        // Don't decode if we hit the end or got a single leftover byte (invalid
-        // base64 but legal for skip of regular string type)
-        if (len > 1) {
-            // Decode remainder
-            base64Decode(b, off, len, b, size); // NB: decoded in place
-            size += len - 1;
-        }
-        return ByteString.of(b, 0, size);
-    }
-
-    private static final byte[] BASE64_DECODE_TABLE = {
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
-            52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
-            -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-            15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
-            -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-            41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    };
-
-    /**
-     * Decode len bytes of data in src at offset srcOff, storing the result into
-     * dst at offset dstOff. len must be 2, 3, or 4. dst must have at least len-1
-     * bytes of space at dstOff. src and dst may be the same object as long as
-     * dstoff <= srcOff. This method does no validation of the input values in
-     * the interest of performance.
-     *
-     * @param src    the source of bytes to decode
-     * @param srcOff the offset into the source to read the encoded bytes
-     * @param len    the number of bytes to decode (must be 2, 3, or 4)
-     * @param dst    the destination for the decoding
-     * @param dstOff the offset into the destination to place the decoded bytes
-     */
-    private static void base64Decode(byte[] src, int srcOff, int len, byte[] dst,
-                                     int dstOff) {
-        dst[dstOff] = (byte)
-                ((BASE64_DECODE_TABLE[src[srcOff] & 0x0FF] << 2)
-                        | (BASE64_DECODE_TABLE[src[srcOff + 1] & 0x0FF] >> 4));
-        if (len > 2) {
-            dst[dstOff + 1] = (byte)
-                    (((BASE64_DECODE_TABLE[src[srcOff + 1] & 0x0FF] << 4) & 0xF0)
-                            | (BASE64_DECODE_TABLE[src[srcOff + 2] & 0x0FF] >> 2));
-            if (len > 3) {
-                dst[dstOff + 2] = (byte)
-                        (((BASE64_DECODE_TABLE[src[srcOff + 2] & 0x0FF] << 6) & 0xC0)
-                                | BASE64_DECODE_TABLE[src[srcOff + 3] & 0x0FF]);
-            }
         }
     }
 }

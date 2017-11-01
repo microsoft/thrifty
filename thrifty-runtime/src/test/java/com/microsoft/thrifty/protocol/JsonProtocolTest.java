@@ -192,19 +192,4 @@ public class JsonProtocolTest {
 
         Assert.assertThat(read, equalTo(xtruct));
     }
-
-    @Test
-    public void base64Decode() throws Exception {
-        ensureBase64DecodeSameAsOkio("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
-        ensureBase64DecodeSameAsOkio("TWFu");
-        ensureBase64DecodeSameAsOkio("TQ==");
-        ensureBase64DecodeSameAsOkio("TWE=");
-    }
-
-    private void ensureBase64DecodeSameAsOkio(String base64Str) {
-        ByteString encodedByteStr = ByteString.encodeUtf8(base64Str);
-        ByteString decodedByteStr = ByteString.decodeBase64(base64Str);
-
-        Assert.assertThat(JsonProtocol.decodeBase64Str(encodedByteStr), equalTo(decodedByteStr));
-    }
 }
