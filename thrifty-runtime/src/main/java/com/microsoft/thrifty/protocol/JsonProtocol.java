@@ -562,31 +562,7 @@ public class JsonProtocol extends Protocol {
     // Read in a Json string containing base-64 encoded data and decode it.
     private ByteString readJsonBase64() throws IOException {
         ByteString str = readJsonString(false);
-        byte[] b = str.toByteArray();
-        int len = str.size();
-        int off = 0;
-        int size = 0;
-        // Ignore padding
-        int bound = len >= 2 ? len - 2 : 0;
-        for (int i = len - 1; i >= bound && b[i] == '='; --i) {
-            --len;
-        }
-        while (len >= 4) {
-            // Decode 4 bytes at a time
-            base64Decode(b, off, 4, b, size); // NB: decoded in place
-
-            off += 4;
-            len -= 4;
-            size += 3;
-        }
-        // Don't decode if we hit the end or got a single leftover byte (invalid
-        // base64 but legal for skip of regular string type)
-        if (len > 1) {
-            // Decode remainder
-            base64Decode(b, off, len, b, size); // NB: decoded in place
-            size += len - 1;
-        }
-        return ByteString.of(b, 0, size);
+        return decodeBase64Str(str);
     }
 
     private void readJsonObjectStart() throws IOException {
@@ -954,6 +930,34 @@ public class JsonProtocol extends Protocol {
         protected boolean escapeNum() {
             return colon;
         }
+    }
+
+    static ByteString decodeBase64Str(ByteString str) {
+        byte[] b = str.toByteArray();
+        int len = str.size();
+        int off = 0;
+        int size = 0;
+        // Ignore padding
+        int bound = len >= 2 ? len - 2 : 0;
+        for (int i = len - 1; i >= bound && b[i] == '='; --i) {
+            --len;
+        }
+        while (len >= 4) {
+            // Decode 4 bytes at a time
+            base64Decode(b, off, 4, b, size); // NB: decoded in place
+
+            off += 4;
+            len -= 4;
+            size += 3;
+        }
+        // Don't decode if we hit the end or got a single leftover byte (invalid
+        // base64 but legal for skip of regular string type)
+        if (len > 1) {
+            // Decode remainder
+            base64Decode(b, off, len, b, size); // NB: decoded in place
+            size += len - 1;
+        }
+        return ByteString.of(b, 0, size);
     }
 
     private static final byte[] BASE64_DECODE_TABLE = {
