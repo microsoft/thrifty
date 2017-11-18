@@ -24,6 +24,7 @@ import com.microsoft.thrifty.test.gen.ThriftTest;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TJSONProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.server.TServer;
@@ -162,6 +163,7 @@ public class TestServer implements TestRule {
         switch (protocol) {
             case BINARY: return new TBinaryProtocol.Factory();
             case COMPACT: return new TCompactProtocol.Factory();
+            case JSON: return new TJSONProtocol.Factory();
             default:
                 throw new AssertionError("Invalid protocol value: " + protocol);
         }
