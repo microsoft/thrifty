@@ -1,3 +1,10 @@
+0.4.3 (released 8 January 2018)
+------------------
+- #156: Add JSON protocol support
+- #153: Fix reading bool value in CompactProtocol
+- #152: Add UUID for distinguishing parsed elements from those modified via `newBuilder`
+- #147: Enable synchronous service calls
+
 0.4.2 (released 2 May 2017)
 ------------------
 - #141: Add missing method EnumMember#toBuilder()
