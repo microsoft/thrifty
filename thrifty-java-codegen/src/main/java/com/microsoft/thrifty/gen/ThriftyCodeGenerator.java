@@ -355,6 +355,7 @@ public final class ThriftyCodeGenerator {
                 .addModifiers(Modifier.PRIVATE)
                 .addParameter(builderTypeName, "builder");
 
+        boolean isUnion = type.isUnion();
         for (Field field : type.fields()) {
 
             String name = fieldNamer.getName(field);
@@ -368,7 +369,9 @@ public final class ThriftyCodeGenerator {
                     .addAnnotation(fieldAnnotation(field));
 
             if (emitAndroidAnnotations) {
-                ClassName anno = field.required() ? TypeNames.NOT_NULL : TypeNames.NULLABLE;
+                ClassName anno = isUnion
+                    ? TypeNames.NULLABLE
+                    : (field.required() ? TypeNames.NOT_NULL : TypeNames.NULLABLE);
                 fieldBuilder.addAnnotation(anno);
             }
 
