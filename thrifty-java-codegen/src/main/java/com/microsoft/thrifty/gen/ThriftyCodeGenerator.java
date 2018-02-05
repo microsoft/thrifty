@@ -59,6 +59,7 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.NameAllocator;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -395,6 +396,15 @@ public final class ThriftyCodeGenerator {
 
             // Update the struct ctor
 
+            if (field.required()) {
+                ctor.beginControlFlow("if (builder.$N == null)", name);
+                ctor.addStatement(
+                    "throw new $T($S)",
+                    ClassName.get(IllegalStateException.class),
+                    "Required field '" + name + "' is missing");
+                ctor.endControlFlow();
+            }
+
             CodeBlock.Builder assignment = CodeBlock.builder().add("$[this.$N = ", name);
 
             if (trueType.isList()) {
@@ -541,6 +551,10 @@ public final class ThriftyCodeGenerator {
                 f.addJavadoc("$L", field.documentation());
             }
 
+            if (emitAndroidAnnotations) {
+                f.addAnnotation(AnnotationSpec.builder(TypeNames.NULLABLE).build());
+            }
+
             if (field.defaultValue() != null) {
                 CodeBlock.Builder initializer = CodeBlock.builder();
                 constantBuilder.generateFieldInitializer(
@@ -562,8 +576,16 @@ public final class ThriftyCodeGenerator {
 
             MethodSpec.Builder setterBuilder = MethodSpec.methodBuilder(fieldName)
                     .addModifiers(Modifier.PUBLIC)
-                    .returns(builderClassName)
-                    .addParameter(javaTypeName, fieldName);
+                    .returns(builderClassName);
+
+            ParameterSpec.Builder parameterBuilder = ParameterSpec.builder(javaTypeName, fieldName);
+
+            if (emitAndroidAnnotations) {
+                ClassName nullabilityAnnotation = field.required() ? TypeNames.NOT_NULL : TypeNames.NULLABLE;
+                parameterBuilder.addAnnotation(AnnotationSpec.builder(nullabilityAnnotation).build());
+            }
+
+            setterBuilder.addParameter(parameterBuilder.build());
 
             if (field.required()) {
                 setterBuilder.beginControlFlow("if ($N == null)", fieldName);
@@ -583,15 +605,6 @@ public final class ThriftyCodeGenerator {
             if (structType.isUnion()) {
                 buildMethodBuilder
                         .addStatement("if (this.$N != null) ++setFields", fieldName);
-            } else {
-                if (field.required()) {
-                    buildMethodBuilder.beginControlFlow("if (this.$N == null)", fieldName);
-                    buildMethodBuilder.addStatement(
-                            "throw new $T($S)",
-                            ClassName.get(IllegalStateException.class),
-                            "Required field '" + fieldName + "' is missing");
-                    buildMethodBuilder.endControlFlow();
-                }
             }
 
             copyCtor.addStatement("this.$N = $N.$N", fieldName, "struct", fieldName);
