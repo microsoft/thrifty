@@ -50,4 +50,18 @@ public class FieldNamingPolicyTest {
         assertThat(policy.apply("OAuthToken"), is("OAuthToken"));
         assertThat(policy.apply("SSLFlag"), is("SSLFlag"));
     }
+
+    @Test
+    public void javaPolicyDifferentCaseFormatCamelCaseNames() {
+        FieldNamingPolicy policy = FieldNamingPolicy.JAVA;
+
+        // lower_underscore
+        assertThat(policy.apply("my_field"), is("myField"));
+        // lower-hyphen
+        assertThat(policy.apply("my-field"), is("myField"));
+        // UpperCamel
+        assertThat(policy.apply("MyField"), is("myField"));
+        // UPPER_UNDERSCORE
+        assertThat(policy.apply("MY_FIELD"), is("myField"));
+    }
 }
