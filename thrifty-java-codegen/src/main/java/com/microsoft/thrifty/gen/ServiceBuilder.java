@@ -41,11 +41,13 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import javax.lang.model.element.Modifier;
+
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
-final class ServiceBuilder {
-    private final TypeResolver typeResolver;
+abstract class ServiceBuilder {
+    final TypeResolver typeResolver;
     private final ConstantBuilder constantBuilder;
     private final FieldNamer fieldNamer;
 
@@ -56,7 +58,7 @@ final class ServiceBuilder {
     }
 
     TypeSpec buildServiceInterface(ServiceType service) {
-        TypeSpec.Builder serviceSpec = TypeSpec.interfaceBuilder(service.name())
+        TypeSpec.Builder serviceSpec = TypeSpec.interfaceBuilder(service.name() + getServiceInterfaceSuffix())
                 .addModifiers(Modifier.PUBLIC);
 
         if (!Strings.isNullOrEmpty(service.documentation())) {
@@ -69,7 +71,8 @@ final class ServiceBuilder {
 
         if (service.extendsService() != null) {
             ThriftType superType = service.extendsService().getTrueType();
-            TypeName superTypeName = typeResolver.getJavaClass(superType);
+            ClassName superTypeName = (ClassName) typeResolver.getJavaClass(superType);
+            superTypeName = superTypeName.peerClass(superTypeName.simpleName() + getServiceInterfaceSuffix());
             serviceSpec.addSuperinterface(superTypeName);
         }
 
@@ -84,6 +87,9 @@ final class ServiceBuilder {
                 methodBuilder.addJavadoc(method.documentation());
             }
 
+            TypeName returnTypeName = getServiceMethodReturnType(method);
+            methodBuilder.returns(returnTypeName);
+
             for (Field field : method.parameters()) {
                 String fieldName = fieldNamer.getName(field);
                 String name = allocator.newName(fieldName, ++tag);
@@ -91,23 +97,16 @@ final class ServiceBuilder {
                 TypeName paramTypeName = typeResolver.getJavaClass(paramType);
 
                 methodBuilder.addParameter(paramTypeName, name);
-
+            }
+            List<ParameterSpec> additionalParameters = getAdditionalServiceMethodParameters(method, allocator, tag);
+            if (additionalParameters.size() > 0) {
+                methodBuilder.addParameters(additionalParameters);
             }
 
-            String callbackName = allocator.newName("callback", ++tag);
-
-            ThriftType returnType = method.returnType();
-            TypeName returnTypeName;
-            if (returnType.equals(BuiltinType.VOID)) {
-                returnTypeName = TypeName.VOID.box();
-            } else {
-                returnTypeName = typeResolver.getJavaClass(returnType.getTrueType());
+            List<TypeName> exceptions = getDeclaredServiceMethodExceptions(method);
+            if (exceptions.size() > 0) {
+                methodBuilder.addExceptions(exceptions);
             }
-
-            TypeName callbackInterfaceName = ParameterizedTypeName.get(
-                    TypeNames.SERVICE_CALLBACK, returnTypeName);
-
-            methodBuilder.addParameter(callbackInterfaceName, callbackName);
 
             serviceSpec.addMethod(methodBuilder.build());
         }
@@ -115,29 +114,40 @@ final class ServiceBuilder {
         return serviceSpec.build();
     }
 
+    abstract String getServiceInterfaceSuffix();
+
+    abstract TypeName getServiceMethodReturnType(ServiceMethod method);
+
+    abstract List<TypeName> getDeclaredServiceMethodExceptions(ServiceMethod method);
+
+    abstract List<ParameterSpec> getAdditionalServiceMethodParameters(
+            ServiceMethod method, NameAllocator allocator, int tag);
+
+    TypeName resolveServiceMethodReturnType(ServiceMethod method) {
+        ThriftType returnType = method.returnType();
+        return returnType.equals(BuiltinType.VOID)
+                ? TypeName.VOID.box()
+                : typeResolver.getJavaClass(returnType.getTrueType());
+    }
+
     TypeSpec buildService(ServiceType service, TypeSpec serviceInterface) {
         String packageName = service.getNamespaceFor(NamespaceScope.JAVA);
         TypeName interfaceTypeName = ClassName.get(packageName, serviceInterface.name);
-        TypeSpec.Builder builder = TypeSpec.classBuilder(service.name() + "Client")
+        TypeSpec.Builder builder = TypeSpec.classBuilder(service.name() + getServiceClassNameSuffix())
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(interfaceTypeName);
 
         if (service.extendsService() != null) {
             ThriftType type = service.extendsService();
-            String typeName = type.name() + "Client";
+            String typeName = type.name() + getServiceClassNameSuffix();
             String ns = ((ServiceType) type).getNamespaceFor(NamespaceScope.JAVA);
             TypeName javaClass = ClassName.get(ns, typeName);
             builder.superclass(javaClass);
         } else {
-            builder.superclass(TypeNames.SERVICE_CLIENT_BASE);
+            builder.superclass(getDefaultServiceSuperclass());
         }
 
-        builder.addMethod(MethodSpec.constructorBuilder()
-                .addModifiers(Modifier.PUBLIC)
-                .addParameter(TypeNames.PROTOCOL, "protocol")
-                .addParameter(TypeNames.SERVICE_CLIENT_LISTENER, "listener")
-                .addStatement("super(protocol, listener)")
-                .build());
+        builder.addMethod(buildServiceCtor());
 
         int i = 0;
         for (MethodSpec methodSpec : serviceInterface.methodSpecs) {
@@ -148,31 +158,24 @@ final class ServiceBuilder {
             MethodSpec.Builder meth = MethodSpec.methodBuilder(methodSpec.name)
                     .addAnnotation(Override.class)
                     .addModifiers(Modifier.PUBLIC)
+                    .returns(methodSpec.returnType)
                     .addParameters(methodSpec.parameters)
-                    .addExceptions(methodSpec.exceptions);
-
-            CodeBlock.Builder body = CodeBlock.builder()
-                    .add("$[this.enqueue(new $N(", call);
-
-            boolean first = true;
-            for (ParameterSpec parameter : methodSpec.parameters) {
-                if (first) {
-                    body.add("$N", parameter.name);
-                    first = false;
-                } else {
-                    body.add(", $N", parameter.name);
-                }
-            }
-
-            body.add("));\n$]");
-
-            meth.addCode(body.build());
+                    .addExceptions(methodSpec.exceptions)
+                    .addCode(buildServiceMethodBody(methodSpec, call));
 
             builder.addMethod(meth.build());
         }
 
         return builder.build();
     }
+
+    abstract String getServiceClassNameSuffix();
+
+    abstract TypeName getDefaultServiceSuperclass();
+
+    abstract MethodSpec buildServiceCtor();
+
+    abstract CodeBlock buildServiceMethodBody(MethodSpec methodSpec, TypeSpec call);
 
     private TypeSpec buildCallSpec(ServiceMethod method) {
         String name = method.name();
@@ -183,15 +186,11 @@ final class ServiceBuilder {
                 name = name.toUpperCase(Locale.US);
             }
 
-            name += "Call";
+            name += getCallClassNameSuffix();
         }
 
-        ThriftType returnType = method.returnType();
-        TypeName returnTypeName = returnType.equals(BuiltinType.VOID)
-                ? TypeName.VOID.box()
-                : typeResolver.getJavaClass(returnType.getTrueType());
-        TypeName callbackTypeName = ParameterizedTypeName.get(TypeNames.SERVICE_CALLBACK, returnTypeName);
-        TypeName superclass = ParameterizedTypeName.get(TypeNames.SERVICE_METHOD_CALL, returnTypeName);
+        TypeName returnTypeName = resolveServiceMethodReturnType(method);
+        TypeName superclass = ParameterizedTypeName.get(getBaseCallSuperclass(), returnTypeName);
 
         boolean hasReturnType = !returnTypeName.equals(TypeName.VOID.box());
 
@@ -209,7 +208,7 @@ final class ServiceBuilder {
         }
 
         // Ctor
-        callBuilder.addMethod(buildCallCtor(method, callbackTypeName));
+        callBuilder.addMethod(buildCallCtor(method));
 
         // Send
         callBuilder.addMethod(buildSendMethod(method));
@@ -220,15 +219,15 @@ final class ServiceBuilder {
         return callBuilder.build();
     }
 
-    private MethodSpec buildCallCtor(ServiceMethod method, TypeName callbackTypeName) {
+    abstract String getCallClassNameSuffix();
+
+    abstract ClassName getBaseCallSuperclass();
+
+    private MethodSpec buildCallCtor(ServiceMethod method) {
         NameAllocator allocator = new NameAllocator();
         AtomicInteger scope = new AtomicInteger(0);
         MethodSpec.Builder ctor = MethodSpec.constructorBuilder()
-                .addStatement(
-                        "super($S, $T.$L, callback)",
-                        method.name(),
-                        TypeNames.TMESSAGE_TYPE,
-                        method.oneWay() ? "ONEWAY" : "CALL");
+                .addCode(buildCallCtorSuperStatement(method));
 
         for (Field field : method.parameters()) {
             String fieldName = fieldNamer.getName(field);
@@ -261,10 +260,17 @@ final class ServiceBuilder {
             }
         }
 
-        ctor.addParameter(callbackTypeName, "callback");
+        List<ParameterSpec> additionalParameters = getAdditionalCallCtorParameters(method);
+        if (additionalParameters.size() > 0) {
+            ctor.addParameters(additionalParameters);
+        }
 
         return ctor.build();
     }
+
+    abstract CodeBlock buildCallCtorSuperStatement(ServiceMethod method);
+
+    abstract List<ParameterSpec> getAdditionalCallCtorParameters(ServiceMethod method);
 
     private MethodSpec buildSendMethod(ServiceMethod method) {
         MethodSpec.Builder send = MethodSpec.methodBuilder("send")

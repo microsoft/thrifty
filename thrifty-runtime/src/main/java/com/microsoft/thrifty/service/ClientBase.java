@@ -62,13 +62,14 @@ public class ClientBase implements Closeable {
      * @param methodCall the remote method call to be invoked
      * @return the result of the method call
      */
-    protected final Object execute(MethodCall<?> methodCall) throws Exception {
+    @SuppressWarnings("unchecked")
+    protected final <T> T execute(MethodCall<T> methodCall) throws Exception {
         if (!running.get()) {
             throw new IllegalStateException("Cannot write to a closed service client");
         }
 
         try {
-            return invokeRequest(methodCall);
+            return (T) invokeRequest(methodCall);
         } catch (ServerException e) {
             throw e.thriftException;
         }

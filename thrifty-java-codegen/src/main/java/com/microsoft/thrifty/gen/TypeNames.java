@@ -32,6 +32,8 @@ import com.microsoft.thrifty.protocol.MessageMetadata;
 import com.microsoft.thrifty.protocol.Protocol;
 import com.microsoft.thrifty.protocol.SetMetadata;
 import com.microsoft.thrifty.service.AsyncClientBase;
+import com.microsoft.thrifty.service.AsyncMethodCall;
+import com.microsoft.thrifty.service.ClientBase;
 import com.microsoft.thrifty.service.MethodCall;
 import com.microsoft.thrifty.service.ServiceMethodCallback;
 import com.microsoft.thrifty.service.TMessageType;
@@ -95,9 +97,11 @@ final class TypeNames {
     static final ClassName NULLABLE = ClassName.get("android.support.annotation", "Nullable");
 
     static final ClassName SERVICE_CALLBACK = ClassName.get(ServiceMethodCallback.class);
-    static final ClassName SERVICE_CLIENT_BASE = ClassName.get(AsyncClientBase.class);
+    static final ClassName SERVICE_SYNC_CLIENT_BASE = ClassName.get(ClientBase.class);
+    static final ClassName SERVICE_ASYNC_CLIENT_BASE = ClassName.get(AsyncClientBase.class);
     static final ClassName SERVICE_CLIENT_LISTENER = ClassName.get(AsyncClientBase.Listener.class);
-    static final ClassName SERVICE_METHOD_CALL = ClassName.get(MethodCall.class);
+    static final ClassName SERVICE_SYNC_METHOD_CALL = ClassName.get(MethodCall.class);
+    static final ClassName SERVICE_ASYNC_METHOD_CALL = ClassName.get(AsyncMethodCall.class);
 
     static final ClassName PARCEL = ClassName.get("android.os", "Parcel");
     static final ClassName PARCELABLE = ClassName.get("android.os", "Parcelable");

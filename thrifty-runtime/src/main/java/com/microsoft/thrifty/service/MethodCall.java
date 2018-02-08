@@ -26,23 +26,15 @@ import com.microsoft.thrifty.protocol.Protocol;
 import java.io.IOException;
 
 /**
- * A closure capturing all data necessary to send and receive an asynchronous
- * service method call.
+ * A closure capturing all data necessary to send and receive a service method call.
  */
 public abstract class MethodCall<T> {
     protected final String name;
     protected final byte callTypeId;
-    protected final ServiceMethodCallback<T> callback;
 
-    public MethodCall(
-            String name,
-            byte callTypeId,
-            ServiceMethodCallback<T> callback) {
+    public MethodCall(String name, byte callTypeId) {
         if (name == null) {
             throw new NullPointerException("name");
-        }
-        if (callback == null && callTypeId != TMessageType.ONEWAY) {
-            throw new NullPointerException("callback");
         }
         if (callTypeId != TMessageType.CALL && callTypeId != TMessageType.ONEWAY) {
             throw new IllegalArgumentException("Unexpected call type: " + callTypeId);
@@ -50,7 +42,6 @@ public abstract class MethodCall<T> {
 
         this.name = name;
         this.callTypeId = callTypeId;
-        this.callback = callback;
     }
 
     protected abstract void send(Protocol protocol) throws IOException;

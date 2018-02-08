@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.compiler;
 
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
+import com.microsoft.thrifty.gen.ServiceMode;
 import com.microsoft.thrifty.gen.ThriftyCodeGenerator;
 import com.microsoft.thrifty.schema.FieldNamingPolicy;
 import com.microsoft.thrifty.schema.LoadFailedException;
@@ -78,6 +79,8 @@ public class ThriftyCompiler {
     private static final String NULLABILITY_ARG = "--use-android-annotations";
     private static final String PARCELABLE_ARG = "--parcelable";
     private static final String JAVA_NAMES_ARG = "--use-java-style-names";
+    private static final String ASYNC_ARG = "--async";
+    private static final String SYNC_ARG = "--sync";
 
     private Path outputDirectory;
     private List<Path> thriftFiles = new ArrayList<>();
@@ -88,6 +91,7 @@ public class ThriftyCompiler {
     private boolean emitNullabilityAnnotations = false;
     private boolean emitParcelable = false;
     private FieldNamingPolicy fieldNamingPolicy = FieldNamingPolicy.DEFAULT;
+    private List<ServiceMode> serviceModes = new ArrayList<>();
 
     public static void main(String[] args) {
         try {
@@ -126,6 +130,10 @@ public class ThriftyCompiler {
                 compiler.emitParcelable = true;
             } else if (arg.trim().equals(JAVA_NAMES_ARG)) {
                 compiler.fieldNamingPolicy = FieldNamingPolicy.JAVA;
+            } else if (arg.trim().equals(ASYNC_ARG)) {
+                compiler.serviceModes.add(ServiceMode.ASYNC);
+            } else if (arg.trim().equals(SYNC_ARG)) {
+                compiler.serviceModes.add(ServiceMode.SYNC);
             } else if (arg.startsWith("-")) {
                 throw new IllegalArgumentException("Unrecognized argument: " + arg);
             } else {
@@ -192,7 +200,10 @@ public class ThriftyCompiler {
             return;
         }
 
-        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema, fieldNamingPolicy);
+        if (serviceModes.size() == 0) {
+            serviceModes.add(ServiceMode.ASYNC);
+        }
+        ThriftyCodeGenerator gen = new ThriftyCodeGenerator(schema, fieldNamingPolicy, serviceModes);
         if (listTypeName != null) {
             gen = gen.withListType(listTypeName);
         }
