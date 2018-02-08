@@ -21,12 +21,16 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.base.CaseFormat;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 /**
  * Controls the style of names generated for fields.
  */
 public abstract class FieldNamingPolicy {
+    private static final Pattern LOWER_CAMEL_REGEX = Pattern.compile("([a-z]+[A-Z]+\\w+)+");
+    private static final Pattern UPPER_CAMEL_REGEX = Pattern.compile("([A-Z]+[a-z]+\\w+)+");
+
     public abstract String apply(String name);
 
     public FieldNamingPolicy() {
@@ -54,7 +58,7 @@ public abstract class FieldNamingPolicy {
         @Override
         public String apply(String name) {
 
-            CaseFormat caseFormat = CASE_FORMAT(name);
+            CaseFormat caseFormat = caseFormatOf(name);
             if (caseFormat != null) {
                 String formattedName = caseFormat.to(CaseFormat.LOWER_CAMEL, name);
                 // Handle acronym as camel case made it lower case.
@@ -84,32 +88,37 @@ public abstract class FieldNamingPolicy {
      * @return CaseFormat the case format of the string.
      */
     @Nullable
-    private static CaseFormat CASE_FORMAT(String s) {
+    private static CaseFormat caseFormatOf(String s) {
 
         if (s.contains("_")) {
 
-            if (s.toUpperCase().equals(s))
+            if (s.toUpperCase().equals(s)) {
                 return CaseFormat.UPPER_UNDERSCORE;
+            }
 
-            if (s.toLowerCase().equals(s))
+            if (s.toLowerCase().equals(s)) {
                 return CaseFormat.LOWER_UNDERSCORE;
+            }
 
         } else if (s.contains("-")) {
 
-            if (s.toLowerCase().equals(s))
+            if (s.toLowerCase().equals(s)) {
                 return CaseFormat.LOWER_HYPHEN;
+            }
 
         } else {
 
             if (Character.isLowerCase(s.charAt(0))) {
 
-                if (s.matches("([a-z]+[A-Z]+\\w+)+"))
+                if (LOWER_CAMEL_REGEX.matcher(s).matches()) {
                     return null;
+                }
 
             } else {
 
-                if (s.matches("([A-Z]+[a-z]+\\w+)+"))
+                if (UPPER_CAMEL_REGEX.matcher(s).matches()) {
                     return CaseFormat.UPPER_CAMEL;
+                }
             }
         }
 
