@@ -328,9 +328,7 @@ class Linker {
             ServiceType service = servicesToValidate.remove();
             if (visited.add(service)) {
                 service.validate(this);
-                for (ServiceType child : parentToChildren.get(service)) {
-                    servicesToValidate.add(child);
-                }
+                servicesToValidate.addAll(parentToChildren.get(service));
             }
         }
     }
@@ -391,7 +389,7 @@ class Linker {
         AnnotationElement annotationElement = type.annotations();
         ImmutableMap<String, String> annotations = annotationElement != null
                 ? annotationElement.values()
-                : ImmutableMap.<String, String>of();
+                : ImmutableMap.of();
 
         ThriftType tt = typesByName.get(type.name());
         if (tt != null) {

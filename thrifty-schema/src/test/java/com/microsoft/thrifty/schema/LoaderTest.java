@@ -358,6 +358,20 @@ public class LoaderTest {
     }
 
     @Test
+    public void circularFieldReferences() throws Exception {
+        String thrift = "" +
+                "struct A {\n" +
+                "  1: optional B b;\n" +
+                "}\n" +
+                "\n" +
+                "struct B {\n" +
+                "  1: optional A a;\n" +
+                "}\n";
+
+        load(thrift);
+    }
+
+    @Test
     @SuppressWarnings("ConstantConditions")
     public void canLoadAndLinkOfficialTestThrift() throws Exception {
         URL url = getClass().getClassLoader().getResource("cases/TestThrift.thrift");
