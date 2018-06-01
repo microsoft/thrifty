@@ -41,10 +41,6 @@ public abstract class FunctionElement {
                 .uuid(ThriftyParserPlugins.createUUID());
     }
 
-    public static Builder builder(FunctionElement element) {
-        return new AutoValue_FunctionElement.Builder(element);
-    }
-
     public abstract Location location();
     public abstract String documentation();
     public abstract boolean oneWay();
