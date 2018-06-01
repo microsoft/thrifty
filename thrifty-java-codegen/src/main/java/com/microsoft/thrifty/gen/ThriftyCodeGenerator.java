@@ -64,14 +64,13 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
-
 import javax.annotation.Nullable;
 import javax.lang.model.element.Modifier;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -91,7 +90,7 @@ public final class ThriftyCodeGenerator {
     public static final String ADAPTER_FIELDNAME = "ADAPTER";
 
     private static final DateTimeFormatter DATE_FORMATTER =
-            ISODateTimeFormat.dateTime().withZoneUTC();
+            DateTimeFormatter.ISO_INSTANT;
 
     private final TypeResolver typeResolver = new TypeResolver();
     private final Schema schema;
@@ -305,7 +304,7 @@ public final class ThriftyCodeGenerator {
                 .skipJavaLangImports(true);
 
         if (emitFileComment) {
-            file.addFileComment(FILE_COMMENT + DATE_FORMATTER.print(System.currentTimeMillis()));
+            file.addFileComment(FILE_COMMENT + DATE_FORMATTER.format(Instant.now()));
 
             if (location != null) {
                 file.addFileComment("\nSource: $L", location);
