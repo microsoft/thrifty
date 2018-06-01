@@ -30,15 +30,15 @@ allprojects {
     project.ext {
         libraries = [
                 guava: [
-                        'com.google.guava:guava:21.0'
+                        'com.google.guava:guava:23.0'
                 ],
 
                 okio: [
-                        'com.squareup.okio:okio:1.11.0'
+                        'com.squareup.okio:okio:1.14.1'
                 ],
 
                 javaPoet: [
-                        'com.squareup:javapoet:1.8.0'
+                        'com.squareup:javapoet:1.11.1'
                 ],
 
                 testing: [
@@ -61,7 +61,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.10'
+        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.14'
     }
 }
 

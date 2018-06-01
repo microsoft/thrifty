@@ -38,12 +38,6 @@ public abstract class FieldElement {
                 .uuid(ThriftyParserPlugins.createUUID());
     }
 
-    public FieldElement withId(int fieldId) {
-        return new AutoValue_FieldElement.Builder(this)
-                .fieldId(fieldId)
-                .build();
-    }
-
     public abstract Location location();
     public abstract String documentation();
     public abstract int fieldId();
