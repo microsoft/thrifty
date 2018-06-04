@@ -28,6 +28,8 @@ allprojects {
     version VERSION
 
     project.ext {
+        kotlin_version = '1.2.41'
+
         libraries = [
                 guava: [
                         'com.google.guava:guava:23.0'
@@ -39,6 +41,10 @@ allprojects {
 
                 javaPoet: [
                         'com.squareup:javapoet:1.11.1'
+                ],
+
+                kotlin: [
+                        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
                 ],
 
                 testing: [
@@ -62,6 +68,7 @@ buildscript {
 
     dependencies {
         classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.14'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.41"
     }
 }
 
