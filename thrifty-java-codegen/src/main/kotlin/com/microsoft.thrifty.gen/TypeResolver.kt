@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.gen
 
-import com.google.common.base.Strings
 import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.schema.BuiltinType
 import com.microsoft.thrifty.schema.EnumType
@@ -177,7 +176,7 @@ private object TypeNameVisitor : ThriftType.Visitor<TypeName> {
 
     private fun visitUserType(userType: UserType): TypeName {
         val packageName = userType.getNamespaceFor(NamespaceScope.JAVA)
-        if (Strings.isNullOrEmpty(packageName)) {
+        if (packageName.isNullOrEmpty()) {
             throw AssertionError("Missing namespace.  Did you forget to add 'namespace java'?")
         }
 
