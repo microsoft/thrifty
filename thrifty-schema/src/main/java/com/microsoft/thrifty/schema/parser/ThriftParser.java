@@ -25,7 +25,8 @@ import com.microsoft.thrifty.schema.ErrorReporter;
 import com.microsoft.thrifty.schema.Location;
 import com.microsoft.thrifty.schema.antlr.AntlrThriftLexer;
 import com.microsoft.thrifty.schema.antlr.AntlrThriftParser;
-import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CodePointCharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -54,7 +55,7 @@ public final class ThriftParser {
      * @return a representation of the parsed Thrift data.
      */
     public static ThriftFileElement parse(Location location, String text, ErrorReporter reporter) {
-        ANTLRInputStream charStream = new ANTLRInputStream(text);
+        CodePointCharStream charStream = CharStreams.fromString(text, location.path());
         AntlrThriftLexer lexer = new AntlrThriftLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         AntlrThriftParser antlrParser = new AntlrThriftParser(tokenStream);
