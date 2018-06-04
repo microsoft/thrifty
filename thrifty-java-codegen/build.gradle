@@ -18,6 +18,9 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
+
+apply plugin: 'kotlin'
+
 description = 'Converts Thrifty Schemas into Java source files'
 
 dependencies {
@@ -25,6 +28,8 @@ dependencies {
     api project(":thrifty-compiler-plugins")
     api libraries.okio
     api libraries.javaPoet
+
+    api libraries.kotlin
 
     implementation project(':thrifty-runtime')
 

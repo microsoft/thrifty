@@ -18,23 +18,17 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-package com.microsoft.thrifty.gen;
+package com.microsoft.thrifty.gen
 
-import com.microsoft.thrifty.schema.Field;
-import com.microsoft.thrifty.schema.FieldNamingPolicy;
+import com.microsoft.thrifty.schema.Field
+import com.microsoft.thrifty.schema.FieldNamingPolicy
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+internal class FieldNamer(
+        private val namingPolicy: FieldNamingPolicy
+) {
+    private val nameCache = mutableMapOf<Field, String>()
 
-class FieldNamer {
-    private final Map<Field, String> nameCache = new LinkedHashMap<>();
-    private final FieldNamingPolicy namingPolicy;
-
-    FieldNamer(FieldNamingPolicy namingPolicy) {
-        this.namingPolicy = namingPolicy;
-    }
-
-    String getName(Field field) {
-        return nameCache.computeIfAbsent(field, k -> namingPolicy.apply(field.name()));
+    fun getName(field: Field) = nameCache.computeIfAbsent(field) {
+        namingPolicy.apply(it.name())
     }
 }
