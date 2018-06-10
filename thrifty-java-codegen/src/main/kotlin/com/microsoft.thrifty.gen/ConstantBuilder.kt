@@ -65,9 +65,8 @@ internal class ConstantBuilder(
                 initializer.addStatement("\$L = \$L", name, item)
             }
 
-            @Suppress("UNCHECKED_CAST")
             override fun visitList(listType: ListType) {
-                val list = value.value() as List<ConstValueElement>
+                val list = value.getAsList()
                 val elementType = listType.elementType().trueType
                 val elementTypeName = typeResolver.getJavaClass(elementType)
                 val genericName = ParameterizedTypeName.get(TypeNames.LIST, elementTypeName)
@@ -75,9 +74,8 @@ internal class ConstantBuilder(
                 generateSingleElementCollection(elementType, genericName, listImplName, list)
             }
 
-            @Suppress("UNCHECKED_CAST")
             override fun visitSet(setType: SetType) {
-                val set = value.value() as List<ConstValueElement>
+                val set = value.getAsList()
                 val elementType = setType.elementType().trueType
                 val elementTypeName = typeResolver.getJavaClass(elementType)
                 val genericName = ParameterizedTypeName.get(TypeNames.SET, elementTypeName)
@@ -103,9 +101,8 @@ internal class ConstantBuilder(
                 }
             }
 
-            @Suppress("UNCHECKED_CAST")
             override fun visitMap(mapType: MapType) {
-                val map = value.value() as Map<ConstValueElement, ConstValueElement>
+                val map = value.getAsMap()
                 val keyType = mapType.keyType().trueType
                 val valueType = mapType.valueType().trueType
 
@@ -167,22 +164,22 @@ internal class ConstantBuilder(
 
         private fun getNumberLiteral(element: ConstValueElement): Any {
             if (!element.isInt) {
-                throw AssertionError("Expected an int or double, got: " + element.kind())
+                throw AssertionError("Expected an int or double, got: " + element.kind)
             }
 
-            return if (element.thriftText().startsWith("0x") || element.thriftText().startsWith("0X")) {
-                element.thriftText()
+            return if (element.thriftText.startsWith("0x") || element.thriftText.startsWith("0X")) {
+                element.thriftText
             } else {
-                element.asInt
+                element.getAsInt()
             }
         }
 
         override fun visitBool(boolType: BuiltinType): CodeBlock {
             val name: String
-            if (value.isIdentifier && ("true" == value.asString || "false" == value.asString)) {
-                name = if ("true" == value.value()) "true" else "false"
+            if (value.isIdentifier && ("true" == value.getAsString() || "false" == value.getAsString())) {
+                name = if ("true" == value.getAsString()) "true" else "false"
             } else if (value.isInt) {
-                name = if (value.value() as Long == 0L) "false" else "true"
+                name = if (value.getAsLong() == 0L) "false" else "true"
             } else {
                 return constantOrError("Invalid boolean constant")
             }
@@ -224,7 +221,7 @@ internal class ConstantBuilder(
 
         override fun visitDouble(doubleType: BuiltinType): CodeBlock {
             return if (value.isInt || value.isDouble) {
-                CodeBlock.builder().add("(double) \$L", value.asDouble).build()
+                CodeBlock.builder().add("(double) \$L", value.getAsDouble()).build()
             } else {
                 constantOrError("Invalid double constant")
             }
@@ -232,7 +229,7 @@ internal class ConstantBuilder(
 
         override fun visitString(stringType: BuiltinType): CodeBlock {
             return if (value.isString) {
-                CodeBlock.builder().add("\$S", value.asString).build()
+                CodeBlock.builder().add("\$S", value.getAsString()).build()
             } else {
                 constantOrError("Invalid string constant")
             }
@@ -249,19 +246,19 @@ internal class ConstantBuilder(
         override fun visitEnum(enumType: EnumType): CodeBlock {
             // TODO(ben): Figure out how to handle const references
             try {
-                val member = when (value.kind()) {
+                val member = when (value.kind) {
                     ConstValueElement.Kind.INTEGER ->
-                        enumType.findMemberById(value.asInt)
+                        enumType.findMemberById(value.getAsInt())
 
                     ConstValueElement.Kind.IDENTIFIER -> {
                         // Remove the enum name prefix, assuming it is present
-                        val id = value.asString.split(".").last()
+                        val id = value.getAsString().split(".").last()
 
                         enumType.findMemberByName(id)
                     }
 
                     else -> throw AssertionError(
-                            "Constant value kind " + value.kind() + " is not possibly an enum; validation bug")
+                            "Constant value kind ${value.kind} is not possibly an enum; validation bug")
                 }
 
                 return CodeBlock.builder()
@@ -270,13 +267,13 @@ internal class ConstantBuilder(
 
             } catch (e: NoSuchElementException) {
                 throw IllegalStateException(
-                        "No enum member in " + enumType.name() + " with value " + value.value())
+                        "No enum member in ${enumType.name()} with value ${value.value}")
             }
         }
 
         override fun visitList(listType: ListType): CodeBlock {
             if (value.isList) {
-                if (value.asList.isEmpty()) {
+                if (value.getAsList().isEmpty()) {
                     val elementType = typeResolver.getJavaClass(listType.elementType())
                     return CodeBlock.builder()
                             .add("\$T.<\$T>emptyList()", TypeNames.COLLECTIONS, elementType)
@@ -290,7 +287,7 @@ internal class ConstantBuilder(
 
         override fun visitSet(setType: SetType): CodeBlock {
             if (value.isList) { // not a typo; ConstantValueElement.Kind.LIST covers lists and sets.
-                if (value.asList.isEmpty()) {
+                if (value.getAsList().isEmpty()) {
                     val elementType = typeResolver.getJavaClass(setType.elementType())
                     return CodeBlock.builder()
                             .add("\$T.<\$T>emptySet()", TypeNames.COLLECTIONS, elementType)
@@ -304,7 +301,7 @@ internal class ConstantBuilder(
 
         override fun visitMap(mapType: MapType): CodeBlock {
             if (value.isMap) {
-                if (value.asMap.isEmpty()) {
+                if (value.getAsMap().isEmpty()) {
                     val keyType = typeResolver.getJavaClass(mapType.keyType())
                     val valueType = typeResolver.getJavaClass(mapType.valueType())
                     return CodeBlock.builder()
@@ -339,7 +336,7 @@ internal class ConstantBuilder(
         }
 
         private fun constantOrError(error: String): CodeBlock {
-            val message = "$error: ${value.value()} + at ${value.location()}"
+            val message = "$error: ${value.value} + at ${value.location}"
 
             if (!value.isIdentifier) {
                 throw IllegalStateException(message)
@@ -347,7 +344,7 @@ internal class ConstantBuilder(
 
             val expectedType = type.trueType
 
-            var name = value.asString
+            var name = value.getAsString()
             val ix = name.indexOf('.')
             var expectedProgram: String? = null
             if (ix != -1) {

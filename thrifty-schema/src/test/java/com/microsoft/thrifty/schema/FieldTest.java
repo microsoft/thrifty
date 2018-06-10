@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.schema.parser.AnnotationElement;
 import com.microsoft.thrifty.schema.parser.FieldElement;
 import com.microsoft.thrifty.schema.parser.TypeElement;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -35,11 +36,30 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class FieldTest {
+    private Location location;
+    private int fieldId;
+    private String fieldName;
+    private TypeElement fieldType;
+    private Requiredness requiredness;
+    private AnnotationElement annotations;
+    private String documentation;
+
+    @Before
+    public void setup() {
+        location = Location.get("", "");
+        fieldId = 1;
+        fieldName = "foo";
+        fieldType = TypeElement.scalar(location, "i32", null);
+        requiredness = Requiredness.DEFAULT;
+        annotations = null;
+        documentation = "";
+    }
+
     @Test
     public void requiredFields() {
-        FieldElement element = fieldBuilder()
-                .requiredness(Requiredness.REQUIRED)
-                .build();
+        requiredness = Requiredness.REQUIRED;
+        FieldElement element = field();
+
         Field field = new Field(element);
         assertTrue(field.required());
         assertFalse(field.optional());
@@ -47,9 +67,8 @@ public class FieldTest {
 
     @Test
     public void optionalFields() {
-        FieldElement element = fieldBuilder()
-                .requiredness(Requiredness.OPTIONAL)
-                .build();
+        requiredness = Requiredness.OPTIONAL;
+        FieldElement element = field();
         Field field = new Field(element);
         assertFalse(field.required());
         assertTrue(field.optional());
@@ -57,9 +76,7 @@ public class FieldTest {
 
     @Test
     public void defaultFields() {
-        FieldElement element = fieldBuilder()
-                .requiredness(Requiredness.DEFAULT)
-                .build();
+        FieldElement element = field();
         Field field = new Field(element);
         assertFalse(field.required());
         assertFalse(field.optional());
@@ -67,7 +84,7 @@ public class FieldTest {
 
     @Test
     public void unredactedAndUnobfuscatedByDefault() {
-        FieldElement element = fieldBuilder().build();
+        FieldElement element = field();
         Field field = new Field(element);
         assertFalse(field.isRedacted());
         assertFalse(field.isObfuscated());
@@ -75,9 +92,8 @@ public class FieldTest {
 
     @Test
     public void redactedByThriftAnnotation() {
-        FieldElement element = fieldBuilder()
-                .annotations(annotation("thrifty.redacted"))
-                .build();
+        annotations = annotation("thrifty.redacted");
+        FieldElement element = field();
 
         Field field = new Field(element);
         assertTrue(field.isRedacted());
@@ -85,9 +101,8 @@ public class FieldTest {
 
     @Test
     public void redactedByShortThriftAnnotation() {
-        FieldElement element = fieldBuilder()
-                .annotations(annotation("redacted"))
-                .build();
+        annotations = annotation("redacted");
+        FieldElement element = field();
 
         Field field = new Field(element);
         assertTrue(field.isRedacted());
@@ -95,9 +110,8 @@ public class FieldTest {
 
     @Test
     public void redactedByJavadocAnnotation() {
-        FieldElement element = fieldBuilder()
-                .documentation("/** @redacted */")
-                .build();
+        documentation = "/** @redacted */";
+        FieldElement element = field();
 
         Field field = new Field(element);
         assertTrue(field.isRedacted());
@@ -105,9 +119,8 @@ public class FieldTest {
 
     @Test
     public void obfuscatedByThriftAnnotation() {
-        FieldElement element = fieldBuilder()
-                .annotations(annotation("thrifty.obfuscated"))
-                .build();
+        annotations = annotation("thrifty.obfuscated");
+        FieldElement element = field();
 
         Field field = new Field(element);
         assertTrue(field.isObfuscated());
@@ -115,9 +128,8 @@ public class FieldTest {
 
     @Test
     public void obfuscatedByShortThriftAnnotation() {
-        FieldElement element = fieldBuilder()
-                .annotations(annotation("obfuscated"))
-                .build();
+        annotations = annotation("obfuscated");
+        FieldElement element = field();
 
         Field field = new Field(element);
         assertTrue(field.isObfuscated());
@@ -125,9 +137,8 @@ public class FieldTest {
 
     @Test
     public void obfuscatedByJavadocAnnotation() {
-        FieldElement element = fieldBuilder()
-                .documentation("/** @obfuscated */")
-                .build();
+        documentation = "/** @obfuscated */";
+        FieldElement element = field();
 
         Field field = new Field(element);
         assertTrue(field.isObfuscated());
@@ -135,7 +146,7 @@ public class FieldTest {
 
     @Test
     public void builderCreatesCorrectField() {
-        FieldElement fieldElement = mock(FieldElement.class);
+        FieldElement fieldElement = field();
         Field field = new Field(fieldElement);
 
         ImmutableMap<String, String> annotations = ImmutableMap.of();
@@ -160,14 +171,18 @@ public class FieldTest {
     }
 
     private AnnotationElement annotation(String name) {
-        return AnnotationElement.create(Location.get("", ""), Collections.singletonMap(name, "true"));
+        return new AnnotationElement(Location.get("", ""), Collections.singletonMap(name, "true"));
     }
 
-    private FieldElement.Builder fieldBuilder() {
-        Location location = Location.get("", "");
-        return FieldElement.builder(location)
-                .fieldId(1)
-                .name("foo")
-                .type(TypeElement.scalar(location, "i32", null));
+    private FieldElement field() {
+        return new FieldElement(
+                location,
+                fieldId,
+                fieldType,
+                fieldName,
+                requiredness,
+                documentation,
+                null, // const value
+                annotations);
     }
 }

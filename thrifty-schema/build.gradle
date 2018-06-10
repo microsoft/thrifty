@@ -19,7 +19,7 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 plugins {
-    id 'net.ltgt.apt' version '0.15'
+    id 'kotlin'
     id 'antlr'
 }
 
@@ -39,11 +39,10 @@ dependencies {
 
     implementation libraries.okio
 
+    api libraries.kotlin
+
     api 'com.google.code.findbugs:jsr305:3.0.1'
     api libraries.guava
-
-    api 'com.google.auto.value:auto-value-annotations:1.6'
-    annotationProcessor 'com.google.auto.value:auto-value:1.6'
 
     testImplementation libraries.testing
 }
@@ -51,3 +50,11 @@ dependencies {
 compileTestJava {
     options.compilerArgs += [ '-Xep:ImmutableModification:OFF', '-Xlint:deprecation,unchecked' ]
 }
+
+// For some reason, Kotlin compilation is being run prior to antlr by default.
+tasks['compileKotlin'].dependsOn('generateGrammarSource')
+tasks['compileTestKotlin'].dependsOn('generateGrammarSource')
+tasks['compileTestKotlin'].dependsOn('generateTestGrammarSource')
+tasks['compileJava'].dependsOn('generateGrammarSource')
+tasks['compileTestJava'].dependsOn('generateGrammarSource')
+tasks['compileTestJava'].dependsOn('generateTestGrammarSource')

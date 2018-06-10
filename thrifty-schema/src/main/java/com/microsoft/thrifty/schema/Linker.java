@@ -387,7 +387,7 @@ class Linker {
     @Nonnull
     ThriftType resolveType(TypeElement type) {
         AnnotationElement annotationElement = type.annotations();
-        ImmutableMap<String, String> annotations = annotationElement != null
+        Map<String, String> annotations = annotationElement != null
                 ? annotationElement.values()
                 : ImmutableMap.of();
 

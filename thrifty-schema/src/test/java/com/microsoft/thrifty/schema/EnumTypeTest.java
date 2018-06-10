@@ -15,8 +15,6 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class EnumTypeTest {
-    @Mock EnumElement element;
-    @Mock ThriftType type;
     @Mock Program program;
     ImmutableMap<NamespaceScope, String> namespaces;
 
@@ -27,19 +25,14 @@ public class EnumTypeTest {
         namespaces = ImmutableMap.of();
 
         when(program.namespaces()).thenReturn(namespaces);
-        when(element.name()).thenReturn("name");
-        when(element.members()).thenReturn(ImmutableList.<EnumMemberElement>of());
 
         Location location = Location.get("", "");
-        EnumMemberElement memberElement = EnumMemberElement.builder(location)
-                .name("FOO")
-                .value(1)
-                .build();
+        EnumMemberElement memberElement = new EnumMemberElement(location, "FOO", 1);
 
-        EnumElement element = EnumElement.builder(location)
-                .name("AnEnum")
-                .members(ImmutableList.of(memberElement))
-                .build();
+        EnumElement element = new EnumElement(
+                location,
+                "AnEnum",
+                ImmutableList.of(memberElement));
 
         enumType = new EnumType(program, element);
     }

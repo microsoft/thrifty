@@ -21,7 +21,6 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closeables;
 import com.microsoft.thrifty.schema.parser.IncludeElement;
 import com.microsoft.thrifty.schema.parser.ThriftFileElement;
@@ -261,7 +260,7 @@ public final class Loader {
 
         loadedFiles.put(file.normalize().toAbsolutePath(), element);
 
-        ImmutableList<IncludeElement> includes = element.includes();
+        List<IncludeElement> includes = element.includes();
         if (includes.size() > 0) {
             includePaths.addFirst(dir);
             for (IncludeElement include : includes) {
