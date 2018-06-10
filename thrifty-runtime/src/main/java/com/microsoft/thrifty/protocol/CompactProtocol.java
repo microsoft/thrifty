@@ -600,7 +600,6 @@ public class CompactProtocol extends Protocol {
                 case TType.MAP:    return MAP;
                 case TType.SET:    return SET;
                 case TType.LIST:   return LIST;
-                case TType.ENUM:   return I32;
                 default:
                     throw new IllegalArgumentException(
                             "Unknown TType ID: " + typeId);

@@ -37,7 +37,6 @@ public final class TType {
     public static final byte MAP    = 13;
     public static final byte SET    = 14;
     public static final byte LIST   = 15;
-    public static final byte ENUM   = 16;
 
     private TType() {
         // no instances
