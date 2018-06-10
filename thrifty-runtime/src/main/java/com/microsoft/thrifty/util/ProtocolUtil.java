@@ -44,7 +44,6 @@ public final class ProtocolUtil {
             case TType.I64: protocol.readI64(); break;
             case TType.DOUBLE: protocol.readDouble(); break;
             case TType.STRING: protocol.readString(); break;
-            case TType.ENUM: protocol.readI32(); break;
             case TType.STRUCT:
                 protocol.readStructBegin();
                 while (true) {

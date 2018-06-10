@@ -132,7 +132,6 @@ internal object TypeNames {
             TType.I64 -> "I64"
             TType.DOUBLE -> "DOUBLE"
             TType.STRING -> "STRING"
-            TType.ENUM -> "ENUM"
             TType.STRUCT -> "STRUCT"
             TType.LIST -> "LIST"
             TType.SET -> "SET"

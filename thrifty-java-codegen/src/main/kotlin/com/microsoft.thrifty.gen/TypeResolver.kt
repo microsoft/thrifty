@@ -65,17 +65,10 @@ internal class TypeResolver {
 
     /**
      * Returns the [TType] constant representing the type-code for the given
-     * [thriftType].  Note that this method will substitute [TType.I32] for
-     * [TType.ENUM], because enums are always represented as I32 in encodings
-     * and in generated code.
+     * [thriftType].
      */
     fun getTypeCode(thriftType: ThriftType): Byte {
-        val typeCode = thriftType.trueType.accept(TypeCodeVisitor)
-        return if (typeCode == TType.ENUM) {
-            TType.I32
-        } else {
-            typeCode
-        }
+        return thriftType.trueType.accept(TypeCodeVisitor)
     }
 
     fun getJavaClass(thriftType: ThriftType): TypeName {
@@ -227,7 +220,7 @@ private object TypeCodeVisitor : ThriftType.Visitor<Byte> {
     }
 
     override fun visitEnum(userType: EnumType): Byte? {
-        return TType.ENUM
+        return TType.I32
     }
 
     override fun visitList(listType: ListType): Byte? {

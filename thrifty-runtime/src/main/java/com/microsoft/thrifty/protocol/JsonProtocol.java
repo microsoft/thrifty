@@ -793,8 +793,6 @@ public class JsonProtocol extends Protocol {
                     return SET;
                 case TType.LIST:
                     return LIST;
-                case TType.ENUM:
-                    return I32;
                 default:
                     throw new IllegalArgumentException(
                             "Unknown TType ID: " + typeId);
