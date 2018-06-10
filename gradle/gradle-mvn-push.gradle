@@ -82,4 +82,44 @@ afterEvaluate { project ->
         required { isRelease && gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
+
+    if (project.plugins.hasPlugin('org.jetbrains.kotlin') || project.plugins.hasPlugin('kotlin')) {
+        apply plugin: 'org.jetbrains.dokka'
+
+        dokka {
+            includes = ['Module.md']
+
+            linkMapping {
+                dir = project.file("src/main/kotlin")
+                url = "https://github.com/Microsoft/thrifty/tree/master/${project.name}/src/main/kotlin"
+                suffix = "#L"
+            }
+
+            outputFormat = 'html'
+            outputDirectory = "${project.buildDir}/docs/kdoc"
+        }
+    }
+
+    task javadocJar(type: Jar) {
+        if (project.plugins.hasPlugin('org.jetbrains.dokka')) {
+            dependsOn dokka
+            from dokka.outputDirectory
+        } else {
+            dependsOn javadoc
+            from 'build/docs/javadoc'
+        }
+
+        classifier = 'javadoc'
+    }
+
+    task sourcesJar(type: Jar) {
+        from sourceSets.main.allSource
+        classifier = 'sources'
+    }
+
+    artifacts {
+        archives jar
+        archives javadocJar
+        archives sourcesJar
+    }
 }

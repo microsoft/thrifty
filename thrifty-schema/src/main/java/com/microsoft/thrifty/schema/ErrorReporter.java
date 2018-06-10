@@ -20,11 +20,11 @@
  */
 package com.microsoft.thrifty.schema;
 
-import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ErrorReporter {
     private boolean hasError = false;
@@ -70,14 +70,46 @@ public class ErrorReporter {
         return builder.build();
     }
 
-    @AutoValue
-    abstract static class Report {
-        public abstract Level level();
-        public abstract Location location();
-        public abstract String message();
+    static class Report {
+        private final Level level;
+        private final Location location;
+        private final String message;
+
+        public Level level() {
+            return level;
+        }
+
+        public Location location() {
+            return location;
+        }
+
+        public String message() {
+            return message;
+        }
+
+        private Report(Level level, Location location, String message) {
+            this.level = level;
+            this.location = location;
+            this.message = message;
+        }
 
         static Report create(Level level, Location location, String message) {
-            return new AutoValue_ErrorReporter_Report(level, location, message);
+            return new Report(level, location, message);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Report report = (Report) o;
+            return level == report.level
+                    && Objects.equals(location, report.location)
+                    && Objects.equals(message, report.message);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(level, location, message);
         }
     }
 

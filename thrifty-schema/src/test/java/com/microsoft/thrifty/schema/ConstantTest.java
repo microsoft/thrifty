@@ -171,7 +171,7 @@ public class ConstantTest {
     @Test
     public void enumWithMember() {
         ImmutableList.Builder<EnumMember> members = ImmutableList.builder();
-        members.add(new EnumMember(EnumMemberElement.builder(loc).name("TEST").value(1).build()));
+        members.add(new EnumMember(new EnumMemberElement(loc, "TEST", 1)));
 
         EnumType et = mock(EnumType.class);
         when(et.name()).thenReturn("TestEnum");
@@ -185,7 +185,7 @@ public class ConstantTest {
     @Test
     public void enumWithNonMemberIdentifier() {
         ImmutableList.Builder<EnumMember> members = ImmutableList.builder();
-        members.add(new EnumMember(EnumMemberElement.builder(loc).name("TEST").value(1).build()));
+        members.add(new EnumMember(new EnumMemberElement(loc, "TEST", 1)));
 
         EnumType et = mock(EnumType.class);
         when(et.name()).thenReturn("TestEnum");
@@ -206,7 +206,7 @@ public class ConstantTest {
     @Test
     public void unqualifiedEnumMember() {
         ImmutableList.Builder<EnumMember> members = ImmutableList.builder();
-        members.add(new EnumMember(EnumMemberElement.builder(loc).name("TEST").value(1).build()));
+        members.add(new EnumMember(new EnumMemberElement(loc, "TEST", 1)));
 
         EnumType et = mock(EnumType.class);
         when(et.name()).thenReturn("TestEnum");
@@ -252,7 +252,7 @@ public class ConstantTest {
 
     @Test
     public void typedefOfEnum() {
-        EnumMember member = new EnumMember(EnumMemberElement.builder(loc).name("FOO").value(1).build());
+        EnumMember member = new EnumMember(new EnumMemberElement(loc, "FOO", 1));
         ImmutableList<EnumMember> members = ImmutableList.of(member);
 
         EnumType et = mock(EnumType.class);
@@ -273,7 +273,7 @@ public class ConstantTest {
 
     @Test
     public void typedefOfWrongEnum() {
-        EnumMember member = new EnumMember(EnumMemberElement.builder(loc).name("FOO").value(1).build());
+        EnumMember member = new EnumMember(new EnumMemberElement(loc, "FOO", 1));
         ImmutableList<EnumMember> members = ImmutableList.of(member);
 
         EnumType et = mock(EnumType.class);
@@ -282,7 +282,7 @@ public class ConstantTest {
         when(et.getTrueType()).thenReturn(et);
         when(et.isEnum()).thenReturn(true);
 
-        EnumMember wrongMember = new EnumMember(EnumMemberElement.builder(loc).name("BAR").value(2).build());
+        EnumMember wrongMember = new EnumMember(new EnumMemberElement(loc, "BAR", 2));
 
         EnumType wt = mock(EnumType.class);
         when(wt.name()).thenReturn("DifferentEnum");

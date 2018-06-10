@@ -69,6 +69,7 @@ buildscript {
     dependencies {
         classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.14'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.41"
+        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.17'
     }
 }
 
@@ -102,22 +103,6 @@ subprojects { sp ->
         options.incremental = true
     }
 
-    task javadocJar(type: Jar, dependsOn: javadoc) {
-        from 'build/docs/javadoc'
-        classifier = 'javadoc'
-    }
-
-    task sourcesJar(type: Jar) {
-        from sourceSets.main.allSource
-        classifier = 'sources'
-    }
-
-    artifacts {
-        archives jar
-        archives javadocJar
-        archives sourcesJar
-    }
-
     test {
         testLogging {
             events "failed"
@@ -139,10 +124,10 @@ task codeCoverageReport(type: JacocoReport) {
     }
 
     reports {
-        xml.enabled true
+        xml.enabled = true
         xml.destination file("$buildDir/reports/jacoco/report.xml")
-        html.enabled true
-        csv.enabled false
+        html.enabled = true
+        csv.enabled = false
     }
 
     afterEvaluate {

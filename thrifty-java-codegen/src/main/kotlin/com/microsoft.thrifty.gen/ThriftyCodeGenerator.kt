@@ -888,7 +888,7 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitList(listType: ListType) {
-                    if (constant.value().asList.isEmpty()) {
+                    if (constant.value().getAsList().isEmpty()) {
                         field.initializer("\$T.emptyList()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("list", "unmodifiableList")
@@ -896,7 +896,7 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitSet(setType: SetType) {
-                    if (constant.value().asList.isEmpty()) {
+                    if (constant.value().getAsList().isEmpty()) {
                         field.initializer("\$T.emptySet()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("set", "unmodifiableSet")
@@ -904,7 +904,7 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitMap(mapType: MapType) {
-                    if (constant.value().asMap.isEmpty()) {
+                    if (constant.value().getAsMap().isEmpty()) {
                         field.initializer("\$T.emptyMap()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("map", "unmodifiableMap")
