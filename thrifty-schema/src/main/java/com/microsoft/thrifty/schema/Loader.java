@@ -32,8 +32,10 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -50,6 +52,9 @@ import java.util.Set;
  * This is the entry-point of the Thrifty parser.
  */
 public final class Loader {
+
+    private static final PathMatcher THRIFT_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:*.thrift");
+
     /**
      * A list of thrift files to be loaded.  If empty, all .thrift files within
      * {@link #includePaths} will be loaded.
@@ -191,7 +196,7 @@ public final class Loader {
             for (Path path : includePaths) {
                 Files.walk(path)
                         .filter(p -> p.getFileName() != null)
-                        .filter(p -> p.getFileName().endsWith(".thrift"))
+                        .filter(p -> THRIFT_PATH_MATCHER.matches(p.getFileName()))
                         .map(p -> p.normalize().toAbsolutePath())
                         .forEach(filesToLoad::add);
             }

@@ -23,6 +23,7 @@ package com.microsoft.thrifty.schema;
 import com.google.common.base.Joiner;
 import okio.BufferedSink;
 import okio.Okio;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -35,6 +36,7 @@ import java.nio.file.Path;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -834,6 +836,24 @@ public class LoaderTest {
         } catch (NullPointerException e) {
             assertThat(e, hasMessage(containsString("file")));
         }
+    }
+
+    @Test
+    @SuppressWarnings({"ConstantConditions", "deprecation"})
+    public void addIncludeFileSmokeTest() throws IOException, LoadFailedException {
+        Loader loader = new Loader();
+        File thriftFile = tempDir.newFile("example.thrift");
+        loader.addIncludePath(tempDir.getRoot().toPath());
+        String thrift = "" +
+                "namespace java example\n" +
+                "\n" +
+                "typedef string Uuid" +
+                "\n";
+        writeTo(thriftFile, thrift);
+        Schema schema = loader.load();
+        assertThat(schema.typedefs(), hasSize(1));
+        TypedefType typedef = schema.typedefs().get(0);
+        assertThat(typedef.name(), equalTo("Uuid"));
     }
 
     @Test
