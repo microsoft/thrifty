@@ -28,7 +28,7 @@ allprojects {
     version VERSION
 
     project.ext {
-        kotlin_version = '1.2.41'
+        kotlin_version = '1.2.51'
 
         libraries = [
                 guava: [
@@ -68,7 +68,7 @@ buildscript {
 
     dependencies {
         classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.14'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.41"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.51"
         classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.17'
     }
 }

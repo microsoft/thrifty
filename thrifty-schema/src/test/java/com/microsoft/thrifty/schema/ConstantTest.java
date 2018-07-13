@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
 public class ConstantTest {
     @Mock Linker linker;
     @Mock Program program;
-    Location loc = Location.get("", "");
+    Location loc = Location.Companion.get("", "");
 
     @Before
     public void setup() {

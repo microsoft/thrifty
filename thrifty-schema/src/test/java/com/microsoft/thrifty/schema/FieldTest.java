@@ -46,7 +46,7 @@ public class FieldTest {
 
     @Before
     public void setup() {
-        location = Location.get("", "");
+        location = Location.Companion.get("", "");
         fieldId = 1;
         fieldName = "foo";
         fieldType = TypeElement.scalar(location, "i32", null);
@@ -171,7 +171,7 @@ public class FieldTest {
     }
 
     private AnnotationElement annotation(String name) {
-        return new AnnotationElement(Location.get("", ""), Collections.singletonMap(name, "true"));
+        return new AnnotationElement(Location.Companion.get("", ""), Collections.singletonMap(name, "true"));
     }
 
     private FieldElement field() {

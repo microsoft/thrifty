@@ -28,7 +28,7 @@ import static org.junit.Assert.assertThat;
 public class FieldNamingPolicyTest {
     @Test
     public void defaultNamesAreUnaltered() {
-        FieldNamingPolicy policy = FieldNamingPolicy.DEFAULT;
+        FieldNamingPolicy policy = FieldNamingPolicy.Companion.getDEFAULT();
 
         assertThat(policy.apply("SSLFlag"), is("SSLFlag"));
         assertThat(policy.apply("MyField"), is("MyField"));
@@ -36,7 +36,7 @@ public class FieldNamingPolicyTest {
 
     @Test
     public void javaPolicyCamelCasesNames() {
-        FieldNamingPolicy policy = FieldNamingPolicy.JAVA;
+        FieldNamingPolicy policy = FieldNamingPolicy.Companion.getJAVA();
 
         assertThat(policy.apply("MyField"), is("myField"));
         assertThat(policy.apply("X"), is("x"));
@@ -45,7 +45,7 @@ public class FieldNamingPolicyTest {
 
     @Test
     public void javaPolicyPreservesAcronyms() {
-        FieldNamingPolicy policy = FieldNamingPolicy.JAVA;
+        FieldNamingPolicy policy = FieldNamingPolicy.Companion.getJAVA();
 
         assertThat(policy.apply("OAuthToken"), is("OAuthToken"));
         assertThat(policy.apply("SSLFlag"), is("SSLFlag"));
@@ -53,7 +53,7 @@ public class FieldNamingPolicyTest {
 
     @Test
     public void javaPolicyDifferentCaseFormatCamelCaseNames() {
-        FieldNamingPolicy policy = FieldNamingPolicy.JAVA;
+        FieldNamingPolicy policy = FieldNamingPolicy.Companion.getJAVA();
 
         // lower_underscore
         assertThat(policy.apply("my_field"), is("myField"));

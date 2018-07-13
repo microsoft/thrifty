@@ -26,7 +26,7 @@ public class EnumTypeTest {
 
         when(program.namespaces()).thenReturn(namespaces);
 
-        Location location = Location.get("", "");
+        Location location = Location.Companion.get("", "");
         EnumMemberElement memberElement = new EnumMemberElement(location, "FOO", 1);
 
         EnumElement element = new EnumElement(

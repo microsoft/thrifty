@@ -298,7 +298,7 @@ public final class Loader {
 
         Source source = Okio.source(file);
         try {
-            Location location = Location.get(base.toString(), fileName.toString());
+            Location location = Location.Companion.get(base.toString(), fileName.toString());
             String data = Okio.buffer(source).readUtf8();
             return ThriftParser.parse(location, data, errorReporter);
         } catch (IOException e) {
