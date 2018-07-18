@@ -18,9 +18,9 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-package com.microsoft.thrifty.schema;
+package com.microsoft.thrifty.schema
 
-public enum NamespaceScope {
+enum class NamespaceScope(private val thriftName: String) {
     ALL("*"),
     CPP("cpp"),
     JAVA("java"),
@@ -41,18 +41,14 @@ public enum NamespaceScope {
     JAVASCRIPT("js"),
     UNKNOWN("none");
 
-    private final String name;
-
-    NamespaceScope(String name) {
-        this.name = name;
-    }
-
-    public static NamespaceScope forThriftName(String name) {
-        for (NamespaceScope scope : values()) {
-            if (scope.name.equals(name)) {
-                return scope;
+    companion object {
+        @JvmStatic fun forThriftName(name: String): NamespaceScope? {
+            for (scope in values()) {
+                if (scope.thriftName == name) {
+                    return scope
+                }
             }
+            return null
         }
-        return null;
     }
 }

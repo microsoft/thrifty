@@ -44,7 +44,7 @@ object ThriftParser {
     @JvmStatic
     @JvmOverloads
     fun parse(location: Location, text: String, reporter: ErrorReporter = ErrorReporter()): ThriftFileElement {
-        val charStream = CharStreams.fromString(text, location.path())
+        val charStream = CharStreams.fromString(text, location.path)
         val lexer = AntlrThriftLexer(charStream)
         val tokenStream = CommonTokenStream(lexer)
         val antlrParser = AntlrThriftParser(tokenStream)

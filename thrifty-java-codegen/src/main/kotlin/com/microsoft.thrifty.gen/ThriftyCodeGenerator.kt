@@ -141,17 +141,17 @@ class ThriftyCodeGenerator {
     }
 
     fun generateTypes(): List<JavaFile> {
-        val enums = schema.enums().mapNotNull { assembleJavaFile(it, buildEnum(it)) }
-        val structs = schema.structs().mapNotNull { assembleJavaFile(it, buildStruct(it)) }
-        val exceptions = schema.exceptions().mapNotNull { assembleJavaFile(it, buildStruct(it)) }
-        val unions = schema.unions().mapNotNull { assembleJavaFile(it, buildStruct(it)) }
+        val enums = schema.enums.mapNotNull { assembleJavaFile(it, buildEnum(it)) }
+        val structs = schema.structs.mapNotNull { assembleJavaFile(it, buildStruct(it)) }
+        val exceptions = schema.exceptions.mapNotNull { assembleJavaFile(it, buildStruct(it)) }
+        val unions = schema.unions.mapNotNull { assembleJavaFile(it, buildStruct(it)) }
 
-        val constantsByPackage = schema.constants().groupBy { it.getNamespaceFor(NamespaceScope.JAVA)!! }
+        val constantsByPackage = schema.constants.groupBy { it.getNamespaceFor(NamespaceScope.JAVA)!! }
         val constants = constantsByPackage.mapNotNull { (packageName, values) ->
             assembleJavaFile(packageName, buildConst(values))
         }
 
-        val services = schema.services().flatMap { svc ->
+        val services = schema.services.flatMap { svc ->
             val iface = serviceBuilder.buildServiceInterface(svc)
             val impl = serviceBuilder.buildService(svc, iface)
 
