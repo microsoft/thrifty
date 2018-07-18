@@ -102,8 +102,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
         // First, link included programs and add their resolved types
         // to our own map
         for (p in program.includes()!!) {
-            val l = environment.getLinker(p)
-            l.link()
+            val linker = environment.getLinker(p).also { it.link() }
 
             val included = File(p.location.base, p.location.path)
             val name = included.name
@@ -115,11 +114,11 @@ internal open class Linker(private val environment: LinkEnvironment, private val
             }
             val prefix = name.substring(0, ix)
 
-            for ((key, value) in l.typesByName) {
+            for ((key, value) in linker.typesByName) {
                 // Include types defined directly within the included program,
                 // but _not_ qualified names defined in programs that _it_ includes.
                 // Include-chains like top.mid.bottom.SomeType are illegal.
-                if (key.indexOf('.') < 0) {
+                if ('.' !in key) {
                     val qualifiedName = "$prefix.$key"
                     typesByName[qualifiedName] = value
                 }
@@ -373,51 +372,50 @@ internal open class Linker(private val environment: LinkEnvironment, private val
         val annotationElement = type.annotations
         val annotations = annotationElement?.values ?: ImmutableMap.of()
 
-        var tt: ThriftType? = typesByName[type.name]
-        if (tt != null) {
+        typesByName[type.name]?.let {
             // If we are resolving e.g. the type of a field element, the type
             // may carry annotations that are not part of the canonical type.
-            return if (!annotations.isEmpty()) {
-                tt.withAnnotations(annotations)
+            return if (annotations.isEmpty()) {
+                it
             } else {
-                tt
+                it.withAnnotations(annotations)
             }
         }
 
-        if (type is ListTypeElement) {
-            val elementType = resolveType(type.elementType)
-            val listType = ListType(elementType)
-            typesByName[type.name] = listType
-            return listType.withAnnotations(annotations)
-        } else if (type is SetTypeElement) {
-            val elementType = resolveType(type.elementType)
-            val setType = SetType(elementType)
-            typesByName[type.name] = setType
-            return setType.withAnnotations(annotations)
-        } else if (type is MapTypeElement) {
-            val keyType = resolveType(type.keyType)
-            val valueType = resolveType(type.valueType)
-            val mapType = MapType(keyType, valueType)
-            typesByName[type.name] = mapType
-            return mapType.withAnnotations(annotations)
-        } else if (type is ScalarTypeElement) {
-            // At this point, all user-defined types should have been registered.
-            // If we are resolving a built-in type, then that's fine.  If not, then
-            // we have an error.
-            tt = BuiltinType.get(type.name)
-
-            if (tt != null) {
-                return tt.withAnnotations(annotations)
+        return when (type) {
+            is ListTypeElement -> {
+                val elementType = resolveType(type.elementType)
+                val listType = ListType(elementType)
+                typesByName[type.name] = listType
+                listType.withAnnotations(annotations)
             }
+            is SetTypeElement -> {
+                val elementType = resolveType(type.elementType)
+                val setType = SetType(elementType)
+                typesByName[type.name] = setType
+                setType.withAnnotations(annotations)
+            }
+            is MapTypeElement -> {
+                val keyType = resolveType(type.keyType)
+                val valueType = resolveType(type.valueType)
+                val mapType = MapType(keyType, valueType)
+                typesByName[type.name] = mapType
+                mapType.withAnnotations(annotations)
+            }
+            is ScalarTypeElement -> {
+                // At this point, all user-defined types should have been registered.
+                // If we are resolving a built-in type, then that's fine.  If not, then
+                // we have an error.
+                val builtinType = BuiltinType.get(type.name)
+                        ?: throw LinkFailureException(type.name)
 
-            throw LinkFailureException(type.name)
-        } else {
-            throw AssertionError("Unexpected TypeElement: " + type.javaClass)
+                builtinType.withAnnotations(annotations)
+            }
         }
     }
 
     open fun lookupConst(symbol: String): Constant? {
-        var constant: Constant? = program.constantMap()!![symbol]
+        var constant = program.constantMap()?.get(symbol)
         if (constant == null) {
             // As above, 'symbol' may be a reference to an included
             // constant.

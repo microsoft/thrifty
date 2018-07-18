@@ -23,9 +23,6 @@ package com.microsoft.thrifty.schema
 import io.kotlintest.shouldBe
 import org.junit.Test
 
-import org.hamcrest.CoreMatchers.`is`
-import org.junit.Assert.assertThat
-
 class FieldNamingPolicyTest {
     @Test
     fun defaultNamesAreUnaltered() {

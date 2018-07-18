@@ -24,7 +24,6 @@ package com.microsoft.thrifty.schema
  * A description of whether and when a field may be absent from a struct,
  * union, or exception.
  *
- *
  * The semantics of required, optional, and the default are underspecified
  * at present.  Intuitively, `required` should mean that the struct containing
  * the field cannot be valid unless the field is present, where `optional`
@@ -33,14 +32,12 @@ package com.microsoft.thrifty.schema
  * implementation-defined, varying both by runtime library and code-generator
  * implementations.
  *
- *
  * For a more thorough treatment of the subject, see
  * [this blog post](http://lionet.livejournal.com/66899.html) which,
  * though being five years old at the time of writing, is still relevant.  Read
  * on for my own interpretation of things.
  *
  * <h2>What does the official implementation do?</h2>
- *
  *
  * There are two times when requiredness modifiers affect behavior - during
  * serialization and during struct validation.  During serialization, they
@@ -65,17 +62,17 @@ package com.microsoft.thrifty.schema
  * </thead>
  * <tbody>
  * <tr>
- *   <td>**Default**</td>
+ *   <td><strong>Default</strong></td>
  *   <td>always*</td>
  *   <td>if set</td>
  * </tr>
  * <tr>
- *   <td>**Optional**</td>
+ *   <td><strong>Optional</strong></td>
  *   <td>if set</td>
  *   <td>if set</td>
  * </tr>
  * <tr>
- *   <td>**Required**</td>
+ *   <td><strong>Required</strong></td>
  *   <td>always*</td>
  *   <td>always</td>
  * </tr>
@@ -86,7 +83,6 @@ package com.microsoft.thrifty.schema
  *
  * <h3>Validation: Will a field potentially cause validation failures?</h3>
  *
- *
  * Validation happens at the beginning of serialization and the end of
  * deserialization.  In both cases, the following table describes the impact
  * of a missing field:
@@ -94,32 +90,31 @@ package com.microsoft.thrifty.schema
  * <table summary="Will a missing field fail validation?" border="1">
  * <thead>
  * <tr>
- * <th></th>
- * <th>Value Type</th>
- * <th>Object</th>
-</tr> *
-</thead> *
+ *   <th></th>
+ *   <th>Value Type</th>
+ *   <th>Object</th>
+ * </tr>
+ *</thead>
  * <tbody>
  * <tr>
- * <td>**Default**</td>
- * <td>no</td>
- * <td>no</td>
-</tr> *
+ *   <td><strong>Default</strong></td>
+ *   <td>no</td>
+ *   <td>no</td>
+ * </tr>
  * <tr>
- * <td>**Optional**</td>
- * <td>no</td>
- * <td>no</td>
-</tr> *
+ *   <td><strong>Optional</strong></td>
+ *   <td>no</td>
+ *   <td>no</td>
+ * </tr>
  * <tr>
- * <td>**Required**</td>
- * <td>only on deserialization</td>
- * <td>yes</td>
-</tr> *
-</tbody> *
-</table> *
+ *   <td><strong>Required</strong></td>
+ *   <td>only on deserialization</td>
+ *   <td>yes</td>
+ * </tr>
+ * </tbody>
+ * </table>
  *
  * <h2>What does Thrifty do?</h2>
- *
  *
  * For a few reasons, Thrifty has a simpler decision matrix.  As noted, we
  * do not provide server implementations, and so are unconcerned with the
@@ -129,13 +124,11 @@ package com.microsoft.thrifty.schema
  *
  * <h3>Missing required value-types always fail validation</h3>
  *
- *
  * In Apache, a struct can pass validation if it has required-but-unset
  * value-type fields.  In Thrifty, this is not possible - structs cannot be
  * built without all required members.
  *
  * <h3>Missing, default, value-types are not serialized</h3>
- *
  *
  * This is probably the most significant difference.  Apache will serialize
  * unset value-type fields as whatever default value may be there.  It is
@@ -148,9 +141,7 @@ enum class Requiredness {
      * No requirement.  The semantics of this are undefined, but in practice
      * can mean required for serialization, optional for deserialization.
      *
-     *
      * **This is not consistent between server implementations.**
-     *
      *
      * For Thrifty's purposes, this is treated as optional.
      */
