@@ -34,7 +34,7 @@ import java.util.UUID;
  * exceptions, services, and typedefs.
  */
 public abstract class UserType extends ThriftType implements UserElement {
-    private final ImmutableMap<NamespaceScope, String> namespaces;
+    private final Map<NamespaceScope, String> namespaces;
     private final UserElementMixin mixin;
 
     UserType(Program program, UserElementMixin mixin) {
@@ -59,7 +59,7 @@ public abstract class UserType extends ThriftType implements UserElement {
         return ns;
     }
 
-    public ImmutableMap<NamespaceScope, String> namespaces() {
+    public Map<NamespaceScope, String> namespaces() {
         return namespaces;
     }
 
@@ -112,7 +112,7 @@ public abstract class UserType extends ThriftType implements UserElement {
             TType extends UserType,
             TBuilder extends UserTypeBuilder<TType, TBuilder>> extends AbstractUserElementBuilder<TType, TBuilder> {
 
-        private ImmutableMap<NamespaceScope, String> namespaces;
+        private Map<NamespaceScope, String> namespaces;
 
         UserTypeBuilder(TType type) {
             super(((UserType) type).mixin);

@@ -37,6 +37,7 @@ abstract class FieldNamingPolicy {
         /**
          * The default policy is to leave names unaltered from their definition in Thrift IDL.
          */
+        @JvmField
         val DEFAULT: FieldNamingPolicy = object : FieldNamingPolicy() {
             override fun apply(name: String): String {
                 return name
@@ -51,6 +52,7 @@ abstract class FieldNamingPolicy {
          * at the beginning of the name.  Thus, this policy will preserve `.SSLFlag` over
          * `.sSLFlag`.
          */
+        @JvmField
         val JAVA: FieldNamingPolicy = object : FieldNamingPolicy() {
             override fun apply(name: String): String {
                 val caseFormat = caseFormatOf(name)

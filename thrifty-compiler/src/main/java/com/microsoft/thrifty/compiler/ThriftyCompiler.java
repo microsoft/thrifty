@@ -87,7 +87,7 @@ public class ThriftyCompiler {
     private String mapTypeName;
     private boolean emitNullabilityAnnotations = false;
     private boolean emitParcelable = false;
-    private FieldNamingPolicy fieldNamingPolicy = FieldNamingPolicy.Companion.getDEFAULT();
+    private FieldNamingPolicy fieldNamingPolicy = FieldNamingPolicy.DEFAULT;
 
     public static void main(String[] args) {
         try {
@@ -125,7 +125,7 @@ public class ThriftyCompiler {
             } else if (arg.trim().equals(PARCELABLE_ARG)) {
                 compiler.emitParcelable = true;
             } else if (arg.trim().equals(JAVA_NAMES_ARG)) {
-                compiler.fieldNamingPolicy = FieldNamingPolicy.Companion.getJAVA();
+                compiler.fieldNamingPolicy = FieldNamingPolicy.JAVA;
             } else if (arg.startsWith("-")) {
                 throw new IllegalArgumentException("Unrecognized argument: " + arg);
             } else {

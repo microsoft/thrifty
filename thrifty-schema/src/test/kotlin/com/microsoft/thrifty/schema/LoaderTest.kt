@@ -11,7 +11,6 @@ import org.junit.internal.matchers.ThrowableMessageMatcher
 import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.IOException
-import java.nio.file.Path
 
 class LoaderTest {
     @get:Rule
@@ -40,16 +39,16 @@ class LoaderTest {
 
         val schema = load(thrift)
 
-        Assert.assertThat(schema.enums().size, Matchers.equalTo(1))
-        Assert.assertThat(schema.structs().size, Matchers.equalTo(1))
-        Assert.assertThat(schema.services().size, Matchers.equalTo(1))
+        Assert.assertThat(schema.enums.size, Matchers.equalTo(1))
+        Assert.assertThat(schema.structs.size, Matchers.equalTo(1))
+        Assert.assertThat(schema.services.size, Matchers.equalTo(1))
 
-        val et = schema.enums()[0]
+        val et = schema.enums[0]
         Assert.assertThat(et.name(), Matchers.equalTo("TestEnum"))
         Assert.assertThat(et.members()[0].name(), Matchers.equalTo("ONE"))
         Assert.assertThat(et.members()[1].name(), Matchers.equalTo("TWO"))
 
-        val st = schema.structs()[0]
+        val st = schema.structs[0]
         Assert.assertThat(st.name(), Matchers.equalTo("S"))
         Assert.assertThat(st.fields().size, Matchers.equalTo(1))
 
@@ -63,7 +62,7 @@ class LoaderTest {
         Assert.assertThat(fieldType.name(), Matchers.equalTo("Int"))
         Assert.assertThat(fieldType.trueType, Matchers.equalTo(BuiltinType.I32))
 
-        val svc = schema.services()[0]
+        val svc = schema.services[0]
         Assert.assertThat(svc.name(), Matchers.equalTo("Svc"))
         Assert.assertThat(svc.methods().size, Matchers.equalTo(1))
 
@@ -109,10 +108,10 @@ class LoaderTest {
 
         val schema = load(f, f1)
 
-        val et = schema.enums()[0]
+        val et = schema.enums[0]
         Assert.assertThat(et.name(), Matchers.equalTo("TestEnum"))
 
-        val td = schema.typedefs()[0]
+        val td = schema.typedefs[0]
         Assert.assertThat(td.oldType(), Matchers.equalTo<ThriftType>(et))
     }
 
@@ -288,9 +287,9 @@ class LoaderTest {
 
         val schema = load(thrift)
 
-        val code = schema.typedefs()[0]
-        val msg = schema.typedefs()[1]
-        val map = schema.typedefs()[2]
+        val code = schema.typedefs[0]
+        val msg = schema.typedefs[1]
+        val map = schema.typedefs[2]
 
         Assert.assertThat(code.name(), Matchers.equalTo("StatusCode"))
         Assert.assertThat(code.oldType().isBuiltin, Matchers.equalTo(true))
@@ -329,7 +328,7 @@ class LoaderTest {
 
         val schema = load(thrift)
 
-        Assert.assertThat(schema.structs()[0].fields().size, Matchers.equalTo(2))
+        Assert.assertThat(schema.structs[0].fields().size, Matchers.equalTo(2))
     }
 
     @Test
@@ -414,7 +413,7 @@ class LoaderTest {
 
         val schema = load(thrift)
 
-        val td = schema.typedefs()[0]
+        val td = schema.typedefs[0]
         Assert.assertThat(td.oldType().annotations(), Matchers.hasEntry("js.type", "Date"))
     }
 
@@ -431,7 +430,7 @@ class LoaderTest {
         """
 
         val schema = load(thrift)
-        val struct = schema.structs()[0]
+        val struct = schema.structs[0]
         val field = struct.fields()[0]
 
         Assert.assertThat(field.type().annotations(), Matchers.hasEntry("thrifty.test", "bar"))
@@ -452,8 +451,8 @@ class LoaderTest {
         """
 
         val schema = load(thrift)
-        val base = schema.services()[0]
-        val derived = schema.services()[1]
+        val base = schema.services[0]
+        val derived = schema.services[1]
 
         Assert.assertThat(base.name(), Matchers.equalTo("Base"))
         Assert.assertThat(derived.name(), Matchers.equalTo("Derived"))
@@ -548,7 +547,7 @@ class LoaderTest {
         """
 
         val schema = load(thrift)
-        val service = schema.services()[0]
+        val service = schema.services[0]
         val method = service.methods()[0]
 
         Assert.assertThat(method.oneWay(), Matchers.equalTo(true))
@@ -690,11 +689,11 @@ class LoaderTest {
         """
 
         val schema = load(thrift)
-        val struct = schema.exceptions()[0]
+        val struct = schema.exceptions[0]
 
         Assert.assertThat(struct.isException, Matchers.equalTo(true))
 
-        val service = schema.services()[0]
+        val service = schema.services[0]
         val method = service.methods()[0]
         val field = method.exceptions()[0]
         val type = field.type()
@@ -824,56 +823,6 @@ class LoaderTest {
             Assert.fail("Expected a LoadFailedException from validating a bare enum member in a constant")
         } catch (e: LoadFailedException) {
             assertHasError(e, "Unqualified name 'One' is not a valid enum constant")
-        }
-    }
-
-    @Test
-    @Suppress("DEPRECATION")
-    fun addingNullStringFileThrows() {
-        val file: String? = null
-        val loader = Loader()
-        try {
-            loader.addThriftFile(file)
-            Assert.fail("Expected an NPE, but nothing was thrown")
-        } catch (e: NullPointerException) {
-            Assert.assertThat(e, ThrowableMessageMatcher.hasMessage(Matchers.containsString("file")))
-        }
-    }
-
-    @Test
-    fun addingNullPathFileThrows() {
-        val loader = Loader()
-        val nullFile: Path? = null
-        try {
-            loader.addThriftFile(nullFile)
-            Assert.fail("Expected an NPE, but nothing was thrown")
-        } catch (e: NullPointerException) {
-            Assert.assertThat(e, ThrowableMessageMatcher.hasMessage(Matchers.containsString("file")))
-        }
-    }
-
-    @Test
-    @Suppress("DEPRECATION")
-    fun addNullIncludeFileThrows() {
-        val loader = Loader()
-        val nullFile: File? = null
-        try {
-            loader.addIncludePath(nullFile)
-            Assert.fail("Expected an NPE, but nothing was thrown")
-        } catch (e: NullPointerException) {
-            Assert.assertThat(e, ThrowableMessageMatcher.hasMessage(Matchers.containsString("path")))
-        }
-    }
-
-    @Test
-    fun addNullIncludePathThrows() {
-        val loader = Loader()
-        val nullPath: Path? = null
-        try {
-            loader.addIncludePath(nullPath)
-            Assert.fail("Expected an NPE, but nothing was thrown")
-        } catch (e: NullPointerException) {
-            Assert.assertThat(e, ThrowableMessageMatcher.hasMessage(Matchers.containsString("path")))
         }
     }
 
@@ -1037,18 +986,20 @@ class LoaderTest {
     @Test
     @Throws(IOException::class, LoadFailedException::class)
     fun addIncludeFileSmokeTest() {
-        val loader = Loader()
         val thriftFile = tempDir.newFile("example.thrift")
-        loader.addIncludePath(tempDir.root.toPath())
-        val thrift = "" +
-                "namespace java example\n" +
-                "\n" +
-                "typedef string Uuid" +
-                "\n"
-        thriftFile.writeText(thrift)
-        val schema = loader.load()
-        assertThat(schema.typedefs(), hasSize<TypedefType>(1))
-        val typedef = schema.typedefs()[0]
+        thriftFile.writeText("""
+            namespace java example
+
+            typedef string Uuid
+        """)
+
+        val schema = Loader()
+                .addIncludePath(tempDir.root.toPath())
+                .load()
+
+        assertThat(schema.typedefs, hasSize(1))
+
+        val typedef = schema.typedefs[0]
         assertThat(typedef.name(), equalTo("Uuid"))
     }
 

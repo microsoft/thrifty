@@ -610,49 +610,40 @@ data class ThriftFileElement(
         private var exceptions = emptyList<StructElement>()
         private var services: List<ServiceElement> = emptyList()
 
-        fun namespaces(namespaces: List<NamespaceElement>): Builder {
+        fun namespaces(namespaces: List<NamespaceElement>) = apply {
             this.namespaces = namespaces
-            return this
         }
 
-        fun includes(includes: List<IncludeElement>): Builder {
+        fun includes(includes: List<IncludeElement>) = apply {
             this.includes = includes
-            return this
         }
 
-        fun constants(constants: List<ConstElement>): Builder {
+        fun constants(constants: List<ConstElement>) = apply {
             this.constants = constants
-            return this
         }
 
-        fun typedefs(typedefs: List<TypedefElement>): Builder {
+        fun typedefs(typedefs: List<TypedefElement>) = apply {
             this.typedefs = typedefs
-            return this
         }
 
-        fun enums(enums: List<EnumElement>): Builder {
+        fun enums(enums: List<EnumElement>) = apply {
             this.enums = enums
-            return this
         }
 
-        fun structs(structs: List<StructElement>): Builder {
+        fun structs(structs: List<StructElement>) = apply {
             this.structs = structs
-            return this
         }
 
-        fun unions(unions: List<StructElement>): Builder {
+        fun unions(unions: List<StructElement>) = apply {
             this.unions = unions
-            return this
         }
 
-        fun exceptions(exceptions: List<StructElement>): Builder {
+        fun exceptions(exceptions: List<StructElement>) = apply {
             this.exceptions = exceptions
-            return this
         }
 
-        fun services(services: List<ServiceElement>): Builder {
+        fun services(services: List<ServiceElement>) = apply {
             this.services = services
-            return this
         }
 
         fun build(): ThriftFileElement {

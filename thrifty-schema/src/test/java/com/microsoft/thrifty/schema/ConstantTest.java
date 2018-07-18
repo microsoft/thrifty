@@ -42,13 +42,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class ConstantTest {
     @Mock Linker linker;
-    @Mock Program program;
-    Location loc = Location.Companion.get("", "");
-
-    @Before
-    public void setup() {
-        when(program.namespaces()).thenReturn(ImmutableMap.<NamespaceScope, String>of());
-    }
+    Location loc = Location.get("", "");
 
     @Test
     public void boolLiteral() {

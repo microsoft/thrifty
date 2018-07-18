@@ -36,12 +36,12 @@ import javax.annotation.Nullable;
  */
 public class Constant implements UserElement {
     private final ConstElement element;
-    private final ImmutableMap<NamespaceScope, String> namespaces;
+    private final Map<NamespaceScope, String> namespaces;
     private final UserElementMixin mixin;
 
     private ThriftType type;
 
-    Constant(ConstElement element, ImmutableMap<NamespaceScope, String> namespaces) {
+    Constant(ConstElement element, Map<NamespaceScope, String> namespaces) {
         this.element = element;
         this.namespaces = namespaces;
         this.mixin = new UserElementMixin(
@@ -111,7 +111,7 @@ public class Constant implements UserElement {
         return mixin.isDeprecated();
     }
 
-    public ImmutableMap<NamespaceScope, String> namespaces() {
+    public Map<NamespaceScope, String> namespaces() {
         return namespaces;
     }
 
@@ -136,7 +136,7 @@ public class Constant implements UserElement {
     public static final class Builder extends AbstractUserElementBuilder<Constant, Builder> {
 
         private ConstElement element;
-        private ImmutableMap<NamespaceScope, String> namespaces;
+        private Map<NamespaceScope, String> namespaces;
         private final ThriftType type;
 
         Builder(Constant constant) {
@@ -147,7 +147,7 @@ public class Constant implements UserElement {
         }
 
         public Builder namespaces(Map<NamespaceScope, String> namespaces) {
-            this.namespaces = ImmutableMap.copyOf(namespaces);
+            this.namespaces = namespaces;
             return this;
         }
 

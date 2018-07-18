@@ -171,7 +171,7 @@ public class FieldTest {
     }
 
     private AnnotationElement annotation(String name) {
-        return new AnnotationElement(Location.Companion.get("", ""), Collections.singletonMap(name, "true"));
+        return new AnnotationElement(Location.get("", ""), Collections.singletonMap(name, "true"));
     }
 
     private FieldElement field() {

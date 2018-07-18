@@ -20,15 +20,13 @@
  */
 package com.microsoft.thrifty.schema
 
-import java.util.HashMap
-
 internal class LinkEnvironment(
         private val errorReporter: ErrorReporter
 ) {
     /**
      * A mapping of files to their corresponding [Linker] instances.
      */
-    private val linkers = HashMap<Program, Linker>()
+    private val linkers = mutableMapOf<Program, Linker>()
 
     fun getLinker(program: Program): Linker = linkers.getOrPut(program) {
         Linker(this, program, errorReporter)

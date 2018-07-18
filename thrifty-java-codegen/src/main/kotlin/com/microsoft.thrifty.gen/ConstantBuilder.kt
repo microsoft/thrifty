@@ -353,7 +353,7 @@ internal class ConstantBuilder(
             }
 
             // TODO(ben): Think of a more systematic way to know what [Program] owns a thrift element
-            val c = schema.constants()
+            val c = schema.constants
                     .asSequence()
                     .filter { it.name() == name }
                     .filter { it.type().trueType == expectedType }

@@ -19,11 +19,26 @@ package com.microsoft.thrifty.schema
 import java.io.File
 import java.nio.file.Paths
 
+/**
+ * Represents a location within a text file on a filesystem.
+ *
+ * @property base A location on the filesystem, to with [path] is relative.
+ * @property path The path, relative to [base], of the file located by this object.
+ * @property line The line number identified by this object, starting with 1.
+ * @property column The column identified by this object, starting with 1.
+ */
 class Location private constructor(
-        private val base: String,
-        private val path: String,
-        private val line: Int,
-        private val column: Int
+        @get:JvmName("base")
+        val base: String,
+
+        @get:JvmName("path")
+        val path: String,
+
+        @get:JvmName("line")
+        val line: Int,
+
+        @get:JvmName("column")
+        val column: Int
 ) {
     init {
         require(line > 0 || line == -1) { "line: $line" }
@@ -46,26 +61,11 @@ class Location private constructor(
             return name
         }
 
-
-
+    /**
+     * Returns a copy of this object pointing to the given line and column.
+     */
     fun at(line: Int, column: Int): Location {
         return Location(base, path, line, column)
-    }
-
-    fun base(): String {
-        return base
-    }
-
-    fun path(): String {
-        return path
-    }
-
-    fun line(): Int {
-        return line
-    }
-
-    fun column(): Int {
-        return column
     }
 
     override fun toString(): String {
@@ -105,7 +105,7 @@ class Location private constructor(
     }
 
     companion object {
-        operator fun get(base: String, path: String): Location {
+        @JvmStatic fun get(base: String, path: String): Location {
             return Location(base, path, -1, -1)
         }
     }
