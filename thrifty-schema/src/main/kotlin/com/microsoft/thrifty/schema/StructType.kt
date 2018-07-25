@@ -48,7 +48,7 @@ class StructType : UserType {
                 .map { Field(it) }
     }
 
-    private constructor(builder: Builder) : super(builder) {
+    private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
         this.structType = builder.structType
         this.fields = builder.fields
     }

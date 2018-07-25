@@ -38,7 +38,7 @@ class EnumType : UserType {
         this.members = element.members.map { EnumMember(it) }
     }
 
-    private constructor(builder: Builder) : super(builder) {
+    private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
         this.members = builder.members
     }
 

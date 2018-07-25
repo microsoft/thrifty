@@ -42,7 +42,7 @@ class ServiceType : UserType {
         this.methods = element.functions.map { ServiceMethod(it) }
     }
 
-    private constructor(builder: Builder) : super(builder) {
+    private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
         this.methods = builder.methods
         this.extendsServiceType = builder.extendsServiceType
         this.extendsService = builder.extendsService

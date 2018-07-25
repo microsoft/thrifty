@@ -39,7 +39,7 @@ class TypedefType : UserType {
         this.oldTypeElement = element.oldType
     }
 
-    private constructor(builder: Builder) : super(builder) {
+    private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
         this.oldTypeElement = builder.oldTypeElement
         this.oldType = builder.oldType
     }
