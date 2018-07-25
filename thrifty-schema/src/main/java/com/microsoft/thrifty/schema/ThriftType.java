@@ -171,10 +171,10 @@ public abstract class ThriftType {
     /**
      * @return all annotations present on this type.
      */
-    public abstract ImmutableMap<String, String> annotations();
+    public abstract Map<String, String> annotations();
 
     protected static ImmutableMap<String, String> merge(
-            ImmutableMap<String, String> baseAnnotations,
+            Map<String, String> baseAnnotations,
             Map<String, String> newAnnotations) {
         LinkedHashMap<String, String> merged = new LinkedHashMap<>();
         merged.putAll(baseAnnotations);
