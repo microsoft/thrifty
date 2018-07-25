@@ -41,7 +41,7 @@ public class ServiceType extends UserType {
     private ThriftType extendsService;
 
     ServiceType(Program program, ServiceElement element) {
-        super(program, new UserElementMixin(element));
+        super(program.namespaces(), new UserElementMixin(element));
 
         this.extendsServiceType = element.extendsService();
         this.methods = element.functions().stream()

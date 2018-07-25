@@ -48,7 +48,7 @@ internal class ServiceBuilder(
         val serviceSpec = TypeSpec.interfaceBuilder(service.name())
                 .addModifiers(Modifier.PUBLIC)
 
-        service.documentation()?.let {
+        service.documentation().let {
             if (it.isNotEmpty()) {
                 serviceSpec.addJavadoc(it)
             }

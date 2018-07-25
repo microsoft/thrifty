@@ -236,7 +236,7 @@ class ThriftyCodeGenerator {
                 .addParameter(builderTypeName, "builder")
 
         val isUnion = type.isUnion
-        for (field in type.fields()) {
+        for (field in type.fields) {
 
             val name = fieldNamer.getName(field)
             val fieldType = field.type()
@@ -354,7 +354,7 @@ class ThriftyCodeGenerator {
                 .addParameter(TypeNames.PARCEL, "dest")
                 .addParameter(Int::class.javaPrimitiveType, "flags")
 
-        for (field in structType.fields()) {
+        for (field in structType.fields) {
             val name = fieldNamer.getName(field)
             val fieldType = typeResolver.getJavaClass(field.type().trueType)
             parcelCtor.addStatement("this.\$N = (\$T) in.readValue(CLASS_LOADER)", name, fieldType)
@@ -411,13 +411,13 @@ class ThriftyCodeGenerator {
 
         // Add fields to the struct and set them in the ctor
         val allocator = NameAllocator()
-        for (field in structType.fields()) {
+        for (field in structType.fields) {
             val name = fieldNamer.getName(field)
             allocator.newName(name, name)
         }
 
         val tempNameId = AtomicInteger(0) // used for generating unique names of temporary values
-        for (field in structType.fields()) {
+        for (field in structType.fields) {
             val fieldType = field.type().trueType
             val javaTypeName = typeResolver.getJavaClass(fieldType)
             val fieldName = fieldNamer.getName(field)
@@ -564,11 +564,11 @@ class ThriftyCodeGenerator {
         read.addStatement("break")
         read.endControlFlow()
 
-        if (structType.fields().size > 0) {
+        if (structType.fields.size > 0) {
             read.beginControlFlow("switch (field.fieldId)")
         }
 
-        for (field in structType.fields()) {
+        for (field in structType.fields) {
             val fieldName = fieldNamer.getName(field)
             val optional = !field.required() // could also be default, but same-same to us.
             val tt = field.type().trueType
@@ -606,7 +606,7 @@ class ThriftyCodeGenerator {
         write.addStatement("protocol.writeFieldStop()")
         write.addStatement("protocol.writeStructEnd()")
 
-        if (structType.fields().size > 0) {
+        if (structType.fields.isNotEmpty()) {
             read.beginControlFlow("default:")
             read.addStatement("\$T.skip(protocol, field.typeId)", TypeNames.PROTO_UTIL)
             read.endControlFlow() // end default
@@ -648,13 +648,13 @@ class ThriftyCodeGenerator {
                 .addStatement("if (other == null) return false")
 
 
-        if (struct.fields().isNotEmpty()) {
+        if (struct.fields.isNotEmpty()) {
             equals.addStatement("if (!(other instanceof \$L)) return false", struct.name())
             equals.addStatement("$1L that = ($1L) other", struct.name())
         }
 
         val warningsToSuppress = mutableSetOf<String>()
-        struct.fields().forEachIndexed { index, field ->
+        struct.fields.forEachIndexed { index, field ->
             val type = field.type().trueType
             val fieldName = fieldNamer.getName(field)
 
@@ -684,7 +684,7 @@ class ThriftyCodeGenerator {
             equals.addAnnotation(suppressWarnings(warningsToSuppress))
         }
 
-        if (struct.fields().isNotEmpty()) {
+        if (struct.fields.isNotEmpty()) {
             equals.addCode(";\n$]")
         } else {
             equals.addStatement("return other instanceof $1L", struct.name())
@@ -721,7 +721,7 @@ class ThriftyCodeGenerator {
                 .returns(Int::class.javaPrimitiveType!!)
                 .addStatement("int code = 16777619")
 
-        for (field in struct.fields()) {
+        for (field in struct.fields) {
             val fieldName = fieldNamer.getName(field)
 
             if (field.required()) {
@@ -765,7 +765,7 @@ class ThriftyCodeGenerator {
         val chunks = ArrayList<Chunk>()
 
         val sb = StringBuilder(struct.name()).append("{")
-        struct.fields().forEachIndexed { index, field ->
+        struct.fields.forEachIndexed { index, field ->
             val fieldName = fieldNamer.getName(field)
 
             if (index > 0) {
@@ -981,10 +981,10 @@ class ThriftyCodeGenerator {
                 .addParameter(Int::class.javaPrimitiveType, "value")
                 .beginControlFlow("switch (value)")
 
-        for (member in type.members()) {
+        for (member in type.members) {
             val name = member.name()
 
-            val value = member.value()
+            val value = member.value
 
             val memberBuilder = TypeSpec.anonymousClassBuilder("\$L", value)
             if (member.hasJavadoc()) {

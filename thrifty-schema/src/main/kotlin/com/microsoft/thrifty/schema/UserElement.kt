@@ -18,61 +18,16 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-package com.microsoft.thrifty.schema;
+package com.microsoft.thrifty.schema
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap
 
-import java.util.UUID;
+import java.util.UUID
 
 /**
  * Represents data common to user-defined elements of a Thrift program.
  */
-public interface UserElement {
-    /**
-     * A globally unique ID for this element. This is useful for cases where you newBuilder() an element to change it
-     * (such as in a Schema preprocessor) and want to update references from other objects in a deterministic way that
-     * matches IDs. If you want a new instance of an object that is unrelated, you should change this value.
-     *
-     * @return the uuid of this element.
-     */
-    UUID uuid();
-
-    /**
-     * Gets the name of the element.
-     *
-     * @return the name of this element.
-     */
-    String name();
-
-    /**
-     * Gets the {@link Location} where the element is defined.
-     *
-     * @return the Location where this element is defined.
-     */
-    Location location();
-
-    /**
-     * Gets the documentation comments of the element, or an empty string.
-     *
-     * @return the documentation present on this element, or an empty string.
-     */
-    String documentation();
-
-    /**
-     * Gets a value indicating whether the element contains non-empty Javadoc.
-     *
-     * @return true if this element contains non-empty Javadoc.
-     */
-    default boolean hasJavadoc() {
-        return isNonEmptyJavadoc(documentation());
-    }
-
-    /**
-     * Gets an immutable map containing any annotations present on the element.
-     *
-     * @return all annotations present on this element.
-     */
-    ImmutableMap<String, String> annotations();
+interface UserElement {
 
     /**
      * Gets a value indicating whether the element has been marked as
@@ -81,23 +36,60 @@ public interface UserElement {
      *
      * @return true if this element has been marked as deprecated.
      */
-    boolean isDeprecated();
+    val isDeprecated: Boolean
 
     /**
-     * Returns {@code true} if {@code doc} is non-empty Javadoc, otherwise
-     * {@code false}.
+     * A globally unique ID for this element. This is useful for cases where you newBuilder() an element to change it
+     * (such as in a Schema preprocessor) and want to update references from other objects in a deterministic way that
+     * matches IDs. If you want a new instance of an object that is unrelated, you should change this value.
+     *
+     * @return the uuid of this element.
      */
-    static boolean isNonEmptyJavadoc(String doc) {
-        if (doc == null) return false;
-        if (doc.isEmpty()) return false;
+    fun uuid(): UUID
 
-        for (int i = 0; i < doc.length(); ++i) {
-            char c = doc.charAt(i);
-            if (!Character.isWhitespace(c)) {
-                return true;
-            }
-        }
+    /**
+     * Gets the name of the element.
+     *
+     * @return the name of this element.
+     */
+    fun name(): String
 
-        return false;
-    }
+    /**
+     * Gets the [Location] where the element is defined.
+     *
+     * @return the Location where this element is defined.
+     */
+    fun location(): Location
+
+    /**
+     * Gets the documentation comments of the element, or an empty string.
+     *
+     * @return the documentation present on this element, or an empty string.
+     */
+    fun documentation(): String
+
+    /**
+     * Gets a value indicating whether the element contains non-empty Javadoc.
+     *
+     * @return true if this element contains non-empty Javadoc.
+     */
+    @JvmDefault fun hasJavadoc(): Boolean = isNonEmptyJavadoc(documentation())
+
+    /**
+     * Gets an immutable map containing any annotations present on the element.
+     *
+     * @return all annotations present on this element.
+     */
+    fun annotations(): ImmutableMap<String, String>
+}
+
+/**
+ * Returns `true` if `doc` is non-empty Javadoc, otherwise
+ * `false`.
+ */
+fun isNonEmptyJavadoc(doc: String?): Boolean {
+    if (doc == null) return false
+    if (doc.isEmpty()) return false
+
+    return doc.any { !Character.isWhitespace(it) }
 }

@@ -21,16 +21,24 @@
 package com.microsoft.thrifty.schema;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.microsoft.thrifty.schema.parser.ConstElement;
 import com.microsoft.thrifty.schema.parser.ConstValueElement;
+import com.microsoft.thrifty.schema.parser.EnumElement;
 import com.microsoft.thrifty.schema.parser.EnumMemberElement;
+import com.microsoft.thrifty.schema.parser.ThriftFileElement;
+import com.microsoft.thrifty.schema.parser.ThriftParser;
+import com.microsoft.thrifty.schema.parser.TypeElement;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -41,15 +49,15 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConstantTest {
-    @Mock Linker linker;
-    Location loc = Location.get("", "");
+    @Mock SymbolTable symbolTable;
+    private Location loc = Location.get("", "");
 
     @Test
     public void boolLiteral() {
-        Constant.validate(linker, ConstValueElement.identifier(loc, "true", "true"), BuiltinType.BOOL);
-        Constant.validate(linker, ConstValueElement.identifier(loc, "false", "false"), BuiltinType.BOOL);
+        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "true", "true"), BuiltinType.BOOL);
+        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "false", "false"), BuiltinType.BOOL);
         try {
-            Constant.validate(linker, ConstValueElement.literal(loc, "nope", "nope"), BuiltinType.BOOL);
+            Constant.validate(symbolTable, ConstValueElement.literal(loc, "nope", "nope"), BuiltinType.BOOL);
             fail("Invalid identifier should not validate as a bool");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -60,25 +68,29 @@ public class ConstantTest {
 
     @Test
     public void boolConstant() {
-        Constant c = mock(Constant.class);
-        when(c.name()).thenReturn("aBool");
-        when(c.type()).thenReturn(BuiltinType.BOOL);
+        Constant c = makeConstant(
+                "aBool",
+                TypeElement.scalar(loc, "string", null),
+                ConstValueElement.identifier(loc, "aBool", "aBool"),
+                BuiltinType.BOOL);
 
-        when(linker.lookupConst("aBool")).thenReturn(c);
+        when(symbolTable.lookupConst("aBool")).thenReturn(c);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
+        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
     }
 
     @Test
     public void boolWithWrongTypeOfConstant() {
-        Constant c = mock(Constant.class);
-        when(c.name()).thenReturn("aBool");
-        when(c.type()).thenReturn(BuiltinType.STRING);
+        Constant c = makeConstant(
+                "aBool",
+                TypeElement.scalar(loc, "string", null),
+                ConstValueElement.identifier(loc, "aBool", "aBool"),
+                BuiltinType.STRING);
 
-        when(linker.lookupConst("aBool")).thenReturn(c);
+        when(symbolTable.lookupConst("aBool")).thenReturn(c);
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
+            Constant.validate(symbolTable, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
             fail("Wrongly-typed constant should not validate");
         } catch (IllegalStateException ignored) {
         }
@@ -86,11 +98,8 @@ public class ConstantTest {
 
     @Test
     public void boolWithNonConstantIdentifier() {
-        StructType s = mock(StructType.class);
-        when(s.name()).thenReturn("someStruct");
-
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "someStruct", "someStruct"), BuiltinType.BOOL);
+            Constant.validate(symbolTable, ConstValueElement.identifier(loc, "someStruct", "someStruct"), BuiltinType.BOOL);
             fail("Non-constant identifier should not validate");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -105,13 +114,15 @@ public class ConstantTest {
         when(td.name()).thenReturn("Truthiness");
         when(td.getTrueType()).thenReturn(BuiltinType.BOOL);
 
-        Constant c = mock(Constant.class);
-        when(c.name()).thenReturn("aBool");
-        when(c.type()).thenReturn(td);
+        Constant c = makeConstant(
+                "aBool",
+                TypeElement.scalar(loc, "Truthiness", null),
+                ConstValueElement.identifier(loc, "aBool", "aBool"),
+                td);
 
-        when(linker.lookupConst("aBool")).thenReturn(c);
+        when(symbolTable.lookupConst("aBool")).thenReturn(c);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
+        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL);
     }
 
     @Test
@@ -123,7 +134,7 @@ public class ConstantTest {
 
         ConstValueElement value = ConstValueElement.literal(loc, "\"y helo thar\"", "y helo thar");
 
-        Constant.validate(linker, value, td);
+        Constant.validate(symbolTable, value, td);
     }
 
     @Test
@@ -131,7 +142,7 @@ public class ConstantTest {
         ConstValueElement value = ConstValueElement.integer(loc, "10", 10);
         ThriftType type = BuiltinType.I32;
 
-        Constant.validate(linker, value, type);
+        Constant.validate(symbolTable, value, type);
     }
 
     @Test
@@ -141,7 +152,7 @@ public class ConstantTest {
         ThriftType type = BuiltinType.I32;
 
         try {
-            Constant.validate(linker, value, type);
+            Constant.validate(symbolTable, value, type);
             fail("out-of-range i32 should fail");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("out of range for type i32"));
@@ -155,7 +166,7 @@ public class ConstantTest {
         ThriftType type = BuiltinType.I32;
 
         try {
-            Constant.validate(linker, value, type);
+            Constant.validate(symbolTable, value, type);
             fail("out-of-range i32 should fail");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("out of range for type i32"));
@@ -164,31 +175,29 @@ public class ConstantTest {
 
     @Test
     public void enumWithMember() {
-        ImmutableList.Builder<EnumMember> members = ImmutableList.builder();
-        members.add(new EnumMember(new EnumMemberElement(loc, "TEST", 1)));
+        List<EnumMemberElement> memberElements = Collections.singletonList(
+                new EnumMemberElement(loc, "TEST", 1)
+        );
 
-        EnumType et = mock(EnumType.class);
-        when(et.name()).thenReturn("TestEnum");
-        when(et.members()).thenReturn(members.build());
-        when(et.getTrueType()).thenReturn(et);
-        when(et.isEnum()).thenReturn(true);
+        EnumElement enumElement = new EnumElement(loc, "TestEnum", memberElements);
 
-        Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.TEST", "TestEnum.TEST"), et);
+        EnumType et = new EnumType(enumElement, Collections.emptyMap());
+
+        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "TestEnum.TEST", "TestEnum.TEST"), et);
     }
 
     @Test
     public void enumWithNonMemberIdentifier() {
-        ImmutableList.Builder<EnumMember> members = ImmutableList.builder();
-        members.add(new EnumMember(new EnumMemberElement(loc, "TEST", 1)));
+        List<EnumMemberElement> memberElements = Collections.singletonList(
+                new EnumMemberElement(loc, "TEST", 1)
+        );
 
-        EnumType et = mock(EnumType.class);
-        when(et.name()).thenReturn("TestEnum");
-        when(et.members()).thenReturn(members.build());
-        when(et.getTrueType()).thenReturn(et);
-        when(et.isEnum()).thenReturn(true);
+        EnumElement enumElement = new EnumElement(loc, "TestEnum", memberElements);
+
+        EnumType et = new EnumType(enumElement, Collections.emptyMap());
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "TestEnum.NON_MEMBER", "TestEnum.NON_MEMBER"), et);
+            Constant.validate(symbolTable, ConstValueElement.identifier(loc, "TestEnum.NON_MEMBER", "TestEnum.NON_MEMBER"), et);
             fail("Non-member identifier should fail");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -199,17 +208,16 @@ public class ConstantTest {
 
     @Test
     public void unqualifiedEnumMember() {
-        ImmutableList.Builder<EnumMember> members = ImmutableList.builder();
-        members.add(new EnumMember(new EnumMemberElement(loc, "TEST", 1)));
+        List<EnumMemberElement> memberElements = Collections.singletonList(
+                new EnumMemberElement(loc, "TEST", 1)
+        );
 
-        EnumType et = mock(EnumType.class);
-        when(et.name()).thenReturn("TestEnum");
-        when(et.members()).thenReturn(members.build());
-        when(et.getTrueType()).thenReturn(et);
-        when(et.isEnum()).thenReturn(true);
+        EnumElement enumElement = new EnumElement(loc, "TestEnum", memberElements);
+
+        EnumType et = new EnumType(enumElement, Collections.emptyMap());
 
         try {
-            Constant.validate(linker, ConstValueElement.identifier(loc, "TEST", "TEST"), et);
+            Constant.validate(symbolTable, ConstValueElement.identifier(loc, "TEST", "TEST"), et);
             fail("Expected an IllegalStateException");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("Unqualified name 'TEST' is not a valid enum constant value"));
@@ -225,7 +233,7 @@ public class ConstantTest {
                 ConstValueElement.integer(loc, "2", 2)
         ));
 
-        Constant.validate(linker, listValue, list);
+        Constant.validate(symbolTable, listValue, list);
     }
 
     @Test
@@ -238,7 +246,7 @@ public class ConstantTest {
         ));
 
         try {
-            Constant.validate(linker, listValue, list);
+            Constant.validate(symbolTable, listValue, list);
             fail("Heterogeneous lists should fail validation");
         } catch (IllegalStateException ignored) {
         }
@@ -246,14 +254,13 @@ public class ConstantTest {
 
     @Test
     public void typedefOfEnum() {
-        EnumMember member = new EnumMember(new EnumMemberElement(loc, "FOO", 1));
-        ImmutableList<EnumMember> members = ImmutableList.of(member);
+        List<EnumMemberElement> memberElements = Collections.singletonList(
+                new EnumMemberElement(loc, "FOO", 1)
+        );
 
-        EnumType et = mock(EnumType.class);
-        when(et.name()).thenReturn("AnEnum");
-        when(et.members()).thenReturn(members);
-        when(et.getTrueType()).thenReturn(et);
-        when(et.isEnum()).thenReturn(true);
+        EnumElement enumElement = new EnumElement(loc, "AnEnum", memberElements);
+
+        EnumType et = new EnumType(enumElement, Collections.emptyMap());
 
         TypedefType typedefType = mock(TypedefType.class);
         when(typedefType.name()).thenReturn("Id");
@@ -262,27 +269,26 @@ public class ConstantTest {
 
         ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO", "AnEnum.FOO");
 
-        Constant.validate(linker, value, typedefType);
+        Constant.validate(symbolTable, value, typedefType);
     }
 
     @Test
     public void typedefOfWrongEnum() {
-        EnumMember member = new EnumMember(new EnumMemberElement(loc, "FOO", 1));
-        ImmutableList<EnumMember> members = ImmutableList.of(member);
+        List<EnumMemberElement> memberElements = Collections.singletonList(
+                new EnumMemberElement(loc, "FOO", 1)
+        );
 
-        EnumType et = mock(EnumType.class);
-        when(et.name()).thenReturn("AnEnum");
-        when(et.members()).thenReturn(members);
-        when(et.getTrueType()).thenReturn(et);
-        when(et.isEnum()).thenReturn(true);
+        EnumElement enumElement = new EnumElement(loc, "AnEnum", memberElements);
 
-        EnumMember wrongMember = new EnumMember(new EnumMemberElement(loc, "BAR", 2));
+        EnumType et = new EnumType(enumElement, Collections.emptyMap());
 
-        EnumType wt = mock(EnumType.class);
-        when(wt.name()).thenReturn("DifferentEnum");
-        when(wt.members()).thenReturn(ImmutableList.of(wrongMember));
-        when(wt.isEnum()).thenReturn(true);
-        when(wt.getTrueType()).thenReturn(wt);
+        List<EnumMemberElement> wrongMemberElements = Collections.singletonList(
+                new EnumMemberElement(loc, "BAR", 2)
+        );
+
+        EnumElement wrongEnumElement = new EnumElement(loc, "DifferentEnum", wrongMemberElements);
+
+        EnumType wt = new EnumType(wrongEnumElement, Collections.emptyMap());
 
         TypedefType typedefType = mock(TypedefType.class);
         when(typedefType.name()).thenReturn("Id");
@@ -292,7 +298,7 @@ public class ConstantTest {
         ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO", "AnEnum.FOO");
 
         try {
-            Constant.validate(linker, value, typedefType);
+            Constant.validate(symbolTable, value, typedefType);
             fail("An enum literal of type A cannot be assigned to a typedef of type B");
         } catch (IllegalStateException expected) {
             assertThat(
@@ -310,6 +316,26 @@ public class ConstantTest {
                 ConstValueElement.integer(loc, "2", 2)
         ));
 
-        Constant.validate(linker, listValue, setType);
+        Constant.validate(symbolTable, listValue, setType);
+    }
+
+    private Constant makeConstant(String name, TypeElement typeElement, ConstValueElement value, ThriftType thriftType) {
+        ConstElement element = new ConstElement(
+                loc,
+                typeElement,
+                name,
+                value);
+
+        try {
+            Constant constant = new Constant(element, Collections.emptyMap());
+
+            Field field = Constant.class.getDeclaredField("type");
+            field.setAccessible(true);
+            field.set(constant, thriftType);
+
+            return constant;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 }

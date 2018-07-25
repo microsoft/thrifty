@@ -128,9 +128,9 @@ public class Constant implements UserElement {
     }
 
     @VisibleForTesting
-    static void validate(Linker linker, ConstValueElement value, ThriftType expected) {
+    static void validate(SymbolTable symbolTable, ConstValueElement value, ThriftType expected) {
         ThriftType trueType = expected.getTrueType();
-        Validators.forType(trueType).validate(linker, trueType, value);
+        Validators.forType(trueType).validate(symbolTable, trueType, value);
     }
 
     public static final class Builder extends AbstractUserElementBuilder<Constant, Builder> {
@@ -158,7 +158,7 @@ public class Constant implements UserElement {
     }
 
     interface ConstValueValidator {
-        void validate(Linker linker, ThriftType expected, ConstValueElement value);
+        void validate(SymbolTable symbolTable, ThriftType expected, ConstValueElement value);
     }
 
     private static class Validators {
@@ -217,7 +217,7 @@ public class Constant implements UserElement {
 
     private static class BoolValidator implements ConstValueValidator {
         @Override
-        public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
+        public void validate(SymbolTable symbolTable, ThriftType expected, ConstValueElement value) {
             if (value.kind() == ConstValueElement.Kind.INTEGER) {
                 int n = value.getAsInt();
                 if (n == 0 || n == 1) {
@@ -229,7 +229,7 @@ public class Constant implements UserElement {
                     return;
                 }
 
-                Constant constant = linker.lookupConst(identifier);
+                Constant constant = symbolTable.lookupConst(identifier);
                 if (constant != null && constant.type().getTrueType().equals(BuiltinType.BOOL)) {
                     return;
                 }
@@ -249,14 +249,14 @@ public class Constant implements UserElement {
         }
 
         @Override
-        public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
+        public void validate(SymbolTable symbolTable, ThriftType expected, ConstValueElement value) {
             if (value.kind() == expectedKind) {
                 return;
             }
 
             if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                 String id = (String) value.value();
-                Constant constant = linker.lookupConst(id);
+                Constant constant = symbolTable.lookupConst(id);
 
                 if (constant == null) {
                     throw new IllegalStateException("Unrecognized const identifier: " + id);
@@ -286,8 +286,8 @@ public class Constant implements UserElement {
         }
 
         @Override
-        public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
-            super.validate(linker, expected, value);
+        public void validate(SymbolTable symbolTable, ThriftType expected, ConstValueElement value) {
+            super.validate(symbolTable, expected, value);
 
             if (value.kind() == ConstValueElement.Kind.INTEGER) {
                 Long lv = (Long) value.value();
@@ -301,7 +301,7 @@ public class Constant implements UserElement {
 
     private static class EnumValidator implements ConstValueValidator {
         @Override
-        public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
+        public void validate(SymbolTable symbolTable, ThriftType expected, ConstValueElement value) {
             if (!expected.isEnum()) {
                 throw new IllegalStateException("bad enum literal");
             }
@@ -330,7 +330,7 @@ public class Constant implements UserElement {
                 // An unusual edge case is when a named constant has the same name as an enum
                 // member; in this case, constants take precedence over members.  Make sure that
                 // the type is as expected!
-                Constant constant = linker.lookupConst(id);
+                Constant constant = symbolTable.lookupConst(id);
                 if (constant != null && constant.type().getTrueType().equals(expected)) {
                     return;
                 }
@@ -384,7 +384,7 @@ public class Constant implements UserElement {
     private static class CollectionValidator implements ConstValueValidator {
         @SuppressWarnings("unchecked")
         @Override
-        public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
+        public void validate(SymbolTable symbolTable, ThriftType expected, ConstValueElement value) {
             if (value.kind() == ConstValueElement.Kind.LIST) {
                 List<ConstValueElement> list = value.getAsList();
 
@@ -398,11 +398,11 @@ public class Constant implements UserElement {
                 }
 
                 for (ConstValueElement element : list) {
-                    Constant.validate(linker, element, elementType);
+                    Constant.validate(symbolTable, element, elementType);
                 }
             } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                 String id = (String) value.value();
-                Constant named = linker.lookupConst(id);
+                Constant named = symbolTable.lookupConst(id);
 
                 boolean isConstantOfCorrectType = named != null
                         && named.type().getTrueType().equals(expected);
@@ -418,7 +418,7 @@ public class Constant implements UserElement {
 
     private static class MapValidator implements ConstValueValidator {
         @Override
-        public void validate(Linker linker, ThriftType expected, ConstValueElement value) {
+        public void validate(SymbolTable symbolTable, ThriftType expected, ConstValueElement value) {
             if (value.kind() == ConstValueElement.Kind.MAP) {
                 Map<ConstValueElement, ConstValueElement> map = value.getAsMap();
 
@@ -427,12 +427,12 @@ public class Constant implements UserElement {
                 ThriftType valueType = mapType.valueType().getTrueType();
 
                 for (Map.Entry<ConstValueElement, ConstValueElement> entry : map.entrySet()) {
-                    Constant.validate(linker, entry.getKey(), keyType);
-                    Constant.validate(linker, entry.getValue(), valueType);
+                    Constant.validate(symbolTable, entry.getKey(), keyType);
+                    Constant.validate(symbolTable, entry.getValue(), valueType);
                 }
             } else if (value.kind() == ConstValueElement.Kind.IDENTIFIER) {
                 String id = (String) value.value();
-                Constant named = linker.lookupConst(id);
+                Constant named = symbolTable.lookupConst(id);
 
                 boolean isConstantOfCorrectType = named != null
                         && named.type().getTrueType().equals(expected);

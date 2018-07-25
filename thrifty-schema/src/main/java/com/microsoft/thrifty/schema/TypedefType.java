@@ -33,7 +33,7 @@ public class TypedefType extends UserType {
     private ThriftType oldType;
 
     TypedefType(Program program, TypedefElement element) {
-        super(program, new UserElementMixin(element));
+        super(program.namespaces(), new UserElementMixin(element));
         this.oldTypeElement = element.oldType();
     }
 

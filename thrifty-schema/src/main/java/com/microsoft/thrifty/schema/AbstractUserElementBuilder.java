@@ -31,7 +31,7 @@ import java.util.Map;
  * @param <TBuilder> the most-derived type of the builder
  */
 @SuppressWarnings("unchecked")
-abstract class AbstractUserElementBuilder<
+public abstract class AbstractUserElementBuilder<
         TElement extends UserElement,
         TBuilder extends AbstractUserElementBuilder<TElement, TBuilder>> {
 

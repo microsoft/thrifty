@@ -43,6 +43,12 @@ public abstract class UserType extends ThriftType implements UserElement {
         this.mixin = mixin;
     }
 
+    UserType(Map<NamespaceScope, String> namespaces, UserElementMixin mixin) {
+        super(mixin.name());
+        this.namespaces = namespaces;
+        this.mixin = mixin;
+    }
+
     protected UserType(UserTypeBuilder<? extends UserType, ? extends UserTypeBuilder<?, ?>> builder) {
         super(builder.mixin.name());
         this.namespaces = builder.namespaces;

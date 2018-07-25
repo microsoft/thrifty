@@ -45,14 +45,14 @@ class LoaderTest {
 
         val et = schema.enums[0]
         Assert.assertThat(et.name(), Matchers.equalTo("TestEnum"))
-        Assert.assertThat(et.members()[0].name(), Matchers.equalTo("ONE"))
-        Assert.assertThat(et.members()[1].name(), Matchers.equalTo("TWO"))
+        Assert.assertThat(et.members[0].name(), Matchers.equalTo("ONE"))
+        Assert.assertThat(et.members[1].name(), Matchers.equalTo("TWO"))
 
         val st = schema.structs[0]
         Assert.assertThat(st.name(), Matchers.equalTo("S"))
-        Assert.assertThat(st.fields().size, Matchers.equalTo(1))
+        Assert.assertThat(st.fields.size, Matchers.equalTo(1))
 
-        val field = st.fields()[0]
+        val field = st.fields[0]
         Assert.assertThat(field.id(), Matchers.equalTo(1))
         Assert.assertThat(field.required(), Matchers.equalTo(true))
         Assert.assertThat(field.name(), Matchers.equalTo("n"))
@@ -328,7 +328,7 @@ class LoaderTest {
 
         val schema = load(thrift)
 
-        Assert.assertThat(schema.structs[0].fields().size, Matchers.equalTo(2))
+        Assert.assertThat(schema.structs[0].fields.size, Matchers.equalTo(2))
     }
 
     @Test
@@ -431,7 +431,7 @@ class LoaderTest {
 
         val schema = load(thrift)
         val struct = schema.structs[0]
-        val field = struct.fields()[0]
+        val field = struct.fields[0]
 
         Assert.assertThat(field.type().annotations(), Matchers.hasEntry("thrifty.test", "bar"))
     }

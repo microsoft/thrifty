@@ -34,6 +34,10 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 
+internal interface SymbolTable {
+    fun lookupConst(symbol: String): Constant?
+}
+
 /**
  * An object that can resolve the types of typdefs, struct fields, and service
  * method parameters based on types declared in Thrift [Program]s and their
@@ -41,7 +45,12 @@ import java.util.LinkedList
  *
  * In other words, a type-checker.
  */
-internal open class Linker(private val environment: LinkEnvironment, private val program: Program, private val reporter: ErrorReporter) {
+internal open class Linker(
+        private val environment: LinkEnvironment,
+        private val program: Program,
+        private val reporter: ErrorReporter
+) : SymbolTable {
+
     private val typesByName = LinkedHashMap<String, ThriftType>()
 
     private var linking = false
@@ -414,7 +423,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
         }
     }
 
-    open fun lookupConst(symbol: String): Constant? {
+    override fun lookupConst(symbol: String): Constant? {
         var constant = program.constantMap()?.get(symbol)
         if (constant == null) {
             // As above, 'symbol' may be a reference to an included
