@@ -20,11 +20,9 @@
  */
 package com.microsoft.thrifty.schema
 
-import com.google.common.collect.ImmutableMap
-
 class BuiltinType @JvmOverloads internal constructor(
         name: String,
-        private val annotations: Map<String, String> = emptyMap()
+        override val annotations: Map<String, String> = emptyMap()
 ) : ThriftType(name) {
 
     val isNumeric: Boolean
@@ -34,7 +32,7 @@ class BuiltinType @JvmOverloads internal constructor(
                 || this == I64
                 || this == DOUBLE)
 
-    override fun isBuiltin(): Boolean = true
+    override val isBuiltin: Boolean = true
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T {
         return when (this) {
@@ -46,16 +44,12 @@ class BuiltinType @JvmOverloads internal constructor(
             DOUBLE -> visitor.visitDouble(this)
             STRING -> visitor.visitString(this)
             BINARY -> visitor.visitBinary(this)
-            else -> throw AssertionError("Unexpected ThriftType: ${name()}")
+            else -> throw AssertionError("Unexpected ThriftType: $name")
         }
     }
 
-    override fun annotations(): Map<String, String> {
-        return annotations
-    }
-
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
-        return BuiltinType(name(), ThriftType.merge(this.annotations, annotations))
+        return BuiltinType(name, ThriftType.merge(this.annotations, annotations))
     }
 
     override fun equals(other: Any?): Boolean {
@@ -65,19 +59,19 @@ class BuiltinType @JvmOverloads internal constructor(
 
         val that = other as BuiltinType
 
-        if (this.name() == that.name()) {
+        if (this.name == that.name) {
             return true
         }
 
         // 'byte' and 'i8' are synonyms
-        val synonyms = arrayOf(BYTE.name(), I8.name())
-        return this.name() in synonyms && that.name() in synonyms
+        val synonyms = arrayOf(BYTE.name, I8.name)
+        return this.name in synonyms && that.name in synonyms
     }
 
     override fun hashCode(): Int {
-        var name = name()
-        if (name == I8.name()) {
-            name = BYTE.name()
+        var name = name
+        if (name == I8.name) {
+            name = BYTE.name
         }
         return name.hashCode()
     }
@@ -94,22 +88,9 @@ class BuiltinType @JvmOverloads internal constructor(
         @JvmField val BINARY: ThriftType = BuiltinType("binary")
         @JvmField val VOID: ThriftType = BuiltinType("void")
 
-        private val BUILTINS: ImmutableMap<String, ThriftType>
-
-        init {
-            BUILTINS = ImmutableMap.builder<String, ThriftType>()
-                    .put(BOOL.name(), BOOL)
-                    .put(BYTE.name(), BYTE)
-                    .put(I8.name(), I8)
-                    .put(I16.name(), I16)
-                    .put(I32.name(), I32)
-                    .put(I64.name(), I64)
-                    .put(DOUBLE.name(), DOUBLE)
-                    .put(STRING.name(), STRING)
-                    .put(BINARY.name(), BINARY)
-                    .put(VOID.name(), VOID)
-                    .build()
-        }
+        private val BUILTINS = listOf(BOOL, BYTE, I8, I16, I32, I64, DOUBLE, STRING, BINARY, VOID)
+                .map { it.name to it }
+                .toMap()
 
         @JvmStatic
         fun get(name: String): ThriftType? {

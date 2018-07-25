@@ -50,7 +50,7 @@ class Field @JvmOverloads internal constructor( // TODO(ben): Remove JvmOverload
 
     fun typedefName(): String? {
         return type?.let {
-            if (it.isTypedef) it.name() else null
+            if (it.isTypedef) it.name else null
         }
     }
 

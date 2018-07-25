@@ -25,18 +25,16 @@ package com.microsoft.thrifty.schema
  */
 class ListType @JvmOverloads internal constructor( // TODO(ben): Remove @JvmOverloads when kotlin port is finished
         private val elementType: ThriftType,
-        private val annotations: Map<String, String> = emptyMap()
-) : ThriftType("list<" + elementType.name() + ">") {
+        override val annotations: Map<String, String> = emptyMap()
+) : ThriftType("list<" + elementType.name + ">") {
 
     fun elementType(): ThriftType {
         return elementType
     }
 
-    override fun isList(): Boolean = true
+    override val isList: Boolean = true
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitList(this)
-
-    override fun annotations(): Map<String, String> = annotations
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return ListType(elementType, ThriftType.merge(this.annotations, annotations))

@@ -29,7 +29,7 @@ import java.util.Objects
 abstract class UserType internal constructor(
         private val namespaces: Map<NamespaceScope, String>,
         private val mixin: UserElementMixin
-) : ThriftType(mixin.name()), UserElement by mixin {
+) : ThriftType(mixin.name), UserElement by mixin {
 
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
@@ -43,7 +43,7 @@ abstract class UserType internal constructor(
         }
     }
 
-    override fun name(): String = mixin.name()
+    override val name: String = mixin.name
 
     fun namespaces(): Map<NamespaceScope, String> = namespaces
 

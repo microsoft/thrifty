@@ -43,20 +43,20 @@ class EnumType : UserType {
     }
 
     fun findMemberByName(name: String): EnumMember {
-        return members.first { it.name() == name }
+        return members.first { it.name == name }
     }
 
     fun findMemberById(id: Int): EnumMember {
         return members.first { it.value == id }
     }
 
-    override fun isEnum(): Boolean = true
+    override val isEnum: Boolean = true
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitEnum(this)
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return toBuilder()
-                .annotations(ThriftType.merge(this.annotations(), annotations))
+                .annotations(ThriftType.merge(this.annotations, annotations))
                 .build()
     }
 

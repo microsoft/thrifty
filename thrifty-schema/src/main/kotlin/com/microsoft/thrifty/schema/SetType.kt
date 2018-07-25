@@ -25,16 +25,14 @@ package com.microsoft.thrifty.schema
  */
 class SetType @JvmOverloads internal constructor( // TODO(ben): Remove @JvmOverloads when kotlin port is finished
         private val elementType: ThriftType,
-        private val annotations: Map<String, String> = emptyMap()
-) : ThriftType("set<" + elementType.name() + ">") {
+        override val annotations: Map<String, String> = emptyMap()
+) : ThriftType("set<" + elementType.name + ">") {
 
     fun elementType(): ThriftType = elementType
 
-    override fun isSet(): Boolean = true
+    override val isSet: Boolean = true
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitSet(this)
-
-    override fun annotations(): Map<String, String> = annotations
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return SetType(elementType, ThriftType.merge(this.annotations, annotations))

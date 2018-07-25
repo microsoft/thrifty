@@ -262,12 +262,12 @@ internal class ConstantBuilder(
                 }
 
                 return CodeBlock.builder()
-                        .add("\$T.\$L", typeResolver.getJavaClass(enumType), member.name())
+                        .add("\$T.\$L", typeResolver.getJavaClass(enumType), member.name)
                         .build()
 
             } catch (e: NoSuchElementException) {
                 throw IllegalStateException(
-                        "No enum member in ${enumType.name()} with value ${value.value}")
+                        "No enum member in ${enumType.name} with value ${value.value}")
             }
         }
 
@@ -355,9 +355,9 @@ internal class ConstantBuilder(
             // TODO(ben): Think of a more systematic way to know what [Program] owns a thrift element
             val c = schema.constants
                     .asSequence()
-                    .filter { it.name() == name }
+                    .filter { it.name == name }
                     .filter { it.type().trueType == expectedType }
-                    .filter { expectedProgram == null || it.location().programName == expectedProgram }
+                    .filter { expectedProgram == null || it.location.programName == expectedProgram }
                     .firstOrNull() ?: throw IllegalStateException(message)
 
             val packageName = c.getNamespaceFor(NamespaceScope.JAVA)

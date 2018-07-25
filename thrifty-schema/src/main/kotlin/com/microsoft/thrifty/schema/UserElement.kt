@@ -20,8 +20,6 @@
  */
 package com.microsoft.thrifty.schema
 
-import com.google.common.collect.ImmutableMap
-
 import java.util.UUID
 
 /**
@@ -45,42 +43,43 @@ interface UserElement {
      *
      * @return the uuid of this element.
      */
-    fun uuid(): UUID
+    val uuid: UUID
 
     /**
      * Gets the name of the element.
      *
      * @return the name of this element.
      */
-    fun name(): String
+    val name: String
 
     /**
      * Gets the [Location] where the element is defined.
      *
      * @return the Location where this element is defined.
      */
-    fun location(): Location
+    val location: Location
 
     /**
      * Gets the documentation comments of the element, or an empty string.
      *
      * @return the documentation present on this element, or an empty string.
      */
-    fun documentation(): String
+    val documentation: String
 
     /**
      * Gets a value indicating whether the element contains non-empty Javadoc.
      *
      * @return true if this element contains non-empty Javadoc.
      */
-    @JvmDefault fun hasJavadoc(): Boolean = isNonEmptyJavadoc(documentation())
+    val hasJavadoc: Boolean
+        get() = isNonEmptyJavadoc(documentation)
 
     /**
      * Gets an immutable map containing any annotations present on the element.
      *
      * @return all annotations present on this element.
      */
-    fun annotations(): ImmutableMap<String, String>
+    val annotations: Map<String, String>
 }
 
 /**

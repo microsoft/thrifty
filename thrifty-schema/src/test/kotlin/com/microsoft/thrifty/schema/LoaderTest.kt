@@ -44,37 +44,37 @@ class LoaderTest {
         Assert.assertThat(schema.services.size, Matchers.equalTo(1))
 
         val et = schema.enums[0]
-        Assert.assertThat(et.name(), Matchers.equalTo("TestEnum"))
-        Assert.assertThat(et.members[0].name(), Matchers.equalTo("ONE"))
-        Assert.assertThat(et.members[1].name(), Matchers.equalTo("TWO"))
+        Assert.assertThat(et.name, Matchers.equalTo("TestEnum"))
+        Assert.assertThat(et.members[0].name, Matchers.equalTo("ONE"))
+        Assert.assertThat(et.members[1].name, Matchers.equalTo("TWO"))
 
         val st = schema.structs[0]
-        Assert.assertThat(st.name(), Matchers.equalTo("S"))
+        Assert.assertThat(st.name, Matchers.equalTo("S"))
         Assert.assertThat(st.fields.size, Matchers.equalTo(1))
 
         val field = st.fields[0]
         Assert.assertThat(field.id(), Matchers.equalTo(1))
         Assert.assertThat(field.required(), Matchers.equalTo(true))
-        Assert.assertThat(field.name(), Matchers.equalTo("n"))
+        Assert.assertThat(field.name, Matchers.equalTo("n"))
 
         val fieldType = field.type()
         Assert.assertThat(fieldType.isTypedef, Matchers.equalTo(true))
-        Assert.assertThat(fieldType.name(), Matchers.equalTo("Int"))
+        Assert.assertThat(fieldType.name, Matchers.equalTo("Int"))
         Assert.assertThat(fieldType.trueType, Matchers.equalTo(BuiltinType.I32))
 
         val svc = schema.services[0]
-        Assert.assertThat(svc.name(), Matchers.equalTo("Svc"))
+        Assert.assertThat(svc.name, Matchers.equalTo("Svc"))
         Assert.assertThat(svc.methods().size, Matchers.equalTo(1))
 
         val method = svc.methods()[0]
-        Assert.assertThat(method.name(), Matchers.equalTo("sayHello"))
+        Assert.assertThat(method.name, Matchers.equalTo("sayHello"))
         Assert.assertThat(method.oneWay(), Matchers.equalTo(true))
         Assert.assertThat(method.parameters().size, Matchers.equalTo(1))
         Assert.assertThat(method.exceptions().size, Matchers.equalTo(0))
 
         val param = method.parameters()[0]
-        Assert.assertThat(param.name(), Matchers.equalTo("arg1"))
-        Assert.assertThat(param.type().name(), Matchers.equalTo("S"))
+        Assert.assertThat(param.name, Matchers.equalTo("arg1"))
+        Assert.assertThat(param.type().name, Matchers.equalTo("S"))
         Assert.assertThat(param.type(), Matchers.equalTo<ThriftType>(st))
     }
 
@@ -109,7 +109,7 @@ class LoaderTest {
         val schema = load(f, f1)
 
         val et = schema.enums[0]
-        Assert.assertThat(et.name(), Matchers.equalTo("TestEnum"))
+        Assert.assertThat(et.name, Matchers.equalTo("TestEnum"))
 
         val td = schema.typedefs[0]
         Assert.assertThat(td.oldType(), Matchers.equalTo<ThriftType>(et))
@@ -291,15 +291,15 @@ class LoaderTest {
         val msg = schema.typedefs[1]
         val map = schema.typedefs[2]
 
-        Assert.assertThat(code.name(), Matchers.equalTo("StatusCode"))
+        Assert.assertThat(code.name, Matchers.equalTo("StatusCode"))
         Assert.assertThat(code.oldType().isBuiltin, Matchers.equalTo(true))
-        Assert.assertThat(code.oldType().name(), Matchers.equalTo("i32"))
+        Assert.assertThat(code.oldType().name, Matchers.equalTo("i32"))
 
-        Assert.assertThat(msg.name(), Matchers.equalTo("Message"))
+        Assert.assertThat(msg.name, Matchers.equalTo("Message"))
         Assert.assertThat(msg.oldType().isBuiltin, Matchers.equalTo(true))
-        Assert.assertThat(msg.oldType().name(), Matchers.equalTo("string"))
+        Assert.assertThat(msg.oldType().name, Matchers.equalTo("string"))
 
-        Assert.assertThat(map.name(), Matchers.equalTo("Messages"))
+        Assert.assertThat(map.name, Matchers.equalTo("Messages"))
         Assert.assertThat(map.oldType().isMap, Matchers.equalTo(true))
 
         val mt = map.oldType() as MapType
@@ -414,7 +414,7 @@ class LoaderTest {
         val schema = load(thrift)
 
         val td = schema.typedefs[0]
-        Assert.assertThat(td.oldType().annotations(), Matchers.hasEntry("js.type", "Date"))
+        Assert.assertThat(td.oldType().annotations, Matchers.hasEntry("js.type", "Date"))
     }
 
     @Test
@@ -433,7 +433,7 @@ class LoaderTest {
         val struct = schema.structs[0]
         val field = struct.fields[0]
 
-        Assert.assertThat(field.type().annotations(), Matchers.hasEntry("thrifty.test", "bar"))
+        Assert.assertThat(field.type().annotations, Matchers.hasEntry("thrifty.test", "bar"))
     }
 
     @Test
@@ -454,8 +454,8 @@ class LoaderTest {
         val base = schema.services[0]
         val derived = schema.services[1]
 
-        Assert.assertThat(base.name(), Matchers.equalTo("Base"))
-        Assert.assertThat(derived.name(), Matchers.equalTo("Derived"))
+        Assert.assertThat(base.name, Matchers.equalTo("Base"))
+        Assert.assertThat(derived.name, Matchers.equalTo("Derived"))
 
         Assert.assertThat(base, Matchers.equalTo(derived.extendsService()))
     }
@@ -1000,7 +1000,7 @@ class LoaderTest {
         assertThat(schema.typedefs, hasSize(1))
 
         val typedef = schema.typedefs[0]
-        assertThat(typedef.name(), equalTo("Uuid"))
+        assertThat(typedef.name, equalTo("Uuid"))
     }
 
     @Test

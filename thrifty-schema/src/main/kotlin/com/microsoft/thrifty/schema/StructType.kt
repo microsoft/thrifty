@@ -53,9 +53,7 @@ class StructType : UserType {
         this.fields = builder.fields
     }
 
-    override fun isStruct(): Boolean {
-        return true
-    }
+    override val isStruct: Boolean = true
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T {
         return visitor.visitStruct(this)
@@ -63,7 +61,7 @@ class StructType : UserType {
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return toBuilder()
-                .annotations(ThriftType.merge(this.annotations(), annotations))
+                .annotations(ThriftType.merge(this.annotations, annotations))
                 .build()
     }
 
@@ -86,13 +84,13 @@ class StructType : UserType {
         for (field in fields) {
             val dupe = fieldsById.put(field.id(), field)
             if (dupe != null) {
-                linker.addError(dupe.location(),
-                        "Duplicate field IDs: " + field.name() + " and " + dupe.name()
+                linker.addError(dupe.location,
+                        "Duplicate field IDs: " + field.name + " and " + dupe.name
                                 + " both have the same ID (" + field.id() + ")")
             }
 
             if (isUnion && field.required()) {
-                linker.addError(field.location(), "Unions may not have required fields: " + field.name())
+                linker.addError(field.location, "Unions may not have required fields: " + field.name)
             }
         }
     }

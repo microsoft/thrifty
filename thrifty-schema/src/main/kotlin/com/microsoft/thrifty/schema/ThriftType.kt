@@ -18,17 +18,14 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-package com.microsoft.thrifty.schema;
+package com.microsoft.thrifty.schema
 
-import com.google.common.collect.ImmutableMap;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.LinkedHashMap
 
 /**
  * A type defined in Thrift.
  *
- * <p>Nearly every top-level entity in the Thrift IDL is a type of some sort;
+ * Nearly every top-level entity in the Thrift IDL is a type of some sort;
  * only consts are not.  A type can be a built-in "primitive" like the numeric
  * types, user-defined types like structs, unions, exceptions, services, and
  * typedefs, or containers like lists, sets, and maps.
@@ -36,125 +33,104 @@ import java.util.Map;
  * A ThriftType represents either the definition of a new type or a reference
  * to an existing type; the distinction after parsing is minimal, and surfaces
  * primarily in what annotations are present.  For example, a
- * <code>StructType</code> could define a struct, but it could also be the
+ * `StructType` could define a struct, but it could also be the
  * type of a field in another struct.  In both cases, it would contain the full
  * definition, but the field's type might carry additional annotations which
  * would only be present on the instance held by that field.
  *
  * Confusing?  Yep, a little.  Take this sample thrift for example:
- * <pre><code>struct Foo {
- *   // fields
+ * <pre>`struct Foo {
+ * // fields
  * } (label = "foo")
  *
  * struct Bar {
- *   1: required Foo (immutable = "true") foo;
- * }
- * </code></pre>
+ * 1: required Foo (immutable = "true") foo;
+ * }`</pre>
  *
  * After parsing, we have (among others) three instances of
- * <code>StructType</code>.  One for <code>Bar</code>, and two for
- * <code>Foo</code>.  The first instance is the initial definition of
- * the struct; the second is that held by the sole field of <code>Bar</code>.
- * The first instance has a single annotation, <code>(label = "foo")</code>.
- * The second has <i>two</i> annotations:
- * <code>(label = "foo", immutable = "true")</code>.
+ * `StructType`.  One for `Bar`, and two for
+ * `Foo`.  The first instance is the initial definition of
+ * the struct; the second is that held by the sole field of `Bar`.
+ * The first instance has a single annotation, `(label = "foo")`.
+ * The second has *two* annotations:
+ * `(label = "foo", immutable = "true")`.
+ *
+ * @property name The name of this type.
  */
-public abstract class ThriftType {
-    private final String name;
-
-    ThriftType(String name) {
-        this.name = name;
-    }
-
-    /**
-     * Gets the name of this type.
-     *
-     * @return the name of this type.
-     */
-    public String name() {
-        return name;
-    }
-
-    /**
-     * Accepts a {@link Visitor}, performing an arbitrary operation and
-     * returning its result.
-     *
-     * @param visitor the visitor to invoke.
-     * @param <T> the type returned by the visitor.
-     * @return the value returned by the visitor, if any.
-     */
-    public abstract <T> T accept(Visitor<T> visitor);
-
+abstract class ThriftType internal constructor(
+        open val name: String
+) {
     /**
      * @return true if this type is a built-in type, e.g. i32, bool, etc.
      */
-    public boolean isBuiltin() {
-        return false;
-    }
+    open val isBuiltin: Boolean
+        get() = false
 
     /**
      * @return true if this is a list type.
      */
-    public boolean isList() {
-        return false;
-    }
+    open val isList: Boolean
+        get() = false
 
     /**
      * @return true if this is a set type.
      */
-    public boolean isSet() {
-        return false;
-    }
+    open val isSet: Boolean
+        get() = false
 
     /**
      * @return true if this is a map type.
      */
-    public boolean isMap() {
-        return false;
-    }
+    open val isMap: Boolean
+        get() = false
 
     /**
      * @return true if this is an enumeration type.
      */
-    public boolean isEnum() {
-        return false;
-    }
+    open val isEnum: Boolean
+        get() = false
 
     /**
      * True if this is a structured user-defined type such as a struct, union,
-     * or exception.  This does <em>not</em> mean that this type is actually
+     * or exception.  This does *not* mean that this type is actually
      * a struct!
      *
      * @return true if this is a structured type.
      */
-    public boolean isStruct() {
-        return false;
-    }
+    open val isStruct: Boolean
+        get() = false
 
     /**
      * @return true if this is a typedef of another type.
      */
-    public boolean isTypedef() {
-        return false;
-    }
+    open val isTypedef: Boolean
+        get() = false
 
     /**
      * @return true if this is a user-defined RPC service type.
      */
-    public boolean isService() {
-        return false;
-    }
+    open val isService: Boolean
+        get() = false
 
     /**
      * Returns the aliased type if this is a typedef or, if not,
-     * returns <code>this</code>.  A convenience function for
+     * returns `this`.  A convenience function for
      * codegen.
      *
      * @return true if this is a typedef.
      */
-    public ThriftType getTrueType() {
-        return this;
-    }
+    open val trueType: ThriftType
+        get() = this
+
+    /**
+     * Accepts a [Visitor], performing an arbitrary operation and
+     * returning its result.
+     *
+     * @param visitor the visitor to invoke.
+     * @param T the type returned by the visitor.
+     * @return the value returned by the visitor, if any.
+     */
+    abstract fun <T> accept(visitor: Visitor<T>): T
 
     /**
      * Returns a copy of this type with the given annotations applied.
@@ -163,121 +139,111 @@ public abstract class ThriftType {
      * this instance is left unmodified.
      *
      * @param annotations the annotations to add to the returned type.
-     * @return a copy of <code>this</code> with the given
-     *         <code>annotations</code>.
+     * @return a copy of `this` with the given
+     * `annotations`.
      */
-    public abstract ThriftType withAnnotations(Map<String, String> annotations);
+    abstract fun withAnnotations(annotations: Map<String, String>): ThriftType
 
     /**
      * @return all annotations present on this type.
      */
-    public abstract Map<String, String> annotations();
+    abstract val annotations: Map<String, String>
 
-    protected static ImmutableMap<String, String> merge(
-            Map<String, String> baseAnnotations,
-            Map<String, String> newAnnotations) {
-        LinkedHashMap<String, String> merged = new LinkedHashMap<>();
-        merged.putAll(baseAnnotations);
-        merged.putAll(newAnnotations);
-        return ImmutableMap.copyOf(merged);
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || javaClass != other.javaClass) return false
+
+        val that = other as ThriftType
+
+        return name == that.name
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ThriftType that = (ThriftType) o;
-
-        return name.equals(that.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return name.hashCode();
+    override fun hashCode(): Int {
+        return name.hashCode()
     }
 
     /**
-     * Represents an arbitrary computation on a {@link ThriftType}.
+     * Represents an arbitrary computation on a [ThriftType].
      *
-     * <p>Just your standard visitor from the Gang of Four book.  Very useful
+     *
+     * Just your standard visitor from the Gang of Four book.  Very useful
      * for code generation, which is all about type-hierarchy-specific
      * operations; visitors let us effectively augment a complicated hierarchy
      * without bloating the ThriftType classes themselves.
      *
-     * @param <T> the type of value returned by the visit methods.
+     * @param T the type of value returned by the visit methods.
      */
-    public interface Visitor<T> {
+    interface Visitor<T> {
         /**
-         * Visit a {@link BuiltinType#VOID}.
+         * Visit a [BuiltinType.VOID].
          *
          * @param voidType the BuiltinType instance being visited.
          * @return the result of the operation.
          */
-        T visitVoid(BuiltinType voidType);
+        fun visitVoid(voidType: BuiltinType): T
 
         /**
-         * Visit a {@link BuiltinType#BOOL}.
+         * Visit a [BuiltinType.BOOL].
          *
          * @param boolType the BuiltinType instance being visited.
          * @return the result of the operation.
          */
-        T visitBool(BuiltinType boolType);
+        fun visitBool(boolType: BuiltinType): T
 
-        /** Visit a {@link BuiltinType#BYTE} or {@link BuiltinType#I8}.
+        /** Visit a [BuiltinType.BYTE] or [BuiltinType.I8].
          *
          * @param byteType BuiltinType instance being visited.
          * @return the result of the operation.
          */
-        T visitByte(BuiltinType byteType);
+        fun visitByte(byteType: BuiltinType): T
 
         /**
-         * Visit a {@link BuiltinType#I16}.
+         * Visit a [BuiltinType.I16].
          *
          * @param i16Type the BuiltinType being visited.
          * @return the result of the operation.
          */
-        T visitI16(BuiltinType i16Type);
+        fun visitI16(i16Type: BuiltinType): T
 
         /**
-         * Visit a {@link BuiltinType#I32}.
+         * Visit a [BuiltinType.I32].
          *
          * @param i32Type the BuiltinType being visited.
          * @return the result of the operation.
          */
-        T visitI32(BuiltinType i32Type);
+        fun visitI32(i32Type: BuiltinType): T
 
         /**
-         * Visit a {@link BuiltinType#I64}.
+         * Visit a [BuiltinType.I64].
          *
          * @param i64Type the BuiltinType being visited.
          * @return the result of the operation.
          */
-        T visitI64(BuiltinType i64Type);
+        fun visitI64(i64Type: BuiltinType): T
 
         /**
-         * Visit a {@link BuiltinType#DOUBLE}.
+         * Visit a [BuiltinType.DOUBLE].
          *
          * @param doubleType the BuiltinType being visited.
          * @return the result of the operation.
          */
-        T visitDouble(BuiltinType doubleType);
+        fun visitDouble(doubleType: BuiltinType): T
 
         /**
-         * Visit a {@link BuiltinType#STRING}.
+         * Visit a [BuiltinType.STRING].
          *
          * @param stringType the BuiltinType being visited.
          * @return the result of the operation.
          */
-        T visitString(BuiltinType stringType);
+        fun visitString(stringType: BuiltinType): T
 
         /**
-         * Visit a {@link BuiltinType#BINARY}.
+         * Visit a [BuiltinType.BINARY].
          *
          * @param binaryType the BuiltinType being visited.
          * @return the result of the operation.
          */
-        T visitBinary(BuiltinType binaryType);
+        fun visitBinary(binaryType: BuiltinType): T
 
         /**
          * Visit a user-defined enum.
@@ -285,7 +251,7 @@ public abstract class ThriftType {
          * @param enumType the EnumType instance being visited.
          * @return the result of the operation.
          */
-        T visitEnum(EnumType enumType);
+        fun visitEnum(enumType: EnumType): T
 
         /**
          * Visit a list type.
@@ -293,7 +259,7 @@ public abstract class ThriftType {
          * @param listType the ListType instance being visited.
          * @return the result of the operation.
          */
-        T visitList(ListType listType);
+        fun visitList(listType: ListType): T
 
         /**
          * Visit a set type.
@@ -301,7 +267,7 @@ public abstract class ThriftType {
          * @param setType the SetType instance being visited.
          * @return the result of the operation.
          */
-        T visitSet(SetType setType);
+        fun visitSet(setType: SetType): T
 
         /**
          * Visit a map type.
@@ -309,7 +275,7 @@ public abstract class ThriftType {
          * @param mapType the MapType instance being visited.
          * @return the result of the operation.
          */
-        T visitMap(MapType mapType);
+        fun visitMap(mapType: MapType): T
 
         /**
          * Visit a user-defined struct, union, or exception type.
@@ -317,7 +283,7 @@ public abstract class ThriftType {
          * @param structType the StructType instance being visited.
          * @return the result of the operation.
          */
-        T visitStruct(StructType structType);
+        fun visitStruct(structType: StructType): T
 
         /**
          * Visit a typedef type.
@@ -325,7 +291,7 @@ public abstract class ThriftType {
          * @param typedefType the TypedefType instance being visited.
          * @return the result of the operation.
          */
-        T visitTypedef(TypedefType typedefType);
+        fun visitTypedef(typedefType: TypedefType): T
 
         /**
          * Visit a service type.
@@ -333,6 +299,18 @@ public abstract class ThriftType {
          * @param serviceType the ServiceType instance being visited.
          * @return the result of the operation.
          */
-        T visitService(ServiceType serviceType);
+        fun visitService(serviceType: ServiceType): T
+    }
+
+    companion object {
+        @JvmStatic
+        protected fun merge(
+                baseAnnotations: Map<String, String>,
+                newAnnotations: Map<String, String>): Map<String, String> {
+            val merged = LinkedHashMap<String, String>()
+            merged.putAll(baseAnnotations)
+            merged.putAll(newAnnotations)
+            return merged
+        }
     }
 }

@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.schema
 
-import com.google.common.collect.ImmutableMap
 import com.microsoft.thrifty.schema.parser.AnnotationElement
 import com.microsoft.thrifty.schema.parser.EnumElement
 import com.microsoft.thrifty.schema.parser.EnumMemberElement
@@ -37,13 +36,13 @@ import java.util.UUID
  * A mixin encapsulating a common implementation of [UserElement],
  * which does not conveniently fit in a single base class.
  */
-internal class UserElementMixin : UserElement {
-    private val _uuid: UUID
-    private val _name: String
-    private val _location: Location
-    private val _documentation: String
-    private val _annotations: ImmutableMap<String, String>
-
+internal data class UserElementMixin(
+        override val uuid: UUID,
+        override val name: String,
+        override val location: Location,
+        override val documentation: String,
+        override val annotations: Map<String, String>
+) : UserElement {
     override val isDeprecated: Boolean
         get() = hasThriftOrJavadocAnnotation("deprecated")
 
@@ -60,46 +59,22 @@ internal class UserElementMixin : UserElement {
             name: String,
             location: Location,
             documentation: String,
-            annotationElement: AnnotationElement?) {
-        this._uuid = uuid
-        this._name = name
-        this._location = location
-        this._documentation = documentation
+            annotationElement: AnnotationElement?) : this(
 
-        val annotations = ImmutableMap.builder<String, String>()
-        if (annotationElement != null) {
-            annotations.putAll(annotationElement.values)
-        }
-        this._annotations = annotations.build()
-    }
+            uuid,
+            name,
+            location,
+            documentation,
+            annotationElement?.values?.toMap() ?: emptyMap()
+    )
 
-    private constructor(builder: Builder) {
-        this._uuid = builder.uuid
-        this._name = builder.name
-        this._location = builder.location
-        this._documentation = builder.documentation
-        this._annotations = builder.annotations
-    }
-
-    override fun uuid(): UUID {
-        return _uuid
-    }
-
-    override fun location(): Location {
-        return _location
-    }
-
-    override fun name(): String {
-        return _name
-    }
-
-    override fun documentation(): String {
-        return _documentation
-    }
-
-    override fun annotations(): ImmutableMap<String, String> {
-        return _annotations
-    }
+    private constructor(builder: Builder) : this(
+            uuid = builder.uuid,
+            name = builder.name,
+            location = builder.location,
+            documentation = builder.documentation,
+            annotations = builder.annotations
+    )
 
     /**
      * Checks for the presence of the given annotation name, in several possible
@@ -115,41 +90,19 @@ internal class UserElementMixin : UserElement {
      * legacy use.  This behavior is subject to change without notice!
      */
     fun hasThriftOrJavadocAnnotation(name: String): Boolean {
-        return (annotations().containsKey(name)
-                || annotations().containsKey("thrifty.$name")
-                || hasJavadoc() && documentation().toLowerCase(Locale.US).contains("@$name"))
+        return (annotations.containsKey(name)
+                || annotations.containsKey("thrifty.$name")
+                || hasJavadoc && documentation.toLowerCase(Locale.US).contains("@$name"))
     }
 
     override fun toString(): String {
         return ("UserElementMixin{"
-                + "uuid='" + _uuid + '\''.toString()
-                + ", name='" + _name + '\''.toString()
-                + ", location=" + _location
-                + ", documentation='" + _documentation + '\''.toString()
-                + ", annotations=" + _annotations
+                + "uuid='" + uuid + "'"
+                + ", name='" + name + "'"
+                + ", location=" + location
+                + ", documentation='" + documentation + "'"
+                + ", annotations=" + annotations
                 + '}'.toString())
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || javaClass != other.javaClass) return false
-
-        other as UserElementMixin
-
-        if (_uuid != other._uuid) return false
-        if (_name != other._name) return false
-        if (_location != other._location) return false
-        return if (_documentation != other._documentation) false else _annotations == other._annotations
-
-    }
-
-    override fun hashCode(): Int {
-        var result = _uuid.hashCode()
-        result = 31 * result + _name.hashCode()
-        result = 31 * result + _location.hashCode()
-        result = 31 * result + _documentation.hashCode()
-        result = 31 * result + _annotations.hashCode()
-        return result
     }
 
     fun toBuilder(): Builder {
@@ -157,11 +110,11 @@ internal class UserElementMixin : UserElement {
     }
 
     internal class Builder internal constructor(userElement: UserElement) {
-        var uuid: UUID = userElement.uuid()
-        var name: String = userElement.name()
-        var location: Location = userElement.location()
-        var documentation: String = userElement.documentation()
-        var annotations: ImmutableMap<String, String> = userElement.annotations()
+        var uuid: UUID = userElement.uuid
+        var name: String = userElement.name
+        var location: Location = userElement.location
+        var documentation: String = userElement.documentation
+        var annotations: Map<String, String> = userElement.annotations
 
         fun uuid(uuid: UUID): Builder = apply {
             this.uuid = uuid
@@ -184,7 +137,7 @@ internal class UserElementMixin : UserElement {
         }
 
         fun annotations(annotations: Map<String, String>): Builder = apply {
-            this.annotations = ImmutableMap.copyOf(annotations)
+            this.annotations = annotations
         }
 
         fun build(): UserElementMixin = UserElementMixin(this)

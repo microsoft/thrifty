@@ -20,11 +20,9 @@
  */
 package com.microsoft.thrifty.schema
 
-import com.google.common.collect.ImmutableMap
 import com.microsoft.thrifty.schema.parser.FunctionElement
 
 import java.util.LinkedHashMap
-import java.util.UUID
 
 class ServiceMethod @JvmOverloads internal constructor(
         private val element: FunctionElement,
@@ -53,30 +51,6 @@ class ServiceMethod @JvmOverloads internal constructor(
         return element.oneWay
     }
 
-    override fun uuid(): UUID {
-        return mixin.uuid()
-    }
-
-    override fun name(): String {
-        return mixin.name()
-    }
-
-    override fun location(): Location {
-        return mixin.location()
-    }
-
-    override fun documentation(): String {
-        return mixin.documentation()
-    }
-
-    override fun annotations(): ImmutableMap<String, String> {
-        return mixin.annotations()
-    }
-
-    override fun hasJavadoc(): Boolean {
-        return mixin.hasJavadoc()
-    }
-
     fun toBuilder(): Builder {
         return Builder(this)
     }
@@ -95,11 +69,11 @@ class ServiceMethod @JvmOverloads internal constructor(
 
     internal fun validate(linker: Linker) {
         if (oneWay() && BuiltinType.VOID != returnType) {
-            linker.addError(location(), "oneway methods may not have a non-void return type")
+            linker.addError(location, "oneway methods may not have a non-void return type")
         }
 
         if (oneWay() && !exceptions.isEmpty()) {
-            linker.addError(location(), "oneway methods may not throw exceptions")
+            linker.addError(location, "oneway methods may not throw exceptions")
         }
 
         val fieldsById = LinkedHashMap<Int, Field>()
@@ -107,7 +81,7 @@ class ServiceMethod @JvmOverloads internal constructor(
             val oldParam = fieldsById.put(param.id(), param)
             if (oldParam != null) {
                 val fmt = "Duplicate parameters; param '%s' has the same ID (%s) as param '%s'"
-                linker.addError(param.location(), String.format(fmt, param.name(), param.id(), oldParam.name()))
+                linker.addError(param.location, String.format(fmt, param.name, param.id(), oldParam.name))
 
                 fieldsById[oldParam.id()] = oldParam
             }
@@ -118,7 +92,7 @@ class ServiceMethod @JvmOverloads internal constructor(
             val oldExn = fieldsById.put(exn.id(), exn)
             if (oldExn != null) {
                 val fmt = "Duplicate exceptions; exception '%s' has the same ID (%s) as exception '%s'"
-                linker.addError(exn.location(), String.format(fmt, exn.name(), exn.id(), oldExn.name()))
+                linker.addError(exn.location, String.format(fmt, exn.name, exn.id(), oldExn.name))
 
                 fieldsById[oldExn.id()] = oldExn
             }
@@ -133,7 +107,7 @@ class ServiceMethod @JvmOverloads internal constructor(
                 }
             }
 
-            linker.addError(field.location(), "Only exception types can be thrown")
+            linker.addError(field.location, "Only exception types can be thrown")
         }
     }
 

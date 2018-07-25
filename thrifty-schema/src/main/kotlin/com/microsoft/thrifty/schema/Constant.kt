@@ -21,38 +21,28 @@
 package com.microsoft.thrifty.schema
 
 import com.google.common.annotations.VisibleForTesting
-import com.google.common.collect.ImmutableMap
 import com.microsoft.thrifty.schema.parser.ConstElement
 import com.microsoft.thrifty.schema.parser.ConstValueElement
-import java.util.UUID
 
 /**
  * Represents a Thrift const definition.
  */
-class Constant : UserElement {
-    private val element: ConstElement
-    private val namespaces: Map<NamespaceScope, String>?
-    private val mixin: UserElementMixin
-
+class Constant internal constructor (
+        private val element: ConstElement,
+        private val namespaces: Map<NamespaceScope, String>,
+        private val mixin: UserElementMixin = UserElementMixin(
+                element.uuid,
+                element.name,
+                element.location,
+                element.documentation,
+                null) // annotations not allowed on Thrift constants
+) : UserElement by mixin {
     private var type: ThriftType? = null
 
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
 
-    internal constructor(element: ConstElement, namespaces: Map<NamespaceScope, String>) {
-        this.element = element
-        this.namespaces = namespaces
-        this.mixin = UserElementMixin(
-                element.uuid,
-                element.name,
-                element.location,
-                element.documentation, null) // No annotations allowed on Thrift constants
-    }
-
-    protected constructor(builder: Builder) {
-        this.element = builder.element
-        this.namespaces = builder.namespaces
-        this.mixin = builder.mixin
+    private constructor(builder: Builder) : this(builder.element, builder.namespaces, builder.mixin) {
         this.type = builder.type
     }
 
@@ -65,35 +55,11 @@ class Constant : UserElement {
     }
 
     fun getNamespaceFor(scope: NamespaceScope): String? {
-        var ns: String? = namespaces!![scope]
+        var ns: String? = namespaces[scope]
         if (ns == null && scope !== NamespaceScope.ALL) {
             ns = namespaces[NamespaceScope.ALL]
         }
         return ns
-    }
-
-    override fun uuid(): UUID {
-        return mixin.uuid()
-    }
-
-    override fun name(): String {
-        return mixin.name()
-    }
-
-    override fun location(): Location {
-        return mixin.location()
-    }
-
-    override fun documentation(): String {
-        return mixin.documentation()
-    }
-
-    override fun annotations(): ImmutableMap<String, String> {
-        return ImmutableMap.of()
-    }
-
-    override fun hasJavadoc(): Boolean {
-        return mixin.hasJavadoc()
     }
 
     fun namespaces(): Map<NamespaceScope, String>? {
@@ -115,7 +81,7 @@ class Constant : UserElement {
     class Builder internal constructor(constant: Constant) : AbstractUserElementBuilder<Constant, Builder>(constant.mixin) {
 
         internal val element: ConstElement = constant.element
-        internal var namespaces: Map<NamespaceScope, String>? = constant.namespaces
+        internal var namespaces: Map<NamespaceScope, String> = constant.namespaces
         internal val type: ThriftType? = constant.type
 
         fun namespaces(namespaces: Map<NamespaceScope, String>): Builder {
@@ -165,7 +131,7 @@ class Constant : UserElement {
                     throw IllegalStateException("Cannot declare a constant of type 'void'")
                 }
 
-                throw AssertionError("Unrecognized built-in type: " + type.name())
+                throw AssertionError("Unrecognized built-in type: " + type.name)
             }
 
             if (tt.isEnum) {
@@ -222,12 +188,12 @@ class Constant : UserElement {
                         ?: throw IllegalStateException("Unrecognized const identifier: $id")
 
                 if (constant.type().trueType != expected) {
-                    throw IllegalStateException("Expected a value of type " + expected.name()
-                            + ", but got " + constant.type().name())
+                    throw IllegalStateException("Expected a value of type " + expected.name
+                            + ", but got " + constant.type().name)
                 }
             } else {
                 throw IllegalStateException(
-                        "Expected a value of type " + expected.name().toLowerCase()
+                        "Expected a value of type " + expected.name.toLowerCase()
                                 + " but got " + value.value)
             }
         }
@@ -242,7 +208,7 @@ class Constant : UserElement {
                 val lv = value.value as Long
                 if (lv < minValue || lv > maxValue) {
                     throw IllegalStateException("value '" + lv.toString()
-                            + "' is out of range for type " + expected.name())
+                            + "' is out of range for type " + expected.name)
                 }
             }
         }
@@ -263,7 +229,7 @@ class Constant : UserElement {
                         return
                     }
                 }
-                throw IllegalStateException("'" + id + "' is not a valid value for " + et.name())
+                throw IllegalStateException("'" + id + "' is not a valid value for " + et.name)
             } else if (value.kind === ConstValueElement.Kind.IDENTIFIER) {
                 // An IDENTIFIER enum value could be one of four kinds of entities:
                 // 1. Another constant, possibly of the correct type
@@ -299,7 +265,7 @@ class Constant : UserElement {
                 ix = typeName.indexOf('.')
                 if (ix == -1) {
                     // unqualified
-                    if (expected.name() == typeName) {
+                    if (expected.name == typeName) {
                         typeNameMatches = true
                     }
                 } else {
@@ -308,21 +274,21 @@ class Constant : UserElement {
                     val actualName = typeName.substring(ix + 1)
 
                     // Does the qualifier match?
-                    if (et.location().programName == qualifier && et.name() == actualName) {
+                    if (et.location.programName == qualifier && et.name == actualName) {
                         typeNameMatches = true
                     }
                 }
 
                 if (typeNameMatches) {
                     for (member in et.members) {
-                        if (member.name() == memberName) {
+                        if (member.name == memberName) {
                             return
                         }
                     }
                 }
 
                 throw IllegalStateException(
-                        "'" + id + "' is not a member of enum type " + et.name() + ": members=" + et.members)
+                        "'" + id + "' is not a member of enum type " + et.name + ": members=" + et.members)
             } else {
                 throw IllegalStateException("bad enum literal: " + value.value)
             }
@@ -334,13 +300,10 @@ class Constant : UserElement {
             if (value.kind === ConstValueElement.Kind.LIST) {
                 val list = value.getAsList()
 
-                val elementType: ThriftType
-                if (expected.isList) {
-                    elementType = (expected as ListType).elementType().trueType
-                } else if (expected.isSet) {
-                    elementType = (expected as SetType).elementType().trueType
-                } else {
-                    throw AssertionError()
+                val elementType = when (expected) {
+                    is ListType -> expected.elementType().trueType
+                    is SetType -> expected.elementType().trueType
+                    else -> throw AssertionError("Unexpectedly not a collection type: $expected")
                 }
 
                 for (element in list) {
@@ -353,7 +316,7 @@ class Constant : UserElement {
                 val isConstantOfCorrectType = named != null && named.type().trueType == expected
 
                 if (!isConstantOfCorrectType) {
-                    throw IllegalStateException("Expected a value with type " + expected.name())
+                    throw IllegalStateException("Expected a value with type " + expected.name)
                 }
             } else {
                 throw IllegalStateException("Expected a list literal, got: " + value.value)
@@ -381,7 +344,7 @@ class Constant : UserElement {
                 val isConstantOfCorrectType = named != null && named.type().trueType == expected
 
                 if (!isConstantOfCorrectType) {
-                    throw IllegalStateException("Expected a value with type " + expected.name())
+                    throw IllegalStateException("Expected a value with type " + expected.name)
                 }
             } else {
                 throw IllegalStateException("Expected a map literal, got: " + value.value)

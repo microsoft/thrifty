@@ -192,7 +192,7 @@ internal open class Linker(
 
             if (!atLeastOneResolved) {
                 for (typedef in typedefs) {
-                    reporter.error(typedef.location(), "Unresolvable typedef '" + typedef.name() + "'")
+                    reporter.error(typedef.location, "Unresolvable typedef '" + typedef.name + "'")
                 }
                 break
             }
@@ -208,7 +208,7 @@ internal open class Linker(
             try {
                 constant.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(constant.location(), "Failed to resolve type '" + e.message + "'")
+                reporter.error(constant.location, "Failed to resolve type '" + e.message + "'")
             }
 
         }
@@ -219,7 +219,7 @@ internal open class Linker(
             try {
                 structType.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(structType.location(), "Failed to resolve type '" + e.message + "'")
+                reporter.error(structType.location, "Failed to resolve type '" + e.message + "'")
             }
 
         }
@@ -230,7 +230,7 @@ internal open class Linker(
             try {
                 union.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(union.location(), "Failed to resolve type " + e.message + "'")
+                reporter.error(union.location, "Failed to resolve type " + e.message + "'")
             }
 
         }
@@ -241,7 +241,7 @@ internal open class Linker(
             try {
                 exception.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(exception.location(), "Failed to resolve type " + e.message + "'")
+                reporter.error(exception.location, "Failed to resolve type " + e.message + "'")
             }
 
         }
@@ -252,7 +252,7 @@ internal open class Linker(
             try {
                 service.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(service.location(), "Failed to resolve type " + e.message + "'")
+                reporter.error(service.location, "Failed to resolve type " + e.message + "'")
             }
 
         }
@@ -263,7 +263,7 @@ internal open class Linker(
             try {
                 constant.validate(this)
             } catch (e: IllegalStateException) {
-                reporter.error(constant.location(), e.message ?: "Error validating constants")
+                reporter.error(constant.location, e.message ?: "Error validating constants")
             }
 
         }
@@ -351,11 +351,11 @@ internal open class Linker(
                     val sb = StringBuilder("Circular inheritance detected: ")
                     val arrow = " -> "
                     for (t in stack) {
-                        sb.append(t.name())
+                        sb.append(t.name)
                         sb.append(arrow)
                     }
                     sb.setLength(sb.length - arrow.length)
-                    addError(svc.location(), sb.toString())
+                    addError(svc.location, sb.toString())
                     break
                 }
 
@@ -374,7 +374,7 @@ internal open class Linker(
     }
 
     private fun register(type: UserType) {
-        typesByName[type.name()] = type
+        typesByName[type.name] = type
     }
 
     open fun resolveType(type: TypeElement): ThriftType {
@@ -447,7 +447,7 @@ internal open class Linker(
     }
 
     private class LinkFailureException : RuntimeException {
-        internal constructor() {}
+        internal constructor()
 
         internal constructor(message: String) : super(message) {}
     }

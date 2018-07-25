@@ -39,7 +39,7 @@ class EnumMember private constructor(
             : this(builder.mixin, builder.value)
 
     override fun toString(): String {
-        return name()
+        return name
     }
 
     fun toBuilder(): Builder {

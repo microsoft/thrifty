@@ -83,7 +83,7 @@ internal open class GenerateReaderVisitor(
         read.addStatement("\$T \$N = protocol.readBool()", TypeNames.BOOLEAN.unbox(), nameStack.peek())
     }
 
-    override fun visitByte(bytetype: BuiltinType) {
+    override fun visitByte(byteType: BuiltinType) {
         read.addStatement("\$T \$N = protocol.readByte()", TypeNames.BYTE.unbox(), nameStack.peek())
     }
 
@@ -127,7 +127,7 @@ internal open class GenerateReaderVisitor(
                 "throw new $1T($2T.PROTOCOL_ERROR, $3S + $4L)",
                 TypeNames.THRIFT_EXCEPTION,
                 TypeNames.THRIFT_EXCEPTION_KIND,
-                "Unexpected value for enum-type " + enumType.name() + ": ",
+                "Unexpected value for enum-type " + enumType.name + ": ",
                 intName)
         read.endControlFlow()
     }
@@ -215,8 +215,8 @@ internal open class GenerateReaderVisitor(
         }
     }
 
-    override fun visitStruct(userType: StructType) {
-        val qualifiedJavaName = getFullyQualifiedJavaName(userType)
+    override fun visitStruct(structType: StructType) {
+        val qualifiedJavaName = getFullyQualifiedJavaName(structType)
         read.addStatement("$1L $2N = $1L.ADAPTER.read(protocol)", qualifiedJavaName, nameStack.peek())
     }
 
@@ -235,7 +235,7 @@ internal open class GenerateReaderVisitor(
         }
 
         val packageName = type.getNamespaceFor(NamespaceScope.JAVA)
-        return packageName + "." + type.name()
+        return packageName + "." + type.name
     }
 
     private inline fun pushScope(fn: () -> Unit) {

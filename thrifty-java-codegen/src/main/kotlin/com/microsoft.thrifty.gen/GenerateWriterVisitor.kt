@@ -204,7 +204,7 @@ internal class GenerateWriterVisitor(
     }
 
     override fun visitStruct(structType: StructType) {
-        val javaName = structType.getNamespaceFor(NamespaceScope.JAVA) + "." + structType.name()
+        val javaName = structType.getNamespaceFor(NamespaceScope.JAVA) + "." + structType.name
         write.addStatement("\$L.ADAPTER.write(\$N, \$L)", javaName, proto, nameStack.peek())
     }
 

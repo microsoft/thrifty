@@ -53,10 +53,10 @@ abstract class AbstractUserElementBuilder<TElement : UserElement, TBuilder : Abs
 
     fun type(type: TElement): TBuilder {
         mixin = mixin.toBuilder()
-                .name(type.name())
-                .location(type.location())
-                .documentation(type.documentation())
-                .annotations(type.annotations())
+                .name(type.name)
+                .location(type.location)
+                .documentation(type.documentation)
+                .annotations(type.annotations)
                 .build()
         return this as TBuilder
     }

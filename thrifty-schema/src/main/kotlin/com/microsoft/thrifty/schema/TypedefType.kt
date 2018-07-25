@@ -50,11 +50,11 @@ class TypedefType : UserType {
 
     internal fun validate(linker: Linker) {
         if (oldType!!.isService) {
-            linker.addError(location(), "Cannot declare a typedef of a service")
+            linker.addError(location, "Cannot declare a typedef of a service")
         }
 
         if (oldType == BuiltinType.VOID) {
-            linker.addError(location(), "Cannot declare a typedef of void")
+            linker.addError(location, "Cannot declare a typedef of void")
         }
 
         // We've already validated that this is not part of an unresolvable
@@ -64,15 +64,16 @@ class TypedefType : UserType {
 
     fun oldType(): ThriftType = oldType!!
 
-    override fun isTypedef(): Boolean = true
+    override val isTypedef: Boolean = true
 
-    override fun getTrueType(): ThriftType = oldType().trueType
+    override val trueType: ThriftType
+        get() = oldType().trueType
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitTypedef(this)
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return toBuilder()
-                .annotations(ThriftType.merge(this.annotations(), annotations))
+                .annotations(ThriftType.merge(this.annotations, annotations))
                 .build()
     }
 

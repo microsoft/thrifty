@@ -145,7 +145,7 @@ class FieldTest {
                 .type(thriftType)
                 .build()
 
-        assertEquals(builderField.annotations(), annotations)
+        assertEquals(builderField.annotations, annotations)
         assertEquals(builderField.type(), thriftType)
     }
 

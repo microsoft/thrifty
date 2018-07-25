@@ -52,13 +52,13 @@ class ServiceType : UserType {
 
     fun extendsService(): ThriftType? = extendsService
 
-    override fun isService(): Boolean = true
+    override val isService: Boolean = true
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitService(this)
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return toBuilder()
-                .annotations(ThriftType.merge(this.annotations(), annotations))
+                .annotations(ThriftType.merge(this.annotations, annotations))
                 .build()
     }
 
@@ -86,7 +86,7 @@ class ServiceType : UserType {
 
         if (extendsService != null) {
             if (!extendsService!!.isService) {
-                linker.addError(location(), "Base type '" + extendsService!!.name() + "' is not a service")
+                linker.addError(location, "Base type '" + extendsService!!.name + "' is not a service")
             }
         }
 
@@ -114,17 +114,17 @@ class ServiceType : UserType {
                 // Add the base-type method names to the map.  In this case,
                 // we don't care about duplicates because the base types have
                 // already been validated and we have already reported that error.
-                methodsByName[serviceMethod.name()] = serviceMethod
+                methodsByName[serviceMethod.name] = serviceMethod
             }
         }
 
         for (method in methods) {
-            val conflictingMethod = methodsByName.put(method.name(), method)
+            val conflictingMethod = methodsByName.put(method.name, method)
             if (conflictingMethod != null) {
-                methodsByName[conflictingMethod.name()] = conflictingMethod
+                methodsByName[conflictingMethod.name] = conflictingMethod
 
-                linker.addError(method.location(), "Duplicate method; '" + method.name()
-                        + "' conflicts with another method declared at " + conflictingMethod.location())
+                linker.addError(method.location, "Duplicate method; '" + method.name
+                        + "' conflicts with another method declared at " + conflictingMethod.location)
             }
         }
 
