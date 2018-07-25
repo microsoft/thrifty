@@ -21,7 +21,6 @@
 package com.microsoft.thrifty.schema
 
 import com.google.common.base.Preconditions
-import com.google.common.io.Closeables
 import com.microsoft.thrifty.schema.parser.ThriftFileElement
 import com.microsoft.thrifty.schema.parser.ThriftParser
 import okio.Okio
@@ -276,15 +275,14 @@ class Loader {
             return null
         }
 
-        val source = Okio.source(file)
-        try {
-            val location = Location.get("$base", "$fileName")
-            val data = Okio.buffer(source).readUtf8()
-            return ThriftParser.parse(location, data, errorReporter)
-        } catch (e: IOException) {
-            throw IOException("Failed to load $fileName from $base", e)
-        } finally {
-            Closeables.close(source, true)
+        Okio.source(file).use { source ->
+            try {
+                val location = Location.get("$base", "$fileName")
+                val data = Okio.buffer(source).readUtf8()
+                return ThriftParser.parse(location, data, errorReporter)
+            } catch (e: IOException) {
+                throw IOException("Failed to load $fileName from $base", e)
+            }
         }
     }
 

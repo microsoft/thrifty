@@ -125,7 +125,7 @@ class Program internal constructor(element: ThriftFileElement) {
 
         val symbolMap = mutableMapOf<String, UserType>()
         for (userType in allUserTypes()) {
-            val oldValue = symbolMap.put(userType.name(), userType)
+            val oldValue = symbolMap.put(userType.name, userType)
             if (oldValue != null) {
                 reportDuplicateSymbol(loader.errorReporter(), oldValue, userType)
             }
@@ -135,7 +135,7 @@ class Program internal constructor(element: ThriftFileElement) {
 
         val constSymbolMap = mutableMapOf<String, Constant>()
         for (constant in constants) {
-            val oldValue = constSymbolMap.put(constant.name(), constant)
+            val oldValue = constSymbolMap.put(constant.name, constant)
             if (oldValue != null) {
                 reportDuplicateSymbol(loader.errorReporter(), oldValue, constant)
             }
@@ -148,9 +148,8 @@ class Program internal constructor(element: ThriftFileElement) {
             reporter: ErrorReporter,
             oldValue: UserElement,
             newValue: UserElement) {
-        val message = ("Duplicate symbols: " + oldValue.name() + " defined at "
-                + oldValue.location() + " and at " + newValue.location())
-        reporter.error(newValue.location(), message)
+        val message = "Duplicate symbols: ${oldValue.name} defined at ${oldValue.location} and at ${newValue.location}"
+        reporter.error(newValue.location, message)
     }
 
     override fun equals(other: Any?): Boolean {

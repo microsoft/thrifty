@@ -29,6 +29,6 @@ internal class FieldNamer(
     private val nameCache = mutableMapOf<Field, String>()
 
     fun getName(field: Field) = nameCache.computeIfAbsent(field) {
-        namingPolicy.apply(it.name())
+        namingPolicy.apply(it.name)
     }
 }

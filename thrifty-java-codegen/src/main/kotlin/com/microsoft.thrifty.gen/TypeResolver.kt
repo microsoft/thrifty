@@ -173,8 +173,8 @@ private object TypeNameVisitor : ThriftType.Visitor<TypeName> {
             throw AssertionError("Missing namespace.  Did you forget to add 'namespace java'?")
         }
 
-        val key = "$packageName##${userType.name()}"
-        return nameCache.computeIfAbsent(key) { ClassName.get(packageName, userType.name()) }
+        val key = "$packageName##${userType.name}"
+        return nameCache.computeIfAbsent(key) { ClassName.get(packageName, userType.name) }
     }
 }
 
@@ -183,67 +183,67 @@ private object TypeNameVisitor : ThriftType.Visitor<TypeName> {
  * constant value.
  */
 private object TypeCodeVisitor : ThriftType.Visitor<Byte> {
-    override fun visitBool(boolType: BuiltinType): Byte? {
+    override fun visitBool(boolType: BuiltinType): Byte {
         return TType.BOOL
     }
 
-    override fun visitByte(byteType: BuiltinType): Byte? {
+    override fun visitByte(byteType: BuiltinType): Byte {
         return TType.BYTE
     }
 
-    override fun visitI16(i16Type: BuiltinType): Byte? {
+    override fun visitI16(i16Type: BuiltinType): Byte {
         return TType.I16
     }
 
-    override fun visitI32(i32Type: BuiltinType): Byte? {
+    override fun visitI32(i32Type: BuiltinType): Byte {
         return TType.I32
     }
 
-    override fun visitI64(i64Type: BuiltinType): Byte? {
+    override fun visitI64(i64Type: BuiltinType): Byte {
         return TType.I64
     }
 
-    override fun visitDouble(doubleType: BuiltinType): Byte? {
+    override fun visitDouble(doubleType: BuiltinType): Byte {
         return TType.DOUBLE
     }
 
-    override fun visitString(stringType: BuiltinType): Byte? {
+    override fun visitString(stringType: BuiltinType): Byte {
         return TType.STRING
     }
 
-    override fun visitBinary(binaryType: BuiltinType): Byte? {
+    override fun visitBinary(binaryType: BuiltinType): Byte {
         return TType.STRING
     }
 
-    override fun visitVoid(voidType: BuiltinType): Byte? {
+    override fun visitVoid(voidType: BuiltinType): Byte {
         return TType.VOID
     }
 
-    override fun visitEnum(userType: EnumType): Byte? {
+    override fun visitEnum(userType: EnumType): Byte {
         return TType.I32
     }
 
-    override fun visitList(listType: ListType): Byte? {
+    override fun visitList(listType: ListType): Byte {
         return TType.LIST
     }
 
-    override fun visitSet(setType: SetType): Byte? {
+    override fun visitSet(setType: SetType): Byte {
         return TType.SET
     }
 
-    override fun visitMap(mapType: MapType): Byte? {
+    override fun visitMap(mapType: MapType): Byte {
         return TType.MAP
     }
 
-    override fun visitStruct(userType: StructType): Byte? {
+    override fun visitStruct(userType: StructType): Byte {
         return TType.STRUCT
     }
 
-    override fun visitTypedef(typedefType: TypedefType): Byte? {
+    override fun visitTypedef(typedefType: TypedefType): Byte {
         return typedefType.oldType().accept(this)
     }
 
-    override fun visitService(serviceType: ServiceType): Byte? {
+    override fun visitService(serviceType: ServiceType): Byte {
         throw AssertionError("Services do not have typecodes")
     }
 }

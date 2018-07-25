@@ -33,6 +33,13 @@ tasks.withType(JavaCompile) {
     options.annotationProcessorPath = configurations.annotationProcessor
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
+        freeCompilerArgs = ['-Xjvm-default=enable']
+    }
+}
+
 dependencies {
     antlr "org.antlr:antlr4:4.7.1"
     implementation "org.antlr:antlr4:4.7.1"

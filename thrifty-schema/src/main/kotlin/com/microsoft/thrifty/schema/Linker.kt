@@ -34,6 +34,10 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 
+internal interface SymbolTable {
+    fun lookupConst(symbol: String): Constant?
+}
+
 /**
  * An object that can resolve the types of typdefs, struct fields, and service
  * method parameters based on types declared in Thrift [Program]s and their
@@ -41,7 +45,12 @@ import java.util.LinkedList
  *
  * In other words, a type-checker.
  */
-internal open class Linker(private val environment: LinkEnvironment, private val program: Program, private val reporter: ErrorReporter) {
+internal open class Linker(
+        private val environment: LinkEnvironment,
+        private val program: Program,
+        private val reporter: ErrorReporter
+) : SymbolTable {
+
     private val typesByName = LinkedHashMap<String, ThriftType>()
 
     private var linking = false
@@ -183,7 +192,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
 
             if (!atLeastOneResolved) {
                 for (typedef in typedefs) {
-                    reporter.error(typedef.location(), "Unresolvable typedef '" + typedef.name() + "'")
+                    reporter.error(typedef.location, "Unresolvable typedef '" + typedef.name + "'")
                 }
                 break
             }
@@ -199,7 +208,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
             try {
                 constant.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(constant.location(), "Failed to resolve type '" + e.message + "'")
+                reporter.error(constant.location, "Failed to resolve type '" + e.message + "'")
             }
 
         }
@@ -210,7 +219,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
             try {
                 structType.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(structType.location(), "Failed to resolve type '" + e.message + "'")
+                reporter.error(structType.location, "Failed to resolve type '" + e.message + "'")
             }
 
         }
@@ -221,7 +230,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
             try {
                 union.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(union.location(), "Failed to resolve type " + e.message + "'")
+                reporter.error(union.location, "Failed to resolve type " + e.message + "'")
             }
 
         }
@@ -232,7 +241,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
             try {
                 exception.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(exception.location(), "Failed to resolve type " + e.message + "'")
+                reporter.error(exception.location, "Failed to resolve type " + e.message + "'")
             }
 
         }
@@ -243,7 +252,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
             try {
                 service.link(this)
             } catch (e: LinkFailureException) {
-                reporter.error(service.location(), "Failed to resolve type " + e.message + "'")
+                reporter.error(service.location, "Failed to resolve type " + e.message + "'")
             }
 
         }
@@ -254,7 +263,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
             try {
                 constant.validate(this)
             } catch (e: IllegalStateException) {
-                reporter.error(constant.location(), e.message ?: "Error validating constants")
+                reporter.error(constant.location, e.message ?: "Error validating constants")
             }
 
         }
@@ -342,11 +351,11 @@ internal open class Linker(private val environment: LinkEnvironment, private val
                     val sb = StringBuilder("Circular inheritance detected: ")
                     val arrow = " -> "
                     for (t in stack) {
-                        sb.append(t.name())
+                        sb.append(t.name)
                         sb.append(arrow)
                     }
                     sb.setLength(sb.length - arrow.length)
-                    addError(svc.location(), sb.toString())
+                    addError(svc.location, sb.toString())
                     break
                 }
 
@@ -365,7 +374,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
     }
 
     private fun register(type: UserType) {
-        typesByName[type.name()] = type
+        typesByName[type.name] = type
     }
 
     open fun resolveType(type: TypeElement): ThriftType {
@@ -414,7 +423,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
         }
     }
 
-    open fun lookupConst(symbol: String): Constant? {
+    override fun lookupConst(symbol: String): Constant? {
         var constant = program.constantMap()?.get(symbol)
         if (constant == null) {
             // As above, 'symbol' may be a reference to an included
@@ -438,7 +447,7 @@ internal open class Linker(private val environment: LinkEnvironment, private val
     }
 
     private class LinkFailureException : RuntimeException {
-        internal constructor() {}
+        internal constructor()
 
         internal constructor(message: String) : super(message) {}
     }

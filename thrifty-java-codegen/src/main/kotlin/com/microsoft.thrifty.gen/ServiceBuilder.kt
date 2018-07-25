@@ -45,10 +45,10 @@ internal class ServiceBuilder(
 ) {
 
     fun buildServiceInterface(service: ServiceType): TypeSpec {
-        val serviceSpec = TypeSpec.interfaceBuilder(service.name())
+        val serviceSpec = TypeSpec.interfaceBuilder(service.name)
                 .addModifiers(Modifier.PUBLIC)
 
-        service.documentation()?.let {
+        service.documentation.let {
             if (it.isNotEmpty()) {
                 serviceSpec.addJavadoc(it)
             }
@@ -58,8 +58,8 @@ internal class ServiceBuilder(
             serviceSpec.addAnnotation(AnnotationSpec.builder(Deprecated::class.java).build())
         }
 
-        if (service.extendsService() != null) {
-            val superType = service.extendsService().trueType
+        service.extendsService?.let {
+            val superType = it.trueType
             val superTypeName = typeResolver.getJavaClass(superType)
             serviceSpec.addSuperinterface(superTypeName)
         }
@@ -68,11 +68,11 @@ internal class ServiceBuilder(
             val allocator = NameAllocator()
             var tag = 0
 
-            val methodBuilder = MethodSpec.methodBuilder(method.name())
+            val methodBuilder = MethodSpec.methodBuilder(method.name)
                     .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
 
-            if (method.hasJavadoc()) {
-                methodBuilder.addJavadoc(method.documentation())
+            if (method.hasJavadoc) {
+                methodBuilder.addJavadoc(method.documentation)
             }
 
             for (field in method.parameters()) {
@@ -108,14 +108,14 @@ internal class ServiceBuilder(
     fun buildService(service: ServiceType, serviceInterface: TypeSpec): TypeSpec {
         val packageName = service.getNamespaceFor(NamespaceScope.JAVA)
         val interfaceTypeName = ClassName.get(packageName, serviceInterface.name)
-        val builder = TypeSpec.classBuilder(service.name() + "Client")
+        val builder = TypeSpec.classBuilder(service.name + "Client")
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(interfaceTypeName)
 
-        if (service.extendsService() != null) {
-            val type = service.extendsService()
-            val typeName = type.name() + "Client"
-            val ns = (type as ServiceType).getNamespaceFor(NamespaceScope.JAVA)
+        val extendsServiceType = service.extendsService
+        if (extendsServiceType is ServiceType) {
+            val typeName = extendsServiceType.name + "Client"
+            val ns = extendsServiceType.getNamespaceFor(NamespaceScope.JAVA)
             val javaClass = ClassName.get(ns, typeName)
             builder.superclass(javaClass)
         } else {
@@ -162,7 +162,7 @@ internal class ServiceBuilder(
     }
 
     private fun buildCallSpec(method: ServiceMethod): TypeSpec {
-        val name = "${method.name().capitalize()}Call"
+        val name = "${method.name.capitalize()}Call"
 
         val returnType = method.returnType()
         val returnTypeName = if (returnType == BuiltinType.VOID) {
@@ -207,7 +207,7 @@ internal class ServiceBuilder(
         val ctor = MethodSpec.constructorBuilder()
                 .addStatement(
                         "super(\$S, \$T.\$L, callback)",
-                        method.name(),
+                        method.name,
                         TypeNames.TMESSAGE_TYPE,
                         if (method.oneWay()) "ONEWAY" else "CALL")
 
@@ -267,7 +267,7 @@ internal class ServiceBuilder(
             }
 
             send.addStatement("protocol.writeFieldBegin(\$S, \$L, \$T.\$L)",
-                    field.name(), // send the Thrift name, not the fieldNamer output
+                    field.name, // send the Thrift name, not the fieldNamer output
                     field.id(),
                     TypeNames.TTYPE,
                     TypeNames.getTypeCodeName(typeCode))
