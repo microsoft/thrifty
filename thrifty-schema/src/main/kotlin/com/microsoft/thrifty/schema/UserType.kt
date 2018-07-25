@@ -20,8 +20,6 @@
  */
 package com.microsoft.thrifty.schema
 
-import com.google.common.base.Preconditions
-import com.google.common.collect.ImmutableMap
 import java.util.Objects
 
 /**
@@ -67,7 +65,7 @@ abstract class UserType internal constructor(
         internal var namespaces: Map<NamespaceScope, String> = type.namespaces
 
         fun namespaces(namespaces: Map<NamespaceScope, String>): TBuilder {
-            this.namespaces = ImmutableMap.copyOf(Preconditions.checkNotNull(namespaces, "namespaces"))
+            this.namespaces = namespaces
 
             @Suppress("UNCHECKED_CAST")
             return this as TBuilder
