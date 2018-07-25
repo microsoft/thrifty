@@ -27,7 +27,7 @@ import java.util.Objects
  * exceptions, services, and typedefs.
  */
 abstract class UserType internal constructor(
-        private val namespaces: Map<NamespaceScope, String>,
+        val namespaces: Map<NamespaceScope, String>,
         private val mixin: UserElementMixin
 ) : ThriftType(mixin.name), UserElement by mixin {
 
@@ -44,8 +44,6 @@ abstract class UserType internal constructor(
     }
 
     override val name: String = mixin.name
-
-    fun namespaces(): Map<NamespaceScope, String> = namespaces
 
     override fun equals(other: Any?): Boolean {
         if (!super.equals(other)) return false
