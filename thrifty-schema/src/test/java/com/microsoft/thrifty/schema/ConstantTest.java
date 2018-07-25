@@ -28,6 +28,7 @@ import com.microsoft.thrifty.schema.parser.EnumMemberElement;
 import com.microsoft.thrifty.schema.parser.ThriftFileElement;
 import com.microsoft.thrifty.schema.parser.ThriftParser;
 import com.microsoft.thrifty.schema.parser.TypeElement;
+import com.microsoft.thrifty.schema.parser.TypedefElement;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -110,9 +111,7 @@ public class ConstantTest {
 
     @Test
     public void boolWithConstantHavingBoolTypedefValue() {
-        TypedefType td = mock(TypedefType.class);
-        when(td.name()).thenReturn("Truthiness");
-        when(td.getTrueType()).thenReturn(BuiltinType.BOOL);
+        TypedefType td = makeTypedef(BuiltinType.BOOL, "Truthiness");
 
         Constant c = makeConstant(
                 "aBool",
@@ -127,10 +126,7 @@ public class ConstantTest {
 
     @Test
     public void typedefWithCorrectLiteral() {
-        //ThriftType td = typedefOf("string", "Message");
-        TypedefType td = mock(TypedefType.class);
-        when(td.getTrueType()).thenReturn(BuiltinType.STRING);
-        when(td.name()).thenReturn("Message");
+        TypedefType td = makeTypedef(BuiltinType.STRING, "Message");
 
         ConstValueElement value = ConstValueElement.literal(loc, "\"y helo thar\"", "y helo thar");
 
@@ -262,10 +258,7 @@ public class ConstantTest {
 
         EnumType et = new EnumType(enumElement, Collections.emptyMap());
 
-        TypedefType typedefType = mock(TypedefType.class);
-        when(typedefType.name()).thenReturn("Id");
-        when(typedefType.oldType()).thenReturn(et);
-        when(typedefType.getTrueType()).thenReturn(et);
+        TypedefType typedefType = makeTypedef(et, "Id");
 
         ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO", "AnEnum.FOO");
 
@@ -290,10 +283,7 @@ public class ConstantTest {
 
         EnumType wt = new EnumType(wrongEnumElement, Collections.emptyMap());
 
-        TypedefType typedefType = mock(TypedefType.class);
-        when(typedefType.name()).thenReturn("Id");
-        when(typedefType.oldType()).thenReturn(wt);
-        when(typedefType.getTrueType()).thenReturn(wt);
+        TypedefType typedefType = makeTypedef(wt, "Id");
 
         ConstValueElement value = ConstValueElement.identifier(loc, "AnEnum.FOO", "AnEnum.FOO");
 
@@ -335,6 +325,25 @@ public class ConstantTest {
 
             return constant;
         } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private TypedefType makeTypedef(ThriftType oldType, String newName) {
+        TypedefElement element = new TypedefElement(
+                loc,
+                TypeElement.scalar(loc, "does_not_matter", null),
+                newName);
+
+        try {
+            TypedefType td = new TypedefType(Collections.emptyMap(), element);
+
+            Field field = TypedefType.class.getDeclaredField("oldType");
+            field.setAccessible(true);
+            field.set(td, oldType);
+
+            return td;
+        } catch (IllegalAccessException | NoSuchFieldException e) {
             throw new AssertionError(e);
         }
     }
