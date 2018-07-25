@@ -58,8 +58,8 @@ internal class ServiceBuilder(
             serviceSpec.addAnnotation(AnnotationSpec.builder(Deprecated::class.java).build())
         }
 
-        if (service.extendsService() != null) {
-            val superType = service.extendsService().trueType
+        service.extendsService?.let {
+            val superType = it.trueType
             val superTypeName = typeResolver.getJavaClass(superType)
             serviceSpec.addSuperinterface(superTypeName)
         }
@@ -112,10 +112,10 @@ internal class ServiceBuilder(
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(interfaceTypeName)
 
-        if (service.extendsService() != null) {
-            val type = service.extendsService()
-            val typeName = type.name() + "Client"
-            val ns = (type as ServiceType).getNamespaceFor(NamespaceScope.JAVA)
+        val extendsServiceType = service.extendsService
+        if (extendsServiceType is ServiceType) {
+            val typeName = extendsServiceType.name() + "Client"
+            val ns = extendsServiceType.getNamespaceFor(NamespaceScope.JAVA)
             val javaClass = ClassName.get(ns, typeName)
             builder.superclass(javaClass)
         } else {
