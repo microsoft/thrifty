@@ -1,8 +1,11 @@
 package com.microsoft.thrifty.kgen
 
 import com.microsoft.thrifty.schema.FieldNamingPolicy
+import com.microsoft.thrifty.schema.ListType
+import com.microsoft.thrifty.schema.MapType
 import com.microsoft.thrifty.schema.Schema
 import com.microsoft.thrifty.schema.StructType
+import com.microsoft.thrifty.util.ObfuscationUtil
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -129,40 +132,119 @@ class KotlinCodeGenerator {
     private val fieldNamer = FieldNamingPolicy.JAVA
 
     fun generate(schema: Schema): List<FileSpec> {
-        checkNotNull() { }
         TypeSpec.classBuilder("foo")
                 .addModifiers(KModifier.DATA)
 
-        return emptyList()
+        val structsByNamespace = (schema.structs + schema.unions + schema.exceptions)
+                .groupBy({ it.kotlinNamespace }, { generateDataClass(it) })
+
+        val structFiles = structsByNamespace.map { (ns, types) ->
+            FileSpec.builder(ns, "Structs.kt").let { builder ->
+                types.forEach { builder.addType(it) }
+                builder.build()
+            }
+          }
+
+        return structFiles
     }
 
     fun generateDataClass(struct: StructType): TypeSpec {
         val typeBuilder = TypeSpec.classBuilder(struct.name)
                 .addModifiers(KModifier.DATA)
 
+        if (struct.isDeprecated) {
+            typeBuilder.addAnnotation(Deprecated::class)
+        }
+
+        if (struct.hasJavadoc) {
+            typeBuilder.addKdoc(struct.documentation)
+        }
+
+        if (struct.isException) {
+            typeBuilder.superclass(Exception::class)
+        }
+
         val ctorBuilder = FunSpec.constructorBuilder()
 
         for (field in struct.fields) {
-            val typeName = resolver.typeNameOf(field.type())
+            val typeName = resolver.typeNameOf(field.type()).let {
+                if (field.optional()) {
+                    it.asNullable()
+                } else {
+                    it.asNonNullable()
+                }
+            }
+
             val fieldName = fieldNamer.apply(field.name)
 
             // TODO: Default values
 
-            val param = ParameterSpec.builder(fieldName, typeName).build()
+            val param = ParameterSpec.builder(fieldName, typeName)
             val prop = PropertySpec.builder(fieldName, typeName)
                     .initializer(fieldName)
                     .addAnnotation(JvmField::class)
-                    .build()
 
-            ctorBuilder.addParameter(param)
-            typeBuilder.addProperty(prop)
+            ctorBuilder.addParameter(param.build())
+            typeBuilder.addProperty(prop.build())
+        }
 
-//            val kType =
-//            val paramBuilder = ParameterSpec.
+        if (struct.fields.any { it.isObfuscated || it.isRedacted }) {
+            typeBuilder.addFunction(generateToString(struct))
         }
 
         return typeBuilder
                 .primaryConstructor(ctorBuilder.build())
+                .build()
+    }
+
+    fun generateToString(struct: StructType): FunSpec {
+
+        // Two-phase formatting technique, ACTIVATE!!!!
+
+        val placeholders = LinkedHashSet<Any>(0)
+        val formatArgs = mutableListOf<String>()
+        val templateBuilder = StringBuilder().apply {
+            append(struct.name)
+            append("(")
+
+            for (field in struct.fields) {
+                val fieldName = fieldNamer.apply(field.name)
+                append("$fieldName=")
+                append("%s")
+                append(", ")
+
+                formatArgs += when {
+                    field.isRedacted -> "<REDACTED>"
+                    field.isObfuscated -> {
+                        placeholders += ObfuscationUtil::class.java
+                        val type = field.type().trueType
+                        val method = when {
+                            type.isList -> "summarizeCollection($fieldName, \"list\", \"${(type as ListType).elementType().trueType.name}\")"
+                            type.isSet -> "summarizeCollection($fieldName, \"set\", \"${(type as ListType).elementType().trueType.name}\")"
+                            type.isMap -> {
+                                val mapType = type as MapType
+                                val keyTypeName = mapType.keyType().trueType.name
+                                val valTypeName = mapType.valueType().trueType.name
+                                "summarizeMap($fieldName, \"$keyTypeName\", \"$valTypeName\")"
+                            }
+                            else -> "hash($fieldName)"
+                        }
+                        "\${%1T.$method}"
+                    }
+                    else -> "\$$fieldName"
+                }
+            }
+
+            this.setLength(length - 2)
+
+            append(")")
+        }
+
+        val template = String.format(templateBuilder.toString(), *formatArgs.toTypedArray())
+
+        return FunSpec.builder("toString")
+                .addModifiers(KModifier.OVERRIDE)
+                .addCode("return \"$template\"", *placeholders.toTypedArray())
                 .build()
     }
 }

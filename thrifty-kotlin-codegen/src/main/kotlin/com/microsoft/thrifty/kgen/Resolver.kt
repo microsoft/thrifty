@@ -74,14 +74,16 @@ object TypeNameVisitor : ThriftType.Visitor<TypeName> {
     override fun visitService(serviceType: ServiceType) = userTypeName(serviceType)
 
     private fun userTypeName(userType: UserType): TypeName {
-        val namespaces = userType.namespaces
+        return ClassName(userType.kotlinNamespace, userType.name)
+    }
+
+}
+
+val UserType.kotlinNamespace: String
+    get() {
         val kotlinNs = namespaces[NamespaceScope.KOTLIN]
         val javaNs = namespaces[NamespaceScope.JAVA]
         val fallbackNs = namespaces[NamespaceScope.ALL]
 
-        val ns = kotlinNs ?: javaNs ?: fallbackNs ?: throw IllegalStateException("No JVM namespace found")
-
-        return ClassName(ns, userType.name)
+        return kotlinNs ?: javaNs ?: fallbackNs ?: throw AssertionError("No JVM namespace defined for $name")
     }
-
-}

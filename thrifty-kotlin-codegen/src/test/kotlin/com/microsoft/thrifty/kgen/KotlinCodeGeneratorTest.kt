@@ -16,17 +16,19 @@ class KotlinCodeGeneratorTest {
             namespace kt com.test
 
             struct Test {
-              1: required string Foo;
-              2: required list<i64> Numbers;
+              1: required string Foo (thrifty.redacted = "1");
+              2: required map<i64, string> Numbers (thrift.obfuscated = "1");
+              3: optional string Bar;
+            }
+
+            struct AnotherOne {
+              1: optional i32 NumBitTheDust
             }
         """.trimIndent())
 
-        val gen = KotlinCodeGenerator()
-        val type = gen.generateDataClass(schema.structs[0])
-        val fileSpec = FileSpec.builder("com.test", "Test.kt")
-                .addType(type)
-                .build()
-        println(fileSpec.toString())
+        val files = KotlinCodeGenerator().generate(schema)
+
+        files.forEach { println("$it")}
     }
 
     private fun load(thrift: String): Schema {
