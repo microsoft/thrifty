@@ -1,22 +1,40 @@
 package com.microsoft.thrifty.kgen
 
+import com.google.common.collect.HashMultimap
+import com.microsoft.thrifty.Adapter
+import com.microsoft.thrifty.Obfuscated
+import com.microsoft.thrifty.Redacted
+import com.microsoft.thrifty.StructBuilder
+import com.microsoft.thrifty.TType
+import com.microsoft.thrifty.ThriftException
+import com.microsoft.thrifty.ThriftField
+import com.microsoft.thrifty.protocol.Protocol
+import com.microsoft.thrifty.schema.BuiltinType
+import com.microsoft.thrifty.schema.EnumType
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.ListType
 import com.microsoft.thrifty.schema.MapType
 import com.microsoft.thrifty.schema.Schema
+import com.microsoft.thrifty.schema.ServiceType
+import com.microsoft.thrifty.schema.SetType
 import com.microsoft.thrifty.schema.StructType
+import com.microsoft.thrifty.schema.ThriftType
+import com.microsoft.thrifty.schema.TypedefType
 import com.microsoft.thrifty.util.ObfuscationUtil
+import com.microsoft.thrifty.util.ProtocolUtil
+import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
-
-data class CrayCray(
-        @JvmField val emptyList: List<List<List<Int>>> = emptyList(),
-        @JvmField val emptySet: List<Set<Set<Int>>> = emptyList()
-)
+import com.squareup.kotlinpoet.asTypeName
 
 /**
  * An example of how a Thrift struct could look in Kotlin:
@@ -35,7 +53,7 @@ data class CrayCray(
  * // generated kotlin
  *
  * data class CrayCray(
- *   @JvmField @ThriftField(fieldId = 1, isRequired = true) val emptyList: List<List<List<Int>>> = emptyList(),
+ *   @JvmField @ThriftField(fieldId = 1, isRequired = true) val emptyList: List<List<List<Int>>> = listOf(emptyList()),
  *   @JvmField @ThriftField(fieldId = 2, isRequired = true) val emptySet: List<Set<Set<Int>>> = emptyList(),
  *   @JvmField @ThriftField(fieldId = 3, isRequired = true) val emptyMap: List<List<Map<Int, Int>>> = emptyList()
  * ) {
@@ -131,61 +149,150 @@ class KotlinCodeGenerator {
     private val resolver = Resolver()
     private val fieldNamer = FieldNamingPolicy.JAVA
 
+    // TODO: Customizable FieldNamingPolicy
+    // TODO: Customizable collection impl types
+
+    private val ThriftType.typeName
+        get() = resolver.typeNameOf(this)
+
+    private val ThriftType.typeCode
+        get() = resolver.typeCodeOf(this)
+
+    private val ThriftType.typeCodeName
+        get() = when (this.typeCode) {
+            TType.BOOL -> "BOOL"
+            TType.BYTE -> "BYTE"
+            TType.I16 -> "I16"
+            TType.I32 -> "I32"
+            TType.I64 -> "I64"
+            TType.DOUBLE -> "DOUBLE"
+            TType.STRING -> "STRING"
+            TType.LIST -> "LIST"
+            TType.SET -> "SET"
+            TType.MAP -> "MAP"
+            TType.STRUCT -> "STRUCT"
+            TType.VOID -> "VOID"
+            else -> error("Unexpected TType value: ${this.typeCode}")
+        }
+
     fun generate(schema: Schema): List<FileSpec> {
         TypeSpec.classBuilder("foo")
                 .addModifiers(KModifier.DATA)
 
-        val structsByNamespace = (schema.structs + schema.unions + schema.exceptions)
-                .groupBy({ it.kotlinNamespace }, { generateDataClass(it) })
+        val specsByNamespace = HashMultimap.create<String, TypeSpec>()
 
-        val structFiles = structsByNamespace.map { (ns, types) ->
-            FileSpec.builder(ns, "Structs.kt").let { builder ->
+        schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
+        schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(it)) }
+        schema.unions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(it)) }
+        schema.exceptions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(it)) }
+
+        // TODO: Constants
+        // TODO: Services
+
+        return specsByNamespace.asMap().map { (ns, types) ->
+            FileSpec.builder(ns, "ThriftTypes.kt").let { builder ->
                 types.forEach { builder.addType(it) }
                 builder.build()
             }
-          }
+        }
+    }
 
-        return structFiles
+    fun generateEnumClass(enumType: EnumType): TypeSpec {
+        val typeBuilder = TypeSpec.enumBuilder(enumType.name)
+                .addProperty(PropertySpec.builder("thriftValue", INT)
+                        .addAnnotation(JvmField::class)
+                        .initializer("thriftValue")
+                        .build())
+                .primaryConstructor(FunSpec.constructorBuilder()
+                        .addParameter("thriftValue", INT)
+                        .build())
+
+        if (enumType.isDeprecated) typeBuilder.addAnnotation(Deprecated::class)
+        if (enumType.hasJavadoc) typeBuilder.addKdoc(enumType.documentation)
+
+        val findByValue = FunSpec.builder("findByValue")
+                .addParameter("thriftValue", INT)
+                .returns(resolver.typeNameOf(enumType).asNullable())
+                .addAnnotation(JvmStatic::class)
+                .beginControlFlow("return when (thriftValue)")
+
+        for (member in enumType.members) {
+            val enumMemberSpec= TypeSpec.anonymousClassBuilder()
+                    .addSuperclassConstructorParameter("%L", member.value)
+
+            if (member.isDeprecated) enumMemberSpec.addAnnotation(Deprecated::class)
+            if (member.hasJavadoc) enumMemberSpec.addKdoc(member.documentation)
+
+            typeBuilder.addEnumConstant(member.name, enumMemberSpec.build())
+
+            findByValue.addStatement("%L -> %L", member.value, member.name)
+        }
+
+
+        val companion = TypeSpec.companionObjectBuilder()
+                .addFunction(findByValue
+                        .addStatement("else -> null")
+                        .endControlFlow()
+                        .build())
+                .build()
+
+        return typeBuilder
+                .addType(companion)
+                .build()
     }
 
     fun generateDataClass(struct: StructType): TypeSpec {
         val typeBuilder = TypeSpec.classBuilder(struct.name)
                 .addModifiers(KModifier.DATA)
 
-        if (struct.isDeprecated) {
-            typeBuilder.addAnnotation(Deprecated::class)
-        }
-
-        if (struct.hasJavadoc) {
-            typeBuilder.addKdoc(struct.documentation)
-        }
-
-        if (struct.isException) {
-            typeBuilder.superclass(Exception::class)
-        }
+        if (struct.isDeprecated) typeBuilder.addAnnotation(Deprecated::class)
+        if (struct.hasJavadoc) typeBuilder.addKdoc(struct.documentation)
+        if (struct.isException) typeBuilder.superclass(Exception::class)
 
         val ctorBuilder = FunSpec.constructorBuilder()
 
         for (field in struct.fields) {
-            val typeName = resolver.typeNameOf(field.type()).let {
-                if (field.optional()) {
-                    it.asNullable()
-                } else {
-                    it.asNonNullable()
-                }
+            val fieldName = fieldNamer.apply(field.name)
+            val typeName = field.type().typeName.let {
+                if (!field.required()) it.asNullable() else it
             }
 
-            val fieldName = fieldNamer.apply(field.name)
-
             // TODO: Default values
+
+            val thriftField = AnnotationSpec.builder(ThriftField::class).let { anno ->
+                anno.addMember("fieldId = ${field.id()}")
+                if (field.required()) anno.addMember("isRequired = true")
+                if (field.optional()) anno.addMember("isOptional = true")
+
+                field.typedefName()?.let { anno.addMember("typedefName = %S", it) }
+
+                anno.build()
+            }
 
             val param = ParameterSpec.builder(fieldName, typeName)
             val prop = PropertySpec.builder(fieldName, typeName)
                     .initializer(fieldName)
                     .addAnnotation(JvmField::class)
+                    .addAnnotation(thriftField)
+
+            if (field.isObfuscated) prop.addAnnotation(Obfuscated::class)
+            if (field.isRedacted) prop.addAnnotation(Redacted::class)
 
             ctorBuilder.addParameter(param.build())
             typeBuilder.addProperty(prop.build())
+        }
+
+        if (true) { // TODO: Add an option to generate Java-style builders
+
+            val builderTypeName = ClassName(struct.kotlinNamespace, struct.name, "Builder")
+            val adapterTypeName = ClassName(struct.kotlinNamespace, struct.name, "${struct.name}Adapter")
+            typeBuilder.addType(generateBuilderFor(struct))
+            typeBuilder.addType(generateAdapterFor(struct, builderTypeName))
+
+            // TODO: Adapters
+            // TODO: Adapter val in companion
+        } else {
+            // TODO: Builderless adapters
         }
 
         if (struct.fields.any { it.isObfuscated || it.isRedacted }) {
@@ -243,8 +350,7 @@ class KotlinCodeGenerator {
                 }
             }
 
-            this.setLength(length - 2)
-
+            setLength(length - 2)
             append(")")
         }
 
@@ -255,4 +361,434 @@ class KotlinCodeGenerator {
                 .addCode("return \"$template\"", *placeholders.toTypedArray())
                 .build()
     }
+
+    fun generateBuilderFor(struct: StructType): TypeSpec {
+        val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
+        val spec = TypeSpec.classBuilder("Builder")
+                .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
+        val buildFunSpec = FunSpec.builder("build")
+                .addModifiers(KModifier.OVERRIDE)
+                .returns(structTypeName)
+                .addCode("%[return ${struct.name}(")
+
+        val resetFunSpec = FunSpec.builder("reset")
+                .addModifiers(KModifier.OVERRIDE)
+
+        val copyCtor = FunSpec.constructorBuilder()
+                .addParameter("source", structTypeName)
+
+        val defaultCtor = FunSpec.constructorBuilder()
+
+        val buildParamStringBuilder = StringBuilder()
+        for (field in struct.fields) {
+            val name = fieldNamer.apply(field.name)
+            val type = resolver.typeNameOf(field.type())
+
+            // Add a private var
+            val propertySpec = PropertySpec.varBuilder(name, type.asNullable(), KModifier.PRIVATE)
+                    .initializer("null") // TODO: Initialize with default value, if any
+
+            // Add a builder fun
+            val buildFunParamType = if (!field.required()) type.asNullable() else type
+            val builderFunSpec = FunSpec.builder(name)
+                    .addParameter(name, buildFunParamType)
+                    .addStatement("return apply { this.$name = $name }")
+
+            // Add initialization in default ctor
+            if (field.defaultValue() != null) {
+                // TODO: Add default-ctor initializer
+                defaultCtor.addStatement("this.$name = null")
+            } else {
+                defaultCtor.addStatement("this.$name = null")
+            }
+
+            // Add initialization in copy ctor
+            copyCtor.addStatement("this.$name = source.$name")
+
+            // reset field
+            resetFunSpec.addStatement("this.$name = null")
+            // TODO: Reset to default value
+
+            // Add field to build-method ctor-invocation arg builder
+            buildParamStringBuilder.append("$name = ")
+            if (field.required()) {
+                buildParamStringBuilder.append("checkNotNull($name) { \"Required field '$name' is missing\" }")
+            } else {
+                buildParamStringBuilder.append("this.$name")
+            }
+
+            buildParamStringBuilder.append(",%W")
+
+            // Finish off the property and builder fun
+            spec.addProperty(propertySpec.build())
+            spec.addFunction(builderFunSpec.build())
+        }
+
+        // If there are any fields, the string builder will have a trailing comma-separator.
+        // We need to trim that off.
+        if (struct.fields.isNotEmpty()) {
+            buildParamStringBuilder.setLength(buildParamStringBuilder.length - 3)
+        }
+
+        buildFunSpec
+                .addCode(buildParamStringBuilder.toString())
+                .addCode(")%]")
+
+        return spec
+                .addFunction(defaultCtor.build())
+                .addFunction(copyCtor.build())
+                .addFunction(buildFunSpec.build())
+                .addFunction(resetFunSpec.build())
+                .build()
+    }
+
+    fun generateAdapterFor(struct: StructType, builderType: TypeName): TypeSpec {
+        val adapter = TypeSpec.classBuilder("${struct.name}Adapter")
+                .addModifiers(KModifier.PRIVATE)
+                .addSuperinterface(Adapter::class.asTypeName().parameterizedBy(struct.typeName, builderType))
+
+        val reader = FunSpec.builder("read")
+                .addModifiers(KModifier.OVERRIDE)
+                .returns(struct.typeName)
+                .addParameter("protocol", Protocol::class)
+                .addParameter("builder", builderType)
+
+        val writer = FunSpec.builder("write")
+                .addModifiers(KModifier.OVERRIDE)
+                .addParameter("protocol", Protocol::class)
+                .addParameter("struct", struct.typeName)
+
+        // Writer first, b/c it is easier
+
+        writer.addStatement("protocol.writeStructBegin(%S)", struct.name)
+        for (field in struct.fields) {
+            val name = fieldNamer.apply(field.name)
+            val fieldType = field.type().trueType
+
+            if (!field.required()) {
+                writer.beginControlFlow("if (struct.$name != null)")
+            }
+
+            writer.addStatement("protocol.writeFieldBegin(%S, %L, %T.%L)",
+                    field.name,
+                    field.id(),
+                    TType::class,
+                    fieldType.typeCodeName)
+
+            generateWriteCall(writer, name, fieldType)
+
+            writer.addStatement("protocol.writeFieldEnd()")
+
+            if (!field.required()) {
+                writer.endControlFlow()
+            }
+        }
+        writer.addStatement("protocol.writeFieldStop()")
+        writer.addStatement("protocol.writeStructEnd()")
+
+        // Reader next
+
+        reader.addStatement("val structMeta = protocol.readStructBegin()")
+        reader.beginControlFlow("while (true)")
+
+        reader.addStatement("val fieldMeta = protocol.readFieldBegin()")
+
+        reader.beginControlFlow("if (fieldMeta.typeId == %T.STOP)", TType::class)
+        reader.addStatement("break")
+        reader.endControlFlow()
+
+        reader.beginControlFlow("when (fieldMeta.fieldId.toInt())")
+
+
+        for (field in struct.fields) {
+            val name = fieldNamer.apply(field.name)
+            val fieldType = field.type().trueType
+
+            val block = CodeBlock.builder()
+                    .addStatement("${field.id()} -> {%>")
+                    .beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
+
+            block.add(generateReadCall(name, fieldType))
+
+            block.nextControlFlow("else")
+            block.addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+            block.endControlFlow()
+            block.addStatement("%<}")
+
+            reader.addCode(block.build())
+        }
+
+        if (struct.fields.isNotEmpty()) {
+            reader.addStatement("else -> %T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+        }
+
+        // MAGIC
+
+        reader.endControlFlow() // when (fieldMeta.fieldId.toInt())
+        reader.endControlFlow() // while (true)
+        reader.addStatement("protocol.readStructEnd()")
+        reader.addStatement("return builder.build()")
+
+        return adapter
+                .addFunction(writer.build())
+                .addFunction(reader.build())
+                .addFunction(FunSpec.builder("read")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .addParameter("protocol", Protocol::class)
+                        .addStatement("return read(protocol, %T())", builderType)
+                        .build())
+                .build()
+    }
+
+    private fun generateWriteCall(writer: FunSpec.Builder, name: String, type: ThriftType) {
+
+        // Assumptions:
+        // - writer has a parameter "protocol" that is a Protocol
+        // - writer has a parameter "struct" that is a struct type
+
+        fun generateRecursiveWrite(source: String, type: ThriftType, scope: Int) {
+            type.accept(object : ThriftType.Visitor<Unit> {
+                override fun visitVoid(voidType: BuiltinType) {
+                    error("Cannot write void, wat r u doing")
+                }
+
+                override fun visitBool(boolType: BuiltinType) {
+                    writer.addStatement("%N.writeBool(%N)", "protocol", source)
+                }
+
+                override fun visitByte(byteType: BuiltinType) {
+                    writer.addStatement("%N.writeByte(%N)", "protocol", source)
+                }
+
+                override fun visitI16(i16Type: BuiltinType) {
+                    writer.addStatement("%N.writeI16(%N)", "protocol", source)
+                }
+
+                override fun visitI32(i32Type: BuiltinType) {
+                    writer.addStatement("%N.writeI32(%N)", "protocol", source)
+                }
+
+                override fun visitI64(i64Type: BuiltinType) {
+                    writer.addStatement("%N.writeI64(%N)", "protocol", source)
+                }
+
+                override fun visitDouble(doubleType: BuiltinType) {
+                    writer.addStatement("%N.writeDouble(%N)", "protocol", source)
+                }
+
+                override fun visitString(stringType: BuiltinType) {
+                    writer.addStatement("%N.writeString(%N)", "protocol", source)
+                }
+
+                override fun visitBinary(binaryType: BuiltinType) {
+                    writer.addStatement("%N.writeBinary(%N)", "protocol", source)
+                }
+
+                override fun visitEnum(enumType: EnumType) {
+                    writer.addStatement("%N.writeI32(%N.thriftValue)", "protocol", source)
+                }
+
+                override fun visitList(listType: ListType) {
+                    val elementType = listType.elementType().trueType
+                    writer.addStatement(
+                            "%N.writeListBegin(%T.%L, %L.size)",
+                            "protocol",
+                            TType::class,
+                            elementType.typeCodeName,
+                            source)
+
+                    val iterator = "item$scope"
+                    writer.beginControlFlow("for ($iterator in %N)", source)
+
+                    generateRecursiveWrite(iterator, elementType, scope + 1)
+
+                    writer.endControlFlow()
+
+                    writer.addStatement("%N.writeListEnd()", "protocol")
+                }
+
+                override fun visitSet(setType: SetType) {
+                    val elementType = setType.elementType().trueType
+                    writer.addStatement(
+                            "%N.writeSetBegin(%T.%L, %L.size)",
+                            "protocol",
+                            TType::class,
+                            elementType.typeCodeName,
+                            source)
+
+                    val iterator = "item$scope"
+                    writer.beginControlFlow("for ($iterator in %N)", source)
+
+                    generateRecursiveWrite(iterator, elementType, scope + 1)
+
+                    writer.endControlFlow()
+
+                    writer.addStatement("%N.writeSetEnd()", "protocol")
+                }
+
+                override fun visitMap(mapType: MapType) {
+                    val keyType = mapType.keyType().trueType
+                    val valType = mapType.valueType().trueType
+
+                    writer.addStatement(
+                            "%1N.writeMapBegin(%2T.%3L, %2T.%4L, %5L.size)",
+                            "protocol",
+                            TType::class,
+                            keyType.typeCodeName,
+                            valType.typeCodeName,
+                            source)
+
+                    val keyIter = "key$scope"
+                    val valIter = "val$scope"
+                    writer.beginControlFlow("for (($keyIter, $valIter) in %N)", source)
+
+                    generateRecursiveWrite(keyIter, keyType, scope + 1)
+                    generateRecursiveWrite(valIter, valType, scope + 1)
+
+                    writer.endControlFlow()
+
+                    writer.addStatement("%N.writeMapEnd()", "protocol")
+                }
+
+                override fun visitStruct(structType: StructType) {
+                    writer.addStatement("%T.ADAPTER.write(%N, %N)", structType.typeName, "protocol", source)
+                }
+
+                override fun visitTypedef(typedefType: TypedefType) {
+                    typedefType.trueType.accept(this)
+                }
+
+                override fun visitService(serviceType: ServiceType) {
+                    error("Cannot write a service, wat r u doing")
+                }
+            })
+        }
+
+        generateRecursiveWrite("struct.$name", type, 0)
+    }
+
+    fun generateReadCall(name: String, type: ThriftType): CodeBlock {
+        fun generateRecursiveReadCall(block: CodeBlock.Builder, name: String, type: ThriftType, scope: Int) {
+            type.accept(object : ThriftType.Visitor<Unit> {
+                override fun visitVoid(voidType: BuiltinType) {
+                    error("Cannot read a void, wat r u doing")
+                }
+
+                override fun visitBool(boolType: BuiltinType) {
+                    block.addStatement("val $name = protocol.readBool()")
+                }
+
+                override fun visitByte(byteType: BuiltinType) {
+                    block.addStatement("val $name = protocol.readByte()")
+                }
+
+                override fun visitI16(i16Type: BuiltinType) {
+                    block.addStatement("val $name = protocol.readI16()")
+                }
+
+                override fun visitI32(i32Type: BuiltinType) {
+                    block.addStatement("val $name = protocol.readI32()")
+                }
+
+                override fun visitI64(i64Type: BuiltinType) {
+                    block.addStatement("val $name = protocol.readI64()")
+                }
+
+                override fun visitDouble(doubleType: BuiltinType) {
+                    block.addStatement("val $name = protocol.readDouble()")
+                }
+
+                override fun visitString(stringType: BuiltinType) {
+                    block.addStatement("val $name = protocol.readString()")
+                }
+
+                override fun visitBinary(binaryType: BuiltinType) {
+                    block.addStatement("val $name = protocol.readBinary()")
+                }
+
+                override fun visitEnum(enumType: EnumType) {
+                    val codeName = "code$scope"
+                    block.addStatement("val $codeName = protocol.readI32()")
+                    block.addStatement("val $name = %T.findByValue($codeName)", enumType.typeName)
+                    block.beginControlFlow("if ($name == null)")
+                    block.addStatement("throw %T(%T.PROTOCOL_ERROR, \"Unexpected value for enum type %T: \$$codeName\")",
+                            ThriftException::class,
+                            ThriftException.Kind::class,
+                            enumType.typeName)
+                    block.endControlFlow()
+                }
+
+                override fun visitList(listType: ListType) {
+                    val elementType = listType.elementType().trueType
+                    val listImplType = ArrayList::class.asTypeName().parameterizedBy(elementType.typeName)
+                    val listMeta = "list$scope"
+                    block.addStatement("val $listMeta = protocol.readListBegin()")
+                    block.addStatement("val $name = %T($listMeta.size)", listImplType)
+
+                    block.beginControlFlow("for (i$scope in 0 until $listMeta.size)")
+                    generateRecursiveReadCall(block, "item$scope", elementType, scope + 1)
+                    block.addStatement("$name += item$scope")
+                    block.endControlFlow()
+
+                    block.addStatement("protocol.readListEnd()")
+                }
+
+                override fun visitSet(setType: SetType) {
+                    val elementType = setType.elementType().trueType
+                    val setImplType = HashSet::class.asTypeName().parameterizedBy(elementType.typeName)
+                    val setMeta = "set$scope"
+
+                    block.addStatement("val $setMeta = protocol.readSetBegin()")
+                    block.addStatement("val $name = %T($setMeta.size)", setImplType)
+
+                    block.beginControlFlow("for (i$scope in 0 until $setMeta.size)")
+                    generateRecursiveReadCall(block, "item$scope", elementType, scope + 1)
+                    block.addStatement("$name += item$scope")
+                    block.endControlFlow()
+
+                    block.addStatement("protocol.readSetEnd()")
+                }
+
+                override fun visitMap(mapType: MapType) {
+                    val keyType = mapType.keyType().trueType
+                    val valType = mapType.valueType().trueType
+                    val mapImplType = HashMap::class.asTypeName().parameterizedBy(keyType.typeName, valType.typeName)
+                    val mapMeta = "map$scope"
+
+                    block.addStatement("val $mapMeta = protocol.readMapBegin()")
+                    block.addStatement("val $name = %T($mapMeta.size)", mapImplType)
+
+                    block.beginControlFlow("for (i$scope in 0 until $mapMeta.size)")
+
+                    val keyName = "key$scope"
+                    val valName = "val$scope"
+
+                    generateRecursiveReadCall(block, keyName, keyType, scope + 1)
+                    generateRecursiveReadCall(block, valName, valType, scope + 1)
+
+                    block.addStatement("$name[$keyName] = $valName")
+
+                    block.endControlFlow()
+                }
+
+                override fun visitStruct(structType: StructType) {
+                    block.addStatement("val $name = %T.ADAPTER.read(protocol)", structType.typeName)
+                }
+
+                override fun visitTypedef(typedefType: TypedefType) {
+                    typedefType.trueType.accept(this)
+                }
+
+                override fun visitService(serviceType: ServiceType) {
+                    error("cannot read a service, wat r u doing")
+                }
+            })
+        }
+
+        return CodeBlock.builder()
+                .apply { generateRecursiveReadCall(this, name, type, 0) }
+                .addStatement("builder.$name($name)")
+                .build()
+    }
 }
+

@@ -1,5 +1,6 @@
 package com.microsoft.thrifty.kgen
 
+import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.schema.BuiltinType
 import com.microsoft.thrifty.schema.EnumType
 import com.microsoft.thrifty.schema.ListType
@@ -17,17 +18,40 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.DOUBLE
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.LONG
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.SHORT
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.UNIT
 import com.squareup.kotlinpoet.asTypeName
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import okio.ByteString
 
 class Resolver {
     fun typeNameOf(type: ThriftType): TypeName {
         return type.accept(TypeNameVisitor)
     }
+
+    fun typeCodeOf(type: ThriftType): Byte {
+        return type.accept(TypeCodeVisitor)
+    }
+}
+
+object TypeCodeVisitor : ThriftType.Visitor<Byte> {
+    override fun visitVoid(voidType: BuiltinType) = TType.VOID
+    override fun visitBool(boolType: BuiltinType) = TType.BOOL
+    override fun visitByte(byteType: BuiltinType) = TType.BYTE
+    override fun visitI16(i16Type: BuiltinType) = TType.I16
+    override fun visitI32(i32Type: BuiltinType) = TType.I32
+    override fun visitI64(i64Type: BuiltinType) = TType.I64
+    override fun visitDouble(doubleType: BuiltinType) = TType.DOUBLE
+    override fun visitString(stringType: BuiltinType) = TType.STRING
+    override fun visitBinary(binaryType: BuiltinType) = TType.STRING
+    override fun visitEnum(enumType: EnumType) = TType.I32
+    override fun visitList(listType: ListType) = TType.LIST
+    override fun visitSet(setType: SetType) = TType.SET
+    override fun visitMap(mapType: MapType) = TType.MAP
+    override fun visitStruct(structType: StructType) = TType.STRUCT
+    override fun visitTypedef(typedefType: TypedefType) = typedefType.trueType.accept(this)
+    override fun visitService(serviceType: ServiceType) = error("Services don't have a typecode")
 }
 
 object TypeNameVisitor : ThriftType.Visitor<TypeName> {
@@ -53,18 +77,18 @@ object TypeNameVisitor : ThriftType.Visitor<TypeName> {
 
     override fun visitList(listType: ListType): TypeName {
         val elementType = listType.elementType().accept(this)
-        return ParameterizedTypeName.get(List::class.asTypeName(), elementType)
+        return List::class.asTypeName().parameterizedBy(elementType)
     }
 
     override fun visitSet(setType: SetType): TypeName {
         val elementType = setType.elementType().accept(this)
-        return ParameterizedTypeName.get(Set::class.asTypeName(), elementType)
+        return Set::class.asTypeName().parameterizedBy(elementType)
     }
 
     override fun visitMap(mapType: MapType): TypeName {
         val keyType = mapType.keyType().accept(this)
         val valueType = mapType.valueType().accept(this)
-        return ParameterizedTypeName.get(Map::class.asTypeName(), keyType, valueType)
+        return Map::class.asTypeName().parameterizedBy(keyType, valueType)
     }
 
     override fun visitStruct(structType: StructType): TypeName = userTypeName(structType)

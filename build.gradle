@@ -48,7 +48,7 @@ allprojects {
                 ],
 
                 kotlinPoet: [
-                        'com.squareup:kotlinpoet:0.7.0'
+                        'com.squareup:kotlinpoet:1.0.0-RC1'
                 ],
 
                 testing: [
