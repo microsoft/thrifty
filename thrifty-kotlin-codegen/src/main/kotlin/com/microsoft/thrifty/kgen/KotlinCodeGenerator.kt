@@ -200,6 +200,14 @@ class KotlinCodeGenerator {
     fun generateToString(struct: StructType): FunSpec {
 
         // Two-phase formatting technique, ACTIVATE!!!!
+        // Step 1: generate a "template" similar to:
+        //    "TypeName(field1=%s, field2=%s, field3=%s)"
+        //
+        //    generate format arguments according to the field's type and redacted/obfuscated needs:
+        //    "$fieldName", or "%1T.summarizeCollection($fieldName, "list", "elementTypeName")"
+        //    also add Kotlinpoet param for ObfuscationUtil, if necessary
+        //
+        // Step 2: generate a kotlin fun, using the template string and any kotlinpoet format args.
 
         val placeholders = LinkedHashSet<Any>(0)
         val formatArgs = mutableListOf<String>()
