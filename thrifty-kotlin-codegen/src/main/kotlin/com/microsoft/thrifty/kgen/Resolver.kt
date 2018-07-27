@@ -2,6 +2,7 @@ package com.microsoft.thrifty.kgen
 
 import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.schema.BuiltinType
+import com.microsoft.thrifty.schema.Constant
 import com.microsoft.thrifty.schema.EnumType
 import com.microsoft.thrifty.schema.ListType
 import com.microsoft.thrifty.schema.MapType
@@ -104,10 +105,9 @@ object TypeNameVisitor : ThriftType.Visitor<TypeName> {
 }
 
 val UserType.kotlinNamespace: String
-    get() {
-        val kotlinNs = namespaces[NamespaceScope.KOTLIN]
-        val javaNs = namespaces[NamespaceScope.JAVA]
-        val fallbackNs = namespaces[NamespaceScope.ALL]
+    get() = getNamespaceFor(NamespaceScope.KOTLIN, NamespaceScope.JAVA, NamespaceScope.ALL)
+            ?: throw AssertionError("No JVM namespace defined for $name")
 
-        return kotlinNs ?: javaNs ?: fallbackNs ?: throw AssertionError("No JVM namespace defined for $name")
-    }
+val Constant.kotlinNamespace: String
+    get() = getNamespaceFor(NamespaceScope.KOTLIN, NamespaceScope.JAVA, NamespaceScope.ALL)
+            ?: throw AssertionError("No JVM namespace defined for $name")

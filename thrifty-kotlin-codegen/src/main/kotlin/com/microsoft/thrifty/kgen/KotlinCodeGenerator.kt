@@ -10,16 +10,19 @@ import com.microsoft.thrifty.ThriftException
 import com.microsoft.thrifty.ThriftField
 import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.schema.BuiltinType
+import com.microsoft.thrifty.schema.Constant
 import com.microsoft.thrifty.schema.EnumType
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.ListType
 import com.microsoft.thrifty.schema.MapType
+import com.microsoft.thrifty.schema.NamespaceScope
 import com.microsoft.thrifty.schema.Schema
 import com.microsoft.thrifty.schema.ServiceType
 import com.microsoft.thrifty.schema.SetType
 import com.microsoft.thrifty.schema.StructType
 import com.microsoft.thrifty.schema.ThriftType
 import com.microsoft.thrifty.schema.TypedefType
+import com.microsoft.thrifty.schema.parser.ConstValueElement
 import com.microsoft.thrifty.util.ObfuscationUtil
 import com.microsoft.thrifty.util.ProtocolUtil
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -32,9 +35,9 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import okio.ByteString
 
 /**
  * An example of how a Thrift struct could look in Kotlin:
@@ -175,46 +178,89 @@ class KotlinCodeGenerator {
             else -> error("Unexpected TType value: ${this.typeCode}")
         }
 
+    private val ThriftType.isConstEligible
+        get() = accept(object : ThriftType.Visitor<Boolean> {
+            // JVM primitives and strings can be constants
+            override fun visitBool(boolType: BuiltinType) = true
+            override fun visitByte(byteType: BuiltinType) = true
+            override fun visitI16(i16Type: BuiltinType) = true
+            override fun visitI32(i32Type: BuiltinType) = true
+            override fun visitI64(i64Type: BuiltinType) = true
+            override fun visitDouble(doubleType: BuiltinType) = true
+            override fun visitString(stringType: BuiltinType) = true
+
+            // Everything else, cannot.
+            override fun visitBinary(binaryType: BuiltinType) = false
+            override fun visitEnum(enumType: EnumType) = false
+            override fun visitList(listType: ListType) = false
+            override fun visitSet(setType: SetType) = false
+            override fun visitMap(mapType: MapType) = false
+            override fun visitStruct(structType: StructType) = false
+            override fun visitTypedef(typedefType: TypedefType) = typedefType.trueType.accept(this)
+
+            // These make no sense
+            override fun visitService(serviceType: ServiceType): Boolean {
+                error("Cannot have a const value of a service type")
+            }
+            override fun visitVoid(voidType: BuiltinType): Boolean {
+                error("Cannot have a const value of void")
+            }
+        })
+
     fun generate(schema: Schema): List<FileSpec> {
         TypeSpec.classBuilder("foo")
                 .addModifiers(KModifier.DATA)
 
         val specsByNamespace = HashMultimap.create<String, TypeSpec>()
+        val constantsByNamespace = HashMultimap.create<String, PropertySpec>()
 
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
-        schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(it)) }
-        schema.unions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(it)) }
-        schema.exceptions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(it)) }
+        schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
+        schema.unions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
+        schema.exceptions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
+
+        schema.constants.forEach {
+            val ns = it.kotlinNamespace
+            val property = generateConstantProperty(schema, it)
+            constantsByNamespace.put(ns, property)
+        }
 
         // TODO: Constants
         // TODO: Services
 
-        return specsByNamespace.asMap().map { (ns, types) ->
-            FileSpec.builder(ns, "ThriftTypes.kt").let { builder ->
-                types.forEach { builder.addType(it) }
-                builder.build()
-            }
+        val namespaces = mutableSetOf<String>().apply {
+            addAll(specsByNamespace.keys())
+            addAll(constantsByNamespace.keys())
+        }
+        val fileSpecsByNamespace = namespaces
+                .map { it to FileSpec.builder(it,"ThriftTypes.kt") }
+                .toMap()
+
+        return fileSpecsByNamespace.map { (ns, fileSpec) ->
+            constantsByNamespace[ns]?.forEach { fileSpec.addProperty(it) }
+            specsByNamespace[ns]?.forEach { fileSpec.addType(it) }
+            fileSpec.build()
         }
     }
 
     fun generateEnumClass(enumType: EnumType): TypeSpec {
         val typeBuilder = TypeSpec.enumBuilder(enumType.name)
-                .addProperty(PropertySpec.builder("thriftValue", INT)
+                .addProperty(PropertySpec.builder("value", INT)
                         .addAnnotation(JvmField::class)
-                        .initializer("thriftValue")
+                        .initializer("value")
                         .build())
                 .primaryConstructor(FunSpec.constructorBuilder()
-                        .addParameter("thriftValue", INT)
+                        .addParameter("value", INT)
                         .build())
 
         if (enumType.isDeprecated) typeBuilder.addAnnotation(Deprecated::class)
         if (enumType.hasJavadoc) typeBuilder.addKdoc(enumType.documentation)
 
         val findByValue = FunSpec.builder("findByValue")
-                .addParameter("thriftValue", INT)
+                .addParameter("value", INT)
                 .returns(resolver.typeNameOf(enumType).asNullable())
                 .addAnnotation(JvmStatic::class)
-                .beginControlFlow("return when (thriftValue)")
+                .beginControlFlow("return when (value)")
 
         for (member in enumType.members) {
             val enumMemberSpec= TypeSpec.anonymousClassBuilder()
@@ -241,7 +287,7 @@ class KotlinCodeGenerator {
                 .build()
     }
 
-    fun generateDataClass(struct: StructType): TypeSpec {
+    fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
         val typeBuilder = TypeSpec.classBuilder(struct.name)
                 .addModifiers(KModifier.DATA)
 
@@ -250,6 +296,8 @@ class KotlinCodeGenerator {
         if (struct.isException) typeBuilder.superclass(Exception::class)
 
         val ctorBuilder = FunSpec.constructorBuilder()
+
+        val companionBuilder = TypeSpec.companionObjectBuilder()
 
         for (field in struct.fields) {
             val fieldName = fieldNamer.apply(field.name)
@@ -270,6 +318,11 @@ class KotlinCodeGenerator {
             }
 
             val param = ParameterSpec.builder(fieldName, typeName)
+
+            field.defaultValue()?.let {
+                param.defaultValue(renderConstValue(schema, field.type().trueType, it))
+            }
+
             val prop = PropertySpec.builder(fieldName, typeName)
                     .initializer(fieldName)
                     .addAnnotation(JvmField::class)
@@ -286,11 +339,16 @@ class KotlinCodeGenerator {
 
             val builderTypeName = ClassName(struct.kotlinNamespace, struct.name, "Builder")
             val adapterTypeName = ClassName(struct.kotlinNamespace, struct.name, "${struct.name}Adapter")
-            typeBuilder.addType(generateBuilderFor(struct))
-            typeBuilder.addType(generateAdapterFor(struct, builderTypeName))
+            val adapterInterfaceTypeName = Adapter::class.asTypeName().parameterizedBy(
+                    struct.typeName, builderTypeName)
 
-            // TODO: Adapters
-            // TODO: Adapter val in companion
+            typeBuilder.addType(generateBuilderFor(struct))
+            typeBuilder.addType(generateAdapterFor(struct, adapterTypeName, builderTypeName))
+
+            companionBuilder.addProperty(PropertySpec.builder("ADAPTER", adapterInterfaceTypeName)
+                    .initializer("%T()", adapterTypeName)
+                    .addAnnotation(JvmField::class)
+                    .build())
         } else {
             // TODO: Builderless adapters
         }
@@ -301,6 +359,7 @@ class KotlinCodeGenerator {
 
         return typeBuilder
                 .primaryConstructor(ctorBuilder.build())
+                .addType(companionBuilder.build())
                 .build()
     }
 
@@ -442,8 +501,8 @@ class KotlinCodeGenerator {
                 .build()
     }
 
-    fun generateAdapterFor(struct: StructType, builderType: TypeName): TypeSpec {
-        val adapter = TypeSpec.classBuilder("${struct.name}Adapter")
+    fun generateAdapterFor(struct: StructType, adapterName: ClassName, builderType: ClassName): TypeSpec {
+        val adapter = TypeSpec.classBuilder(adapterName)
                 .addModifiers(KModifier.PRIVATE)
                 .addSuperinterface(Adapter::class.asTypeName().parameterizedBy(struct.typeName, builderType))
 
@@ -504,18 +563,17 @@ class KotlinCodeGenerator {
             val name = fieldNamer.apply(field.name)
             val fieldType = field.type().trueType
 
-            val block = CodeBlock.builder()
-                    .addStatement("${field.id()} -> {%>")
-                    .beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
+            reader.addCode {
+                addStatement("${field.id()} -> {%>")
+                beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
 
-            block.add(generateReadCall(name, fieldType))
+                add(generateReadCall(name, fieldType))
 
-            block.nextControlFlow("else")
-            block.addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
-            block.endControlFlow()
-            block.addStatement("%<}")
-
-            reader.addCode(block.build())
+                nextControlFlow("else")
+                addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+                endControlFlow()
+                addStatement("%<}")
+            }
         }
 
         if (struct.fields.isNotEmpty()) {
@@ -585,7 +643,7 @@ class KotlinCodeGenerator {
                 }
 
                 override fun visitEnum(enumType: EnumType) {
-                    writer.addStatement("%N.writeI32(%N.thriftValue)", "protocol", source)
+                    writer.addStatement("%N.writeI32(%N.value)", "protocol", source)
                 }
 
                 override fun visitList(listType: ListType) {
@@ -789,6 +847,230 @@ class KotlinCodeGenerator {
                 .apply { generateRecursiveReadCall(this, name, type, 0) }
                 .addStatement("builder.$name($name)")
                 .build()
+    }
+
+    fun generateConstantProperty(schema: Schema, constant: Constant): PropertySpec {
+        val type = constant.type().trueType
+        val typeName = type.typeName
+        val propBuilder = PropertySpec.builder(constant.name, typeName)
+
+        if (constant.isDeprecated) propBuilder.addAnnotation(Deprecated::class)
+        if (constant.hasJavadoc) propBuilder.addKdoc(constant.documentation)
+
+        if (type.isConstEligible) propBuilder.addModifiers(KModifier.CONST)
+
+        propBuilder.initializer(renderConstValue(schema, constant.type(), constant.value()))
+
+        return propBuilder.build()
+    }
+
+    fun renderConstValue(schema: Schema, thriftType: ThriftType, valueElement: ConstValueElement): CodeBlock {
+        fun recursivelyRenderConstValue(block: CodeBlock.Builder, type: ThriftType, value: ConstValueElement) {
+            type.accept(object : ThriftType.Visitor<Unit> {
+                override fun visitVoid(voidType: BuiltinType) {
+                    error("Can't have void as a constant")
+                }
+
+                override fun visitBool(boolType: BuiltinType) {
+                    if (value.isIdentifier && value.getAsString() in listOf("true", "false")) {
+                        block.add("%L", value.getAsString() == "true")
+                    } else if (value.isInt) {
+                        block.add("%L", value.getAsInt() != 0)
+                    } else {
+                        constOrError(block, value, type, "Invalid boolean constant")
+                    }
+                }
+
+                override fun visitByte(byteType: BuiltinType) {
+                    if (value.isInt) {
+                        block.add("%L", value.getAsInt())
+                    } else {
+                        constOrError(block, value, type, "Invalid byte constant")
+                    }
+                }
+
+                override fun visitI16(i16Type: BuiltinType) {
+                    if (value.isInt) {
+                        block.add("%L", value.getAsInt())
+                    } else {
+                        constOrError(block, value, type, "Invalid I16 constant")
+                    }
+                }
+
+                override fun visitI32(i32Type: BuiltinType) {
+                    if (value.isInt) {
+                        block.add("%L", value.getAsInt())
+                    } else {
+                        constOrError(block, value, type, "Invalid I32 constant")
+                    }
+                }
+
+                override fun visitI64(i64Type: BuiltinType) {
+                    if (value.isInt) {
+                        block.add("%L", value.getAsInt())
+                    } else {
+                        constOrError(block, value, type, "Invalid I64 constant")
+                    }
+                }
+
+                override fun visitDouble(doubleType: BuiltinType) {
+                    if (value.isDouble) {
+                        block.add("%L", value.getAsDouble())
+                    } else {
+                        constOrError(block, value, type, "Invalid double constant")
+                    }
+                }
+
+                override fun visitString(stringType: BuiltinType) {
+                    if (value.isString) {
+                        block.add("%S", value.getAsString())
+                    } else {
+                        constOrError(block, value, type, "Invalid string constant")
+                    }
+                }
+
+                override fun visitBinary(binaryType: BuiltinType) {
+                    // TODO: Implement support for binary constants in the ANTLR grammar
+                    if (value.isString) {
+                        block.add("%T.decodeHex(%S)", ByteString::class, value.getAsString())
+                    } else {
+                        constOrError(block, value, type, "Invalid binary constant")
+                    }
+                }
+
+                override fun visitEnum(enumType: EnumType) {
+                    val member = try {
+                        when {
+                            // Enum references may or may not be scoped with their typename; either way, we must remove
+                            // the type reference to get the member name on its own.
+                            value.isIdentifier -> enumType.findMemberByName(value.getAsString().split(".").last())
+                            value.isInt -> enumType.findMemberById(value.getAsInt())
+                            else -> throw AssertionError("Value kind ${value.kind} is not possibly an enum")
+                        }
+                    } catch (e: NoSuchElementException) {
+                        null
+                    }
+
+                    if (member != null) {
+                        block.add("%T.%L", enumType.typeName, member.name)
+                    } else {
+                        constOrError(block, value, type, "Invalid enum constant")
+                    }
+                }
+
+                override fun visitList(listType: ListType) {
+                    visitCollection(listType.elementType().trueType, "listOf", "Invalid list constant")
+
+                }
+
+                override fun visitSet(setType: SetType) {
+                    visitCollection(
+                            setType.elementType().trueType,
+                            "setOf",
+                            "Invalid set constant")
+                }
+
+                private fun visitCollection(elementType: ThriftType, factoryMethod: String, errorMessage: String) {
+                    if (value.isList) {
+                        block.add("$factoryMethod(%>")
+
+                        var first = true
+                        for (elementValue in value.getAsList()) {
+                            if (first) {
+                                first = false
+                            } else {
+                                block.add(",%W")
+                            }
+                            recursivelyRenderConstValue(block, elementType, elementValue)
+                        }
+
+                        block.add("%<)")
+                    } else {
+                        constOrError(block, value, type, errorMessage)
+                    }
+                }
+
+                override fun visitMap(mapType: MapType) {
+                    val keyType = mapType.keyType().trueType
+                    val valueType = mapType.valueType().trueType
+                    if (value.isMap) {
+                        block.add("mapOf(%>")
+
+                        var first = true
+                        for ((k, v) in value.getAsMap()) {
+                            if (first) {
+                                first = false
+                            } else {
+                                block.add(",%W")
+                            }
+                            recursivelyRenderConstValue(block, keyType, k)
+                            block.add(" to ")
+                            recursivelyRenderConstValue(block, valueType, v)
+                        }
+
+                        block.add("%<)")
+                    } else {
+                        constOrError(block, value, type, "Invalid map constant")
+                    }
+                }
+
+                override fun visitStruct(structType: StructType) {
+                    TODO("not implemented")
+                }
+
+                override fun visitTypedef(typedefType: TypedefType) {
+                    typedefType.trueType.accept(this)
+                }
+
+                override fun visitService(serviceType: ServiceType) {
+                    throw AssertionError("Cannot have a const value of a service type, wat r u doing")
+                }
+
+                private fun constOrError(block:CodeBlock.Builder, value: ConstValueElement, type: ThriftType, error: String) {
+                    val message = "$error: ${value.value} at ${value.location}"
+                    require(value.isIdentifier) { message }
+
+                    val name: String
+                    val expectedProgram: String?
+
+                    val text = value.getAsString()
+                    val ix = text.indexOf(".")
+                    if (ix != -1) {
+                        expectedProgram = text.substring(0, ix)
+                        name = text.substring(ix + 1)
+                    } else {
+                        expectedProgram = null
+                        name = text
+                    }
+
+                    val c = schema.constants.asSequence()
+                            .firstOrNull {
+                                it.name == name
+                                        && it.type().trueType == type
+                                        && (expectedProgram == null || expectedProgram == it.location.programName)
+                            } ?: throw IllegalStateException(message)
+
+                    val packageName = c.getNamespaceFor(NamespaceScope.KOTLIN, NamespaceScope.JAVA, NamespaceScope.ALL)
+                            ?: throw IllegalStateException("No JVM namespace found for ${c.name} at ${c.location}")
+
+                    block.add("$packageName.$name")
+                }
+            })
+        }
+
+        return buildCodeBlock {
+            recursivelyRenderConstValue(this, thriftType.trueType, valueElement)
+        }
+    }
+
+    private inline fun FunSpec.Builder.addCode(fn: CodeBlock.Builder.() -> Unit) {
+        addCode(buildCodeBlock(fn))
+    }
+
+    private inline fun buildCodeBlock(fn: CodeBlock.Builder.() -> Unit): CodeBlock {
+        val block = CodeBlock.builder()
+        block.fn()
+        return block.build()
     }
 }
 

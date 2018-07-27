@@ -62,6 +62,13 @@ class Constant internal constructor (
         return ns
     }
 
+    fun getNamespaceFor(vararg scopes: NamespaceScope): String? {
+        for (s in scopes) {
+            namespaces[s]?.let { return it }
+        }
+        return null
+    }
+
     fun namespaces(): Map<NamespaceScope, String>? {
         return namespaces
     }

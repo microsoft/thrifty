@@ -43,6 +43,13 @@ abstract class UserType internal constructor(
         }
     }
 
+    fun getNamespaceFor(vararg scopes: NamespaceScope): String? {
+        for (s in scopes) {
+            namespaces[s]?.let { return it }
+        }
+        return null
+    }
+
     override val name: String = mixin.name
 
     override fun equals(other: Any?): Boolean {

@@ -24,18 +24,27 @@ class KotlinCodeGeneratorTest {
               MEMBER_THREE = 4
             }
 
+            const i32 FooNum = 42
+
+            const string ConstStr = "wtf"
+
+            const list<string> ConstStringList = ["wtf", "mate"]
+            const map<string, list<string>> Weird = { "foo": ["a", "s", "d", "f"],
+                                                      "bar": ["q", "w", "e", "r"] }
+            //const binary ConstBin = "DEADBEEF"
+
             struct Test {
               1: required string Foo (thrifty.redacted = "1");
               2: required map<i64, string> Numbers (thrift.obfuscated = "1");
               3: optional string Bar;
-              5: optional binary Bs;
+              5: optional set<list<double>> Bs = [[1.0], [2.0], [3.0], [4.0]];
               6: MyEnum enumType;
               7: set<i8> Bytes;
               8: list<list<string>> listOfStrings
             }
 
             struct AnotherOne {
-              1: optional i32 NumBitTheDust
+              1: optional i32 NumBitTheDust = 900
             }
         """.trimIndent())
 
