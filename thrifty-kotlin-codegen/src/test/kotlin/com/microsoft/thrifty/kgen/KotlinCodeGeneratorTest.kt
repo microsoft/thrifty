@@ -2,8 +2,6 @@ package com.microsoft.thrifty.kgen
 
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FunSpec
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -51,22 +49,6 @@ class KotlinCodeGeneratorTest {
         val files = KotlinCodeGenerator().generate(schema)
 
         files.forEach { println("$it") }
-    }
-
-    @Test fun testWhenEmit() {
-        val function = FunSpec.builder("test")
-                .addParameter("x", Int::class)
-                .beginControlFlow("when (x)")
-                .addCode(CodeBlock.builder()
-                        .addStatement("1 -> {%>")
-                        .addStatement("println(\"1\")")
-                        .addStatement("%<}")
-                        .build())
-                .addStatement("else -> {}")
-                .endControlFlow()
-                .build()
-
-        println(function.toString())
     }
 
     private fun load(thrift: String): Schema {

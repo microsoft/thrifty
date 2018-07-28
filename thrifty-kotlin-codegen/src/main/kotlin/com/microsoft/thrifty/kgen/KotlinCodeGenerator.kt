@@ -38,116 +38,20 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import com.squareup.kotlinpoet.jvm.jvmField
+import com.squareup.kotlinpoet.jvm.jvmStatic
 import okio.ByteString
 
 /**
- * An example of how a Thrift struct could look in Kotlin:
+ * Generates Kotlin code from a [Schema].
  *
- * ```
- * // thrift
+ * While substantially complete, there is a bit more yet to be implemented:
+ * - Services (coroutine-based?)
+ * - Builderless adapters (builders are dumb, given data classes)
+ * - Customizable collection types?  Some droids prefer ArrayMap, ArraySet, etc
+ * - Option to emit one file per type
  *
- * struct CrayCray {
- *   1: required list<list<list<i32>>> emptyList = [[]]
- *   2: required list<set<set<i32>>> emptySet = [[]]
- *   3: required list<list<map<i32, i32>>> emptyMap = [[]]
- * }
- * ```
- *
- * ```
- * // generated kotlin
- *
- * data class CrayCray(
- *   @JvmField @ThriftField(fieldId = 1, isRequired = true) val emptyList: List<List<List<Int>>> = listOf(emptyList()),
- *   @JvmField @ThriftField(fieldId = 2, isRequired = true) val emptySet: List<Set<Set<Int>>> = emptyList(),
- *   @JvmField @ThriftField(fieldId = 3, isRequired = true) val emptyMap: List<List<Map<Int, Int>>> = emptyList()
- * ) {
- *
- *   // Optionally, if redaction or obfuscation is called for
- *   override fun toString(): String {
- *     return "CrayCray(emptyList=$emptyList, emptySet=${ObfuscationUtil.obfuscate(emptySet)}, emptyMap=$emptyMap)"
- *   }
- *
- *   // Optionally, if builders are enabled
- *   class Builder {
- *     // ...
- *   }
- *
- *   companion object {
- *     // If builders:
- *     @JvmField val ADAPTER: Adapter<CrayCray, Builder> // exactly the same as Java adapters
- *
- *     // Otherwise:
- *     @JvmField val ADAPTER: KAdapter<CrayCray> = CrayCrayAdapter()
- *   }
- *
- *   class CrayCrayAdapter : KAdapter<CrayCray> {
- *
- *     fun read(protocol: Protocol): CrayCray {
- *       var emptyList: List<List<List<Int>>>? = null
- *       var emptySet: List<Set<Set<Int>>>? = null
- *       var emptyMap: List<List<Map<Int, Int>>>? = null
- *
- *       while (true) {
- *          val fieldMeta = protocol.readFieldBegin()
- *          if (fieldMeta.typeId == TType.STOP) {
- *            break
- *          }
- *
- *          when (fieldMeta.fieldId) {
- *            1 -> {
- *              if (fieldMeta.typeId == TType.LIST) {
- *                val listMeta0 = protocol.readListBegin()
- *                val value: MutableList<MutableList<MutableList<Int>>> = ArrayList(listMeta0.size)
- *                for (i0 in 0 until listMeta0.size) {
- *                  val listMeta1 = protocol.readListBegin()
- *                  val item0: MutableList<MutableList<Int>> = ArrayList(listMeta1.size)
- *                  for (i1 in 0 until listMeta1.size) {
- *                    val listMeta2 = protocol.readListBegin()
- *                    val item1: MutableList<Int> = ArrayList(listMeta2.size)
- *                    for (i2 in 0 until listMeta2.size) {
- *                      val item2 = protocol.readI32()
- *                      item1.add(item2)
- *                    }
- *                    protocol.readListEnd()
- *                    item0.add(item1)
- *                  }
- *                  protocol.readListEnd()
- *                  value.add(item0)
- *                }
- *                protocol.readListEnd()
- *                emptyList = value
- *              } else {
- *                ProtocolUtil.skip(protocol, fieldMeta.typeId)
- *              }
- *            }
- *
- *            2 -> {
- *              // etc
- *            }
- *
- *            3 -> {
- *              // etc
- *            }
- *
- *            else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
- *          }
- *       }
- *
- *       return CrayCray(
- *         emptyList = checkNotNull(emptyList) { "Field 'emptyList' is missing" },
- *         emptySet = checkNotNull(emptySet) { "Field 'emptySet' is missing" },
- *         emptyMap = checkNotNull(emptyMap) { "Field 'emptyMap' is missing" }
- *       )
- *     }
- *
- *     fun write(protocol: Protocol, struct: CrayCray) {
- *       protocol.writeStructBegin("CrayCray")
- *       protocol.writeFieldBegin("emptyList", 1, TType.LIST)
- *       // etc, as in Java adapters
- *     }
- *   }
- * }
- * ```
+ * @param fieldNamingPolicy A user-specified naming policy for fields.
  */
 class KotlinCodeGenerator(
         fieldNamingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT
@@ -247,7 +151,7 @@ class KotlinCodeGenerator(
     fun generateEnumClass(enumType: EnumType): TypeSpec {
         val typeBuilder = TypeSpec.enumBuilder(enumType.name)
                 .addProperty(PropertySpec.builder("value", INT)
-                        .addAnnotation(JvmField::class)
+                        .jvmField()
                         .initializer("value")
                         .build())
                 .primaryConstructor(FunSpec.constructorBuilder()
@@ -260,7 +164,7 @@ class KotlinCodeGenerator(
         val findByValue = FunSpec.builder("findByValue")
                 .addParameter("value", INT)
                 .returns(resolver.typeNameOf(enumType).asNullable())
-                .addAnnotation(JvmStatic::class)
+                .jvmStatic()
                 .beginControlFlow("return when (value)")
 
         for (member in enumType.members) {
@@ -328,7 +232,7 @@ class KotlinCodeGenerator(
 
             val prop = PropertySpec.builder(fieldName, typeName)
                     .initializer(fieldName)
-                    .addAnnotation(JvmField::class)
+                    .jvmField()
                     .addAnnotation(thriftField)
 
             if (field.isObfuscated) prop.addAnnotation(Obfuscated::class)
@@ -350,7 +254,7 @@ class KotlinCodeGenerator(
 
             companionBuilder.addProperty(PropertySpec.builder("ADAPTER", adapterInterfaceTypeName)
                     .initializer("%T()", adapterTypeName)
-                    .addAnnotation(JvmField::class)
+                    .jvmField()
                     .build())
         } else {
             // TODO: Builderless adapters
