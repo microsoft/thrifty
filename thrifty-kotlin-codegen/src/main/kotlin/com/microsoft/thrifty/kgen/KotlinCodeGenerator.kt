@@ -12,6 +12,7 @@ import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.schema.BuiltinType
 import com.microsoft.thrifty.schema.Constant
 import com.microsoft.thrifty.schema.EnumType
+import com.microsoft.thrifty.schema.Field
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.ListType
 import com.microsoft.thrifty.schema.MapType
@@ -148,12 +149,11 @@ import okio.ByteString
  * }
  * ```
  */
-class KotlinCodeGenerator {
+class KotlinCodeGenerator(
+        fieldNamingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT
+) {
     private val resolver = Resolver()
-    private val fieldNamer = FieldNamingPolicy.JAVA
-
-    // TODO: Customizable FieldNamingPolicy
-    // TODO: Customizable collection impl types
+    private val fieldNamer = FieldNamer(fieldNamingPolicy)
 
     private val ThriftType.typeName
         get() = resolver.typeNameOf(this)
@@ -242,6 +242,8 @@ class KotlinCodeGenerator {
         }
     }
 
+    // region Enums
+
     fun generateEnumClass(enumType: EnumType): TypeSpec {
         val typeBuilder = TypeSpec.enumBuilder(enumType.name)
                 .addProperty(PropertySpec.builder("value", INT)
@@ -286,6 +288,10 @@ class KotlinCodeGenerator {
                 .build()
     }
 
+    // endregion Enums
+
+    // region Structs
+
     fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
         val typeBuilder = TypeSpec.classBuilder(struct.name)
                 .addModifiers(KModifier.DATA)
@@ -299,7 +305,7 @@ class KotlinCodeGenerator {
         val companionBuilder = TypeSpec.companionObjectBuilder()
 
         for (field in struct.fields) {
-            val fieldName = fieldNamer.apply(field.name)
+            val fieldName = fieldNamer.nameOf(field)
             val typeName = field.type().typeName.let {
                 if (!field.required()) it.asNullable() else it
             }
@@ -360,6 +366,10 @@ class KotlinCodeGenerator {
                 .build()
     }
 
+    // endregion Structs
+
+    // region Redaction/obfuscation
+
     fun generateToString(struct: StructType): FunSpec {
 
         // Two-phase formatting technique, ACTIVATE!!!!
@@ -379,7 +389,7 @@ class KotlinCodeGenerator {
             append("(")
 
             for (field in struct.fields) {
-                val fieldName = fieldNamer.apply(field.name)
+                val fieldName = fieldNamer.nameOf(field)
                 append("$fieldName=")
                 append("%s")
                 append(", ")
@@ -418,6 +428,10 @@ class KotlinCodeGenerator {
                 .build()
     }
 
+    // endregion Redaction/obfuscation
+
+    // region Builders
+
     fun generateBuilderFor(schema: Schema, struct: StructType): TypeSpec {
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
@@ -437,7 +451,7 @@ class KotlinCodeGenerator {
 
         val buildParamStringBuilder = StringBuilder()
         for (field in struct.fields) {
-            val name = fieldNamer.apply(field.name)
+            val name = fieldNamer.nameOf(field)
             val type = resolver.typeNameOf(field.type())
 
             // Add a private var
@@ -499,6 +513,10 @@ class KotlinCodeGenerator {
                 .build()
     }
 
+    // endregion Builders
+
+    // region Adapters
+
     fun generateAdapterFor(struct: StructType, adapterName: ClassName, builderType: ClassName): TypeSpec {
         val adapter = TypeSpec.classBuilder(adapterName)
                 .addModifiers(KModifier.PRIVATE)
@@ -519,7 +537,7 @@ class KotlinCodeGenerator {
 
         writer.addStatement("protocol.writeStructBegin(%S)", struct.name)
         for (field in struct.fields) {
-            val name = fieldNamer.apply(field.name)
+            val name = fieldNamer.nameOf(field)
             val fieldType = field.type().trueType
 
             if (!field.required()) {
@@ -558,7 +576,7 @@ class KotlinCodeGenerator {
 
 
         for (field in struct.fields) {
-            val name = fieldNamer.apply(field.name)
+            val name = fieldNamer.nameOf(field)
             val fieldType = field.type().trueType
 
             reader.addCode {
@@ -847,6 +865,10 @@ class KotlinCodeGenerator {
                 .build()
     }
 
+    //endregion Adapters
+
+    //region Constants
+
     fun generateConstantProperty(schema: Schema, constant: Constant): PropertySpec {
         val type = constant.type().trueType
         val typeName = type.typeName
@@ -1061,6 +1083,8 @@ class KotlinCodeGenerator {
         }
     }
 
+    //endregion Constants
+
     private inline fun FunSpec.Builder.addCode(fn: CodeBlock.Builder.() -> Unit) {
         addCode(buildCodeBlock(fn))
     }
@@ -1072,3 +1096,9 @@ class KotlinCodeGenerator {
     }
 }
 
+private class FieldNamer(private val policy: FieldNamingPolicy) {
+    private val cache = mutableMapOf<String, String>()
+
+    fun nameOf(field: Field) = nameOf(field.name)
+    fun nameOf(fieldName: String) = cache.getOrPut(fieldName) { policy.apply(fieldName) }
+}
