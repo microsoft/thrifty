@@ -27,7 +27,7 @@ import java.util.Objects
  * exceptions, services, and typedefs.
  */
 abstract class UserType internal constructor(
-        val namespaces: Map<NamespaceScope, String>,
+        private val namespaces: Map<NamespaceScope, String>,
         private val mixin: UserElementMixin
 ) : ThriftType(mixin.name), UserElement by mixin {
 
