@@ -225,7 +225,6 @@ class KotlinCodeGenerator {
             constantsByNamespace.put(ns, property)
         }
 
-        // TODO: Constants
         // TODO: Services
 
         val namespaces = mutableSetOf<String>().apply {
@@ -305,8 +304,6 @@ class KotlinCodeGenerator {
                 if (!field.required()) it.asNullable() else it
             }
 
-            // TODO: Default values
-
             val thriftField = AnnotationSpec.builder(ThriftField::class).let { anno ->
                 anno.addMember("fieldId = ${field.id()}")
                 if (field.required()) anno.addMember("isRequired = true")
@@ -342,7 +339,7 @@ class KotlinCodeGenerator {
             val adapterInterfaceTypeName = Adapter::class.asTypeName().parameterizedBy(
                     struct.typeName, builderTypeName)
 
-            typeBuilder.addType(generateBuilderFor(struct))
+            typeBuilder.addType(generateBuilderFor(schema, struct))
             typeBuilder.addType(generateAdapterFor(struct, adapterTypeName, builderTypeName))
 
             companionBuilder.addProperty(PropertySpec.builder("ADAPTER", adapterInterfaceTypeName)
@@ -421,7 +418,7 @@ class KotlinCodeGenerator {
                 .build()
     }
 
-    fun generateBuilderFor(struct: StructType): TypeSpec {
+    fun generateBuilderFor(schema: Schema, struct: StructType): TypeSpec {
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
                 .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
@@ -444,8 +441,13 @@ class KotlinCodeGenerator {
             val type = resolver.typeNameOf(field.type())
 
             // Add a private var
+
+            val defaultValueBlock = field.defaultValue()?.let {
+                renderConstValue(schema, field.type().trueType, it)
+            } ?: CodeBlock.of("null")
+
             val propertySpec = PropertySpec.varBuilder(name, type.asNullable(), KModifier.PRIVATE)
-                    .initializer("null") // TODO: Initialize with default value, if any
+                    .initializer(defaultValueBlock)
 
             // Add a builder fun
             val buildFunParamType = if (!field.required()) type.asNullable() else type
@@ -454,21 +456,17 @@ class KotlinCodeGenerator {
                     .addStatement("return apply { this.$name = $name }")
 
             // Add initialization in default ctor
-            if (field.defaultValue() != null) {
-                // TODO: Add default-ctor initializer
-                defaultCtor.addStatement("this.$name = null")
-            } else {
-                defaultCtor.addStatement("this.$name = null")
-            }
+            defaultCtor.addStatement("this.$name = %L", defaultValueBlock)
 
             // Add initialization in copy ctor
             copyCtor.addStatement("this.$name = source.$name")
 
             // reset field
-            resetFunSpec.addStatement("this.$name = null")
-            // TODO: Reset to default value
+
+            resetFunSpec.addStatement("this.$name = %L", defaultValueBlock)
 
             // Add field to build-method ctor-invocation arg builder
+            // TODO: Add newlines and indents if numFields > 1
             buildParamStringBuilder.append("$name = ")
             if (field.required()) {
                 buildParamStringBuilder.append("checkNotNull($name) { \"Required field '$name' is missing\" }")
