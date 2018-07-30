@@ -219,7 +219,7 @@ private object TypeCodeVisitor : ThriftType.Visitor<Byte> {
         return TType.VOID
     }
 
-    override fun visitEnum(userType: EnumType): Byte {
+    override fun visitEnum(enumType: EnumType): Byte {
         return TType.I32
     }
 
@@ -235,7 +235,7 @@ private object TypeCodeVisitor : ThriftType.Visitor<Byte> {
         return TType.MAP
     }
 
-    override fun visitStruct(userType: StructType): Byte {
+    override fun visitStruct(structType: StructType): Byte {
         return TType.STRUCT
     }
 

@@ -3,6 +3,7 @@ package com.microsoft.thrifty.schema
 import io.kotlintest.shouldBe
 import io.kotlintest.shouldNotBe
 import org.junit.Test
+import java.io.File
 
 class LocationTest {
     @Test fun `equals uses structural-equality semantics`() {
@@ -17,6 +18,6 @@ class LocationTest {
 
     @Test fun `toString is human-readable`() {
         val location = Location.get("/var/log", "syslog").at(10, 5)
-        "$location" shouldBe "/var/log/syslog at 10:5"
+        "$location" shouldBe "/var/log${File.separator}syslog at 10:5"
     }
 }

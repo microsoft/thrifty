@@ -564,7 +564,7 @@ class ThriftyCodeGenerator {
         read.addStatement("break")
         read.endControlFlow()
 
-        if (structType.fields.size > 0) {
+        if (structType.fields.isNotEmpty()) {
             read.beginControlFlow("switch (field.fieldId)")
         }
 

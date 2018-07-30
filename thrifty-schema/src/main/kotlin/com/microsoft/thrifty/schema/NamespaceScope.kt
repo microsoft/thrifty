@@ -39,7 +39,8 @@ enum class NamespaceScope(private val thriftName: String) {
     ST("st"),
     DELPHI("delphi"),
     JAVASCRIPT("js"),
-    UNKNOWN("none");
+    UNKNOWN("none"),
+    KOTLIN("kt");
 
     companion object {
         @JvmStatic fun forThriftName(name: String): NamespaceScope? {

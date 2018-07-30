@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.compiler;
 
+import com.microsoft.thrifty.compiler.spi.KotlinTypeProcessor;
 import com.microsoft.thrifty.compiler.spi.TypeProcessor;
 
 import java.util.Iterator;
@@ -37,6 +38,7 @@ public final class TypeProcessorService {
     }
 
     private ServiceLoader<TypeProcessor> serviceLoader = ServiceLoader.load(TypeProcessor.class);
+    private ServiceLoader<KotlinTypeProcessor> kotlinProcessorLoader = ServiceLoader.load(KotlinTypeProcessor.class);
 
     /**
      * Gets the first {@link TypeProcessor} implementation loaded, or
@@ -47,15 +49,31 @@ public final class TypeProcessorService {
      *
      * @return The first located {@link TypeProcessor}, or {@code null}.
      */
-    public TypeProcessor get() {
-        TypeProcessor processor = null;
+    public TypeProcessor getJavaProcessor() {
+        return loadSingleProcessor(serviceLoader.iterator());
+    }
 
-        Iterator<TypeProcessor> iter = serviceLoader.iterator();
+    /**
+     * Gets the first {@link KotlinTypeProcessor} implementation loaded, or
+     * {@code null} if none are found.
+     *
+     * Because service ordering is non-deterministic, only the first instance
+     * is returned.  A warning will be printed if more than one are found.
+     *
+     * @return The first located {@link KotlinTypeProcessor}, or {@code null}.
+     */
+    public KotlinTypeProcessor getKotlinProcessor() {
+        return loadSingleProcessor(kotlinProcessorLoader.iterator());
+    }
+
+    private <T> T loadSingleProcessor(Iterator<T> iter) {
+        T processor = null;
+
         if (iter.hasNext()) {
             processor = iter.next();
 
             if (iter.hasNext()) {
-                System.err.println("Multiple TypeProcessors found; using "
+                System.err.println("Multiple processors found; using "
                         + processor.getClass().getName());
             }
         }
