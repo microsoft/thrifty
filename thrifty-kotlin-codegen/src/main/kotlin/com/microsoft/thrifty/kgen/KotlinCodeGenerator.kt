@@ -813,7 +813,7 @@ class KotlinCodeGenerator(
                     } else if (value.isInt) {
                         block.add("%L", value.getAsInt() != 0)
                     } else {
-                        constOrError(block, value, type, "Invalid boolean constant")
+                        constOrError("Invalid boolean constant")
                     }
                 }
 
@@ -821,7 +821,7 @@ class KotlinCodeGenerator(
                     if (value.isInt) {
                         block.add("%L", value.getAsInt())
                     } else {
-                        constOrError(block, value, type, "Invalid byte constant")
+                        constOrError("Invalid byte constant")
                     }
                 }
 
@@ -829,7 +829,7 @@ class KotlinCodeGenerator(
                     if (value.isInt) {
                         block.add("%L", value.getAsInt())
                     } else {
-                        constOrError(block, value, type, "Invalid I16 constant")
+                        constOrError("Invalid I16 constant")
                     }
                 }
 
@@ -837,7 +837,7 @@ class KotlinCodeGenerator(
                     if (value.isInt) {
                         block.add("%L", value.getAsInt())
                     } else {
-                        constOrError(block, value, type, "Invalid I32 constant")
+                        constOrError("Invalid I32 constant")
                     }
                 }
 
@@ -845,7 +845,7 @@ class KotlinCodeGenerator(
                     if (value.isInt) {
                         block.add("%L", value.getAsInt())
                     } else {
-                        constOrError(block, value, type, "Invalid I64 constant")
+                        constOrError("Invalid I64 constant")
                     }
                 }
 
@@ -853,7 +853,7 @@ class KotlinCodeGenerator(
                     if (value.isDouble) {
                         block.add("%L", value.getAsDouble())
                     } else {
-                        constOrError(block, value, type, "Invalid double constant")
+                        constOrError("Invalid double constant")
                     }
                 }
 
@@ -861,7 +861,7 @@ class KotlinCodeGenerator(
                     if (value.isString) {
                         block.add("%S", value.getAsString())
                     } else {
-                        constOrError(block, value, type, "Invalid string constant")
+                        constOrError("Invalid string constant")
                     }
                 }
 
@@ -870,7 +870,7 @@ class KotlinCodeGenerator(
                     if (value.isString) {
                         block.add("%T.decodeHex(%S)", ByteString::class, value.getAsString())
                     } else {
-                        constOrError(block, value, type, "Invalid binary constant")
+                        constOrError("Invalid binary constant")
                     }
                 }
 
@@ -890,7 +890,7 @@ class KotlinCodeGenerator(
                     if (member != null) {
                         block.add("%T.%L", enumType.typeName, member.name)
                     } else {
-                        constOrError(block, value, type, "Invalid enum constant")
+                        constOrError("Invalid enum constant")
                     }
                 }
 
@@ -922,7 +922,7 @@ class KotlinCodeGenerator(
 
                         block.add("%<)")
                     } else {
-                        constOrError(block, value, type, errorMessage)
+                        constOrError(errorMessage)
                     }
                 }
 
@@ -946,7 +946,7 @@ class KotlinCodeGenerator(
 
                         block.add("%<)")
                     } else {
-                        constOrError(block, value, type, "Invalid map constant")
+                        constOrError("Invalid map constant")
                     }
                 }
 
@@ -962,7 +962,7 @@ class KotlinCodeGenerator(
                     throw AssertionError("Cannot have a const value of a service type, wat r u doing")
                 }
 
-                private fun constOrError(block:CodeBlock.Builder, value: ConstValueElement, type: ThriftType, error: String) {
+                private fun constOrError(error: String) {
                     val message = "$error: ${value.value} at ${value.location}"
                     require(value.isIdentifier) { message }
 

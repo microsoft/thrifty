@@ -59,7 +59,7 @@ internal class ConstantBuilder(
                 initializer.addStatement("\$L = \$L", name, init)
             }
 
-            override fun visitEnum(userType: EnumType) {
+            override fun visitEnum(enumType: EnumType) {
                 val item = renderConstValue(initializer, allocator, scope, tt, value)
 
                 initializer.addStatement("\$L = \$L", name, item)
@@ -126,7 +126,7 @@ internal class ConstantBuilder(
                 }
             }
 
-            override fun visitStruct(userType: StructType) {
+            override fun visitStruct(structType: StructType) {
                 // TODO: this
                 throw UnsupportedOperationException("struct-type default values are not yet implemented")
             }
@@ -323,7 +323,7 @@ internal class ConstantBuilder(
             return CodeBlock.builder().add("\$T.\$L(\$N)", TypeNames.COLLECTIONS, method, name).build()
         }
 
-        override fun visitStruct(userType: StructType): CodeBlock {
+        override fun visitStruct(structType: StructType): CodeBlock {
             throw IllegalStateException("nested structs not implemented")
         }
 

@@ -66,8 +66,7 @@ public final class TypeProcessorService {
         return loadSingleProcessor(kotlinProcessorLoader.iterator());
     }
 
-    private <T> T loadSingleProcessor(Iterator<T> iter)
-    {
+    private <T> T loadSingleProcessor(Iterator<T> iter) {
         T processor = null;
 
         if (iter.hasNext()) {
