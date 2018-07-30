@@ -206,7 +206,7 @@ public class ThriftyCompiler {
         }
 
         TypeProcessorService svc = TypeProcessorService.getInstance();
-        TypeProcessor processor = svc.get();
+        TypeProcessor processor = svc.getJavaProcessor();
         if (processor != null) {
             gen = gen.usingTypeProcessor(processor);
         }

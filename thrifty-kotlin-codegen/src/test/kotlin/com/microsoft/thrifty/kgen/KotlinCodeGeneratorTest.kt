@@ -1,5 +1,6 @@
 package com.microsoft.thrifty.kgen
 
+import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
 import org.junit.Rule
@@ -33,7 +34,7 @@ class KotlinCodeGeneratorTest {
 
             struct Test {
               1: required string Foo (thrifty.redacted = "1");
-              2: required map<i64, string> Numbers (thrift.obfuscated = "1");
+              2: required map<i64, string> Numbers (thrifty.obfuscated = "1");
               3: optional string Bar;
               5: optional set<list<double>> Bs = [[1.0], [2.0], [3.0], [4.0]];
               6: MyEnum enumType;
@@ -46,7 +47,7 @@ class KotlinCodeGeneratorTest {
             }
         """.trimIndent())
 
-        val files = KotlinCodeGenerator().generate(schema)
+        val files = KotlinCodeGenerator(FieldNamingPolicy.JAVA).generate(schema)
 
         files.forEach { println("$it") }
     }

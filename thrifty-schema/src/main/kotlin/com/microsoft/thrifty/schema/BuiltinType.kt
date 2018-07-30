@@ -36,6 +36,7 @@ class BuiltinType @JvmOverloads internal constructor(
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T {
         return when (this) {
+            VOID -> visitor.visitVoid(this)
             BOOL -> visitor.visitBool(this)
             BYTE, I8 -> visitor.visitByte(this)
             I16 -> visitor.visitI16(this)

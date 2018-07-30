@@ -1,3 +1,23 @@
+/*
+ * Thrifty
+ *
+ * Copyright (c) Microsoft Corporation
+ *
+ * All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * THIS CODE IS PROVIDED ON AN  *AS IS* BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+ * WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE,
+ * FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+ *
+ * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
+ */
 package com.microsoft.thrifty.kgen
 
 import com.microsoft.thrifty.TType
@@ -26,17 +46,38 @@ import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import okio.ByteString
 
-class Resolver {
-    fun typeNameOf(type: ThriftType): TypeName {
-        return type.accept(TypeNameVisitor)
+internal val ThriftType.typeName: TypeName
+    get() = accept(TypeNameVisitor)
+
+internal val ThriftType.typeCode: Byte
+    get() = accept(TypeCodeVisitor)
+
+internal val UserType.kotlinNamespace: String
+    get() = getNamespaceFor(NamespaceScope.KOTLIN, NamespaceScope.JAVA, NamespaceScope.ALL)
+            ?: throw AssertionError("No JVM namespace defined for $name")
+
+internal val Constant.kotlinNamespace: String
+    get() = getNamespaceFor(NamespaceScope.KOTLIN, NamespaceScope.JAVA, NamespaceScope.ALL)
+            ?: throw AssertionError("No JVM namespace defined for $name")
+
+internal val ThriftType.typeCodeName: String
+    get() = when (typeCode) {
+        TType.BOOL -> "BOOL"
+        TType.BYTE -> "BYTE"
+        TType.I16 -> "I16"
+        TType.I32 -> "I32"
+        TType.I64 -> "I64"
+        TType.DOUBLE -> "DOUBLE"
+        TType.STRING -> "STRING"
+        TType.LIST -> "LIST"
+        TType.SET -> "SET"
+        TType.MAP -> "MAP"
+        TType.STRUCT -> "STRUCT"
+        TType.VOID -> "VOID"
+        else -> error("Unexpected TType value: $typeCode")
     }
 
-    fun typeCodeOf(type: ThriftType): Byte {
-        return type.accept(TypeCodeVisitor)
-    }
-}
-
-object TypeCodeVisitor : ThriftType.Visitor<Byte> {
+private object TypeCodeVisitor : ThriftType.Visitor<Byte> {
     override fun visitVoid(voidType: BuiltinType) = TType.VOID
     override fun visitBool(boolType: BuiltinType) = TType.BOOL
     override fun visitByte(byteType: BuiltinType) = TType.BYTE
@@ -55,7 +96,7 @@ object TypeCodeVisitor : ThriftType.Visitor<Byte> {
     override fun visitService(serviceType: ServiceType) = error("Services don't have a typecode")
 }
 
-object TypeNameVisitor : ThriftType.Visitor<TypeName> {
+private object TypeNameVisitor : ThriftType.Visitor<TypeName> {
     override fun visitVoid(voidType: BuiltinType) = UNIT
 
     override fun visitBool(boolType: BuiltinType) = BOOLEAN
@@ -103,11 +144,3 @@ object TypeNameVisitor : ThriftType.Visitor<TypeName> {
     }
 
 }
-
-val UserType.kotlinNamespace: String
-    get() = getNamespaceFor(NamespaceScope.KOTLIN, NamespaceScope.JAVA, NamespaceScope.ALL)
-            ?: throw AssertionError("No JVM namespace defined for $name")
-
-val Constant.kotlinNamespace: String
-    get() = getNamespaceFor(NamespaceScope.KOTLIN, NamespaceScope.JAVA, NamespaceScope.ALL)
-            ?: throw AssertionError("No JVM namespace defined for $name")

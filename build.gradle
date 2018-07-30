@@ -44,11 +44,15 @@ allprojects {
                 ],
 
                 kotlin: [
-                        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+                        "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version",
                 ],
 
                 kotlinPoet: [
-                        'com.squareup:kotlinpoet:1.0.0-RC1'
+                        dependencies.create('com.squareup:kotlinpoet:1.0.0-RC1') {
+                            exclude module: 'kotlin-stdlib'
+                            exclude module: 'kotlin-reflect'
+                        },
+                        "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
                 ],
 
                 testing: [
@@ -56,7 +60,11 @@ allprojects {
                         'org.mockito:mockito-core:1.10.19',
                         'com.google.truth:truth:0.28',
                         'org.hamcrest:hamcrest-all:1.3',
-                        'io.kotlintest:kotlintest-assertions:3.1.8',
+                        dependencies.create('io.kotlintest:kotlintest-assertions:3.1.8') {
+                            exclude module: 'kotlin-stdlib'
+                            exclude module: 'kotlin-reflect'
+                        },
+                        "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
                 ]
         ]
     }

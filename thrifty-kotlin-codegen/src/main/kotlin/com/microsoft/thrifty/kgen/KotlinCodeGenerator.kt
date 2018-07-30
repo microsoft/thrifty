@@ -1,3 +1,23 @@
+/*
+ * Thrifty
+ *
+ * Copyright (c) Microsoft Corporation
+ *
+ * All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * THIS CODE IS PROVIDED ON AN  *AS IS* BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+ * WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE,
+ * FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+ *
+ * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
+ */
 package com.microsoft.thrifty.kgen
 
 import com.google.common.collect.HashMultimap
@@ -8,6 +28,7 @@ import com.microsoft.thrifty.StructBuilder
 import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.ThriftException
 import com.microsoft.thrifty.ThriftField
+import com.microsoft.thrifty.compiler.spi.KotlinTypeProcessor
 import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.schema.BuiltinType
 import com.microsoft.thrifty.schema.Constant
@@ -33,9 +54,10 @@ import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.jvm.jvmField
@@ -54,62 +76,14 @@ import okio.ByteString
  * @param fieldNamingPolicy A user-specified naming policy for fields.
  */
 class KotlinCodeGenerator(
-        fieldNamingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT
+        fieldNamingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT,
+        private val processor: KotlinTypeProcessor = NoTypeProcessor
 ) {
-    private val resolver = Resolver()
     private val fieldNamer = FieldNamer(fieldNamingPolicy)
 
-    private val ThriftType.typeName
-        get() = resolver.typeNameOf(this)
-
-    private val ThriftType.typeCode
-        get() = resolver.typeCodeOf(this)
-
-    private val ThriftType.typeCodeName
-        get() = when (this.typeCode) {
-            TType.BOOL -> "BOOL"
-            TType.BYTE -> "BYTE"
-            TType.I16 -> "I16"
-            TType.I32 -> "I32"
-            TType.I64 -> "I64"
-            TType.DOUBLE -> "DOUBLE"
-            TType.STRING -> "STRING"
-            TType.LIST -> "LIST"
-            TType.SET -> "SET"
-            TType.MAP -> "MAP"
-            TType.STRUCT -> "STRUCT"
-            TType.VOID -> "VOID"
-            else -> error("Unexpected TType value: ${this.typeCode}")
-        }
-
-    private val ThriftType.isConstEligible
-        get() = accept(object : ThriftType.Visitor<Boolean> {
-            // JVM primitives and strings can be constants
-            override fun visitBool(boolType: BuiltinType) = true
-            override fun visitByte(byteType: BuiltinType) = true
-            override fun visitI16(i16Type: BuiltinType) = true
-            override fun visitI32(i32Type: BuiltinType) = true
-            override fun visitI64(i64Type: BuiltinType) = true
-            override fun visitDouble(doubleType: BuiltinType) = true
-            override fun visitString(stringType: BuiltinType) = true
-
-            // Everything else, cannot.
-            override fun visitBinary(binaryType: BuiltinType) = false
-            override fun visitEnum(enumType: EnumType) = false
-            override fun visitList(listType: ListType) = false
-            override fun visitSet(setType: SetType) = false
-            override fun visitMap(mapType: MapType) = false
-            override fun visitStruct(structType: StructType) = false
-            override fun visitTypedef(typedefType: TypedefType) = typedefType.trueType.accept(this)
-
-            // These make no sense
-            override fun visitService(serviceType: ServiceType): Boolean {
-                error("Cannot have a const value of a service type")
-            }
-            override fun visitVoid(voidType: BuiltinType): Boolean {
-                error("Cannot have a const value of void")
-            }
-        })
+    private object NoTypeProcessor : KotlinTypeProcessor {
+        override fun process(typeSpec: TypeSpec) = typeSpec
+    }
 
     fun generate(schema: Schema): List<FileSpec> {
         TypeSpec.classBuilder("foo")
@@ -141,7 +115,9 @@ class KotlinCodeGenerator(
 
         return fileSpecsByNamespace.map { (ns, fileSpec) ->
             constantsByNamespace[ns]?.forEach { fileSpec.addProperty(it) }
-            specsByNamespace[ns]?.forEach { fileSpec.addType(it) }
+            specsByNamespace[ns]
+                    ?.mapNotNull { processor.process(it) }
+                    ?.forEach { fileSpec.addType(it) }
             fileSpec.build()
         }
     }
@@ -163,7 +139,7 @@ class KotlinCodeGenerator(
 
         val findByValue = FunSpec.builder("findByValue")
                 .addParameter("value", INT)
-                .returns(resolver.typeNameOf(enumType).asNullable())
+                .returns(enumType.typeName.asNullable())
                 .jvmStatic()
                 .beginControlFlow("return when (value)")
 
@@ -250,7 +226,7 @@ class KotlinCodeGenerator(
                     struct.typeName, builderTypeName)
 
             typeBuilder.addType(generateBuilderFor(schema, struct))
-            typeBuilder.addType(generateAdapterFor(struct, adapterTypeName, builderTypeName))
+            typeBuilder.addType(generateAdapterFor(struct, adapterTypeName, adapterInterfaceTypeName, builderTypeName))
 
             companionBuilder.addProperty(PropertySpec.builder("ADAPTER", adapterInterfaceTypeName)
                     .initializer("%T()", adapterTypeName)
@@ -276,59 +252,58 @@ class KotlinCodeGenerator(
 
     fun generateToString(struct: StructType): FunSpec {
 
-        // Two-phase formatting technique, ACTIVATE!!!!
-        // Step 1: generate a "template" similar to:
-        //    "TypeName(field1=%s, field2=%s, field3=%s)"
-        //
-        //    generate format arguments according to the field's type and redacted/obfuscated needs:
-        //    "$fieldName", or "%1T.summarizeCollection($fieldName, "list", "elementTypeName")"
-        //    also add Kotlinpoet param for ObfuscationUtil, if necessary
-        //
-        // Step 2: generate a kotlin fun, using the template string and any kotlinpoet format args.
+        val block = buildCodeBlock {
+            add("return \"${struct.name}(")
 
-        val placeholders = LinkedHashSet<Any>(0)
-        val formatArgs = mutableListOf<String>()
-        val templateBuilder = StringBuilder().apply {
-            append(struct.name)
-            append("(")
-
-            for (field in struct.fields) {
+            for ((ix, field) in struct.fields.withIndex()) {
+                if (ix != 0) {
+                    add(", ")
+                }
                 val fieldName = fieldNamer.nameOf(field)
-                append("$fieldName=")
-                append("%s")
-                append(", ")
+                add("$fieldName=")
 
-                formatArgs += when {
-                    field.isRedacted -> "<REDACTED>"
+                when {
+                    field.isRedacted -> add("<REDACTED>")
                     field.isObfuscated -> {
-                        placeholders += ObfuscationUtil::class.java
                         val type = field.type().trueType
-                        val method = when {
-                            type.isList -> "summarizeCollection($fieldName, \"list\", \"${(type as ListType).elementType().trueType.name}\")"
-                            type.isSet -> "summarizeCollection($fieldName, \"set\", \"${(type as ListType).elementType().trueType.name}\")"
-                            type.isMap -> {
-                                val mapType = type as MapType
-                                val keyTypeName = mapType.keyType().trueType.name
-                                val valTypeName = mapType.valueType().trueType.name
-                                "summarizeMap($fieldName, \"$keyTypeName\", \"$valTypeName\")"
+                        when (type) {
+                            is ListType -> {
+                                val elementName = type.elementType().trueType.name
+                                add("\${%T.summarizeCollection($fieldName, %S, %S)}",
+                                        ObfuscationUtil::class,
+                                        "list",
+                                        elementName)
                             }
-                            else -> "hash($fieldName)"
+                            is SetType -> {
+                                val elementName = type.elementType().trueType.name
+                                add("\${%T.summarizeCollection($fieldName, %S, %S)}",
+                                        ObfuscationUtil::class,
+                                        "set",
+                                        elementName)
+                            }
+                            is MapType -> {
+                                val keyName = type.keyType().trueType.name
+                                val valName = type.valueType().trueType.name
+                                add("\${%T.summarizeMap($fieldName, %S, %S)}",
+                                        ObfuscationUtil::class,
+                                        keyName,
+                                        valName)
+                            }
+                            else -> {
+                                add("\${%T.hash($fieldName)}", ObfuscationUtil::class)
+                            }
                         }
-                        "\${%1T.$method}"
                     }
-                    else -> "\$$fieldName"
+                    else -> add("\$$fieldName")
                 }
             }
 
-            setLength(length - 2)
-            append(")")
+            add(")\"")
         }
-
-        val template = String.format(templateBuilder.toString(), *formatArgs.toTypedArray())
 
         return FunSpec.builder("toString")
                 .addModifiers(KModifier.OVERRIDE)
-                .addCode("return \"$template\"", *placeholders.toTypedArray())
+                .addCode(block)
                 .build()
     }
 
@@ -356,7 +331,7 @@ class KotlinCodeGenerator(
         val buildParamStringBuilder = StringBuilder()
         for (field in struct.fields) {
             val name = fieldNamer.nameOf(field)
-            val type = resolver.typeNameOf(field.type())
+            val type = field.type().typeName
 
             // Add a private var
 
@@ -421,10 +396,14 @@ class KotlinCodeGenerator(
 
     // region Adapters
 
-    fun generateAdapterFor(struct: StructType, adapterName: ClassName, builderType: ClassName): TypeSpec {
+    fun generateAdapterFor(
+            struct: StructType,
+            adapterName: ClassName,
+            adapterInterfaceName: TypeName,
+            builderType: ClassName): TypeSpec {
         val adapter = TypeSpec.classBuilder(adapterName)
                 .addModifiers(KModifier.PRIVATE)
-                .addSuperinterface(Adapter::class.asTypeName().parameterizedBy(struct.typeName, builderType))
+                .addSuperinterface(adapterInterfaceName)
 
         val reader = FunSpec.builder("read")
                 .addModifiers(KModifier.OVERRIDE)
@@ -499,8 +478,6 @@ class KotlinCodeGenerator(
         if (struct.fields.isNotEmpty()) {
             reader.addStatement("else -> %T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
         }
-
-        // MAGIC
 
         reader.endControlFlow() // when (fieldMeta.fieldId.toInt())
         reader.endControlFlow() // while (true)
@@ -763,10 +740,10 @@ class KotlinCodeGenerator(
             })
         }
 
-        return CodeBlock.builder()
-                .apply { generateRecursiveReadCall(this, name, type, 0) }
-                .addStatement("builder.$name($name)")
-                .build()
+        return buildCodeBlock {
+            generateRecursiveReadCall(this, name, type, 0)
+            addStatement("builder.$name($name)")
+        }
     }
 
     //endregion Adapters
@@ -781,7 +758,42 @@ class KotlinCodeGenerator(
         if (constant.isDeprecated) propBuilder.addAnnotation(Deprecated::class)
         if (constant.hasJavadoc) propBuilder.addKdoc(constant.documentation)
 
-        if (type.isConstEligible) propBuilder.addModifiers(KModifier.CONST)
+        val canBeConst = type.accept(object : ThriftType.Visitor<Boolean> {
+            // JVM primitives and strings can be constants
+            override fun visitBool(boolType: BuiltinType) = true
+
+            override fun visitByte(byteType: BuiltinType) = true
+            override fun visitI16(i16Type: BuiltinType) = true
+            override fun visitI32(i32Type: BuiltinType) = true
+            override fun visitI64(i64Type: BuiltinType) = true
+            override fun visitDouble(doubleType: BuiltinType) = true
+            override fun visitString(stringType: BuiltinType) = true
+
+            // Everything else, cannot...
+            override fun visitBinary(binaryType: BuiltinType) = false
+
+            override fun visitEnum(enumType: EnumType) = false
+            override fun visitList(listType: ListType) = false
+            override fun visitSet(setType: SetType) = false
+            override fun visitMap(mapType: MapType) = false
+            override fun visitStruct(structType: StructType) = false
+
+            // ...except, possibly, a typedef
+            override fun visitTypedef(typedefType: TypedefType) = typedefType.trueType.accept(this)
+
+            // These make no sense
+            override fun visitService(serviceType: ServiceType): Boolean {
+                error("Cannot have a const value of a service type")
+            }
+
+            override fun visitVoid(voidType: BuiltinType): Boolean {
+                error("Cannot have a const value of void")
+            }
+        })
+
+        if (canBeConst) {
+            propBuilder.addModifiers(KModifier.CONST)
+        }
 
         propBuilder.initializer(renderConstValue(schema, constant.type(), constant.value()))
 

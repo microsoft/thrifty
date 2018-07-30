@@ -20,5 +20,6 @@
  */
 dependencies {
     api libraries.javaPoet
+    api libraries.kotlinPoet
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
