@@ -21,16 +21,14 @@
 package com.microsoft.thrifty.compiler
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.MissingParameter
 import com.github.ajalt.clikt.output.TermUi
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.transformAll
 import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
-import com.github.ajalt.clikt.parameters.options.transformAll
 import com.github.ajalt.clikt.parameters.options.validate
-import com.github.ajalt.clikt.parameters.types.file
 import com.microsoft.thrifty.gen.ThriftyCodeGenerator
 import com.microsoft.thrifty.kgen.KotlinCodeGenerator
 import com.microsoft.thrifty.schema.FieldNamingPolicy
@@ -42,8 +40,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.ArrayList
-
-private class MissingArgumentException(message: String): Exception(message)
 
 /**
  * A program that compiles Thrift IDL files into Java source code for use
@@ -84,15 +80,14 @@ private class MissingArgumentException(message: String): Exception(message)
 class ThriftyCompiler {
 
     private val cli = object : CliktCommand() {
-        val outputDirectory: Path? by option("-o", "--out", help = "the output directory for generated files")
-                .file(fileOkay = false, folderOkay = true)
-                .transformAll { it.lastOrNull()?.toPath() ?: throw MissingParameter(option) }
-                .validate { (Files.exists(it) && Files.isDirectory(it)) || !Files.exists(it) }
+        val outputDirectory: Path by option("-o", "--out", help = "the output directory for generated files")
+                .path(fileOkay = false, folderOkay = true)
+                .required()
+                .validate { Files.isDirectory(it) || !Files.exists(it) }
 
         val searchPath: List<Path> by option("-p", "--path", help = "the search path for .thrift includes")
-                .file(exists = true)
-                .transformAll { values -> values.map { it.toPath() } }
-                .validate { it.all { Files.exists(it) } }
+                .path(exists = true, folderOkay = true, fileOkay = false)
+                .multiple()
 
         val listTypeName: String? by option("--list-type", help = "when specified, the concrete type to use for lists")
         val setTypeName: String? by option("--set-type", help =  "when specified, the concrete type to use for sets")
@@ -121,8 +116,6 @@ class ThriftyCompiler {
                 .transformAll { values -> values.map { FileSystems.getDefault().getPath(it) } }
 
         override fun run() {
-            requireOption(outputDirectory) { "Output path is required" }
-
             val loader = Loader()
             for (thriftFile in thriftFiles) {
                 loader.addThriftFile(thriftFile)
@@ -169,7 +162,7 @@ class ThriftyCompiler {
             gen.emitAndroidAnnotations(emitNullabilityAnnotations)
             gen.emitParcelable(emitParcelable)
 
-            gen.generate(outputDirectory!!)
+            gen.generate(outputDirectory)
         }
 
         private fun generateKotlin(schema: Schema, fieldNamingPolicy: FieldNamingPolicy) {
@@ -188,14 +181,7 @@ class ThriftyCompiler {
 
             val specs = gen.generate(schema)
 
-            specs.forEach { it.writeTo(outputDirectory!!) }
-        }
-
-        private fun <T> requireOption(opt: T?, lazyMessage: () -> String): T {
-            if (opt == null) {
-                throw MissingArgumentException(lazyMessage())
-            }
-            return opt
+            specs.forEach { it.writeTo(outputDirectory) }
         }
     }
 
@@ -205,9 +191,6 @@ class ThriftyCompiler {
         @JvmStatic fun main(args: Array<String>) {
             try {
                 ThriftyCompiler().compile(args)
-            } catch (e: MissingArgumentException) {
-                TermUi.echo(e.message, err = true)
-                System.exit(1)
             } catch (e: Exception) {
                 TermUi.echo("Unhandled exception", err = true)
                 e.printStackTrace(System.err)
