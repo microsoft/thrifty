@@ -951,7 +951,7 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitDouble(doubleType: BuiltinType) {
-                    if (value.isDouble) {
+                    if (value.isDouble || value.isInt) {
                         block.add("%L", value.getAsDouble())
                     } else {
                         constOrError("Invalid double constant")

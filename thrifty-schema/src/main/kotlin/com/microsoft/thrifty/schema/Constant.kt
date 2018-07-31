@@ -106,12 +106,12 @@ class Constant internal constructor (
     }
 
     private object Validators {
-        private val BOOL = BoolValidator()
+        private val BOOL = BoolValidator
         private val BYTE = IntegerValidator(java.lang.Byte.MIN_VALUE.toLong(), java.lang.Byte.MAX_VALUE.toLong())
         private val I16 = IntegerValidator(java.lang.Short.MIN_VALUE.toLong(), java.lang.Short.MAX_VALUE.toLong())
         private val I32 = IntegerValidator(Integer.MIN_VALUE.toLong(), Integer.MAX_VALUE.toLong())
         private val I64 = IntegerValidator(java.lang.Long.MIN_VALUE, java.lang.Long.MAX_VALUE)
-        private val DOUBLE = BaseValidator(ConstValueElement.Kind.DOUBLE)
+        private val DOUBLE = DoubleValidator
         private val STRING = BaseValidator(ConstValueElement.Kind.STRING)
 
         private val ENUM = EnumValidator()
@@ -157,7 +157,7 @@ class Constant internal constructor (
         }
     }
 
-    private class BoolValidator : ConstValueValidator {
+    private object BoolValidator : ConstValueValidator {
         override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
             if (value.kind === ConstValueElement.Kind.INTEGER) {
                 val n = value.getAsInt()
@@ -217,6 +217,27 @@ class Constant internal constructor (
                     throw IllegalStateException("value '" + lv.toString()
                             + "' is out of range for type " + expected.name)
                 }
+            }
+        }
+    }
+
+    private object DoubleValidator : ConstValueValidator {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
+            if (value.isInt || value.isDouble) {
+                // valid
+            } else if (value.isIdentifier) {
+                // maybe a const?
+                val id = value.value as String
+                val constant = symbolTable.lookupConst(id)
+                        ?: throw IllegalStateException("Unrecognized const identifier: $id")
+
+                if (constant.type().trueType != expected) {
+                    throw IllegalStateException("Expected a value of type " + expected.name
+                            + ", but got " + constant.type().name)
+                }
+            } else {
+                throw IllegalStateException(
+                        "Expected a value of type DOUBLE but got " + value.value)
             }
         }
     }
