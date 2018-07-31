@@ -87,8 +87,12 @@ data class ConstValueElement(
     }
 
     fun getAsDouble(): Double {
-        check(isDouble) { "Cannot convert to double; kind=$kind" }
-        return value as Double
+        check(isInt || isDouble) { "Cannot convert to double; kind=$kind" }
+        return when  {
+            isDouble -> value as Double
+            isInt -> getAsInt().toDouble()
+            else -> error("unpossible")
+        }
     }
 
     fun getAsString(): String {

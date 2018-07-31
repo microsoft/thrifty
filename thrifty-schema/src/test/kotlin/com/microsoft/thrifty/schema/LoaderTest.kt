@@ -1019,6 +1019,15 @@ class LoaderTest {
         }
     }
 
+    @Test
+    fun constDoubleWithIntLiteral() {
+        val thrift = """
+            const double FOO = 2
+        """.trimIndent()
+
+        load(thrift)
+    }
+
     private fun load(thrift: String): Schema {
         val f = tempDir.newFile()
         f.writeText(thrift)

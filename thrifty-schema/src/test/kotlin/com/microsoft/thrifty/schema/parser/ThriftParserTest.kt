@@ -1224,6 +1224,16 @@ class ThriftParserTest {
         assertThat(documentation, isEmptyString())
     }
 
+    @Test
+    fun `double-valued consts can have integer literal values`() {
+        val thrift = """
+            const double foo = 2
+        """.trimIndent()
+
+        val constants = parse(thrift).constants
+        assertThat(constants.single().value.getAsDouble(), equalTo(2.0))
+    }
+
     companion object {
 
         private val TEST_UUID = UUID.fromString("ecafa042-668a-4403-a6d3-70983866ffbe")

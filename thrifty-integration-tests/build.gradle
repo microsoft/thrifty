@@ -39,7 +39,7 @@ uploadArchives.enabled = false
 
 sourceSets {
     test {
-        java.srcDirs += ['build/generated-src/thrifty']
+        java.srcDirs += ['build/generated-src/thrifty/java', 'build/generated-src/thrifty/kotlin']
     }
 }
 
@@ -54,24 +54,39 @@ mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
 task compileTestThrift(type: Exec) {
     def jarTask = project.tasks['shadowJar'] as Jar
 
+    inputs.file("$projectDir/ClientThriftTest.thrift")
+    outputs.dir("$projectDir/build/generated-src/thrifty/java")
+
     dependsOn jarTask
 
     executable 'java'
-    args = ['-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/generated-src/thrifty", "$projectDir/ClientThriftTest.thrift"]
+    args = ['-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/generated-src/thrifty/java", "$projectDir/ClientThriftTest.thrift"]
 }
+
 
 task kompileTestThrift(type: Exec) {
     def jarTask = project.tasks['shadowJar'] as Jar
 
+    inputs.file("$projectDir/ClientThriftTest.thrift")
+    outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
+
     dependsOn jarTask
 
     executable 'java'
-    args = ['-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/generated-src/thrifty", "--kotlin", "$projectDir/ClientThriftTest.thrift"]
+    args = ['-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/generated-src/thrifty/kotlin", "--kotlin", "$projectDir/ClientThriftTest.thrift"]
 }
 
 compileTestKotlin {
     dependsOn compileTestThrift
     dependsOn kompileTestThrift
+}
+
+task cleanTestCode(type: Delete) {
+    delete "$projectDir/build/generated-src/thrifty"
+}
+
+clean {
+    dependsOn cleanTestCode
 }
 
 compileTestJava {
