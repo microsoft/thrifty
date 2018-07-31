@@ -28,6 +28,7 @@
  */
 
 namespace java com.microsoft.thrifty.integration.gen
+namespace kt com.microsoft.thrifty.integration.kgen
 
 /**
  * Docstring!

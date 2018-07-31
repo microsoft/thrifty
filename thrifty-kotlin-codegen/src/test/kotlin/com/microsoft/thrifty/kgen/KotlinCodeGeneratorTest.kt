@@ -137,6 +137,19 @@ class KotlinCodeGeneratorTest {
         struct.funSpecs.any { it.name == "equals"   } shouldBe false
     }
 
+    @Test fun `exceptions with reserved field names get renamed fields`() {
+        val thrift = """
+            namespace kt com.test
+
+            exception Fail { 1: required list<i32> Message }
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val specs = KotlinCodeGenerator(FieldNamingPolicy.JAVA).generate(schema)
+        val xception = specs.single().members.single() as TypeSpec
+        xception.propertySpecs.single().name shouldBe "message_"
+    }
+
     private fun generate(thrift: String): List<FileSpec> {
         return KotlinCodeGenerator().generate(load(thrift))
     }
