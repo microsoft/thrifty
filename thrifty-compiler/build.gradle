@@ -48,8 +48,6 @@ shadowJar {
     mergeServiceFiles {
         exclude 'META-INF/services/*'
     }
-
-    //configurations = [project.configurations.runtime, project.configurations.compile]
 }
 
 mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
