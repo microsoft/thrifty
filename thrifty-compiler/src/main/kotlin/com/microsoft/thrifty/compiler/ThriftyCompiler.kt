@@ -113,6 +113,10 @@ class ThriftyCompiler {
         val emitKotlin: Boolean by option("--kotlin", help = "Generate Kotlin instead of Java")
                 .flag(default = false)
 
+        val kotlinFilePerType: Boolean by option(
+                    "--kt-file-per-type", help = "Generate one .kt file per type; default is one per namespace.")
+                .flag(default = false)
+
         val thriftFiles: List<Path> by argument(help = "All .thrift files to compile")
                 .transformAll { values -> values.map { FileSystems.getDefault().getPath(it) } }
 
@@ -169,7 +173,13 @@ class ThriftyCompiler {
         }
 
         private fun generateKotlin(schema: Schema, fieldNamingPolicy: FieldNamingPolicy) {
-            val gen = KotlinCodeGenerator()
+            val gen = KotlinCodeGenerator(fieldNamingPolicy)
+
+            if (kotlinFilePerType) {
+                gen.filePerType()
+            } else {
+                gen.filePerNamespace()
+            }
 
             val svc = TypeProcessorService.getInstance()
             svc.kotlinProcessor?.let {
