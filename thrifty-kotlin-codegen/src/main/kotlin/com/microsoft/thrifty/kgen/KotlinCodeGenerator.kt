@@ -20,6 +20,8 @@
  */
 package com.microsoft.thrifty.kgen
 
+import com.google.common.cache.CacheBuilder
+import com.google.common.cache.CacheLoader
 import com.google.common.collect.HashMultimap
 import com.microsoft.thrifty.Adapter
 import com.microsoft.thrifty.Obfuscated
@@ -33,7 +35,6 @@ import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.schema.BuiltinType
 import com.microsoft.thrifty.schema.Constant
 import com.microsoft.thrifty.schema.EnumType
-import com.microsoft.thrifty.schema.Field
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.ListType
 import com.microsoft.thrifty.schema.MapType
@@ -44,6 +45,7 @@ import com.microsoft.thrifty.schema.SetType
 import com.microsoft.thrifty.schema.StructType
 import com.microsoft.thrifty.schema.ThriftType
 import com.microsoft.thrifty.schema.TypedefType
+import com.microsoft.thrifty.schema.UserType
 import com.microsoft.thrifty.schema.parser.ConstValueElement
 import com.microsoft.thrifty.util.ObfuscationUtil
 import com.microsoft.thrifty.util.ProtocolUtil
@@ -55,6 +57,7 @@ import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.NameAllocator
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
@@ -85,7 +88,38 @@ class KotlinCodeGenerator(
         FILE_PER_TYPE
     }
 
-    private val fieldNamer = FieldNamer(fieldNamingPolicy)
+    private val nameAllocators = CacheBuilder
+            .newBuilder()
+            .build(object : CacheLoader<UserType, NameAllocator>() {
+        override fun load(key: UserType?): NameAllocator {
+            val type = requireNotNull(key) { "Can't get a name allocator for null" }
+            return NameAllocator().apply {
+
+                when (type) {
+                    is StructType -> {
+                        newName("ADAPTER", "RESERVED:ADAPTER")
+                        if (type.isException) {
+                            newName("message", "RESERVED:message")
+                            newName("cause", "RESERVED:cause")
+                        }
+
+                        for (field in type.fields) {
+                            val conformingName = fieldNamingPolicy.apply(field.name)
+                            newName(conformingName, field.name)
+                        }
+                    }
+
+                    is EnumType -> {
+                        newName("findByValue", "RESERVED:findByValue")
+                        newName("value", "RESERVED:value")
+                        for (member in type.members) {
+                            newName(member.name, member.name)
+                        }
+                    }
+                }
+            }
+        }
+    })
 
     var processor: KotlinTypeProcessor = NoTypeProcessor
     var outputStyle: OutputStyle = OutputStyle.FILE_PER_NAMESPACE
@@ -183,6 +217,7 @@ class KotlinCodeGenerator(
                 .jvmStatic()
                 .beginControlFlow("return when (value)")
 
+        val nameAllocator = nameAllocators[enumType]
         for (member in enumType.members) {
             val enumMemberSpec= TypeSpec.anonymousClassBuilder()
                     .addSuperclassConstructorParameter("%L", member.value)
@@ -190,9 +225,9 @@ class KotlinCodeGenerator(
             if (member.isDeprecated) enumMemberSpec.addAnnotation(makeDeprecated())
             if (member.hasJavadoc) enumMemberSpec.addKdoc("%L", member.documentation)
 
-            typeBuilder.addEnumConstant(member.name, enumMemberSpec.build())
-
-            findByValue.addStatement("%L -> %L", member.value, member.name)
+            val name = nameAllocator.get(member.name)
+            typeBuilder.addEnumConstant(name, enumMemberSpec.build())
+            findByValue.addStatement("%L -> %L", member.value, name)
         }
 
 
@@ -228,8 +263,9 @@ class KotlinCodeGenerator(
 
         val companionBuilder = TypeSpec.companionObjectBuilder()
 
+        val nameAllocator = nameAllocators[struct]
         for (field in struct.fields) {
-            val fieldName = fieldNamer.nameOf(field)
+            val fieldName = nameAllocator.get(field.name)
             val typeName = field.type().typeName.let {
                 if (!field.required()) it.asNullable() else it
             }
@@ -314,11 +350,12 @@ class KotlinCodeGenerator(
         val block = buildCodeBlock {
             add("return \"${struct.name}(")
 
+            val nameAllocator = nameAllocators[struct]
             for ((ix, field) in struct.fields.withIndex()) {
                 if (ix != 0) {
                     add(", ")
                 }
-                val fieldName = fieldNamer.nameOf(field)
+                val fieldName = nameAllocator.get(field.name)
                 add("$fieldName=")
 
                 when {
@@ -387,9 +424,10 @@ class KotlinCodeGenerator(
 
         val defaultCtor = FunSpec.constructorBuilder()
 
+        val nameAllocator = nameAllocators[struct]
         val buildParamStringBuilder = StringBuilder()
         for (field in struct.fields) {
-            val name = fieldNamer.nameOf(field)
+            val name = nameAllocator.get(field.name)
             val type = field.type().typeName
 
             // Add a private var
@@ -477,9 +515,11 @@ class KotlinCodeGenerator(
 
         // Writer first, b/c it is easier
 
+        val nameAllocator = nameAllocators[struct]
+
         writer.addStatement("protocol.writeStructBegin(%S)", struct.name)
         for (field in struct.fields) {
-            val name = fieldNamer.nameOf(field)
+            val name = nameAllocator.get(field.name)
             val fieldType = field.type().trueType
 
             if (!field.required()) {
@@ -519,7 +559,7 @@ class KotlinCodeGenerator(
             reader.beginControlFlow("when (fieldMeta.fieldId.toInt())")
 
             for (field in struct.fields) {
-                val name = fieldNamer.nameOf(field)
+                val name = nameAllocator.get(field.name)
                 val fieldType = field.type().trueType
 
                 reader.addCode {
@@ -1079,9 +1119,3 @@ class KotlinCodeGenerator(
     }
 }
 
-private class FieldNamer(private val policy: FieldNamingPolicy) {
-    private val cache = mutableMapOf<String, String>()
-
-    fun nameOf(field: Field) = nameOf(field.name)
-    fun nameOf(fieldName: String) = cache.getOrPut(fieldName) { policy.apply(fieldName) }
-}
