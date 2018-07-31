@@ -3,6 +3,9 @@ package com.microsoft.thrifty.kgen
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.TypeSpec
 import io.kotlintest.shouldBe
 import org.junit.Rule
 import org.junit.Test
@@ -92,6 +95,50 @@ class KotlinCodeGeneratorTest {
         val specs = gen.generate(schema)
 
         specs.single().name shouldBe "Constants" // ".kt" suffix is appended when the file is written out
+    }
+
+    @Test fun `empty structs get default equals, hashcode, and toString methods`() {
+        val thrift = """
+            namespace kt com.test
+
+            struct Empty {}
+        """.trimIndent()
+
+        val specs = generate(thrift)
+
+        val struct = specs.single().members.single() as TypeSpec
+
+        println(specs.single())
+
+        struct.name shouldBe "Empty"
+        struct.modifiers.any { it == KModifier.DATA } shouldBe false
+        struct.funSpecs.any { it.name == "toString" } shouldBe true
+        struct.funSpecs.any { it.name == "hashCode" } shouldBe true
+        struct.funSpecs.any { it.name == "equals"   } shouldBe true
+    }
+
+    @Test fun `Non-empty structs are data classes`() {
+        val thrift = """
+            namespace kt com.test
+
+            struct NonEmpty {
+              1: required i32 Number
+            }
+        """.trimIndent()
+
+        val specs = generate(thrift)
+
+        val struct = specs.single().members.single() as TypeSpec
+
+        struct.name shouldBe "NonEmpty"
+        struct.modifiers.any { it == KModifier.DATA } shouldBe true
+        struct.funSpecs.any { it.name == "toString" } shouldBe false
+        struct.funSpecs.any { it.name == "hashCode" } shouldBe false
+        struct.funSpecs.any { it.name == "equals"   } shouldBe false
+    }
+
+    private fun generate(thrift: String): List<FileSpec> {
+        return KotlinCodeGenerator().generate(load(thrift))
     }
 
     private fun load(thrift: String): Schema {

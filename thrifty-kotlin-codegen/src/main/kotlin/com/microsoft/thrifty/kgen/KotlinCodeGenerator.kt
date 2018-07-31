@@ -48,6 +48,7 @@ import com.microsoft.thrifty.schema.parser.ConstValueElement
 import com.microsoft.thrifty.util.ObfuscationUtil
 import com.microsoft.thrifty.util.ProtocolUtil
 import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -212,7 +213,8 @@ class KotlinCodeGenerator(
     // region Structs
 
     fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
-        val typeBuilder = TypeSpec.classBuilder(struct.name).apply {
+        val structClassName = ClassName(struct.kotlinNamespace, struct.name)
+        val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
             if (struct.fields.isNotEmpty()) {
                 addModifiers(KModifier.DATA)
             }
@@ -275,11 +277,26 @@ class KotlinCodeGenerator(
                     .jvmField()
                     .build())
         } else {
-            // TODO: Builderless adapters
+            TODO("Builderless adapters")
         }
 
-        if (struct.fields.any { it.isObfuscated || it.isRedacted }) {
+        if (struct.fields.any { it.isObfuscated || it.isRedacted } || struct.fields.isEmpty()) {
             typeBuilder.addFunction(generateToString(struct))
+        }
+
+        if (struct.fields.isEmpty()) {
+            typeBuilder.addFunction(FunSpec.builder("hashCode")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .returns(INT)
+                    .addStatement("return javaClass.hashCode()")
+                    .build())
+
+            typeBuilder.addFunction(FunSpec.builder("equals")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addParameter("other", Any::class.asTypeName().asNullable())
+                    .returns(BOOLEAN)
+                    .addStatement("return other is %T", structClassName)
+                    .build())
         }
 
         return typeBuilder
