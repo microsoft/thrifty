@@ -31,12 +31,12 @@ allprojects {
         kotlin_version = '1.2.51'
 
         libraries = [
-                guava: [
-                        'com.google.guava:guava:23.0'
+                clikt: [
+                        'com.github.ajalt:clikt:1.3.0'
                 ],
 
-                okio: [
-                        'com.squareup.okio:okio:1.14.1'
+                guava: [
+                        'com.google.guava:guava:23.0'
                 ],
 
                 javaPoet: [
@@ -53,6 +53,10 @@ allprojects {
                             exclude module: 'kotlin-reflect'
                         },
                         "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+                ],
+
+                okio: [
+                        'com.squareup.okio:okio:1.14.1'
                 ],
 
                 testing: [
@@ -83,6 +87,7 @@ buildscript {
         classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.14'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.51"
         classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.17'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
     }
 }
 

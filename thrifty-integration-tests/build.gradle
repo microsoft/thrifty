@@ -19,6 +19,9 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
+apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
+
 dependencies {
     implementation project(':thrifty-compiler')
 
@@ -37,20 +40,16 @@ sourceSets {
     }
 }
 
-jar {
-    [configurations.default].each { config ->
-        from(config.collect { it.isDirectory() ? it : zipTree(it) }) {
-            exclude 'META-INF/services/*'
-        }
-    }
-
-    manifest {
-        attributes("Main-Class": "com.microsoft.thrifty.compiler.ThriftyCompiler")
+shadowJar {
+    mergeServiceFiles {
+        exclude 'META-INF/services/*'
     }
 }
 
+mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+
 task compileTestThrift(type: Exec) {
-    def jarTask = project.tasks['jar'] as Jar
+    def jarTask = project.tasks['shadowJar'] as Jar
 
     dependsOn jarTask
 

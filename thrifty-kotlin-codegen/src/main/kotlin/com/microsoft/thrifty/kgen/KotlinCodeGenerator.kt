@@ -76,10 +76,11 @@ import okio.ByteString
  * @param fieldNamingPolicy A user-specified naming policy for fields.
  */
 class KotlinCodeGenerator(
-        fieldNamingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT,
-        private val processor: KotlinTypeProcessor = NoTypeProcessor
+        fieldNamingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT
 ) {
     private val fieldNamer = FieldNamer(fieldNamingPolicy)
+
+    var processor: KotlinTypeProcessor = NoTypeProcessor
 
     private object NoTypeProcessor : KotlinTypeProcessor {
         override fun process(typeSpec: TypeSpec) = typeSpec
@@ -110,7 +111,7 @@ class KotlinCodeGenerator(
             addAll(constantsByNamespace.keys())
         }
         val fileSpecsByNamespace = namespaces
-                .map { it to FileSpec.builder(it,"ThriftTypes.kt") }
+                .map { it to FileSpec.builder(it,"ThriftTypes") }
                 .toMap()
 
         return fileSpecsByNamespace.map { (ns, fileSpec) ->
@@ -134,7 +135,7 @@ class KotlinCodeGenerator(
                         .addParameter("value", INT)
                         .build())
 
-        if (enumType.isDeprecated) typeBuilder.addAnnotation(Deprecated::class)
+        if (enumType.isDeprecated) typeBuilder.addAnnotation(makeDeprecated())
         if (enumType.hasJavadoc) typeBuilder.addKdoc(enumType.documentation)
 
         val findByValue = FunSpec.builder("findByValue")
@@ -147,8 +148,8 @@ class KotlinCodeGenerator(
             val enumMemberSpec= TypeSpec.anonymousClassBuilder()
                     .addSuperclassConstructorParameter("%L", member.value)
 
-            if (member.isDeprecated) enumMemberSpec.addAnnotation(Deprecated::class)
-            if (member.hasJavadoc) enumMemberSpec.addKdoc(member.documentation)
+            if (member.isDeprecated) enumMemberSpec.addAnnotation(makeDeprecated())
+            if (member.hasJavadoc) enumMemberSpec.addKdoc("%L", member.documentation)
 
             typeBuilder.addEnumConstant(member.name, enumMemberSpec.build())
 
@@ -173,11 +174,14 @@ class KotlinCodeGenerator(
     // region Structs
 
     fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
-        val typeBuilder = TypeSpec.classBuilder(struct.name)
-                .addModifiers(KModifier.DATA)
+        val typeBuilder = TypeSpec.classBuilder(struct.name).apply {
+            if (struct.fields.isNotEmpty()) {
+                addModifiers(KModifier.DATA)
+            }
+        }
 
-        if (struct.isDeprecated) typeBuilder.addAnnotation(Deprecated::class)
-        if (struct.hasJavadoc) typeBuilder.addKdoc(struct.documentation)
+        if (struct.isDeprecated) typeBuilder.addAnnotation(makeDeprecated())
+        if (struct.hasJavadoc) typeBuilder.addKdoc("%L", struct.documentation)
         if (struct.isException) typeBuilder.superclass(Exception::class)
 
         val ctorBuilder = FunSpec.constructorBuilder()
@@ -446,7 +450,7 @@ class KotlinCodeGenerator(
 
         // Reader next
 
-        reader.addStatement("val structMeta = protocol.readStructBegin()")
+        reader.addStatement("protocol.readStructBegin()")
         reader.beginControlFlow("while (true)")
 
         reader.addStatement("val fieldMeta = protocol.readFieldBegin()")
@@ -455,31 +459,33 @@ class KotlinCodeGenerator(
         reader.addStatement("break")
         reader.endControlFlow()
 
-        reader.beginControlFlow("when (fieldMeta.fieldId.toInt())")
-
-
-        for (field in struct.fields) {
-            val name = fieldNamer.nameOf(field)
-            val fieldType = field.type().trueType
-
-            reader.addCode {
-                addStatement("${field.id()} -> {%>")
-                beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
-
-                add(generateReadCall(name, fieldType))
-
-                nextControlFlow("else")
-                addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
-                endControlFlow()
-                addStatement("%<}")
-            }
-        }
 
         if (struct.fields.isNotEmpty()) {
+            reader.beginControlFlow("when (fieldMeta.fieldId.toInt())")
+
+            for (field in struct.fields) {
+                val name = fieldNamer.nameOf(field)
+                val fieldType = field.type().trueType
+
+                reader.addCode {
+                    addStatement("${field.id()} -> {%>")
+                    beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
+
+                    add(generateReadCall(name, fieldType))
+
+                    nextControlFlow("else")
+                    addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+                    endControlFlow()
+                    addStatement("%<}")
+                }
+            }
+
             reader.addStatement("else -> %T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+            reader.endControlFlow() // when (fieldMeta.fieldId.toInt())
+        } else {
+            reader.addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
         }
 
-        reader.endControlFlow() // when (fieldMeta.fieldId.toInt())
         reader.endControlFlow() // while (true)
         reader.addStatement("protocol.readStructEnd()")
         reader.addStatement("return builder.build()")
@@ -755,8 +761,8 @@ class KotlinCodeGenerator(
         val typeName = type.typeName
         val propBuilder = PropertySpec.builder(constant.name, typeName)
 
-        if (constant.isDeprecated) propBuilder.addAnnotation(Deprecated::class)
-        if (constant.hasJavadoc) propBuilder.addKdoc(constant.documentation)
+        if (constant.isDeprecated) propBuilder.addAnnotation(makeDeprecated())
+        if (constant.hasJavadoc) propBuilder.addKdoc("%L", constant.documentation)
 
         val canBeConst = type.accept(object : ThriftType.Visitor<Boolean> {
             // JVM primitives and strings can be constants
@@ -888,7 +894,7 @@ class KotlinCodeGenerator(
                     }
 
                     if (member != null) {
-                        block.add("%T.%L", enumType.typeName, member.name)
+                        block.add("${enumType.typeName}.%L", member.name)
                     } else {
                         constOrError("Invalid enum constant")
                     }
@@ -1009,6 +1015,12 @@ class KotlinCodeGenerator(
         val block = CodeBlock.builder()
         block.fn()
         return block.build()
+    }
+
+    private fun makeDeprecated(): AnnotationSpec {
+        return AnnotationSpec.builder(Deprecated::class)
+                .addMember("message = %S", "Deprecated in source .thrift")
+                .build()
     }
 }
 
