@@ -62,6 +62,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.jvm.jvmField
 import com.squareup.kotlinpoet.jvm.jvmStatic
+import kotlin.coroutines.experimental.buildSequence
 import okio.ByteString
 
 /**
@@ -78,9 +79,18 @@ import okio.ByteString
 class KotlinCodeGenerator(
         fieldNamingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT
 ) {
+    enum class OutputStyle {
+        FILE_PER_NAMESPACE,
+        FILE_PER_TYPE
+    }
+
     private val fieldNamer = FieldNamer(fieldNamingPolicy)
 
     var processor: KotlinTypeProcessor = NoTypeProcessor
+    var outputStyle: OutputStyle = OutputStyle.FILE_PER_NAMESPACE
+
+    fun filePerNamespace(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_NAMESPACE }
+    fun filePerType(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_TYPE }
 
     private object NoTypeProcessor : KotlinTypeProcessor {
         override fun process(typeSpec: TypeSpec) = typeSpec
@@ -106,21 +116,49 @@ class KotlinCodeGenerator(
 
         // TODO: Services
 
-        val namespaces = mutableSetOf<String>().apply {
-            addAll(specsByNamespace.keys())
-            addAll(constantsByNamespace.keys())
-        }
-        val fileSpecsByNamespace = namespaces
-                .map { it to FileSpec.builder(it,"ThriftTypes") }
-                .toMap()
+        return when (outputStyle) {
+            OutputStyle.FILE_PER_NAMESPACE -> {
+                val namespaces = mutableSetOf<String>().apply {
+                    addAll(specsByNamespace.keys())
+                    addAll(constantsByNamespace.keys())
+                }
 
-        return fileSpecsByNamespace.map { (ns, fileSpec) ->
-            constantsByNamespace[ns]?.forEach { fileSpec.addProperty(it) }
-            specsByNamespace[ns]
-                    ?.mapNotNull { processor.process(it) }
-                    ?.forEach { fileSpec.addType(it) }
-            fileSpec.build()
+                val fileSpecsByNamespace = namespaces
+                        .map { it to FileSpec.builder(it,"ThriftTypes") }
+                        .toMap()
+
+                fileSpecsByNamespace.map { (ns, fileSpec) ->
+                    constantsByNamespace[ns]?.forEach { fileSpec.addProperty(it) }
+                    specsByNamespace[ns]
+                            ?.mapNotNull { processor.process(it) }
+                            ?.forEach { fileSpec.addType(it) }
+                    fileSpec.build()
+                }
+            }
+
+            OutputStyle.FILE_PER_TYPE -> {
+                buildSequence {
+
+                    val types = specsByNamespace.entries().asSequence()
+                    for ((ns, type) in types) {
+                        val name = type.name ?: throw AssertionError("Top-level TypeSpecs must have names")
+                        val spec = FileSpec.builder(ns, name)
+                                .addType(type)
+                                .build()
+                        yield(spec)
+                    }
+
+                    for ((ns, props) in constantsByNamespace.asMap().entries) {
+                        val spec = FileSpec.builder(ns, "Constants")
+                        props.forEach { spec.addProperty(it) }
+                        yield(spec.build())
+                    }
+
+                }.toList()
+            }
         }
+
+
     }
 
     // region Enums

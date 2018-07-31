@@ -3,6 +3,7 @@ package com.microsoft.thrifty.kgen
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
+import io.kotlintest.shouldBe
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -50,6 +51,47 @@ class KotlinCodeGeneratorTest {
         val files = KotlinCodeGenerator(FieldNamingPolicy.JAVA).generate(schema)
 
         files.forEach { println("$it") }
+    }
+
+    @Test fun `output styles work as advertised`() {
+        val thrift = """
+            namespace kt com.test
+
+            enum AnEnum {
+              ONE,
+              TWO
+            }
+
+            struct AStruct {
+              1: optional string ssn;
+            }
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val gen = KotlinCodeGenerator()
+
+        // Default should be one file per namespace
+        gen.outputStyle shouldBe KotlinCodeGenerator.OutputStyle.FILE_PER_NAMESPACE
+        gen.generate(schema).size shouldBe  1
+
+        gen.outputStyle = KotlinCodeGenerator.OutputStyle.FILE_PER_TYPE
+        gen.generate(schema).size shouldBe 2
+    }
+
+    @Test fun `file-per-type puts constants into a file named 'Constants'`() {
+        val thrift = """
+            namespace kt com.test
+
+            const i32 ONE = 1;
+            const i64 TWO = 2;
+            const string THREE = "three";
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val gen = KotlinCodeGenerator().filePerType()
+        val specs = gen.generate(schema)
+
+        specs.single().name shouldBe "Constants" // ".kt" suffix is appended when the file is written out
     }
 
     private fun load(thrift: String): Schema {
