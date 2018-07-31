@@ -18,10 +18,19 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
+
+apply plugin: 'kotlin'
+apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
+
 dependencies {
     implementation project(':thrifty-schema')
     implementation project(':thrifty-java-codegen')
+    implementation project(':thrifty-kotlin-codegen')
     implementation project(':thrifty-compiler-plugins')
+
+    implementation libraries.clikt
+    implementation libraries.kotlin
 }
 
 sourceSets {
@@ -35,20 +44,16 @@ sourceSets {
     }
 }
 
-jar {
-    [configurations.default, configurations.runtime].each { config ->
-        from(config.collect { it.isDirectory() ? it : zipTree(it) }) {
-            exclude 'META-INF/services/*'
-        }
-    }
-
-    manifest {
-        attributes("Main-Class": "com.microsoft.thrifty.compiler.ThriftyCompiler")
+shadowJar {
+    mergeServiceFiles {
+        exclude 'META-INF/services/*'
     }
 }
 
+mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+
 task compileTestCase(type: Exec) {
-    def jarTask = project.tasks['jar'] as Jar
+    def jarTask = project.tasks['shadowJar'] as Jar
 
     dependsOn jarTask
 
