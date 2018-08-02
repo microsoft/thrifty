@@ -26,6 +26,7 @@ import com.google.common.collect.HashMultimap
 import com.microsoft.thrifty.Adapter
 import com.microsoft.thrifty.Obfuscated
 import com.microsoft.thrifty.Redacted
+import com.microsoft.thrifty.Struct
 import com.microsoft.thrifty.StructBuilder
 import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.ThriftException
@@ -69,6 +70,14 @@ import com.squareup.kotlinpoet.jvm.jvmStatic
 import kotlin.coroutines.experimental.buildSequence
 import okio.ByteString
 
+private object Tags {
+    val ADAPTER = "RESERVED:ADAPTER"
+    val MESSAGE = "RESERVED:message"
+    val CAUSE = "RESERVED:cause"
+    val FIND_BY_VALUE = "RESERVED:findByValue"
+    val VALUE = "RESERVED:value"
+}
+
 /**
  * Generates Kotlin code from a [Schema].
  *
@@ -88,6 +97,9 @@ class KotlinCodeGenerator(
         FILE_PER_TYPE
     }
 
+    // TODO: Add a compiler flag to omit struct generation
+    private var shouldImplementStruct: Boolean = true
+
     private val nameAllocators = CacheBuilder
             .newBuilder()
             .build(object : CacheLoader<UserType, NameAllocator>() {
@@ -97,10 +109,10 @@ class KotlinCodeGenerator(
 
                 when (type) {
                     is StructType -> {
-                        newName("ADAPTER", "RESERVED:ADAPTER")
+                        newName("ADAPTER", Tags.ADAPTER)
                         if (type.isException) {
-                            newName("message", "RESERVED:message")
-                            newName("cause", "RESERVED:cause")
+                            newName("message", Tags.MESSAGE)
+                            newName("cause", Tags.CAUSE)
                         }
 
                         for (field in type.fields) {
@@ -110,8 +122,8 @@ class KotlinCodeGenerator(
                     }
 
                     is EnumType -> {
-                        newName("findByValue", "RESERVED:findByValue")
-                        newName("value", "RESERVED:value")
+                        newName("findByValue", Tags.FIND_BY_VALUE)
+                        newName("value", Tags.VALUE)
                         for (member in type.members) {
                             newName(member.name, member.name)
                         }
@@ -176,9 +188,10 @@ class KotlinCodeGenerator(
 
                     val types = specsByNamespace.entries().asSequence()
                     for ((ns, type) in types) {
-                        val name = type.name ?: throw AssertionError("Top-level TypeSpecs must have names")
+                        val processedType = processor.process(type) ?: continue
+                        val name = processedType.name ?: throw AssertionError("Top-level TypeSpecs must have names")
                         val spec = FileSpec.builder(ns, name)
-                                .addType(type)
+                                .addType(processedType)
                                 .build()
                         yield(spec)
                     }
@@ -333,6 +346,16 @@ class KotlinCodeGenerator(
                     .returns(BOOLEAN)
                     .addStatement("return other is %T", structClassName)
                     .build())
+        }
+
+        if (shouldImplementStruct) {
+            typeBuilder
+                    .addSuperinterface(Struct::class)
+                    .addFunction(FunSpec.builder("write")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .addParameter("protocol", Protocol::class)
+                            .addStatement("%L.write(protocol, this)", nameAllocator.get(Tags.ADAPTER))
+                            .build())
         }
 
         return typeBuilder
