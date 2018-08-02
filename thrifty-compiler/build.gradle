@@ -20,7 +20,6 @@
  */
 
 apply plugin: 'kotlin'
-apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 dependencies {
@@ -48,9 +47,11 @@ shadowJar {
     mergeServiceFiles {
         exclude 'META-INF/services/*'
     }
-}
 
-mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+    manifest {
+        attributes 'Main-Class': 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+    }
+}
 
 task compileTestCase(type: Exec) {
     def jarTask = project.tasks['shadowJar'] as Jar
