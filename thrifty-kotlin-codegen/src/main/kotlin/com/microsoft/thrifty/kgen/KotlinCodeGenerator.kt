@@ -648,6 +648,7 @@ class KotlinCodeGenerator(
             reader.addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
         }
 
+        reader.addStatement("protocol.readFieldEnd()")
         reader.endControlFlow() // while (true)
         reader.addStatement("protocol.readStructEnd()")
         reader.addStatement("return builder.build()")
@@ -888,8 +889,9 @@ class KotlinCodeGenerator(
                 generateRecursiveReadCall(block, valName, valType, scope + 1)
 
                 block.addStatement("$name[$keyName] = $valName")
-
                 block.endControlFlow()
+
+                block.addStatement("protocol.readMapEnd()")
             }
 
             override fun visitStruct(structType: StructType) {
@@ -1274,7 +1276,7 @@ class KotlinCodeGenerator(
             returnType.typeName.asNullable()
         }
         val hasResult = resultType != UNIT
-        val messageType = if (hasResult) "CALL" else "ONEWAY"
+        val messageType = if (method.oneWay()) "ONEWAY" else "CALL"
         val nameAllocator = nameAllocators[method]
         val callbackTypeName = ServiceMethodCallback::class
                 .asTypeName()

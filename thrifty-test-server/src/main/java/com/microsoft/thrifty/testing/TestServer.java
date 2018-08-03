@@ -109,6 +109,10 @@ public class TestServer implements TestRule {
         };
     }
 
+    public void close() {
+        cleanupServer();
+    }
+
     private void cleanupServer() {
         if (serverTransport != null) {
             serverTransport.close();
