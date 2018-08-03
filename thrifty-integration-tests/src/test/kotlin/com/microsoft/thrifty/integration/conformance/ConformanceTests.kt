@@ -16,6 +16,7 @@ import com.microsoft.thrifty.service.AsyncClientBase
 import com.microsoft.thrifty.testing.ServerProtocol
 import com.microsoft.thrifty.testing.ServerTransport
 import com.microsoft.thrifty.testing.TestServer
+import com.microsoft.thrifty.transport.FramedTransport
 import com.microsoft.thrifty.transport.SocketTransport
 import com.microsoft.thrifty.transport.Transport
 import io.kotlintest.matchers.types.shouldBeInstanceOf
@@ -127,8 +128,11 @@ abstract class KotlinConformanceBase {
      * When overridden in a derived class, wraps the given transport
      * in a decorator, e.g. a framed transport.
      */
-    protected fun decorateTransport(transport: Transport): Transport {
-        return transport
+    private fun decorateTransport(transport: Transport): Transport {
+        return when (serverTransport) {
+            ServerTransport.NON_BLOCKING -> FramedTransport(transport)
+            else -> transport
+        }
     }
 
     protected abstract fun createProtocol(transport: Transport): Protocol
