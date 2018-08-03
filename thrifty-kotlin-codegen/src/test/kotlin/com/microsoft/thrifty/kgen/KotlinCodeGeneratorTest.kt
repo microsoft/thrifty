@@ -150,6 +150,23 @@ class KotlinCodeGeneratorTest {
         xception.propertySpecs.single().name shouldBe "message_"
     }
 
+    @Test fun `services`() {
+        val thrift = """
+            namespace kt test.services
+
+            struct Foo { 1: required string foo; }
+            struct Bar { 1: required string bar; }
+            exception X { 1: required string message; }
+            service Svc {
+              void doThingOne(1: Foo foo) throws (2: X xxxx)
+              Bar doThingTwo(1: Foo foo) throws (1: X x)
+
+            }
+        """.trimIndent()
+
+        generate(thrift).forEach { println(it) }
+    }
+
     private fun generate(thrift: String): List<FileSpec> {
         return KotlinCodeGenerator().generate(load(thrift))
     }

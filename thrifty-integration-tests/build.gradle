@@ -68,6 +68,7 @@ task kompileTestThrift(type: Exec) {
     def jarTask = project.tasks['shadowJar'] as Jar
 
     inputs.file("$projectDir/ClientThriftTest.thrift")
+    inputs.files(jarTask.outputs)
     outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
 
     dependsOn jarTask

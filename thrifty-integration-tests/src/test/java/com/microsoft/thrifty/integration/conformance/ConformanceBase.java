@@ -23,13 +23,13 @@ package com.microsoft.thrifty.integration.conformance;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.ThriftException;
-import com.microsoft.thrifty.integration.gen.Insanity;
-import com.microsoft.thrifty.integration.gen.Numberz;
-import com.microsoft.thrifty.integration.gen.ThriftTestClient;
-import com.microsoft.thrifty.integration.gen.Xception;
-import com.microsoft.thrifty.integration.gen.Xception2;
-import com.microsoft.thrifty.integration.gen.Xtruct;
-import com.microsoft.thrifty.integration.gen.Xtruct2;
+import com.microsoft.thrifty.integration.kgen.Insanity;
+import com.microsoft.thrifty.integration.kgen.Numberz;
+import com.microsoft.thrifty.integration.kgen.ThriftTestClient;
+import com.microsoft.thrifty.integration.kgen.Xception;
+import com.microsoft.thrifty.integration.kgen.Xception2;
+import com.microsoft.thrifty.integration.kgen.Xtruct;
+import com.microsoft.thrifty.integration.kgen.Xtruct2;
 import com.microsoft.thrifty.protocol.Protocol;
 import com.microsoft.thrifty.service.AsyncClientBase;
 import com.microsoft.thrifty.testing.ServerProtocol;
@@ -148,7 +148,7 @@ public abstract class ConformanceBase {
 
     @Test
     public void testVoid() throws Throwable {
-        AssertingCallback<Void> callback = new AssertingCallback<>();
+        AssertingCallback<kotlin.Unit> callback = new AssertingCallback<>();
         client.testVoid(callback);
 
         assertThat(callback.getResult(), is(nullValue()));
@@ -374,7 +374,7 @@ public abstract class ConformanceBase {
 
     @Test
     public void testExceptionNormalError() throws Throwable {
-        AssertingCallback<Void> callback = new AssertingCallback<>();
+        AssertingCallback<kotlin.Unit> callback = new AssertingCallback<>();
         client.testException("Xception", callback);
 
         Throwable error = callback.getError();
@@ -382,12 +382,12 @@ public abstract class ConformanceBase {
 
         Xception e = (Xception) error;
         assertThat(e.errorCode, equalTo(1001));
-        assertThat(e.message, equalTo("Xception"));
+        assertThat(e.message_, equalTo("Xception"));
     }
 
     @Test
     public void testExceptionInternalError() throws Throwable {
-        AssertingCallback<Void> callback = new AssertingCallback<>();
+        AssertingCallback<kotlin.Unit> callback = new AssertingCallback<>();
         client.testException("TException", callback);
 
         Throwable error = callback.getError();
@@ -418,7 +418,7 @@ public abstract class ConformanceBase {
 
         Throwable expected = new Xception.Builder()
                 .errorCode(1001)
-                .message("This is an Xception")
+                .message_("This is an Xception")
                 .build();
 
         assertThat(callback.getError(), equalTo(expected));
