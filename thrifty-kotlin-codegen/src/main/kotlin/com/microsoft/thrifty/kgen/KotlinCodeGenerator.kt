@@ -32,6 +32,7 @@ import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.ThriftException
 import com.microsoft.thrifty.ThriftField
 import com.microsoft.thrifty.compiler.spi.KotlinTypeProcessor
+import com.microsoft.thrifty.protocol.MessageMetadata
 import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.schema.BuiltinType
 import com.microsoft.thrifty.schema.Constant
@@ -41,13 +42,18 @@ import com.microsoft.thrifty.schema.ListType
 import com.microsoft.thrifty.schema.MapType
 import com.microsoft.thrifty.schema.NamespaceScope
 import com.microsoft.thrifty.schema.Schema
+import com.microsoft.thrifty.schema.ServiceMethod
 import com.microsoft.thrifty.schema.ServiceType
 import com.microsoft.thrifty.schema.SetType
 import com.microsoft.thrifty.schema.StructType
 import com.microsoft.thrifty.schema.ThriftType
 import com.microsoft.thrifty.schema.TypedefType
-import com.microsoft.thrifty.schema.UserType
+import com.microsoft.thrifty.schema.UserElement
 import com.microsoft.thrifty.schema.parser.ConstValueElement
+import com.microsoft.thrifty.service.AsyncClientBase
+import com.microsoft.thrifty.service.MethodCall
+import com.microsoft.thrifty.service.ServiceMethodCallback
+import com.microsoft.thrifty.service.TMessageType
 import com.microsoft.thrifty.util.ObfuscationUtil
 import com.microsoft.thrifty.util.ProtocolUtil
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -64,11 +70,14 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.UNIT
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.jvm.jvmField
 import com.squareup.kotlinpoet.jvm.jvmStatic
 import kotlin.coroutines.experimental.buildSequence
 import okio.ByteString
+import java.io.IOException
 
 private object Tags {
     val ADAPTER = "RESERVED:ADAPTER"
@@ -76,6 +85,11 @@ private object Tags {
     val CAUSE = "RESERVED:cause"
     val FIND_BY_VALUE = "RESERVED:findByValue"
     val VALUE = "RESERVED:value"
+    val CALLBACK = "RESERVED:callback"
+    val SEND = "RESERVED:send"
+    val RECEIVE = "RESERVED:receive"
+    val RESULT = "RESERVED:resultValue"
+    val FIELD = "RESERVED:fieldMeta"
 }
 
 /**
@@ -102,32 +116,56 @@ class KotlinCodeGenerator(
 
     private val nameAllocators = CacheBuilder
             .newBuilder()
-            .build(object : CacheLoader<UserType, NameAllocator>() {
-        override fun load(key: UserType?): NameAllocator {
-            val type = requireNotNull(key) { "Can't get a name allocator for null" }
+            .build(object : CacheLoader<UserElement, NameAllocator>() {
+        override fun load(key: UserElement?): NameAllocator {
+            val elem = requireNotNull(key) { "Can't get a name allocator for null" }
             return NameAllocator().apply {
 
-                when (type) {
+                when (elem) {
                     is StructType -> {
                         newName("ADAPTER", Tags.ADAPTER)
-                        if (type.isException) {
+                        if (elem.isException) {
                             newName("message", Tags.MESSAGE)
                             newName("cause", Tags.CAUSE)
                         }
 
-                        for (field in type.fields) {
+                        for (field in elem.fields) {
                             val conformingName = fieldNamingPolicy.apply(field.name)
-                            newName(conformingName, field.name)
+                            newName(conformingName, field)
                         }
                     }
 
                     is EnumType -> {
                         newName("findByValue", Tags.FIND_BY_VALUE)
                         newName("value", Tags.VALUE)
-                        for (member in type.members) {
-                            newName(member.name, member.name)
+                        for (member in elem.members) {
+                            newName(member.name, member)
                         }
                     }
+
+                    is ServiceType -> {
+                        for (method in elem.methods()) {
+                            newName(method.name, method)
+                        }
+                    }
+
+                    is ServiceMethod -> {
+                        newName("callback", Tags.CALLBACK)
+                        newName("send", Tags.SEND)
+                        newName("receive", Tags.RECEIVE)
+                        newName("resultValue", Tags.RESULT)
+                        newName("fieldMeta", Tags.FIELD)
+
+                        for (param in elem.parameters()) {
+                            newName(param.name, param)
+                        }
+
+                        for (ex in elem.exceptions()) {
+                            newName(ex.name, ex)
+                        }
+                    }
+
+                    else -> error("Unexpected UserElement: $key")
                 }
             }
         }
@@ -155,13 +193,20 @@ class KotlinCodeGenerator(
         schema.unions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
         schema.exceptions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
 
+        val constantNameAllocators = mutableMapOf<String, NameAllocator>()
         schema.constants.forEach {
             val ns = it.kotlinNamespace
-            val property = generateConstantProperty(schema, it)
+            val allocator = constantNameAllocators.getOrPut(ns) { NameAllocator() }
+            val property = generateConstantProperty(schema, allocator, it)
             constantsByNamespace.put(ns, property)
         }
 
-        // TODO: Services
+        schema.services.forEach {
+            val iface = generateServiceInterface(it)
+            val impl = generateServiceImplementation(schema, it, iface)
+            specsByNamespace.put(it.kotlinNamespace, iface)
+            specsByNamespace.put(it.kotlinNamespace, impl)
+        }
 
         return when (outputStyle) {
             OutputStyle.FILE_PER_NAMESPACE -> {
@@ -205,8 +250,6 @@ class KotlinCodeGenerator(
                 }.toList()
             }
         }
-
-
     }
 
     // region Enums
@@ -222,7 +265,7 @@ class KotlinCodeGenerator(
                         .build())
 
         if (enumType.isDeprecated) typeBuilder.addAnnotation(makeDeprecated())
-        if (enumType.hasJavadoc) typeBuilder.addKdoc(enumType.documentation)
+        if (enumType.hasJavadoc) typeBuilder.addKdoc("%L", enumType.documentation)
 
         val findByValue = FunSpec.builder("findByValue")
                 .addParameter("value", INT)
@@ -238,7 +281,7 @@ class KotlinCodeGenerator(
             if (member.isDeprecated) enumMemberSpec.addAnnotation(makeDeprecated())
             if (member.hasJavadoc) enumMemberSpec.addKdoc("%L", member.documentation)
 
-            val name = nameAllocator.get(member.name)
+            val name = nameAllocator.get(member)
             typeBuilder.addEnumConstant(name, enumMemberSpec.build())
             findByValue.addStatement("%L -> %L", member.value, name)
         }
@@ -278,7 +321,7 @@ class KotlinCodeGenerator(
 
         val nameAllocator = nameAllocators[struct]
         for (field in struct.fields) {
-            val fieldName = nameAllocator.get(field.name)
+            val fieldName = nameAllocator.get(field)
             val typeName = field.type().typeName.let {
                 if (!field.required()) it.asNullable() else it
             }
@@ -378,7 +421,7 @@ class KotlinCodeGenerator(
                 if (ix != 0) {
                     add(", ")
                 }
-                val fieldName = nameAllocator.get(field.name)
+                val fieldName = nameAllocator.get(field)
                 add("$fieldName=")
 
                 when {
@@ -450,7 +493,7 @@ class KotlinCodeGenerator(
         val nameAllocator = nameAllocators[struct]
         val buildParamStringBuilder = StringBuilder()
         for (field in struct.fields) {
-            val name = nameAllocator.get(field.name)
+            val name = nameAllocator.get(field)
             val type = field.type().typeName
 
             // Add a private var
@@ -542,7 +585,7 @@ class KotlinCodeGenerator(
 
         writer.addStatement("protocol.writeStructBegin(%S)", struct.name)
         for (field in struct.fields) {
-            val name = nameAllocator.get(field.name)
+            val name = nameAllocator.get(field)
             val fieldType = field.type().trueType
 
             if (!field.required()) {
@@ -555,7 +598,7 @@ class KotlinCodeGenerator(
                     TType::class,
                     fieldType.typeCodeName)
 
-            generateWriteCall(writer, name, fieldType)
+            generateWriteCall(writer, "struct.$name", fieldType)
 
             writer.addStatement("protocol.writeFieldEnd()")
 
@@ -582,14 +625,15 @@ class KotlinCodeGenerator(
             reader.beginControlFlow("when (fieldMeta.fieldId.toInt())")
 
             for (field in struct.fields) {
-                val name = nameAllocator.get(field.name)
+                val name = nameAllocator.get(field)
                 val fieldType = field.type().trueType
 
                 reader.addCode {
                     addStatement("${field.id()} -> {%>")
                     beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
 
-                    add(generateReadCall(name, fieldType))
+                    generateRecursiveReadCall(this, name, fieldType)
+                    addStatement("builder.$name($name)")
 
                     nextControlFlow("else")
                     addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
@@ -604,6 +648,7 @@ class KotlinCodeGenerator(
             reader.addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
         }
 
+        reader.addStatement("protocol.readFieldEnd()")
         reader.endControlFlow() // while (true)
         reader.addStatement("protocol.readStructEnd()")
         reader.addStatement("return builder.build()")
@@ -623,7 +668,6 @@ class KotlinCodeGenerator(
 
         // Assumptions:
         // - writer has a parameter "protocol" that is a Protocol
-        // - writer has a parameter "struct" that is a struct type
 
         fun generateRecursiveWrite(source: String, type: ThriftType, scope: Int) {
             type.accept(object : ThriftType.Visitor<Unit> {
@@ -743,141 +787,137 @@ class KotlinCodeGenerator(
             })
         }
 
-        generateRecursiveWrite("struct.$name", type, 0)
+        generateRecursiveWrite(name, type, 0)
     }
 
-    fun generateReadCall(name: String, type: ThriftType): CodeBlock {
-        fun generateRecursiveReadCall(block: CodeBlock.Builder, name: String, type: ThriftType, scope: Int) {
-            type.accept(object : ThriftType.Visitor<Unit> {
-                override fun visitVoid(voidType: BuiltinType) {
-                    error("Cannot read a void, wat r u doing")
-                }
+    private fun generateRecursiveReadCall(block: CodeBlock.Builder, name: String, type: ThriftType, scope: Int = 0): CodeBlock.Builder {
+        type.accept(object : ThriftType.Visitor<Unit> {
+            override fun visitVoid(voidType: BuiltinType) {
+                error("Cannot read a void, wat r u doing")
+            }
 
-                override fun visitBool(boolType: BuiltinType) {
-                    block.addStatement("val $name = protocol.readBool()")
-                }
+            override fun visitBool(boolType: BuiltinType) {
+                block.addStatement("val $name = protocol.readBool()")
+            }
 
-                override fun visitByte(byteType: BuiltinType) {
-                    block.addStatement("val $name = protocol.readByte()")
-                }
+            override fun visitByte(byteType: BuiltinType) {
+                block.addStatement("val $name = protocol.readByte()")
+            }
 
-                override fun visitI16(i16Type: BuiltinType) {
-                    block.addStatement("val $name = protocol.readI16()")
-                }
+            override fun visitI16(i16Type: BuiltinType) {
+                block.addStatement("val $name = protocol.readI16()")
+            }
 
-                override fun visitI32(i32Type: BuiltinType) {
-                    block.addStatement("val $name = protocol.readI32()")
-                }
+            override fun visitI32(i32Type: BuiltinType) {
+                block.addStatement("val $name = protocol.readI32()")
+            }
 
-                override fun visitI64(i64Type: BuiltinType) {
-                    block.addStatement("val $name = protocol.readI64()")
-                }
+            override fun visitI64(i64Type: BuiltinType) {
+                block.addStatement("val $name = protocol.readI64()")
+            }
 
-                override fun visitDouble(doubleType: BuiltinType) {
-                    block.addStatement("val $name = protocol.readDouble()")
-                }
+            override fun visitDouble(doubleType: BuiltinType) {
+                block.addStatement("val $name = protocol.readDouble()")
+            }
 
-                override fun visitString(stringType: BuiltinType) {
-                    block.addStatement("val $name = protocol.readString()")
-                }
+            override fun visitString(stringType: BuiltinType) {
+                block.addStatement("val $name = protocol.readString()")
+            }
 
-                override fun visitBinary(binaryType: BuiltinType) {
-                    block.addStatement("val $name = protocol.readBinary()")
-                }
+            override fun visitBinary(binaryType: BuiltinType) {
+                block.addStatement("val $name = protocol.readBinary()")
+            }
 
-                override fun visitEnum(enumType: EnumType) {
-                    val codeName = "code$scope"
-                    block.addStatement("val $codeName = protocol.readI32()")
-                    block.addStatement("val $name = %T.findByValue($codeName)", enumType.typeName)
-                    block.beginControlFlow("if ($name == null)")
-                    block.addStatement("throw %T(%T.PROTOCOL_ERROR, \"Unexpected value for enum type %T: \$$codeName\")",
-                            ThriftException::class,
-                            ThriftException.Kind::class,
-                            enumType.typeName)
-                    block.endControlFlow()
-                }
+            override fun visitEnum(enumType: EnumType) {
+                val codeName = "code$scope"
+                block.addStatement("val $codeName = protocol.readI32()")
+                block.addStatement("val $name = %T.findByValue($codeName)", enumType.typeName)
+                block.beginControlFlow("if ($name == null)")
+                block.addStatement("throw %T(%T.PROTOCOL_ERROR, \"Unexpected value for enum type %T: \$$codeName\")",
+                        ThriftException::class,
+                        ThriftException.Kind::class,
+                        enumType.typeName)
+                block.endControlFlow()
+            }
 
-                override fun visitList(listType: ListType) {
-                    val elementType = listType.elementType().trueType
-                    val listImplType = ArrayList::class.asTypeName().parameterizedBy(elementType.typeName)
-                    val listMeta = "list$scope"
-                    block.addStatement("val $listMeta = protocol.readListBegin()")
-                    block.addStatement("val $name = %T($listMeta.size)", listImplType)
+            override fun visitList(listType: ListType) {
+                val elementType = listType.elementType().trueType
+                val listImplType = ArrayList::class.asTypeName().parameterizedBy(elementType.typeName)
+                val listMeta = "list$scope"
+                block.addStatement("val $listMeta = protocol.readListBegin()")
+                block.addStatement("val $name = %T($listMeta.size)", listImplType)
 
-                    block.beginControlFlow("for (i$scope in 0 until $listMeta.size)")
-                    generateRecursiveReadCall(block, "item$scope", elementType, scope + 1)
-                    block.addStatement("$name += item$scope")
-                    block.endControlFlow()
+                block.beginControlFlow("for (i$scope in 0 until $listMeta.size)")
+                generateRecursiveReadCall(block, "item$scope", elementType, scope + 1)
+                block.addStatement("$name += item$scope")
+                block.endControlFlow()
 
-                    block.addStatement("protocol.readListEnd()")
-                }
+                block.addStatement("protocol.readListEnd()")
+            }
 
-                override fun visitSet(setType: SetType) {
-                    val elementType = setType.elementType().trueType
-                    val setImplType = HashSet::class.asTypeName().parameterizedBy(elementType.typeName)
-                    val setMeta = "set$scope"
+            override fun visitSet(setType: SetType) {
+                val elementType = setType.elementType().trueType
+                val setImplType = HashSet::class.asTypeName().parameterizedBy(elementType.typeName)
+                val setMeta = "set$scope"
 
-                    block.addStatement("val $setMeta = protocol.readSetBegin()")
-                    block.addStatement("val $name = %T($setMeta.size)", setImplType)
+                block.addStatement("val $setMeta = protocol.readSetBegin()")
+                block.addStatement("val $name = %T($setMeta.size)", setImplType)
 
-                    block.beginControlFlow("for (i$scope in 0 until $setMeta.size)")
-                    generateRecursiveReadCall(block, "item$scope", elementType, scope + 1)
-                    block.addStatement("$name += item$scope")
-                    block.endControlFlow()
+                block.beginControlFlow("for (i$scope in 0 until $setMeta.size)")
+                generateRecursiveReadCall(block, "item$scope", elementType, scope + 1)
+                block.addStatement("$name += item$scope")
+                block.endControlFlow()
 
-                    block.addStatement("protocol.readSetEnd()")
-                }
+                block.addStatement("protocol.readSetEnd()")
+            }
 
-                override fun visitMap(mapType: MapType) {
-                    val keyType = mapType.keyType().trueType
-                    val valType = mapType.valueType().trueType
-                    val mapImplType = HashMap::class.asTypeName().parameterizedBy(keyType.typeName, valType.typeName)
-                    val mapMeta = "map$scope"
+            override fun visitMap(mapType: MapType) {
+                val keyType = mapType.keyType().trueType
+                val valType = mapType.valueType().trueType
+                val mapImplType = HashMap::class.asTypeName().parameterizedBy(keyType.typeName, valType.typeName)
+                val mapMeta = "map$scope"
 
-                    block.addStatement("val $mapMeta = protocol.readMapBegin()")
-                    block.addStatement("val $name = %T($mapMeta.size)", mapImplType)
+                block.addStatement("val $mapMeta = protocol.readMapBegin()")
+                block.addStatement("val $name = %T($mapMeta.size)", mapImplType)
 
-                    block.beginControlFlow("for (i$scope in 0 until $mapMeta.size)")
+                block.beginControlFlow("for (i$scope in 0 until $mapMeta.size)")
 
-                    val keyName = "key$scope"
-                    val valName = "val$scope"
+                val keyName = "key$scope"
+                val valName = "val$scope"
 
-                    generateRecursiveReadCall(block, keyName, keyType, scope + 1)
-                    generateRecursiveReadCall(block, valName, valType, scope + 1)
+                generateRecursiveReadCall(block, keyName, keyType, scope + 1)
+                generateRecursiveReadCall(block, valName, valType, scope + 1)
 
-                    block.addStatement("$name[$keyName] = $valName")
+                block.addStatement("$name[$keyName] = $valName")
+                block.endControlFlow()
 
-                    block.endControlFlow()
-                }
+                block.addStatement("protocol.readMapEnd()")
+            }
 
-                override fun visitStruct(structType: StructType) {
-                    block.addStatement("val $name = %T.ADAPTER.read(protocol)", structType.typeName)
-                }
+            override fun visitStruct(structType: StructType) {
+                block.addStatement("val $name = %T.ADAPTER.read(protocol)", structType.typeName)
+            }
 
-                override fun visitTypedef(typedefType: TypedefType) {
-                    typedefType.trueType.accept(this)
-                }
+            override fun visitTypedef(typedefType: TypedefType) {
+                typedefType.trueType.accept(this)
+            }
 
-                override fun visitService(serviceType: ServiceType) {
-                    error("cannot read a service, wat r u doing")
-                }
-            })
-        }
-
-        return buildCodeBlock {
-            generateRecursiveReadCall(this, name, type, 0)
-            addStatement("builder.$name($name)")
-        }
+            override fun visitService(serviceType: ServiceType) {
+                error("cannot read a service, wat r u doing")
+            }
+        })
+        return block
     }
 
     //endregion Adapters
 
     //region Constants
 
-    fun generateConstantProperty(schema: Schema, constant: Constant): PropertySpec {
+    fun generateConstantProperty(schema: Schema, allocator: NameAllocator, constant: Constant): PropertySpec {
         val type = constant.type().trueType
         val typeName = type.typeName
-        val propBuilder = PropertySpec.builder(constant.name, typeName)
+        val propName = allocator.newName(constant.name, constant)
+        val propBuilder = PropertySpec.builder(propName, typeName)
 
         if (constant.isDeprecated) propBuilder.addAnnotation(makeDeprecated())
         if (constant.hasJavadoc) propBuilder.addKdoc("%L", constant.documentation)
@@ -1124,6 +1164,309 @@ class KotlinCodeGenerator(
     }
 
     //endregion Constants
+
+    // region Services
+
+    fun generateServiceInterface(serviceType: ServiceType): TypeSpec {
+        val type = TypeSpec.interfaceBuilder(serviceType.name).apply {
+            if (serviceType.hasJavadoc) addKdoc("%L", serviceType.documentation)
+            if (serviceType.isDeprecated) addAnnotation(makeDeprecated())
+
+            serviceType.extendsService?.let { baseType ->
+                addSuperinterface(baseType.typeName)
+            }
+        }
+
+        val allocator = nameAllocators[serviceType]
+        for (method in serviceType.methods()) {
+            val name = allocator.get(method)
+            val funSpec = FunSpec.builder(name).apply {
+                addModifiers(KModifier.ABSTRACT)
+
+                if (method.hasJavadoc) addKdoc("%L", method.documentation)
+                if (method.isDeprecated) addAnnotation(makeDeprecated())
+            }
+
+            val methodNameAllocator = nameAllocators[method]
+            for (param in method.parameters()) {
+                val paramName = methodNameAllocator.get(param)
+                val paramSpec = ParameterSpec.builder(paramName, param.type().typeName).apply {
+                    if (param.isDeprecated) addAnnotation(makeDeprecated())
+                }
+                funSpec.addParameter(paramSpec.build())
+            }
+
+            val callbackName = methodNameAllocator.get(Tags.CALLBACK)
+            val callbackResultType = if (method.returnType().trueType == BuiltinType.VOID) {
+                UNIT
+            } else {
+                method.returnType().typeName
+            }
+            val callbackType = ServiceMethodCallback::class
+                    .asTypeName()
+                    .parameterizedBy(callbackResultType)
+
+            funSpec.addParameter(callbackName, callbackType)
+
+            type.addFunction(funSpec.build())
+        }
+
+        return type.build()
+    }
+
+    fun generateServiceImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
+        val type = TypeSpec.classBuilder(serviceType.name + "Client").apply {
+            val baseType = serviceType.extendsService as? ServiceType
+            val baseClassName = if (baseType != null) {
+                ClassName(baseType.kotlinNamespace, baseType.name + "Client")
+            } else {
+                AsyncClientBase::class.asClassName()
+            }
+
+            superclass(baseClassName)
+            addSuperinterface(ClassName(serviceType.kotlinNamespace, serviceType.name))
+
+            // If any servces extend this, then this needs to be open.
+            if (schema.services.any { it.extendsService == serviceType }) {
+                addModifiers(KModifier.OPEN)
+            }
+
+            primaryConstructor(FunSpec.constructorBuilder()
+                    .addParameter("protocol", Protocol::class)
+                    .addParameter("listener", AsyncClientBase.Listener::class)
+                    .build())
+
+            addSuperclassConstructorParameter("protocol", Protocol::class)
+            addSuperclassConstructorParameter("listener", AsyncClientBase.Listener::class)
+        }
+
+        for ((index, interfaceFun) in serviceInterface.funSpecs.withIndex()) {
+            val method = serviceType.methods()[index]
+            val call = buildCallType(schema, method)
+            val spec = FunSpec.builder(interfaceFun.name).apply {
+                addModifiers(KModifier.OVERRIDE)
+                for (param in interfaceFun.parameters) {
+                    addParameter(param)
+                }
+
+                addCode {
+                    add("this.enqueue(%N(", call)
+                    for ((ix, param) in interfaceFun.parameters.withIndex()) {
+                        if (ix > 0) {
+                            add(", ")
+                        }
+                        add("%N", param.name)
+                    }
+                    add("))")
+                }
+            }
+            type.addType(call)
+            type.addFunction(spec.build())
+        }
+
+        return type.build()
+    }
+
+    private fun buildCallType(schema: Schema, method: ServiceMethod): TypeSpec {
+        val callName = method.name.capitalize() + "Call"
+        val returnType = method.returnType().trueType
+        val resultType = if (returnType == BuiltinType.VOID) {
+            UNIT
+        } else {
+            returnType.typeName
+        }
+        val hasResult = resultType != UNIT
+        val messageType = if (method.oneWay()) "ONEWAY" else "CALL"
+        val nameAllocator = nameAllocators[method]
+        val callbackTypeName = ServiceMethodCallback::class
+                .asTypeName()
+                .parameterizedBy(resultType)
+        val superclassTypeName = MethodCall::class
+                .asTypeName()
+                .parameterizedBy(resultType)
+
+
+        return TypeSpec.classBuilder(callName).run {
+            addModifiers(KModifier.PRIVATE)
+            superclass(superclassTypeName)
+
+            addSuperclassConstructorParameter("%S", method.name)
+            addSuperclassConstructorParameter("%T.%L", TMessageType::class, messageType)
+            addSuperclassConstructorParameter("%N", nameAllocator.get(Tags.CALLBACK))
+
+            // Add ctor
+            val ctor = FunSpec.constructorBuilder()
+
+            for (param in method.parameters()) {
+                val name = nameAllocator.get(param)
+                val type = param.type().trueType
+                val typeName = type.typeName
+
+                val defaultValue = param.defaultValue()
+                val hasDefaultValue = defaultValue != null
+                val propertyType = when {
+                    param.required() -> typeName
+                    hasDefaultValue -> typeName
+                    else -> typeName.asNullable()
+                }
+
+                val ctorParam = ParameterSpec.builder(name, propertyType)
+                if (defaultValue != null) {
+                    ctorParam.defaultValue(renderConstValue(schema, type, defaultValue))
+                } else if (typeName.nullable) {
+                    ctorParam.defaultValue("null")
+                }
+
+                ctor.addParameter(ctorParam.build())
+
+                addProperty(PropertySpec.builder(name, typeName)
+                        .addModifiers(KModifier.PRIVATE)
+                        .initializer(name)
+                        .build())
+            }
+
+            ctor.addParameter(nameAllocator.get(Tags.CALLBACK), callbackTypeName)
+            primaryConstructor(ctor.build())
+
+            // Add send method
+            val send = FunSpec.builder(nameAllocator.get(Tags.SEND))
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addAnnotation(AnnotationSpec.builder(Throws::class)
+                            .addMember("%T::class", IOException::class)
+                            .build())
+                    .addParameter("protocol", Protocol::class)
+                    .addStatement("protocol.writeStructBegin(%S)", "args")
+
+            for (param in method.parameters()) {
+                val name = nameAllocator.get(param)
+                val type = param.type().trueType
+                val typeCodeName = type.typeCodeName
+                val optional = !param.required()
+
+                if (optional) {
+                    send.beginControlFlow("if (this.%N != null)", name)
+                }
+
+                send.addStatement("protocol.writeFieldBegin(%S, %L, %T.%L)",
+                        param.name, // Make sure to send the Thrift name, not the allocated field name
+                        param.id(),
+                        TType::class,
+                        typeCodeName)
+
+                generateWriteCall(send, "this.$name", type)
+
+                send.addStatement("protocol.writeFieldEnd()")
+
+                if (optional) {
+                    send.endControlFlow()
+                }
+            }
+
+            send.addStatement("protocol.writeFieldStop()")
+            send.addStatement("protocol.writeStructEnd()")
+            addFunction(send.build())
+
+            // Add receive method
+            val recv = FunSpec.builder(nameAllocator.get(Tags.RECEIVE))
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addParameter("protocol", Protocol::class)
+                    .addParameter("metadata", MessageMetadata::class)
+                    .addAnnotation(AnnotationSpec.builder(Throws::class)
+                            .addMember("%T::class", Exception::class)
+                            .build())
+
+
+            val maybeResultType = resultType.asNullable()
+            val resultName = nameAllocator.get(Tags.RESULT)
+            if (hasResult) {
+                recv.returns(resultType.asNonNullable())
+                recv.addStatement("var %N: %T = null", resultName, maybeResultType)
+            }
+
+            for (ex in method.exceptions()) {
+                recv.addStatement("var %N: %T = null", nameAllocator.get(ex), ex.type().typeName.asNullable())
+            }
+
+            val fieldMeta = nameAllocator.get(Tags.FIELD)
+            recv.addStatement("protocol.readStructBegin()")
+                    .beginControlFlow("while (true)")
+                    .addStatement("val %N = protocol.readFieldBegin()", fieldMeta)
+                    .beginControlFlow("if (%N.typeId == %T.STOP)", fieldMeta, TType::class)
+                    .addStatement("break")
+                    .endControlFlow() // if (fieldMeta.typeId == TType.STOP)
+
+            val readsSomething = hasResult || method.exceptions().isNotEmpty()
+            if (readsSomething) {
+                recv.beginControlFlow("when (%N.fieldId.toInt())", fieldMeta)
+            }
+
+            if (hasResult) {
+                recv.addCode {
+                    addStatement("0 -> {%>")
+                    beginControlFlow("if (%N.typeId == %T.%L)", fieldMeta, TType::class, returnType.typeCodeName)
+
+                    generateRecursiveReadCall(this, "value", returnType)
+                    addStatement("%N = value", resultName)
+
+                    nextControlFlow("else")
+                    addStatement("%T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
+                    endControlFlow()
+                    addStatement("%<}")
+                }
+            }
+
+            for (exn in method.exceptions()) {
+                val name = nameAllocator.get(exn)
+                val type = exn.type().trueType
+                recv.addCode {
+                    addStatement("${exn.id()} -> {%>")
+                    beginControlFlow("if (%N.typeId == %T.%L)", fieldMeta, TType::class, type.typeCodeName)
+
+                    generateRecursiveReadCall(this, "value", type)
+                    addStatement("$name = value")
+
+                    nextControlFlow("else")
+                    addStatement("%T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
+                    endControlFlow()
+                    addStatement("%<}")
+                }
+            }
+
+            if (readsSomething) {
+                recv.addStatement("else -> %T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
+                recv.endControlFlow()
+            } else {
+                recv.addStatement("%T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
+            }
+
+            recv.addStatement("protocol.readFieldEnd()")
+            recv.endControlFlow() // while (true)
+            recv.addStatement("protocol.readStructEnd()")
+
+            for (exn in method.exceptions()) {
+                val name = nameAllocator.get(exn)
+                recv.addStatement("if (%1N != null) throw %1N", name)
+            }
+
+            if (hasResult) {
+                recv.addStatement("return %N ?: throw %T(%T.%L, %S)",
+                        resultName,
+                        ThriftException::class,
+                        ThriftException.Kind::class,
+                        ThriftException.Kind.MISSING_RESULT.name,
+                        "Missing result")
+            }
+
+            // At this point, any exceptions have been thrown, and any results have been
+            // returned.  If control reaches here, then the return type is Unit and there
+            // is nothing to do.
+            addFunction(recv.build())
+
+            build()
+        }
+    }
+
+    // endregion Services
 
     private inline fun FunSpec.Builder.addCode(fn: CodeBlock.Builder.() -> Unit) {
         addCode(buildCodeBlock(fn))

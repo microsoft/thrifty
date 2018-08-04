@@ -6,7 +6,7 @@ sudo: false
 install: echo './gradlew check will install dependencies'
 
 script:
-  - ./gradlew check codeCoverageReport
+  - ./gradlew --parallel check codeCoverageReport
 
 after_success:
   - .ci/deploy-snapshots.sh
