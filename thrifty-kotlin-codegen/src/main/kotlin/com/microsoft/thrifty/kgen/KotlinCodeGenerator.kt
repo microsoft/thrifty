@@ -1200,7 +1200,7 @@ class KotlinCodeGenerator(
             val callbackResultType = if (method.returnType().trueType == BuiltinType.VOID) {
                 UNIT
             } else {
-                method.returnType().typeName.asNullable()
+                method.returnType().typeName
             }
             val callbackType = ServiceMethodCallback::class
                     .asTypeName()
@@ -1273,7 +1273,7 @@ class KotlinCodeGenerator(
         val resultType = if (returnType == BuiltinType.VOID) {
             UNIT
         } else {
-            returnType.typeName.asNullable()
+            returnType.typeName
         }
         val hasResult = resultType != UNIT
         val messageType = if (method.oneWay()) "ONEWAY" else "CALL"
