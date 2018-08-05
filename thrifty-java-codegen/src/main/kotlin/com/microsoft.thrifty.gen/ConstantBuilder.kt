@@ -32,6 +32,12 @@ import com.microsoft.thrifty.schema.StructType
 import com.microsoft.thrifty.schema.ThriftType
 import com.microsoft.thrifty.schema.TypedefType
 import com.microsoft.thrifty.schema.parser.ConstValueElement
+import com.microsoft.thrifty.schema.parser.DoubleValueElement
+import com.microsoft.thrifty.schema.parser.IdentifierValueElement
+import com.microsoft.thrifty.schema.parser.IntValueElement
+import com.microsoft.thrifty.schema.parser.ListValueElement
+import com.microsoft.thrifty.schema.parser.LiteralValueElement
+import com.microsoft.thrifty.schema.parser.MapValueElement
 import com.squareup.javapoet.CodeBlock
 import com.squareup.javapoet.NameAllocator
 import com.squareup.javapoet.ParameterizedTypeName
@@ -66,7 +72,7 @@ internal class ConstantBuilder(
             }
 
             override fun visitList(listType: ListType) {
-                val list = value.getAsList()
+                val list = (value as ListValueElement).value
                 val elementType = listType.elementType.trueType
                 val elementTypeName = typeResolver.getJavaClass(elementType)
                 val genericName = ParameterizedTypeName.get(TypeNames.LIST, elementTypeName)
@@ -75,7 +81,7 @@ internal class ConstantBuilder(
             }
 
             override fun visitSet(setType: SetType) {
-                val set = value.getAsList()
+                val set = (value as ListValueElement).value
                 val elementType = setType.elementType.trueType
                 val elementTypeName = typeResolver.getJavaClass(elementType)
                 val genericName = ParameterizedTypeName.get(TypeNames.SET, elementTypeName)
@@ -102,7 +108,7 @@ internal class ConstantBuilder(
             }
 
             override fun visitMap(mapType: MapType) {
-                val map = value.getAsMap()
+                val map = (value as MapValueElement).value
                 val keyType = mapType.keyType.trueType
                 val valueType = mapType.valueType.trueType
 
@@ -163,23 +169,22 @@ internal class ConstantBuilder(
     ) : ThriftType.Visitor<CodeBlock> {
 
         private fun getNumberLiteral(element: ConstValueElement): Any {
-            if (!element.isInt) {
-                throw AssertionError("Expected an int or double, got: " + element.kind)
+            if (element !is IntValueElement) {
+                throw AssertionError("Expected an int or double, got: " + element)
             }
 
             return if (element.thriftText.startsWith("0x") || element.thriftText.startsWith("0X")) {
                 element.thriftText
             } else {
-                element.getAsInt()
+                element.value
             }
         }
 
         override fun visitBool(boolType: BuiltinType): CodeBlock {
-            val name: String
-            if (value.isIdentifier && ("true" == value.getAsString() || "false" == value.getAsString())) {
-                name = if ("true" == value.getAsString()) "true" else "false"
-            } else if (value.isInt) {
-                name = if (value.getAsLong() == 0L) "false" else "true"
+            val name = if (value is IdentifierValueElement && value.value in setOf("true", "false")) {
+                value.value
+            } else if (value is IntValueElement) {
+                if (value.value == 0L) "false" else "true"
             } else {
                 return constantOrError("Invalid boolean constant")
             }
@@ -188,7 +193,7 @@ internal class ConstantBuilder(
         }
 
         override fun visitByte(byteType: BuiltinType): CodeBlock {
-            return if (value.isInt) {
+            return if (value is IntValueElement) {
                 CodeBlock.builder().add("(byte) \$L", getNumberLiteral(value)).build()
             } else {
                 constantOrError("Invalid byte constant")
@@ -196,7 +201,7 @@ internal class ConstantBuilder(
         }
 
         override fun visitI16(i16Type: BuiltinType): CodeBlock {
-            return if (value.isInt) {
+            return if (value is IntValueElement) {
                 CodeBlock.builder().add("(short) \$L", getNumberLiteral(value)).build()
             } else {
                 constantOrError("Invalid i16 constant")
@@ -204,7 +209,7 @@ internal class ConstantBuilder(
         }
 
         override fun visitI32(i32Type: BuiltinType): CodeBlock {
-            return if (value.isInt) {
+            return if (value is IntValueElement) {
                 CodeBlock.builder().add("\$L", getNumberLiteral(value)).build()
             } else {
                 constantOrError("Invalid i32 constant")
@@ -212,7 +217,7 @@ internal class ConstantBuilder(
         }
 
         override fun visitI64(i64Type: BuiltinType): CodeBlock {
-            return if (value.isInt) {
+            return if (value is IntValueElement) {
                 CodeBlock.builder().add("\$LL", getNumberLiteral(value)).build()
             } else {
                 constantOrError("Invalid i64 constant")
@@ -220,16 +225,16 @@ internal class ConstantBuilder(
         }
 
         override fun visitDouble(doubleType: BuiltinType): CodeBlock {
-            return if (value.isInt || value.isDouble) {
-                CodeBlock.builder().add("(double) \$L", value.getAsDouble()).build()
-            } else {
-                constantOrError("Invalid double constant")
+            return when (value) {
+                is IntValueElement -> CodeBlock.of("(double) \$L", value.value)
+                is DoubleValueElement -> CodeBlock.of("\$L", value.value)
+                else -> constantOrError("Invalid double constant")
             }
         }
 
         override fun visitString(stringType: BuiltinType): CodeBlock {
-            return if (value.isString) {
-                CodeBlock.builder().add("\$S", value.getAsString()).build()
+            return if (value is LiteralValueElement) {
+                CodeBlock.builder().add("\$S", value.value).build()
             } else {
                 constantOrError("Invalid string constant")
             }
@@ -244,73 +249,70 @@ internal class ConstantBuilder(
         }
 
         override fun visitEnum(enumType: EnumType): CodeBlock {
-            // TODO(ben): Figure out how to handle const references
-            try {
-                val member = when (value.kind) {
-                    ConstValueElement.Kind.INTEGER ->
-                        enumType.findMemberById(value.getAsInt())
-
-                    ConstValueElement.Kind.IDENTIFIER -> {
+            val member = try {
+                when (value) {
+                    is IntValueElement -> enumType.findMemberById(value.value.toInt())
+                    is IdentifierValueElement -> {
+                        // TODO(ben): Figure out how to handle const references
                         // Remove the enum name prefix, assuming it is present
-                        val id = value.getAsString().split(".").last()
-
-                        enumType.findMemberByName(id)
+                        val name = value.value.split(".").last()
+                        enumType.findMemberByName(name)
                     }
-
-                    else -> throw AssertionError(
-                            "Constant value kind ${value.kind} is not possibly an enum; validation bug")
+                    else -> throw AssertionError("Constant value $value is not possibly an enum; validation bug")
                 }
-
-                return CodeBlock.builder()
-                        .add("\$T.\$L", typeResolver.getJavaClass(enumType), member.name)
-                        .build()
-
             } catch (e: NoSuchElementException) {
                 throw IllegalStateException(
-                        "No enum member in ${enumType.name} with value ${value.value}")
+                        "No enum member in ${enumType.name} with value $value")
             }
+
+            return CodeBlock.builder()
+                    .add("\$T.\$L", typeResolver.getJavaClass(enumType), member.name)
+                    .build()
         }
 
         override fun visitList(listType: ListType): CodeBlock {
-            if (value.isList) {
-                if (value.getAsList().isEmpty()) {
+            return if (value is ListValueElement) {
+                if (value.value.isEmpty()) {
                     val elementType = typeResolver.getJavaClass(listType.elementType)
-                    return CodeBlock.builder()
+                    CodeBlock.builder()
                             .add("\$T.<\$T>emptyList()", TypeNames.COLLECTIONS, elementType)
                             .build()
+                } else {
+                    visitCollection(listType, "list", "unmodifiableList")
                 }
-                return visitCollection(listType, "list", "unmodifiableList")
             } else {
-                return constantOrError("Invalid list constant")
+                constantOrError("Invalid list constant")
             }
         }
 
         override fun visitSet(setType: SetType): CodeBlock {
-            if (value.isList) { // not a typo; ConstantValueElement.Kind.LIST covers lists and sets.
-                if (value.getAsList().isEmpty()) {
+            return if (value is ListValueElement) { // not a typo; ListValueElement covers lists and sets.
+                if (value.value.isEmpty()) {
                     val elementType = typeResolver.getJavaClass(setType.elementType)
-                    return CodeBlock.builder()
+                    CodeBlock.builder()
                             .add("\$T.<\$T>emptySet()", TypeNames.COLLECTIONS, elementType)
                             .build()
+                } else {
+                    visitCollection(setType, "set", "unmodifiableSet")
                 }
-                return visitCollection(setType, "set", "unmodifiableSet")
             } else {
-                return constantOrError("Invalid set constant")
+                constantOrError("Invalid set constant")
             }
         }
 
         override fun visitMap(mapType: MapType): CodeBlock {
-            if (value.isMap) {
-                if (value.getAsMap().isEmpty()) {
+            return if (value is MapValueElement) {
+                if (value.value.isEmpty()) {
                     val keyType = typeResolver.getJavaClass(mapType.keyType)
                     val valueType = typeResolver.getJavaClass(mapType.valueType)
-                    return CodeBlock.builder()
+                    CodeBlock.builder()
                             .add("\$T.<\$T, \$T>emptyMap()", TypeNames.COLLECTIONS, keyType, valueType)
                             .build()
+                } else {
+                    visitCollection(mapType, "map", "unmodifiableMap")
                 }
-                return visitCollection(mapType, "map", "unmodifiableMap")
             } else {
-                return constantOrError("Invalid map constant")
+                constantOrError("Invalid map constant")
             }
         }
 
@@ -336,15 +338,15 @@ internal class ConstantBuilder(
         }
 
         private fun constantOrError(error: String): CodeBlock {
-            val message = "$error: ${value.value} + at ${value.location}"
+            val message = "$error: $value + at ${value.location}"
 
-            if (!value.isIdentifier) {
+            if (value !is IdentifierValueElement) {
                 throw IllegalStateException(message)
             }
 
             val expectedType = type.trueType
 
-            var name = value.getAsString()
+            var name = value.value
             val ix = name.indexOf('.')
             var expectedProgram: String? = null
             if (ix != -1) {

@@ -38,6 +38,8 @@ import com.microsoft.thrifty.schema.StructType
 import com.microsoft.thrifty.schema.ThriftType
 import com.microsoft.thrifty.schema.TypedefType
 import com.microsoft.thrifty.schema.UserType
+import com.microsoft.thrifty.schema.parser.ListValueElement
+import com.microsoft.thrifty.schema.parser.MapValueElement
 import com.squareup.javapoet.AnnotationSpec
 import com.squareup.javapoet.ArrayTypeName
 import com.squareup.javapoet.ClassName
@@ -883,7 +885,7 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitList(listType: ListType) {
-                    if (constant.value.getAsList().isEmpty()) {
+                    if ((constant.value as ListValueElement).value.isEmpty()) {
                         field.initializer("\$T.emptyList()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("list", "unmodifiableList")
@@ -891,7 +893,7 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitSet(setType: SetType) {
-                    if (constant.value.getAsList().isEmpty()) {
+                    if ((constant.value as ListValueElement).value.isEmpty()) {
                         field.initializer("\$T.emptySet()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("set", "unmodifiableSet")
@@ -899,7 +901,7 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitMap(mapType: MapType) {
-                    if (constant.value.getAsMap().isEmpty()) {
+                    if ((constant.value as MapValueElement).value.isEmpty()) {
                         field.initializer("\$T.emptyMap()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("map", "unmodifiableMap")
