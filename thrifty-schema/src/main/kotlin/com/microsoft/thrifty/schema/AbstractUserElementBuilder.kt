@@ -54,6 +54,11 @@ abstract class AbstractUserElementBuilder<
         return this as TBuilder
     }
 
+    fun namespaces(namespaces: Map<NamespaceScope, String>): TBuilder {
+        mixin = mixin.toBuilder().namespaces(namespaces).build()
+        return this as TBuilder
+    }
+
     fun type(type: TElement): TBuilder {
         mixin = mixin.toBuilder()
                 .name(type.name)

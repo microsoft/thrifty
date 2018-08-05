@@ -33,7 +33,7 @@ class SetType internal constructor(
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitSet(this)
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
-        return SetType(elementType, ThriftType.merge(this.annotations, annotations))
+        return SetType(elementType, mergeAnnotations(this.annotations, annotations))
     }
 
     fun toBuilder(): Builder = Builder(this)

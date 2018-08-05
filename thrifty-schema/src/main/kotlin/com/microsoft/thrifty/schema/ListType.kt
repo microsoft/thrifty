@@ -33,7 +33,7 @@ class ListType internal constructor(
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitList(this)
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
-        return ListType(elementType, ThriftType.merge(this.annotations, annotations))
+        return ListType(elementType, mergeAnnotations(this.annotations, annotations))
     }
 
     fun toBuilder(): Builder {

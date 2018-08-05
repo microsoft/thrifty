@@ -40,14 +40,13 @@ class StructType : UserType {
     val isException: Boolean
         get() = structType === StructElement.Type.EXCEPTION
 
-    internal constructor(program: Program, element: StructElement) : super(program.namespaces, UserElementMixin(element)) {
-
+    internal constructor(element: StructElement, namespaces: Map<NamespaceScope, String>)
+            : super(UserElementMixin(element, namespaces)) {
         this.structType = element.type
-        this.fields = element.fields
-                .map { Field(it) }
+        this.fields = element.fields.map { Field(it, namespaces) }
     }
 
-    private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
+    private constructor(builder: Builder) : super(builder.mixin) {
         this.structType = builder.structType
         this.fields = builder.fields
     }
@@ -60,7 +59,7 @@ class StructType : UserType {
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return toBuilder()
-                .annotations(ThriftType.merge(this.annotations, annotations))
+                .annotations(mergeAnnotations(this.annotations, annotations))
                 .build()
     }
 

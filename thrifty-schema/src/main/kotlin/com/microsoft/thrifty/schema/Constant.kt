@@ -27,18 +27,11 @@ import com.microsoft.thrifty.schema.parser.ConstValueElement
 /**
  * Represents a Thrift const definition.
  */
-class Constant internal constructor (
+class Constant private constructor (
         private val element: ConstElement,
-        val namespaces: Map<NamespaceScope, String>,
-        private val mixin: UserElementMixin = UserElementMixin(
-                element.uuid,
-                element.name,
-                element.location,
-                element.documentation,
-                null) // annotations not allowed on Thrift constants
+        private val mixin: UserElementMixin,
+        private var type_: ThriftType? = null
 ) : UserElement by mixin {
-    private var type_: ThriftType? = null
-
     val type: ThriftType
         get() = type_!!
 
@@ -48,24 +41,11 @@ class Constant internal constructor (
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
 
-    private constructor(builder: Builder) : this(builder.element, builder.namespaces, builder.mixin) {
-        this.type_ = builder.type
-    }
+    internal constructor(element: ConstElement, namespaces: Map<NamespaceScope, String>, type: ThriftType? = null)
+            : this(element, UserElementMixin(element, namespaces), type)
 
-    fun getNamespaceFor(scope: NamespaceScope): String? {
-        var ns: String? = namespaces[scope]
-        if (ns == null && scope !== NamespaceScope.ALL) {
-            ns = namespaces[NamespaceScope.ALL]
-        }
-        return ns
-    }
-
-    fun getNamespaceFor(vararg scopes: NamespaceScope): String? {
-        for (s in scopes) {
-            namespaces[s]?.let { return it }
-        }
-        return null
-    }
+    private constructor(builder: Builder)
+            : this(builder.element, builder.mixin, builder.type)
 
     internal fun link(linker: Linker) {
         type_ = linker.resolveType(element.type)
@@ -84,13 +64,7 @@ class Constant internal constructor (
     ) : AbstractUserElementBuilder<Constant, Builder>(constant.mixin) {
 
         internal val element: ConstElement = constant.element
-        internal var namespaces: Map<NamespaceScope, String> = constant.namespaces
         internal val type: ThriftType? = constant.type
-
-        fun namespaces(namespaces: Map<NamespaceScope, String>): Builder {
-            this.namespaces = namespaces
-            return this
-        }
 
         override fun build(): Constant {
             return Constant(this)

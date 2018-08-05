@@ -43,17 +43,17 @@ class Program internal constructor(element: ThriftFileElement) {
 
     val constants: List<Constant> = element.constants.map { Constant(it, namespaces) }
 
-    val enums: List<EnumType> = element.enums.map { EnumType(this, it) }
+    val enums: List<EnumType> = element.enums.map { EnumType(it, namespaces) }
 
-    val structs: List<StructType>    = element.structs.map { StructType(this, it) }
+    val structs: List<StructType>    = element.structs.map { StructType(it, namespaces) }
 
-    val unions: List<StructType>     = element.unions.map { StructType(this, it) }
+    val unions: List<StructType>     = element.unions.map { StructType(it, namespaces) }
 
-    val exceptions: List<StructType> = element.exceptions.map { StructType(this, it) }
+    val exceptions: List<StructType> = element.exceptions.map { StructType(it, namespaces) }
 
-    val typedefs: List<TypedefType>  = element.typedefs.map { TypedefType(this, it) }
+    val typedefs: List<TypedefType>  = element.typedefs.map { TypedefType(it, namespaces) }
 
-    val services: List<ServiceType>  = element.services.map { ServiceType(this, it) }
+    val services: List<ServiceType>  = element.services.map { ServiceType(it, namespaces) }
 
     val location: Location = element.location
 

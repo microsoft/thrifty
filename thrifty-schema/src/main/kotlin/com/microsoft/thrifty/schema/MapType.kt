@@ -34,7 +34,7 @@ class MapType internal constructor(
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitMap(this)
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
-        return MapType(keyType, valueType, ThriftType.merge(this.annotations, annotations))
+        return MapType(keyType, valueType, mergeAnnotations(this.annotations, annotations))
     }
 
     fun toBuilder(): Builder = Builder(this)

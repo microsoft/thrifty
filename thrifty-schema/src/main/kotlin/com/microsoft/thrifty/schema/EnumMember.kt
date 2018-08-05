@@ -31,8 +31,8 @@ class EnumMember private constructor(
         val value: Int
 ) : UserElement by mixin {
 
-    internal constructor(element: EnumMemberElement)
-            : this(UserElementMixin(element), element.value)
+    internal constructor(element: EnumMemberElement, namespaces: Map<NamespaceScope, String>)
+            : this(UserElementMixin(element, namespaces), element.value)
 
     private constructor(builder: Builder)
             : this(builder.mixin, builder.value)

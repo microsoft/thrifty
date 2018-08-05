@@ -294,17 +294,7 @@ class ConstantTest {
                 name,
                 value)
 
-        return Constant(element, emptyMap()).also {
-            try {
-                val field = Constant::class.java.getDeclaredField("type_")
-                field.isAccessible = true
-                field.set(it, thriftType)
-            } catch (e: NoSuchFieldException) {
-                throw AssertionError(e)
-            } catch (e: IllegalAccessException) {
-                throw AssertionError(e)
-            }
-        }
+        return Constant(element, emptyMap(), thriftType)
     }
 
     private fun makeTypedef(oldType: ThriftType, newName: String): TypedefType {
@@ -313,16 +303,6 @@ class ConstantTest {
                 TypeElement.scalar(loc, "does_not_matter", null),
                 newName)
 
-        return TypedefType(emptyMap(), element).also {
-            try {
-                val field = TypedefType::class.java.getDeclaredField("oldType_")
-                field.isAccessible = true
-                field.set(it, oldType)
-            } catch (e: IllegalAccessException) {
-                throw AssertionError(e)
-            } catch (e: NoSuchFieldException) {
-                throw AssertionError(e)
-            }
-        }
+        return TypedefType(element, emptyMap(), oldType)
     }
 }

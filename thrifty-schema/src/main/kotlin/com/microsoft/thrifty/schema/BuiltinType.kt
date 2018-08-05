@@ -50,7 +50,7 @@ class BuiltinType internal constructor(
     }
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
-        return BuiltinType(name, ThriftType.merge(this.annotations, annotations))
+        return BuiltinType(name, mergeAnnotations(this.annotations, annotations))
     }
 
     override fun equals(other: Any?): Boolean {

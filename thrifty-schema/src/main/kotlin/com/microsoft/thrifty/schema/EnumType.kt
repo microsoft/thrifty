@@ -29,15 +29,11 @@ class EnumType : UserType {
 
     val members: List<EnumMember>
 
-    internal constructor(program: Program, element: EnumElement) : super(program.namespaces, UserElementMixin(element)) {
-        this.members = element.members.map { EnumMember(it) }
+    internal constructor(element: EnumElement, namespaces: Map<NamespaceScope, String>): super(UserElementMixin(element, namespaces)) {
+        this.members = element.members.map { EnumMember(it, namespaces) }
     }
 
-    internal constructor(element: EnumElement, namespaces: Map<NamespaceScope, String>): super(namespaces, UserElementMixin(element)) {
-        this.members = element.members.map { EnumMember(it) }
-    }
-
-    private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
+    private constructor(builder: Builder) : super(builder.mixin) {
         this.members = builder.members
     }
 
@@ -55,7 +51,7 @@ class EnumType : UserType {
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return toBuilder()
-                .annotations(ThriftType.merge(this.annotations, annotations))
+                .annotations(mergeAnnotations(this.annotations, annotations))
                 .build()
     }
 

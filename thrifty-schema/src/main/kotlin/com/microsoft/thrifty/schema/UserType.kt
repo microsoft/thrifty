@@ -27,28 +27,11 @@ import java.util.Objects
  * exceptions, services, and typedefs.
  */
 abstract class UserType internal constructor(
-        private val namespaces: Map<NamespaceScope, String>,
         private val mixin: UserElementMixin
 ) : ThriftType(mixin.name), UserElement by mixin {
 
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
-
-    internal constructor(program: Program, mixin: UserElementMixin) : this(program.namespaces, mixin)
-
-    fun getNamespaceFor(namespace: NamespaceScope): String? {
-        return when (namespace) {
-            NamespaceScope.ALL -> namespaces[namespace]
-            else -> namespaces[namespace] ?: namespaces[NamespaceScope.ALL]
-        }
-    }
-
-    fun getNamespaceFor(vararg scopes: NamespaceScope): String? {
-        for (s in scopes) {
-            namespaces[s]?.let { return it }
-        }
-        return null
-    }
 
     override val name: String = mixin.name
 
@@ -56,24 +39,17 @@ abstract class UserType internal constructor(
         if (!super.equals(other)) return false
         if (other !is UserType) return false
 
-        return this.mixin == other.mixin && this.namespaces == other.namespaces
+        return this.mixin == other.mixin
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(super.hashCode(), mixin, namespaces)
+        return Objects.hash(super.hashCode(), mixin)
     }
 
-    abstract class UserTypeBuilder<TType : UserType, TBuilder : UserType.UserTypeBuilder<TType, TBuilder>> internal constructor(
+    abstract class UserTypeBuilder<
+            TType : UserType,
+            TBuilder : UserType.UserTypeBuilder<TType, TBuilder>
+    > internal constructor(
             type: TType
-    ) : AbstractUserElementBuilder<TType, TBuilder>(type.mixin) {
-
-        internal var namespaces: Map<NamespaceScope, String> = type.namespaces
-
-        fun namespaces(namespaces: Map<NamespaceScope, String>): TBuilder {
-            this.namespaces = namespaces
-
-            @Suppress("UNCHECKED_CAST")
-            return this as TBuilder
-        }
-    }
+    ) : AbstractUserElementBuilder<TType, TBuilder>(type.mixin)
 }

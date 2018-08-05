@@ -24,28 +24,20 @@ import com.microsoft.thrifty.schema.parser.TypeElement
 import com.microsoft.thrifty.schema.parser.TypedefElement
 import java.util.Objects
 
-class TypedefType : UserType {
-    private val oldTypeElement: TypeElement
-
-    private var oldType_: ThriftType? = null
+class TypedefType internal constructor(
+        mixin: UserElementMixin,
+        private val oldTypeElement: TypeElement,
+        private var oldType_: ThriftType? = null
+) : UserType(mixin) {
 
     val oldType: ThriftType
         get() = oldType_!!
 
-    internal constructor(program: Program, element: TypedefElement) : super(program.namespaces, UserElementMixin(element)) {
-        this.oldTypeElement = element.oldType
-    }
+    internal constructor(element: TypedefElement, namespaces: Map<NamespaceScope, String>, oldType: ThriftType? = null)
+            : this(UserElementMixin(element, namespaces), element.oldType, oldType)
 
-    // visible for testing
-    // TODO(ben): Get rid of this, or conversely get rid of the ctors taking a Program
-    internal constructor(namespaces: Map<NamespaceScope, String>, element: TypedefElement) : super(namespaces, UserElementMixin(element)) {
-        this.oldTypeElement = element.oldType
-    }
-
-    private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
-        this.oldTypeElement = builder.oldTypeElement
-        this.oldType_ = builder.oldType
-    }
+    private constructor(builder: Builder)
+            : this(builder.mixin, builder.oldTypeElement, builder.oldType)
 
     internal fun link(linker: Linker) {
         this.oldType_ = linker.resolveType(oldTypeElement)
@@ -74,7 +66,7 @@ class TypedefType : UserType {
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return toBuilder()
-                .annotations(ThriftType.merge(this.annotations, annotations))
+                .annotations(mergeAnnotations(this.annotations, annotations))
                 .build()
     }
 
