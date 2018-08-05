@@ -61,30 +61,6 @@ class Loader {
     private val loadedPrograms = mutableMapOf<Path, Program>()
 
     /**
-     * Adds the file identified by the given string to the set of Thrift files
-     * to be parsed.
-     *
-     * `file` must resolve to a regular file that exists.
-     *
-     * @param file the path to a Thrift file to be parsed; must exist.
-     *
-     * @return this loader
-     *
-     * @throws NullPointerException
-     * if `file` is `null`.
-     *
-     * @throws IllegalArgumentException
-     * if `file` is not a regular file.
-     *
-     */
-    @Deprecated("Prefer {@link #addThriftFile(Path)} to this method.")
-    fun addThriftFile(file: String): Loader {
-        Preconditions.checkNotNull(file, "file")
-        val path = Paths.get(file)
-        return addThriftFile(path)
-    }
-
-    /**
      * Adds the given path to the set of Thrift files to be parsed.
      *
      * `file` must be a regular file that exists.
@@ -103,26 +79,6 @@ class Loader {
         Preconditions.checkNotNull(file, "file")
         Preconditions.checkArgument(Files.isRegularFile(file), "thrift file must be a regular file")
         thriftFiles.add(file)
-    }
-
-    /**
-     * Adds the given `path` to the set of directories from which included
-     * files will be located.
-     *
-     * @param path A [File] identifying a directory, containing files to
-     * include.
-     * @return this loader.
-     *
-     * @throws NullPointerException
-     * if `path` is `null`
-     * @throws IllegalArgumentException
-     * if `path` is not an existing directory
-     *
-     */
-    @Deprecated("Prefer {@link #addIncludePath(Path)} to this method.")
-    fun addIncludePath(path: File): Loader {
-        Preconditions.checkNotNull(path, "path")
-        return addIncludePath(path.toPath())
     }
 
     /**
@@ -159,7 +115,6 @@ class Loader {
      * @throws LoadFailedException
      * if parsing fails for any reason.
      */
-    @Throws(LoadFailedException::class)
     fun load(): Schema {
         try {
             loadFromDisk()
@@ -174,7 +129,6 @@ class Loader {
         return errorReporter
     }
 
-    @Throws(IOException::class)
     private fun loadFromDisk() {
         val filesToLoad = thriftFiles.toMutableList()
         if (filesToLoad.isEmpty()) {
@@ -223,7 +177,6 @@ class Loader {
      * @param path A relative or absolute path to a Thrift file.
      * @param loadedFiles A mapping of absolute paths to parsed Thrift files.
      */
-    @Throws(IOException::class)
     private fun loadFileRecursively(path: Path, loadedFiles: MutableMap<Path, ThriftFileElement>) {
         val dir: Path?
 
@@ -267,7 +220,6 @@ class Loader {
         }
     }
 
-    @Throws(IOException::class)
     private fun loadSingleFile(base: Path, fileName: Path): ThriftFileElement? {
         val file = base.resolve(fileName)
         if (!Files.exists(file)) {

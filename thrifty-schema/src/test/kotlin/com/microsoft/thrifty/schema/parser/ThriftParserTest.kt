@@ -947,7 +947,6 @@ class ThriftParserTest {
     }
 
     @Test
-    @Throws(Exception::class)
     fun annotationsOnEnums() {
         val thrift = "enum Foo {} (bar = 'baz')"
         val enum = parse(thrift).enums.single()
