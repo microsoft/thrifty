@@ -28,7 +28,6 @@ import com.microsoft.thrifty.schema.parser.EnumMemberElement
  */
 class EnumMember private constructor(
         private val mixin: UserElementMixin,
-        @get:JvmName("value")
         val value: Int
 ) : UserElement by mixin {
 

@@ -22,6 +22,5 @@ package com.microsoft.thrifty.schema
 
 class LoadFailedException(
         cause: Throwable,
-        @get:JvmName("errorReporter")
         val errorReporter: ErrorReporter
 ) : Exception(errorReporter.formattedReports().joinToString("\n"), cause)

@@ -1,13 +1,14 @@
 package com.microsoft.thrifty.schema
 
-import org.hamcrest.Matchers
+import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.hasEntry
 import org.hamcrest.Matchers.hasSize
-import org.junit.Assert
 import org.junit.Assert.assertThat
+import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
-import org.junit.internal.matchers.ThrowableMessageMatcher
+import org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage
 import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.IOException
@@ -39,43 +40,43 @@ class LoaderTest {
 
         val schema = load(thrift)
 
-        Assert.assertThat(schema.enums.size, Matchers.equalTo(1))
-        Assert.assertThat(schema.structs.size, Matchers.equalTo(1))
-        Assert.assertThat(schema.services.size, Matchers.equalTo(1))
+        assertThat(schema.enums.size, equalTo(1))
+        assertThat(schema.structs.size, equalTo(1))
+        assertThat(schema.services.size, equalTo(1))
 
         val et = schema.enums[0]
-        Assert.assertThat(et.name, Matchers.equalTo("TestEnum"))
-        Assert.assertThat(et.members[0].name, Matchers.equalTo("ONE"))
-        Assert.assertThat(et.members[1].name, Matchers.equalTo("TWO"))
+        assertThat(et.name, equalTo("TestEnum"))
+        assertThat(et.members[0].name, equalTo("ONE"))
+        assertThat(et.members[1].name, equalTo("TWO"))
 
         val st = schema.structs[0]
-        Assert.assertThat(st.name, Matchers.equalTo("S"))
-        Assert.assertThat(st.fields.size, Matchers.equalTo(1))
+        assertThat(st.name, equalTo("S"))
+        assertThat(st.fields.size, equalTo(1))
 
         val field = st.fields[0]
-        Assert.assertThat(field.id(), Matchers.equalTo(1))
-        Assert.assertThat(field.required(), Matchers.equalTo(true))
-        Assert.assertThat(field.name, Matchers.equalTo("n"))
+        assertThat(field.id, equalTo(1))
+        assertThat(field.required, equalTo(true))
+        assertThat(field.name, equalTo("n"))
 
-        val fieldType = field.type()
-        Assert.assertThat(fieldType.isTypedef, Matchers.equalTo(true))
-        Assert.assertThat(fieldType.name, Matchers.equalTo("Int"))
-        Assert.assertThat(fieldType.trueType, Matchers.equalTo(BuiltinType.I32))
+        val fieldType = field.type
+        assertThat(fieldType.isTypedef, equalTo(true))
+        assertThat(fieldType.name, equalTo("Int"))
+        assertThat(fieldType.trueType, equalTo(BuiltinType.I32))
 
         val svc = schema.services[0]
-        Assert.assertThat(svc.name, Matchers.equalTo("Svc"))
-        Assert.assertThat(svc.methods().size, Matchers.equalTo(1))
+        assertThat(svc.name, equalTo("Svc"))
+        assertThat(svc.methods.size, equalTo(1))
 
-        val method = svc.methods()[0]
-        Assert.assertThat(method.name, Matchers.equalTo("sayHello"))
-        Assert.assertThat(method.oneWay(), Matchers.equalTo(true))
-        Assert.assertThat(method.parameters().size, Matchers.equalTo(1))
-        Assert.assertThat(method.exceptions().size, Matchers.equalTo(0))
+        val method = svc.methods[0]
+        assertThat(method.name, equalTo("sayHello"))
+        assertThat(method.oneWay, equalTo(true))
+        assertThat(method.parameters.size, equalTo(1))
+        assertThat(method.exceptions.size, equalTo(0))
 
-        val param = method.parameters()[0]
-        Assert.assertThat(param.name, Matchers.equalTo("arg1"))
-        Assert.assertThat(param.type().name, Matchers.equalTo("S"))
-        Assert.assertThat(param.type(), Matchers.equalTo<ThriftType>(st))
+        val param = method.parameters[0]
+        assertThat(param.name, equalTo("arg1"))
+        assertThat(param.type.name, equalTo("S"))
+        assertThat(param.type, equalTo<ThriftType>(st))
     }
 
     @Test
@@ -109,10 +110,10 @@ class LoaderTest {
         val schema = load(f, f1)
 
         val et = schema.enums[0]
-        Assert.assertThat(et.name, Matchers.equalTo("TestEnum"))
+        assertThat(et.name, equalTo("TestEnum"))
 
         val td = schema.typedefs[0]
-        Assert.assertThat(td.oldType(), Matchers.equalTo<ThriftType>(et))
+        assertThat(td.oldType, equalTo<ThriftType>(et))
     }
 
     @Test
@@ -143,7 +144,7 @@ class LoaderTest {
 
         try {
             load(f, f1)
-            Assert.fail()
+            fail()
         } catch (e: LoadFailedException) {
             assertHasError(e, "Failed to resolve type 'TestEnum'")
         }
@@ -191,7 +192,7 @@ class LoaderTest {
 
         try {
             load(producer, consumer)
-            Assert.fail("Expected a LoadFailedException due to an unqualified use of an imported constant")
+            fail("Expected a LoadFailedException due to an unqualified use of an imported constant")
         } catch (e: LoadFailedException) {
             assertHasError(e, "Unrecognized const identifier")
         }
@@ -254,7 +255,7 @@ class LoaderTest {
 
         try {
             load(f1, f2, f3)
-            Assert.fail("Circular includes should fail to load")
+            fail("Circular includes should fail to load")
         } catch (e: LoadFailedException) {
             assertHasError(e, "Circular include")
         }
@@ -270,7 +271,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Circular typedefs should fail to link")
+            fail("Circular typedefs should fail to link")
         } catch (e: LoadFailedException) {
             assertHasError(e, "Unresolvable typedef")
         }
@@ -291,20 +292,20 @@ class LoaderTest {
         val msg = schema.typedefs[1]
         val map = schema.typedefs[2]
 
-        Assert.assertThat(code.name, Matchers.equalTo("StatusCode"))
-        Assert.assertThat(code.oldType().isBuiltin, Matchers.equalTo(true))
-        Assert.assertThat(code.oldType().name, Matchers.equalTo("i32"))
+        assertThat(code.name, equalTo("StatusCode"))
+        assertThat(code.oldType.isBuiltin, equalTo(true))
+        assertThat(code.oldType.name, equalTo("i32"))
 
-        Assert.assertThat(msg.name, Matchers.equalTo("Message"))
-        Assert.assertThat(msg.oldType().isBuiltin, Matchers.equalTo(true))
-        Assert.assertThat(msg.oldType().name, Matchers.equalTo("string"))
+        assertThat(msg.name, equalTo("Message"))
+        assertThat(msg.oldType.isBuiltin, equalTo(true))
+        assertThat(msg.oldType.name, equalTo("string"))
 
-        Assert.assertThat(map.name, Matchers.equalTo("Messages"))
-        Assert.assertThat(map.oldType().isMap, Matchers.equalTo(true))
+        assertThat(map.name, equalTo("Messages"))
+        assertThat(map.oldType.isMap, equalTo(true))
 
-        val mt = map.oldType() as MapType
-        Assert.assertThat(mt.keyType(), Matchers.equalTo<ThriftType>(code))
-        Assert.assertThat(mt.valueType(), Matchers.equalTo<ThriftType>(msg))
+        val mt = map.oldType as MapType
+        assertThat(mt.keyType, equalTo<ThriftType>(code))
+        assertThat(mt.valueType, equalTo<ThriftType>(msg))
     }
 
     @Test
@@ -328,7 +329,7 @@ class LoaderTest {
 
         val schema = load(thrift)
 
-        Assert.assertThat(schema.structs[0].fields.size, Matchers.equalTo(2))
+        assertThat(schema.structs[0].fields.size, equalTo(2))
     }
 
     @Test
@@ -341,7 +342,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail()
+            fail()
         } catch (e: LoadFailedException) {
             assertHasError(e, "Failed to resolve type 'Undefined'")
         }
@@ -414,7 +415,7 @@ class LoaderTest {
         val schema = load(thrift)
 
         val td = schema.typedefs[0]
-        Assert.assertThat(td.oldType().annotations, Matchers.hasEntry("js.type", "Date"))
+        assertThat(td.oldType.annotations, hasEntry("js.type", "Date"))
     }
 
     @Test
@@ -433,7 +434,7 @@ class LoaderTest {
         val struct = schema.structs[0]
         val field = struct.fields[0]
 
-        Assert.assertThat(field.type().annotations, Matchers.hasEntry("thrifty.test", "bar"))
+        assertThat(field.type.annotations, hasEntry("thrifty.test", "bar"))
     }
 
     @Test
@@ -454,10 +455,10 @@ class LoaderTest {
         val base = schema.services[0]
         val derived = schema.services[1]
 
-        Assert.assertThat(base.name, Matchers.equalTo("Base"))
-        Assert.assertThat(derived.name, Matchers.equalTo("Derived"))
+        assertThat(base.name, equalTo("Base"))
+        assertThat(derived.name, equalTo("Derived"))
 
-        Assert.assertThat(base, Matchers.equalTo(derived.extendsService()))
+        assertThat(base, equalTo(derived.extendsService))
     }
 
     @Test
@@ -473,7 +474,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Services cannot have more than one method with the same name")
+            fail("Services cannot have more than one method with the same name")
         } catch (e: LoadFailedException) {
             // good
         }
@@ -495,7 +496,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Service cannot override methods inherited from base services")
+            fail("Service cannot override methods inherited from base services")
         } catch (e: LoadFailedException) {
             // good
         }
@@ -513,7 +514,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Methods having multiple parameters with the same ID are invalid")
+            fail("Methods having multiple parameters with the same ID are invalid")
         } catch (e: LoadFailedException) {
             // good
         }
@@ -530,7 +531,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Service extending non-service types should not validate")
+            fail("Service extending non-service types should not validate")
         } catch (expected: LoadFailedException) {
             // hooray
         }
@@ -548,10 +549,10 @@ class LoaderTest {
 
         val schema = load(thrift)
         val service = schema.services[0]
-        val method = service.methods()[0]
+        val method = service.methods[0]
 
-        Assert.assertThat(method.oneWay(), Matchers.equalTo(true))
-        Assert.assertThat(method.returnType(), Matchers.equalTo(BuiltinType.VOID))
+        assertThat(method.oneWay, equalTo(true))
+        assertThat(method.returnType, equalTo(BuiltinType.VOID))
     }
 
     @Test
@@ -566,7 +567,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Oneway methods cannot have non-void return types")
+            fail("Oneway methods cannot have non-void return types")
         } catch (e: LoadFailedException) {
             // yay
         }
@@ -589,7 +590,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Oneway methods cannot throw exceptions")
+            fail("Oneway methods cannot throw exceptions")
         } catch (e: LoadFailedException) {
             // yay
         }
@@ -606,7 +607,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Methods that declare throws of non-exception types are invalid")
+            fail("Methods that declare throws of non-exception types are invalid")
         } catch (e: LoadFailedException) {
             // good
         }
@@ -624,7 +625,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Methods that declare throws of non-exception types are invalid")
+            fail("Methods that declare throws of non-exception types are invalid")
         } catch (e: LoadFailedException) {
             // good
         }
@@ -646,7 +647,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Methods with multiple exceptions having the same ID are invalid")
+            fail("Methods with multiple exceptions having the same ID are invalid")
         } catch (e: LoadFailedException) {
             // good
         }
@@ -668,7 +669,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Methods that declare throws of non-exception user types are invalid")
+            fail("Methods that declare throws of non-exception user types are invalid")
         } catch (e: LoadFailedException) {
             // good
         }
@@ -691,14 +692,14 @@ class LoaderTest {
         val schema = load(thrift)
         val struct = schema.exceptions[0]
 
-        Assert.assertThat(struct.isException, Matchers.equalTo(true))
+        assertThat(struct.isException, equalTo(true))
 
         val service = schema.services[0]
-        val method = service.methods()[0]
-        val field = method.exceptions()[0]
-        val type = field.type()
+        val method = service.methods[0]
+        val field = method.exceptions[0]
+        val type = field.type
 
-        Assert.assertThat(type, Matchers.equalTo<ThriftType>(struct))
+        assertThat(type, equalTo<ThriftType>(struct))
     }
 
     @Test
@@ -715,10 +716,10 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Service inheritance cannot form a cycle")
+            fail("Service inheritance cannot form a cycle")
         } catch (e: LoadFailedException) {
             // Make sure that we identify the cycle
-            Assert.assertThat<String>(e.message, Matchers.containsString("A -> B -> C -> A"))
+            assertThat<String>(e.message, containsString("A -> B -> C -> A"))
         }
     }
 
@@ -820,7 +821,7 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail("Expected a LoadFailedException from validating a bare enum member in a constant")
+            fail("Expected a LoadFailedException from validating a bare enum member in a constant")
         } catch (e: LoadFailedException) {
             assertHasError(e, "Unqualified name 'One' is not a valid enum constant")
         }
@@ -833,9 +834,9 @@ class LoaderTest {
         val loader = Loader()
         try {
             loader.addThriftFile(doesNotExist)
-            Assert.fail("Expected an IllegalArgumentException, but nothing was thrown")
+            fail("Expected an IllegalArgumentException, but nothing was thrown")
         } catch (e: IllegalArgumentException) {
-            Assert.assertThat(e, ThrowableMessageMatcher.hasMessage(Matchers.equalTo("thrift file must be a regular file")))
+            assertThat(e, hasMessage(equalTo("thrift file must be a regular file")))
         }
     }
 
@@ -845,9 +846,9 @@ class LoaderTest {
         val loader = Loader()
         try {
             loader.addIncludePath(doesNotExist)
-            Assert.fail("Expected an IllegalArgumentException, but nothing was thrown")
+            fail("Expected an IllegalArgumentException, but nothing was thrown")
         } catch (e: IllegalArgumentException) {
-            Assert.assertThat(e, ThrowableMessageMatcher.hasMessage(Matchers.equalTo("path must be a directory")))
+            assertThat(e, hasMessage(equalTo("path must be a directory")))
         }
     }
 
@@ -856,12 +857,12 @@ class LoaderTest {
         val loader = Loader()
         try {
             loader.load()
-            Assert.fail("Expected a LoadFailedException, but nothing was thrown")
+            fail("Expected a LoadFailedException, but nothing was thrown")
         } catch (expected: LoadFailedException) {
             val cause = expected.cause
-            Assert.assertThat<Throwable>(
+            assertThat<Throwable>(
                     cause,
-                    ThrowableMessageMatcher.hasMessage(Matchers.equalTo("No files and no include paths containing Thrift files were provided")))
+                    hasMessage(equalTo("No files and no include paths containing Thrift files were provided")))
         }
     }
 
@@ -881,9 +882,9 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail()
+            fail()
         } catch (expected: LoadFailedException) {
-            Assert.assertThat(expected, ThrowableMessageMatcher.hasMessage(Matchers.containsString("Duplicate symbols: Foo defined at")))
+            assertThat(expected, hasMessage(containsString("Duplicate symbols: Foo defined at")))
         }
     }
 
@@ -899,9 +900,9 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail()
+            fail()
         } catch (expected: LoadFailedException) {
-            Assert.assertThat(expected, ThrowableMessageMatcher.hasMessage(Matchers.containsString("Duplicate symbols: Foo defined at")))
+            assertThat(expected, hasMessage(containsString("Duplicate symbols: Foo defined at")))
         }
     }
 
@@ -930,9 +931,9 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail()
+            fail()
         } catch (expected: LoadFailedException) {
-            Assert.assertThat(expected, ThrowableMessageMatcher.hasMessage(Matchers.containsString("Expected a value with type list<string>")))
+            assertThat(expected, hasMessage(containsString("Expected a value with type list<string>")))
         }
     }
 
@@ -946,9 +947,9 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail()
+            fail()
         } catch (expected: LoadFailedException) {
-            Assert.assertThat(expected, ThrowableMessageMatcher.hasMessage(Matchers.containsString("Expected a list literal, got: 3.14159")))
+            assertThat(expected, hasMessage(containsString("Expected a list literal, got: 3.14159")))
         }
     }
 
@@ -977,9 +978,9 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail()
+            fail()
         } catch (expected: LoadFailedException) {
-            Assert.assertThat(expected, ThrowableMessageMatcher.hasMessage(Matchers.containsString("Expected a value with type map<i8, i8>")))
+            assertThat(expected, hasMessage(containsString("Expected a value with type map<i8, i8>")))
         }
     }
 
@@ -1013,9 +1014,9 @@ class LoaderTest {
 
         try {
             load(thrift)
-            Assert.fail()
+            fail()
         } catch (expected: LoadFailedException) {
-            Assert.assertThat(expected, ThrowableMessageMatcher.hasMessage(Matchers.containsString("Expected a map literal, got: foo")))
+            assertThat(expected, hasMessage(containsString("Expected a map literal, got: foo")))
         }
     }
 
@@ -1046,7 +1047,7 @@ class LoaderTest {
     }
 
     private fun assertHasError(exception: LoadFailedException, expectedMessage: String) {
-        if (exception.errorReporter.reports().none { it.message.contains(expectedMessage) }) {
+        if (exception.errorReporter.reports.none { it.message.contains(expectedMessage) }) {
             throw AssertionError("Expected a reported error containing '$expectedMessage'")
         }
     }

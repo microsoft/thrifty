@@ -49,8 +49,8 @@ class FieldTest {
         val element = field()
 
         val field = Field(element)
-        assertTrue(field.required())
-        assertFalse(field.optional())
+        assertTrue(field.required)
+        assertFalse(field.optional)
     }
 
     @Test
@@ -58,16 +58,16 @@ class FieldTest {
         requiredness = Requiredness.OPTIONAL
         val element = field()
         val field = Field(element)
-        assertFalse(field.required())
-        assertTrue(field.optional())
+        assertFalse(field.required)
+        assertTrue(field.optional)
     }
 
     @Test
     fun defaultFields() {
         val element = field()
         val field = Field(element)
-        assertFalse(field.required())
-        assertFalse(field.optional())
+        assertFalse(field.required)
+        assertFalse(field.optional)
     }
 
     @Test
@@ -146,7 +146,7 @@ class FieldTest {
                 .build()
 
         assertEquals(builderField.annotations, annotations)
-        assertEquals(builderField.type(), thriftType)
+        assertEquals(builderField.type, thriftType)
     }
 
     @Test

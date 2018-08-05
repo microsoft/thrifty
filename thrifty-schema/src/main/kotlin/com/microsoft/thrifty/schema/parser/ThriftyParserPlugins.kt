@@ -42,7 +42,7 @@ object ThriftyParserPlugins {
      *
      * This allows container-like environments to prevent client messing with plugins.
      */
-    @JvmStatic fun lockdown() {
+    fun lockdown() {
         lockdown = true
     }
 
@@ -51,14 +51,14 @@ object ThriftyParserPlugins {
      *
      * @return true if the plugins were locked down
      */
-    @JvmStatic fun isLockdown(): Boolean {
+    fun isLockdown(): Boolean {
         return lockdown
     }
 
     /**
      * @param uuidProvider the provider to use for generating [UUID]s for elements.
      */
-    @JvmStatic fun setUUIDProvider(uuidProvider: UUIDProvider) {
+    fun setUUIDProvider(uuidProvider: UUIDProvider) {
         if (lockdown) {
             throw IllegalStateException("Plugins can't be changed anymore")
         }
@@ -68,11 +68,11 @@ object ThriftyParserPlugins {
     /**
      * @return a [UUID] as dictated by [uuidProvider]. Default is random UUIDs.
      */
-    @JvmStatic fun createUUID(): UUID {
+    fun createUUID(): UUID {
         return uuidProvider.call()
     }
 
-    @JvmStatic fun reset() {
+    fun reset() {
         uuidProvider = DEFAULT_UUID_PROVIDER
     }
 

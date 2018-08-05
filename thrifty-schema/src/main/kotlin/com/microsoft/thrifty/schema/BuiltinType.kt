@@ -20,7 +20,7 @@
  */
 package com.microsoft.thrifty.schema
 
-class BuiltinType @JvmOverloads internal constructor(
+class BuiltinType internal constructor(
         name: String,
         override val annotations: Map<String, String> = emptyMap()
 ) : ThriftType(name) {
@@ -78,22 +78,21 @@ class BuiltinType @JvmOverloads internal constructor(
     }
 
     companion object {
-        @JvmField val BOOL: ThriftType = BuiltinType("bool")
-        @JvmField val BYTE: ThriftType = BuiltinType("byte")
-        @JvmField val I8: ThriftType = BuiltinType("i8")
-        @JvmField val I16: ThriftType = BuiltinType("i16")
-        @JvmField val I32: ThriftType = BuiltinType("i32")
-        @JvmField val I64: ThriftType = BuiltinType("i64")
-        @JvmField val DOUBLE: ThriftType = BuiltinType("double")
-        @JvmField val STRING: ThriftType = BuiltinType("string")
-        @JvmField val BINARY: ThriftType = BuiltinType("binary")
-        @JvmField val VOID: ThriftType = BuiltinType("void")
+        val BOOL: ThriftType = BuiltinType("bool")
+        val BYTE: ThriftType = BuiltinType("byte")
+        val I8: ThriftType = BuiltinType("i8")
+        val I16: ThriftType = BuiltinType("i16")
+        val I32: ThriftType = BuiltinType("i32")
+        val I64: ThriftType = BuiltinType("i64")
+        val DOUBLE: ThriftType = BuiltinType("double")
+        val STRING: ThriftType = BuiltinType("string")
+        val BINARY: ThriftType = BuiltinType("binary")
+        val VOID: ThriftType = BuiltinType("void")
 
         private val BUILTINS = listOf(BOOL, BYTE, I8, I16, I32, I64, DOUBLE, STRING, BINARY, VOID)
                 .map { it.name to it }
                 .toMap()
 
-        @JvmStatic
         fun get(name: String): ThriftType? {
             return BUILTINS[name]
         }

@@ -31,19 +31,16 @@ sealed class TypeElement(
         /**
          * The location of the text corresponding to this element.
          */
-        @get:JvmName("location")
         val location: Location,
 
         /**
          * The name of the type referenced by this element.
          */
-        @get:JvmName("name")
         val name: String,
 
         /**
          * The annotations associated with this type reference, if any.
          */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null
 ) {
 
@@ -56,7 +53,6 @@ sealed class TypeElement(
          * @param annotations the annotations associated with the reference, if any.
          * @return a [ScalarTypeElement].
          */
-        @JvmStatic
         fun scalar(location: Location, name: String, annotations: AnnotationElement? = null) =
                 ScalarTypeElement(location, name, annotations)
 
@@ -68,7 +64,6 @@ sealed class TypeElement(
          * @param annotations the annotations associated with the reference, if any.
          * @return a [ListTypeElement].
          */
-        @JvmStatic
         fun list(location: Location, elementType: TypeElement, annotations: AnnotationElement? = null) =
                 ListTypeElement(elementType, location, annotations)
 
@@ -80,7 +75,6 @@ sealed class TypeElement(
          * @param annotations the annotations associated with the reference, if any.
          * @return a [SetTypeElement].
          */
-        @JvmStatic
         fun set(location: Location, elementType: TypeElement, annotations: AnnotationElement? = null) =
                 SetTypeElement(elementType, location, annotations)
 
@@ -93,7 +87,6 @@ sealed class TypeElement(
          * @param annotations the annotations associated with the reference, if any.
          * @return a [MapTypeElement].
          */
-        @JvmStatic
         fun map(location: Location,
                 keyType: TypeElement,
                 valueType: TypeElement,
@@ -142,7 +135,6 @@ class SetTypeElement(
         /**
          * A reference to the type of element contained within this set type.
          */
-        @get:JvmName("elementType")
         val elementType: TypeElement,
         location: Location,
         annotations: AnnotationElement? = null
@@ -176,7 +168,6 @@ class ListTypeElement(
         /**
          * A reference to the type of element contained within this list type.
          */
-        @get:JvmName("elementType")
         val elementType: TypeElement,
         location: Location,
         annotations: AnnotationElement? = null
@@ -213,13 +204,11 @@ class MapTypeElement(
         /**
          * A reference to the type serving as the key-type of this map type.
          */
-        @get:JvmName("keyType")
         val keyType: TypeElement,
 
         /**
          * A reference to the type serving as the value-type of this map type.
          */
-        @get:JvmName("valueType")
         val valueType: TypeElement,
 
         location: Location,

@@ -67,7 +67,7 @@ internal class ConstantBuilder(
 
             override fun visitList(listType: ListType) {
                 val list = value.getAsList()
-                val elementType = listType.elementType().trueType
+                val elementType = listType.elementType.trueType
                 val elementTypeName = typeResolver.getJavaClass(elementType)
                 val genericName = ParameterizedTypeName.get(TypeNames.LIST, elementTypeName)
                 val listImplName = typeResolver.listOf(elementTypeName)
@@ -76,7 +76,7 @@ internal class ConstantBuilder(
 
             override fun visitSet(setType: SetType) {
                 val set = value.getAsList()
-                val elementType = setType.elementType().trueType
+                val elementType = setType.elementType.trueType
                 val elementTypeName = typeResolver.getJavaClass(elementType)
                 val genericName = ParameterizedTypeName.get(TypeNames.SET, elementTypeName)
                 val setImplName = typeResolver.setOf(elementTypeName)
@@ -103,8 +103,8 @@ internal class ConstantBuilder(
 
             override fun visitMap(mapType: MapType) {
                 val map = value.getAsMap()
-                val keyType = mapType.keyType().trueType
-                val valueType = mapType.valueType().trueType
+                val keyType = mapType.keyType.trueType
+                val valueType = mapType.valueType.trueType
 
                 val keyTypeName = typeResolver.getJavaClass(keyType)
                 val valueTypeName = typeResolver.getJavaClass(valueType)
@@ -274,7 +274,7 @@ internal class ConstantBuilder(
         override fun visitList(listType: ListType): CodeBlock {
             if (value.isList) {
                 if (value.getAsList().isEmpty()) {
-                    val elementType = typeResolver.getJavaClass(listType.elementType())
+                    val elementType = typeResolver.getJavaClass(listType.elementType)
                     return CodeBlock.builder()
                             .add("\$T.<\$T>emptyList()", TypeNames.COLLECTIONS, elementType)
                             .build()
@@ -288,7 +288,7 @@ internal class ConstantBuilder(
         override fun visitSet(setType: SetType): CodeBlock {
             if (value.isList) { // not a typo; ConstantValueElement.Kind.LIST covers lists and sets.
                 if (value.getAsList().isEmpty()) {
-                    val elementType = typeResolver.getJavaClass(setType.elementType())
+                    val elementType = typeResolver.getJavaClass(setType.elementType)
                     return CodeBlock.builder()
                             .add("\$T.<\$T>emptySet()", TypeNames.COLLECTIONS, elementType)
                             .build()
@@ -302,8 +302,8 @@ internal class ConstantBuilder(
         override fun visitMap(mapType: MapType): CodeBlock {
             if (value.isMap) {
                 if (value.getAsMap().isEmpty()) {
-                    val keyType = typeResolver.getJavaClass(mapType.keyType())
-                    val valueType = typeResolver.getJavaClass(mapType.valueType())
+                    val keyType = typeResolver.getJavaClass(mapType.keyType)
+                    val valueType = typeResolver.getJavaClass(mapType.valueType)
                     return CodeBlock.builder()
                             .add("\$T.<\$T, \$T>emptyMap()", TypeNames.COLLECTIONS, keyType, valueType)
                             .build()
@@ -328,7 +328,7 @@ internal class ConstantBuilder(
         }
 
         override fun visitTypedef(typedefType: TypedefType): CodeBlock {
-            return typedefType.oldType().accept(this)
+            return typedefType.oldType.accept(this)
         }
 
         override fun visitService(serviceType: ServiceType): CodeBlock {
@@ -356,7 +356,7 @@ internal class ConstantBuilder(
             val c = schema.constants
                     .asSequence()
                     .filter { it.name == name }
-                    .filter { it.type().trueType == expectedType }
+                    .filter { it.type.trueType == expectedType }
                     .filter { expectedProgram == null || it.location.programName == expectedProgram }
                     .firstOrNull() ?: throw IllegalStateException(message)
 

@@ -27,7 +27,10 @@ package com.microsoft.thrifty.schema
  * @param TBuilder the most-derived type of the builder
  */
 @Suppress("UNCHECKED_CAST")
-abstract class AbstractUserElementBuilder<TElement : UserElement, TBuilder : AbstractUserElementBuilder<TElement, TBuilder>> internal constructor(
+abstract class AbstractUserElementBuilder<
+        TElement : UserElement,
+        TBuilder : AbstractUserElementBuilder<TElement, TBuilder>
+> internal constructor(
         internal var mixin: UserElementMixin
 ) {
 

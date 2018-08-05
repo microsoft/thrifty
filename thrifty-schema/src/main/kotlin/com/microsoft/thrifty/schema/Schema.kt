@@ -31,25 +31,12 @@ package com.microsoft.thrifty.schema
  * here, it's perfectly convenient.
  */
 class Schema {
-    @get:JvmName("structs")
     val structs: List<StructType>
-
-    @get:JvmName("unions")
     val unions: List<StructType>
-
-    @get:JvmName("exceptions")
     val exceptions: List<StructType>
-
-    @get:JvmName("enums")
     val enums: List<EnumType>
-
-    @get:JvmName("constants")
     val constants: List<Constant>
-
-    @get:JvmName("typedefs")
     val typedefs: List<TypedefType>
-
-    @get:JvmName("services")
     val services: List<ServiceType>
 
     internal constructor(programs: Iterable<Program>) {

@@ -28,13 +28,11 @@ import com.microsoft.thrifty.schema.parser.ThriftFileElement
  */
 class Program internal constructor(element: ThriftFileElement) {
 
-    @get:JvmName("namespaces")
     val namespaces: Map<NamespaceScope, String> = element.namespaces
             .map { it.scope to it.namespace }
             .toMap()
 
 
-    @get:JvmName("cppIncludes")
     val cppIncludes: List<String> = element.includes
             .filter { it.isCpp }
             .map { it.path }
@@ -43,45 +41,34 @@ class Program internal constructor(element: ThriftFileElement) {
             .filter { !it.isCpp }
             .map { it.path }
 
-    @get:JvmName("constants")
-    val constants: List<Constant>    = element.constants.map { Constant(it, namespaces) }
+    val constants: List<Constant> = element.constants.map { Constant(it, namespaces) }
 
-    @get:JvmName("enums")
     val enums: List<EnumType> = element.enums.map { EnumType(this, it) }
 
-    @get:JvmName("structs")
     val structs: List<StructType>    = element.structs.map { StructType(this, it) }
 
-    @get:JvmName("unions")
     val unions: List<StructType>     = element.unions.map { StructType(this, it) }
 
-    @get:JvmName("exceptions")
     val exceptions: List<StructType> = element.exceptions.map { StructType(this, it) }
 
-    @get:JvmName("typedefs")
     val typedefs: List<TypedefType>  = element.typedefs.map { TypedefType(this, it) }
 
-    @get:JvmName("services")
     val services: List<ServiceType>  = element.services.map { ServiceType(this, it) }
 
-    @get:JvmName("location")
     val location: Location = element.location
 
     private var includedPrograms: List<Program>? = null
-    private var symbols: Map<String, UserType>? = null
+    private var symbols_: Map<String, UserType>? = null
     private var constSymbols: Map<String, Constant>? = null
 
-    fun includes(): List<Program>? {
-        return this.includedPrograms
-    }
+    val includes: List<Program>
+        get() = includedPrograms ?: emptyList()
 
-    fun symbols(): Map<String, UserType>? {
-        return this.symbols
-    }
+    val symbols: Map<String, UserType>
+        get() = symbols_ ?: emptyMap()
 
-    fun constantMap(): Map<String, Constant>? {
-        return this.constSymbols
-    }
+    val constantMap: Map<String, Constant>
+        get() = constSymbols ?: emptyMap()
 
     /**
      * Get all named types declared in this Program.
@@ -101,8 +88,7 @@ class Program internal constructor(element: ThriftFileElement) {
      * @param loader
      * @param visited
      */
-    // TODO: Make this internal after refactoring to Kotlin is complete
-    fun loadIncludedPrograms(loader: Loader, visited: MutableSet<Program>) {
+    internal fun loadIncludedPrograms(loader: Loader, visited: MutableSet<Program>) {
         if (!visited.add(this)) {
             if (includedPrograms == null) {
                 loader.errorReporter().error(location, "Circular include; file includes itself transitively")
@@ -131,7 +117,7 @@ class Program internal constructor(element: ThriftFileElement) {
             }
         }
 
-        this.symbols = symbolMap
+        this.symbols_ = symbolMap
 
         val constSymbolMap = mutableMapOf<String, Constant>()
         for (constant in constants) {

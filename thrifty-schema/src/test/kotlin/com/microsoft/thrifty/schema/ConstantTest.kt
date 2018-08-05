@@ -53,7 +53,6 @@ class ConstantTest {
                     expected.message,
                     containsString("Expected 'true', 'false', '1', '0', or a bool constant"))
         }
-
     }
 
     @Test
@@ -297,7 +296,7 @@ class ConstantTest {
 
         return Constant(element, emptyMap()).also {
             try {
-                val field = Constant::class.java.getDeclaredField("type")
+                val field = Constant::class.java.getDeclaredField("type_")
                 field.isAccessible = true
                 field.set(it, thriftType)
             } catch (e: NoSuchFieldException) {
@@ -306,7 +305,6 @@ class ConstantTest {
                 throw AssertionError(e)
             }
         }
-
     }
 
     private fun makeTypedef(oldType: ThriftType, newName: String): TypedefType {
@@ -317,7 +315,7 @@ class ConstantTest {
 
         return TypedefType(emptyMap(), element).also {
             try {
-                val field = TypedefType::class.java.getDeclaredField("oldType")
+                val field = TypedefType::class.java.getDeclaredField("oldType_")
                 field.isAccessible = true
                 field.set(it, oldType)
             } catch (e: IllegalAccessException) {
@@ -326,7 +324,5 @@ class ConstantTest {
                 throw AssertionError(e)
             }
         }
-
-
     }
 }

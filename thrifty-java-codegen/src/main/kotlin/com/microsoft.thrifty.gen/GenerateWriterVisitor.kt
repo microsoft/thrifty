@@ -119,14 +119,14 @@ internal class GenerateWriterVisitor(
 
     override fun visitList(listType: ListType) {
         visitSingleElementCollection(
-                listType.elementType().trueType,
+                listType.elementType.trueType,
                 "writeListBegin",
                 "writeListEnd")
     }
 
     override fun visitSet(setType: SetType) {
         visitSingleElementCollection(
-                setType.elementType().trueType,
+                setType.elementType.trueType,
                 "writeSetBegin",
                 "writeSetEnd")
     }
@@ -168,8 +168,8 @@ internal class GenerateWriterVisitor(
         val entryName = nameAllocator.newName(entryTag, entryTag)
         val keyName = nameAllocator.newName(keyTag, keyTag)
         val valueName = nameAllocator.newName(valueTag, valueTag)
-        val kt = mapType.keyType().trueType
-        val vt = mapType.valueType().trueType
+        val kt = mapType.keyType.trueType
+        val vt = mapType.valueType.trueType
 
         val keyTypeCode = resolver.getTypeCode(kt)
         val valTypeCode = resolver.getTypeCode(vt)

@@ -27,7 +27,7 @@ import java.util.ArrayDeque
 import java.util.LinkedHashMap
 
 class ServiceType : UserType {
-    private val methods: List<ServiceMethod>
+    val methods: List<ServiceMethod>
     private val extendsServiceType: TypeElement?
 
     // This is intentionally too broad - it is not legal for a service to extend
@@ -47,10 +47,6 @@ class ServiceType : UserType {
         this.extendsServiceType = builder.extendsServiceType
         this.extendsService = builder.extendsService
     }
-
-    fun methods(): List<ServiceMethod> = methods
-
-    fun extendsService(): ThriftType? = extendsService
 
     override val isService: Boolean = true
 
@@ -103,14 +99,13 @@ class ServiceType : UserType {
             baseType = svc.extendsService
         }
 
-
         while (!hierarchy.isEmpty()) {
             // Process from most- to least-derived services; that way, if there
             // is a name conflict, we'll report the conflict with the least-derived
             // class.
             val svc = hierarchy.remove()
 
-            for (serviceMethod in svc.methods()) {
+            for (serviceMethod in svc.methods) {
                 // Add the base-type method names to the map.  In this case,
                 // we don't care about duplicates because the base types have
                 // already been validated and we have already reported that error.

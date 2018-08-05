@@ -51,7 +51,6 @@ import com.squareup.javapoet.ParameterizedTypeName
 import com.squareup.javapoet.TypeSpec
 import javax.lang.model.element.Modifier
 import java.io.File
-import java.io.IOException
 import java.nio.file.Path
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -71,7 +70,7 @@ class ThriftyCodeGenerator {
     private var emitParcelable: Boolean = false
     private var emitFileComment = true
 
-    @JvmOverloads constructor(schema: Schema, namingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT) {
+    constructor(schema: Schema, namingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT) {
 
         this.schema = schema
         this.fieldNamer = FieldNamer(namingPolicy)
@@ -119,21 +118,18 @@ class ThriftyCodeGenerator {
         return this
     }
 
-    @Throws(IOException::class)
     fun generate(directory: Path) {
         generate { file ->
             file?.writeTo(directory)
         }
     }
 
-    @Throws(IOException::class)
     fun generate(directory: File) {
         generate { file ->
             file?.writeTo(directory)
         }
     }
 
-    @Throws(IOException::class)
     fun generate(appendable: Appendable) {
         generate { file ->
             file?.writeTo(appendable)
@@ -161,7 +157,6 @@ class ThriftyCodeGenerator {
         return enums + structs + exceptions + unions + constants + services
     }
 
-    @Throws(IOException::class)
     private fun generate(writer: (JavaFile?) -> Unit) {
         for (file in generateTypes()) {
             writer(file)
@@ -239,7 +234,7 @@ class ThriftyCodeGenerator {
         for (field in type.fields) {
 
             val name = fieldNamer.getName(field)
-            val fieldType = field.type()
+            val fieldType = field.type
             val trueType = fieldType.trueType
             val fieldTypeName = typeResolver.getJavaClass(trueType)
 
@@ -250,9 +245,9 @@ class ThriftyCodeGenerator {
 
             if (emitAndroidAnnotations) {
                 val nullability = when {
-                    isUnion          -> TypeNames.NULLABLE
-                    field.required() -> TypeNames.NOT_NULL
-                    else             -> TypeNames.NULLABLE
+                    isUnion        -> TypeNames.NULLABLE
+                    field.required -> TypeNames.NOT_NULL
+                    else           -> TypeNames.NULLABLE
                 }
                 fieldBuilder.addAnnotation(nullability)
             }
@@ -281,21 +276,21 @@ class ThriftyCodeGenerator {
 
             when {
                 trueType.isList -> {
-                    if (!field.required()) {
+                    if (!field.required) {
                         assignment.add("builder.\$N == null ? null : ", name)
                     }
                     assignment.add("\$T.unmodifiableList(builder.\$N)",
                             TypeNames.COLLECTIONS, name)
                 }
                 trueType.isSet -> {
-                    if (!field.required()) {
+                    if (!field.required) {
                         assignment.add("builder.\$N == null ? null : ", name)
                     }
                     assignment.add("\$T.unmodifiableSet(builder.\$N)",
                             TypeNames.COLLECTIONS, name)
                 }
                 trueType.isMap -> {
-                    if (!field.required()) {
+                    if (!field.required) {
                         assignment.add("builder.\$N == null ? null : ", name)
                     }
                     assignment.add("\$T.unmodifiableMap(builder.\$N)",
@@ -356,7 +351,7 @@ class ThriftyCodeGenerator {
 
         for (field in structType.fields) {
             val name = fieldNamer.getName(field)
-            val fieldType = typeResolver.getJavaClass(field.type().trueType)
+            val fieldType = typeResolver.getJavaClass(field.type.trueType)
             parcelCtor.addStatement("this.\$N = (\$T) in.readValue(CLASS_LOADER)", name, fieldType)
 
             parcelWriter.addStatement("dest.writeValue(this.\$N)", name)
@@ -418,7 +413,7 @@ class ThriftyCodeGenerator {
 
         val tempNameId = AtomicInteger(0) // used for generating unique names of temporary values
         for (field in structType.fields) {
-            val fieldType = field.type().trueType
+            val fieldType = field.type.trueType
             val javaTypeName = typeResolver.getJavaClass(fieldType)
             val fieldName = fieldNamer.getName(field)
             val f = FieldSpec.builder(javaTypeName, fieldName, Modifier.PRIVATE)
@@ -431,7 +426,7 @@ class ThriftyCodeGenerator {
                 f.addAnnotation(AnnotationSpec.builder(TypeNames.NULLABLE).build())
             }
 
-            val fieldDefaultValue = field.defaultValue()
+            val fieldDefaultValue = field.defaultValue
             if (fieldDefaultValue != null) {
                 val initializer = CodeBlock.builder()
                 constantBuilder.generateFieldInitializer(
@@ -458,7 +453,7 @@ class ThriftyCodeGenerator {
             val parameterBuilder = ParameterSpec.builder(javaTypeName, fieldName)
 
             if (emitAndroidAnnotations) {
-                val nullabilityAnnotation = if (field.required()) {
+                val nullabilityAnnotation = if (field.required) {
                     TypeNames.NOT_NULL
                 } else {
                     TypeNames.NULLABLE
@@ -469,7 +464,7 @@ class ThriftyCodeGenerator {
 
             setterBuilder.addParameter(parameterBuilder.build())
 
-            if (field.required()) {
+            if (field.required) {
                 setterBuilder.beginControlFlow("if (\$N == null)", fieldName)
                 setterBuilder.addStatement(
                         "throw new \$T(\"Required field '\$L' cannot be null\")",
@@ -488,7 +483,7 @@ class ThriftyCodeGenerator {
                 buildMethodBuilder
                         .addStatement("if (this.\$N != null) ++setFields", fieldName)
             } else {
-                if (field.required()) {
+                if (field.required) {
                     buildMethodBuilder.beginControlFlow("if (this.\$N == null)", fieldName)
                     buildMethodBuilder.addStatement(
                             "throw new \$T(\$S)",
@@ -570,8 +565,8 @@ class ThriftyCodeGenerator {
 
         for (field in structType.fields) {
             val fieldName = fieldNamer.getName(field)
-            val optional = !field.required() // could also be default, but same-same to us.
-            val tt = field.type().trueType
+            val optional = !field.required // could also be default, but same-same to us.
+            val tt = field.type.trueType
             val typeCode = typeResolver.getTypeCode(tt)
 
             val typeCodeName = TypeNames.getTypeCodeName(typeCode)
@@ -584,7 +579,7 @@ class ThriftyCodeGenerator {
             write.addStatement(
                     "protocol.writeFieldBegin(\$S, \$L, \$T.\$L)",
                     field.name, // make sure that we write the Thrift IDL name, and not the name of the Java field
-                    field.id(),
+                    field.id,
                     TypeNames.TTYPE,
                     typeCodeName)
 
@@ -597,8 +592,8 @@ class ThriftyCodeGenerator {
             }
 
             // Read
-            read.beginControlFlow("case \$L:", field.id())
-            GenerateReaderVisitor(typeResolver, read, fieldName, field.type().trueType).generate()
+            read.beginControlFlow("case \$L:", field.id)
+            GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType).generate()
             read.endControlFlow() // end case block
             read.addStatement("break")
         }
@@ -655,7 +650,7 @@ class ThriftyCodeGenerator {
 
         val warningsToSuppress = mutableSetOf<String>()
         struct.fields.forEachIndexed { index, field ->
-            val type = field.type().trueType
+            val type = field.type.trueType
             val fieldName = fieldNamer.getName(field)
 
             if (index == 0) {
@@ -664,7 +659,7 @@ class ThriftyCodeGenerator {
                 equals.addCode("\n&& ")
             }
 
-            if (field.required()) {
+            if (field.required) {
                 equals.addCode("(this.$1N == that.$1N || this.$1N.equals(that.$1N))", fieldName)
             } else {
                 equals.addCode("(this.$1N == that.$1N || (this.$1N != null && this.$1N.equals(that.$1N)))",
@@ -724,7 +719,7 @@ class ThriftyCodeGenerator {
         for (field in struct.fields) {
             val fieldName = fieldNamer.getName(field)
 
-            if (field.required()) {
+            if (field.required) {
                 hashCode.addStatement("code ^= this.\$N.hashCode()", fieldName)
             } else {
                 hashCode.addStatement("code ^= (this.$1N == null) ? 0 : this.$1N.hashCode()", fieldName)
@@ -780,17 +775,17 @@ class ThriftyCodeGenerator {
                     chunks += Chunk("\$S", sb.toString())
                     sb.setLength(0)
 
-                    val fieldType = field.type().trueType
+                    val fieldType = field.type.trueType
 
                     chunks += if (fieldType.isList || fieldType.isSet) {
                         val type: String
                         val elementType: String
                         if (fieldType.isList) {
                             type = "list"
-                            elementType = (fieldType as ListType).elementType().name
+                            elementType = (fieldType as ListType).elementType.name
                         } else {
                             type = "set"
-                            elementType = (fieldType as SetType).elementType().name
+                            elementType = (fieldType as SetType).elementType.name
                         }
 
                         Chunk("\$T.summarizeCollection(this.\$L, \$S, \$S)",
@@ -800,8 +795,8 @@ class ThriftyCodeGenerator {
                                 elementType)
                     } else if (fieldType.isMap) {
                         val mapType = fieldType as MapType
-                        val keyType = mapType.keyType().name
-                        val valueType = mapType.valueType().name
+                        val keyType = mapType.keyType.name
+                        val valueType = mapType.valueType.name
 
                         Chunk("\$T.summarizeMap(this.\$L, \$S, \$S)",
                                 TypeNames.OBFUSCATION_UTIL,
@@ -855,7 +850,7 @@ class ThriftyCodeGenerator {
         val hasStaticInit = AtomicBoolean(false)
 
         for (constant in constants) {
-            val type = constant.type().trueType
+            val type = constant.type.trueType
 
             var javaType = typeResolver.getJavaClass(type)
 
@@ -879,16 +874,16 @@ class ThriftyCodeGenerator {
             type.accept(object : SimpleVisitor<Unit>() {
                 override fun visitBuiltin(builtinType: ThriftType) {
                     field.initializer(constantBuilder.renderConstValue(
-                            CodeBlock.builder(), allocator, scope, type, constant.value()))
+                            CodeBlock.builder(), allocator, scope, type, constant.value))
                 }
 
                 override fun visitEnum(enumType: EnumType) {
                     field.initializer(constantBuilder.renderConstValue(
-                            CodeBlock.builder(), allocator, scope, type, constant.value()))
+                            CodeBlock.builder(), allocator, scope, type, constant.value))
                 }
 
                 override fun visitList(listType: ListType) {
-                    if (constant.value().getAsList().isEmpty()) {
+                    if (constant.value.getAsList().isEmpty()) {
                         field.initializer("\$T.emptyList()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("list", "unmodifiableList")
@@ -896,7 +891,7 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitSet(setType: SetType) {
-                    if (constant.value().getAsList().isEmpty()) {
+                    if (constant.value.getAsList().isEmpty()) {
                         field.initializer("\$T.emptySet()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("set", "unmodifiableSet")
@@ -904,7 +899,7 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitMap(mapType: MapType) {
-                    if (constant.value().getAsMap().isEmpty()) {
+                    if (constant.value.getAsMap().isEmpty()) {
                         field.initializer("\$T.emptyMap()", TypeNames.COLLECTIONS)
                     } else {
                         initCollection("map", "unmodifiableMap")
@@ -920,7 +915,7 @@ class ThriftyCodeGenerator {
                             scope,
                             tempName,
                             type,
-                            constant.value(),
+                            constant.value,
                             true)
                     staticInit.addStatement("\$N = \$T.\$L(\$N)",
                             constant.name,
@@ -1019,17 +1014,17 @@ class ThriftyCodeGenerator {
 
         private fun fieldAnnotation(field: Field): AnnotationSpec {
             val spec: AnnotationSpec.Builder = AnnotationSpec.builder(TypeNames.THRIFT_FIELD)
-                    .addMember("fieldId", "\$L", field.id())
+                    .addMember("fieldId", "\$L", field.id)
 
-            if (field.required()) {
-                spec.addMember("isRequired", "\$L", field.required())
+            if (field.required) {
+                spec.addMember("isRequired", "\$L", field.required)
             }
 
-            if (field.optional()) {
-                spec.addMember("isOptional", "\$L", field.optional())
+            if (field.optional) {
+                spec.addMember("isOptional", "\$L", field.optional)
             }
 
-            val typedef = field.typedefName()
+            val typedef = field.typedefName
             if (typedef != null && typedef.isNotEmpty()) {
                 spec.addMember("typedefName", "\$S", typedef)
             }

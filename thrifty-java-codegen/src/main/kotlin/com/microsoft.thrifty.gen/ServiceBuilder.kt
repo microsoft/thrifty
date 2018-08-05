@@ -64,7 +64,7 @@ internal class ServiceBuilder(
             serviceSpec.addSuperinterface(superTypeName)
         }
 
-        for (method in service.methods()) {
+        for (method in service.methods) {
             val allocator = NameAllocator()
             var tag = 0
 
@@ -75,10 +75,10 @@ internal class ServiceBuilder(
                 methodBuilder.addJavadoc(method.documentation)
             }
 
-            for (field in method.parameters()) {
+            for (field in method.parameters) {
                 val fieldName = fieldNamer.getName(field)
                 val name = allocator.newName(fieldName, ++tag)
-                val paramType = field.type().trueType
+                val paramType = field.type.trueType
                 val paramTypeName = typeResolver.getJavaClass(paramType)
 
                 methodBuilder.addParameter(paramTypeName, name)
@@ -87,7 +87,7 @@ internal class ServiceBuilder(
 
             val callbackName = allocator.newName("callback", ++tag)
 
-            val returnType = method.returnType()
+            val returnType = method.returnType
             val returnTypeName = if (returnType == BuiltinType.VOID) {
                 TypeName.VOID.box()
             } else {
@@ -130,7 +130,7 @@ internal class ServiceBuilder(
                 .build())
 
         for ((i, methodSpec) in serviceInterface.methodSpecs.withIndex()) {
-            val serviceMethod = service.methods()[i]
+            val serviceMethod = service.methods[i]
             val call = buildCallSpec(serviceMethod)
             builder.addType(call)
 
@@ -164,7 +164,7 @@ internal class ServiceBuilder(
     private fun buildCallSpec(method: ServiceMethod): TypeSpec {
         val name = "${method.name.capitalize()}Call"
 
-        val returnType = method.returnType()
+        val returnType = method.returnType
         val returnTypeName = if (returnType == BuiltinType.VOID) {
             TypeName.VOID.box()
         } else {
@@ -181,8 +181,8 @@ internal class ServiceBuilder(
                 .superclass(superclass)
 
         // Set up fields
-        for (field in method.parameters()) {
-            val javaType = typeResolver.getJavaClass(field.type().trueType)
+        for (field in method.parameters) {
+            val javaType = typeResolver.getJavaClass(field.type.trueType)
 
             callBuilder.addField(FieldSpec.builder(javaType, fieldNamer.getName(field))
                     .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
@@ -209,18 +209,18 @@ internal class ServiceBuilder(
                         "super(\$S, \$T.\$L, callback)",
                         method.name,
                         TypeNames.TMESSAGE_TYPE,
-                        if (method.oneWay()) "ONEWAY" else "CALL")
+                        if (method.oneWay) "ONEWAY" else "CALL")
 
-        for (field in method.parameters()) {
+        for (field in method.parameters) {
             val fieldName = fieldNamer.getName(field)
-            val javaType = typeResolver.getJavaClass(field.type().trueType)
+            val javaType = typeResolver.getJavaClass(field.type.trueType)
 
             ctor.addParameter(javaType, fieldName)
 
-            if (field.required() && field.defaultValue() == null) {
+            if (field.required && field.defaultValue == null) {
                 ctor.addStatement("if (\$L == null) throw new NullPointerException(\$S)", fieldName, fieldName)
                 ctor.addStatement("this.$1L = $1L", fieldName)
-            } else if (field.defaultValue() != null) {
+            } else if (field.defaultValue != null) {
                 ctor.beginControlFlow("if (\$L != null)", fieldName)
                 ctor.addStatement("this.$1L = $1L", fieldName)
                 ctor.nextControlFlow("else")
@@ -231,8 +231,8 @@ internal class ServiceBuilder(
                         allocator,
                         scope,
                         "this.$fieldName",
-                        field.type().trueType,
-                        field.defaultValue()!!,
+                        field.type.trueType,
+                        field.defaultValue!!,
                         false)
                 ctor.addCode(init.build())
 
@@ -256,10 +256,10 @@ internal class ServiceBuilder(
 
         send.addStatement("protocol.writeStructBegin(\$S)", "args")
 
-        for (field in method.parameters()) {
+        for (field in method.parameters) {
             val fieldName = fieldNamer.getName(field)
-            val optional = !field.required()
-            val tt = field.type().trueType
+            val optional = !field.required
+            val tt = field.type.trueType
             val typeCode = typeResolver.getTypeCode(tt)
 
             if (optional) {
@@ -268,7 +268,7 @@ internal class ServiceBuilder(
 
             send.addStatement("protocol.writeFieldBegin(\$S, \$L, \$T.\$L)",
                     field.name, // send the Thrift name, not the fieldNamer output
-                    field.id(),
+                    field.id,
                     TypeNames.TTYPE,
                     TypeNames.getTypeCodeName(typeCode))
 
@@ -296,16 +296,16 @@ internal class ServiceBuilder(
                 .addException(TypeNames.EXCEPTION)
 
         if (hasReturnType) {
-            val retTypeName = typeResolver.getJavaClass(method.returnType().trueType)
+            val retTypeName = typeResolver.getJavaClass(method.returnType.trueType)
             recv.returns(retTypeName)
             recv.addStatement("\$T result = null", retTypeName)
         } else {
             recv.returns(TypeName.VOID.box())
         }
 
-        for (field in method.exceptions()) {
+        for (field in method.exceptions) {
             val fieldName = fieldNamer.getName(field)
-            val exceptionTypeName = typeResolver.getJavaClass(field.type().trueType)
+            val exceptionTypeName = typeResolver.getJavaClass(field.type.trueType)
             recv.addStatement("\$T \$L = null", exceptionTypeName, fieldName)
         }
 
@@ -318,7 +318,7 @@ internal class ServiceBuilder(
                 .beginControlFlow("switch (field.fieldId)")
 
         if (hasReturnType) {
-            val type = method.returnType().trueType
+            val type = method.returnType.trueType
             recv.beginControlFlow("case 0:")
 
             object : GenerateReaderVisitor(typeResolver, recv, "result", type) {
@@ -331,11 +331,11 @@ internal class ServiceBuilder(
             recv.addStatement("break")
         }
 
-        for (field in method.exceptions()) {
+        for (field in method.exceptions) {
             val fieldName = fieldNamer.getName(field)
-            recv.beginControlFlow("case \$L:", field.id())
+            recv.beginControlFlow("case \$L:", field.id)
 
-            object : GenerateReaderVisitor(typeResolver, recv, fieldName, field.type().trueType) {
+            object : GenerateReaderVisitor(typeResolver, recv, fieldName, field.type.trueType) {
                 override fun useReadValue(localName: String) {
                     recv.addStatement("\$N = \$N", fieldName, localName)
                 }
@@ -358,7 +358,7 @@ internal class ServiceBuilder(
             isInControlFlow = true
         }
 
-        for (field in method.exceptions()) {
+        for (field in method.exceptions) {
             val fieldName = fieldNamer.getName(field)
             if (isInControlFlow) {
                 recv.nextControlFlow("else if (\$L != null)", fieldName)

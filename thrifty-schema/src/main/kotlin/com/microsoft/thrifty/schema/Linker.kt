@@ -88,7 +88,7 @@ internal open class Linker(
             linkServices()
 
             // Only validate the schema if linking succeeded; no point otherwise.
-            if (!reporter.hasError()) {
+            if (!reporter.hasError) {
                 validateTypedefs()
                 validateConstants()
                 validateStructs()
@@ -97,7 +97,7 @@ internal open class Linker(
                 validateServices()
             }
 
-            linked = !environment.hasErrors()
+            linked = !environment.hasErrors
         } catch (ignored: LinkFailureException) {
             // The relevant errors will have already been
             // added to the environment; just let the caller
@@ -110,7 +110,7 @@ internal open class Linker(
     private fun linkIncludedPrograms() {
         // First, link included programs and add their resolved types
         // to our own map
-        for (p in program.includes()!!) {
+        for (p in program.includes) {
             val linker = environment.getLinker(p).also { it.link() }
 
             val included = File(p.location.base, p.location.path)
@@ -135,7 +135,7 @@ internal open class Linker(
         }
 
         // Linking included programs may have failed - if so, bail.
-        if (environment.hasErrors()) {
+        if (environment.hasErrors) {
             throw LinkFailureException()
         }
     }
@@ -198,7 +198,7 @@ internal open class Linker(
             }
         }
 
-        if (environment.hasErrors()) {
+        if (environment.hasErrors) {
             throw LinkFailureException()
         }
     }
@@ -302,7 +302,7 @@ internal open class Linker(
         for (service in program.services) {
             // If this service extends another, add the parent -> child relationship to the multmap.
             // Otherwise, this is a root node, and should be added to the processing queue.
-            val baseType = service.extendsService()
+            val baseType = service.extendsService
             if (baseType != null) {
                 if (baseType.isService) {
                     parentToChildren.put(baseType as ServiceType, service)
@@ -344,7 +344,7 @@ internal open class Linker(
             visited.add(svc)
             stack.add(svc)
 
-            var type: ThriftType? = svc.extendsService()
+            var type: ThriftType? = svc.extendsService
             while (type != null) {
                 stack.add(type)
                 if (!visited.add(type)) {
@@ -359,14 +359,14 @@ internal open class Linker(
                     break
                 }
 
-                if (!type.isService) {
+                if (type !is ServiceType) {
                     // Service extends a non-service type?
                     // This is an error but is reported in
-                    // Service#validate(Linker).
+                    // ServiceType#validate(Linker).
                     break
                 }
 
-                type = (type as ServiceType).extendsService()
+                type = type.extendsService
             }
 
             totalVisited.addAll(visited)
@@ -424,7 +424,7 @@ internal open class Linker(
     }
 
     override fun lookupConst(symbol: String): Constant? {
-        var constant = program.constantMap()?.get(symbol)
+        var constant = program.constantMap[symbol]
         if (constant == null) {
             // As above, 'symbol' may be a reference to an included
             // constant.
@@ -433,10 +433,10 @@ internal open class Linker(
                 val includeName = symbol.substring(0, ix)
                 val qualifiedName = symbol.substring(ix + 1)
                 val expectedPath = "$includeName.thrift"
-                constant = program.includes()
-                        ?.filter { p -> p.location.path == expectedPath }
-                        ?.mapNotNull { p -> p.constantMap()!![qualifiedName] }
-                        ?.firstOrNull()
+                constant = program.includes
+                        .filter { p -> p.location.path == expectedPath }
+                        .mapNotNull { p -> p.constantMap[qualifiedName] }
+                        .firstOrNull()
             }
         }
         return constant

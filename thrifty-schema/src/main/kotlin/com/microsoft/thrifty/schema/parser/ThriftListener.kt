@@ -71,19 +71,18 @@ internal class ThriftListener(
     private val consts = mutableListOf<ConstElement>()
     private val services = mutableListOf<ServiceElement>()
 
-    fun buildFileElement(): ThriftFileElement {
-        return ThriftFileElement.builder(location)
-                .includes(includes)
-                .namespaces(namespaces)
-                .typedefs(typedefs)
-                .enums(enums)
-                .structs(structs)
-                .unions(unions)
-                .exceptions(exceptions)
-                .constants(consts)
-                .services(services)
-                .build()
-    }
+    fun buildFileElement(): ThriftFileElement = ThriftFileElement(
+            location = location,
+            includes = includes,
+            namespaces = namespaces,
+            typedefs = typedefs,
+            enums = enums,
+            structs = structs,
+            unions = unions,
+            exceptions = exceptions,
+            constants = consts,
+            services = services
+    )
 
     override fun exitInclude(ctx: AntlrThriftParser.IncludeContext) {
         val pathNode = ctx.LITERAL()
