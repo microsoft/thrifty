@@ -23,6 +23,12 @@ package com.microsoft.thrifty.schema
 import com.google.common.annotations.VisibleForTesting
 import com.microsoft.thrifty.schema.parser.ConstElement
 import com.microsoft.thrifty.schema.parser.ConstValueElement
+import com.microsoft.thrifty.schema.parser.DoubleValueElement
+import com.microsoft.thrifty.schema.parser.IdentifierValueElement
+import com.microsoft.thrifty.schema.parser.IntValueElement
+import com.microsoft.thrifty.schema.parser.ListValueElement
+import com.microsoft.thrifty.schema.parser.LiteralValueElement
+import com.microsoft.thrifty.schema.parser.MapValueElement
 
 /**
  * Represents a Thrift const definition.
@@ -72,7 +78,7 @@ class Constant private constructor (
     }
 
     internal interface ConstValueValidator {
-        fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement)
+        fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement)
     }
 
     private object Validators {
@@ -82,11 +88,11 @@ class Constant private constructor (
         private val I32 = IntegerValidator(Integer.MIN_VALUE.toLong(), Integer.MAX_VALUE.toLong())
         private val I64 = IntegerValidator(java.lang.Long.MIN_VALUE, java.lang.Long.MAX_VALUE)
         private val DOUBLE = DoubleValidator
-        private val STRING = BaseValidator(ConstValueElement.Kind.STRING)
+        private val STRING = StringValidator
 
-        private val ENUM = EnumValidator()
-        private val COLLECTION = CollectionValidator()
-        private val MAP = MapValidator()
+        private val ENUM = EnumValidator
+        private val COLLECTION = CollectionValidator
+        private val MAP = MapValidator
 
         internal fun forType(type: ThriftType): ConstValueValidator {
             val tt = type.trueType
@@ -108,7 +114,7 @@ class Constant private constructor (
                     throw IllegalStateException("Cannot declare a constant of type 'void'")
                 }
 
-                throw AssertionError("Unrecognized built-in type: " + type.name)
+                throw AssertionError("Unrecognized built-in type: ${type.name}")
             }
 
             if (tt.isEnum) {
@@ -128,51 +134,46 @@ class Constant private constructor (
     }
 
     private object BoolValidator : ConstValueValidator {
-        override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
-            if (value.kind === ConstValueElement.Kind.INTEGER) {
-                val n = value.getAsInt()
-                if (n == 0 || n == 1) {
-                    return
-                }
-            } else if (value.kind === ConstValueElement.Kind.IDENTIFIER) {
-                val identifier = value.value as String
-                if ("true" == identifier || "false" == identifier) {
-                    return
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            when (valueElement) {
+                is IntValueElement -> {
+                    if (valueElement.value in listOf(0L, 1L)) {
+                        return
+                    }
                 }
 
-                val constant = symbolTable.lookupConst(identifier)
-                if (constant != null && constant.type.trueType == BuiltinType.BOOL) {
-                    return
+                is IdentifierValueElement -> {
+                    val identifier = valueElement.value
+                    if ("true" == identifier || "false" == identifier) {
+                        return
+                    }
+
+                    val constant = symbolTable.lookupConst(identifier)
+                    if (constant != null && constant.type.trueType == BuiltinType.BOOL) {
+                        return
+                    }
                 }
             }
 
             throw IllegalStateException(
-                    "Expected 'true', 'false', '1', '0', or a bool constant; got: "
-                            + value.value + " at " + value.location)
+                    "Expected 'true', 'false', '1', '0', or a bool constant; got: $valueElement at ${valueElement.location}")
         }
     }
 
-    private open class BaseValidator(
-            private val expectedKind: ConstValueElement.Kind
-    ) : ConstValueValidator {
-        override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
-            if (value.kind === expectedKind) {
-                return
-            }
-
-            if (value.kind === ConstValueElement.Kind.IDENTIFIER) {
-                val id = value.value as String
+    private open class BaseValidator : ConstValueValidator {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            if (valueElement is IdentifierValueElement) {
+                val id = valueElement.value
                 val constant = symbolTable.lookupConst(id)
                         ?: throw IllegalStateException("Unrecognized const identifier: $id")
 
                 if (constant.type.trueType != expected) {
-                    throw IllegalStateException("Expected a value of type " + expected.name
-                            + ", but got " + constant.type.name)
+                    throw IllegalStateException(
+                            "Expected a value of type ${expected.name}, but got ${constant.type.name}")
                 }
             } else {
                 throw IllegalStateException(
-                        "Expected a value of type " + expected.name.toLowerCase()
-                                + " but got " + value.value)
+                        "Expected a value of type ${expected.name.toLowerCase()} but got $valueElement")
             }
         }
     }
@@ -180,175 +181,185 @@ class Constant private constructor (
     private class IntegerValidator(
             private val minValue: Long,
             private val maxValue: Long
-    ) : BaseValidator(ConstValueElement.Kind.INTEGER) {
-        override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
-            super.validate(symbolTable, expected, value)
-
-            if (value.kind === ConstValueElement.Kind.INTEGER) {
-                val lv = value.value as Long
-                if (lv < minValue || lv > maxValue) {
-                    throw IllegalStateException("value '" + lv.toString()
-                            + "' is out of range for type " + expected.name)
+    ) : BaseValidator() {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            when (valueElement) {
+                is IntValueElement -> {
+                    val lv = valueElement.value
+                    if (lv < minValue || lv > maxValue) {
+                        throw IllegalStateException("value '$lv' is out of range for type ${expected.name}")
+                    }
                 }
+
+                else -> super.validate(symbolTable, expected, valueElement)
             }
         }
     }
 
     private object DoubleValidator : ConstValueValidator {
-        override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
-            if (value.isInt || value.isDouble) {
-                // valid
-            } else if (value.isIdentifier) {
-                // maybe a const?
-                val id = value.value as String
-                val constant = symbolTable.lookupConst(id)
-                        ?: throw IllegalStateException("Unrecognized const identifier: $id")
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            when (valueElement) {
+                is IntValueElement -> return
+                is DoubleValueElement -> return
+                is IdentifierValueElement -> {
+                    // maybe a const?
+                    val id = valueElement.value
+                    val constant = symbolTable.lookupConst(id)
+                            ?: throw IllegalStateException("Unrecognized const identifier: $id")
 
-                if (constant.type.trueType != expected) {
-                    throw IllegalStateException("Expected a value of type " + expected.name
-                            + ", but got " + constant.type.name)
+                    if (constant.type.trueType != expected) {
+                        throw IllegalStateException(
+                                "Expected a value of type ${expected.name}, but got ${constant.type.name}")
+                    }
                 }
-            } else {
-                throw IllegalStateException(
-                        "Expected a value of type DOUBLE but got " + value.value)
+            }
+            throw IllegalStateException("Expected a value of type DOUBLE but got $valueElement")
+        }
+    }
+
+    private object StringValidator : BaseValidator() {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            if (valueElement !is LiteralValueElement) {
+                super.validate(symbolTable, expected, valueElement)
             }
         }
     }
 
-    private class EnumValidator : ConstValueValidator {
-        override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
-            if (!expected.isEnum) {
+    private object EnumValidator : ConstValueValidator {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            if (expected !is EnumType) {
                 throw IllegalStateException("bad enum literal")
             }
 
-            val et = expected as EnumType
-
-            if (value.kind === ConstValueElement.Kind.INTEGER) {
-                val id = value.getAsLong()
-                for (member in et.members) {
-                    if (member.value.toLong() == id) {
+            when (valueElement) {
+                is IntValueElement -> {
+                    val id = valueElement.value
+                    if (expected.members.any { it.value.toLong() == id }) {
                         return
                     }
-                }
-                throw IllegalStateException("'" + id + "' is not a valid value for " + et.name)
-            } else if (value.kind === ConstValueElement.Kind.IDENTIFIER) {
-                // An IDENTIFIER enum value could be one of four kinds of entities:
-                // 1. Another constant, possibly of the correct type
-                // 2. A fully-qualified imported enum value, e.g. file.Enum.Member
-                // 3. An imported, partially-qualified enum value, e.g. Enum.Member (where Enum is imported)
-                // 4. A fully-qualified, non-imported enum value, e.g. Enum.Member
-                //
-                // Apache accepts all of these, and so do we.
-
-                val id = value.value as String
-
-                // An unusual edge case is when a named constant has the same name as an enum
-                // member; in this case, constants take precedence over members.  Make sure that
-                // the type is as expected!
-                val constant = symbolTable.lookupConst(id)
-                if (constant != null && constant.type.trueType == expected) {
-                    return
+                    throw IllegalStateException("'$id' is not a valid value for ${expected.name}")
                 }
 
-                var ix = id.lastIndexOf('.')
-                if (ix == -1) {
-                    throw IllegalStateException(
-                            "Unqualified name '" + id + "' is not a valid enum constant value: ("
-                                    + value.location + ")")
-                }
+                is IdentifierValueElement -> {
+                    // An IDENTIFIER enum value could be one of four kinds of entities:
+                    // 1. Another constant, possibly of the correct type
+                    // 2. A fully-qualified imported enum value, e.g. file.Enum.Member
+                    // 3. An imported, partially-qualified enum value, e.g. Enum.Member (where Enum is imported)
+                    // 4. A fully-qualified, non-imported enum value, e.g. Enum.Member
+                    //
+                    // Apache accepts all of these, and so do we.
+                    val id = valueElement.value
 
-                val typeName = id.substring(0, ix) // possibly qualified
-                val memberName = id.substring(ix + 1)
-
-                // Does the literal name match the expected type name?
-                // It could be that typeName is qualified; handle that case.
-                var typeNameMatches = false
-                ix = typeName.indexOf('.')
-                if (ix == -1) {
-                    // unqualified
-                    if (expected.name == typeName) {
-                        typeNameMatches = true
+                    // An unusual edge case is when a named constant has the same name as an enum
+                    // member; in this case, constants take precedence over members.  Make sure that
+                    // the type is as expected!
+                    val constant = symbolTable.lookupConst(id)
+                    if (constant != null && constant.type.trueType == expected) {
+                        return
                     }
-                } else {
-                    // qualified
-                    val qualifier = typeName.substring(0, ix)
-                    val actualName = typeName.substring(ix + 1)
 
-                    // Does the qualifier match?
-                    if (et.location.programName == qualifier && et.name == actualName) {
-                        typeNameMatches = true
+                    var ix = id.lastIndexOf('.')
+                    if (ix == -1) {
+                        throw IllegalStateException(
+                                "Unqualified name '$id' is not a valid enum constant value: (${valueElement.location})")
                     }
-                }
 
-                if (typeNameMatches) {
-                    for (member in et.members) {
-                        if (member.name == memberName) {
-                            return
+                    val typeName = id.substring(0, ix) // possibly qualified
+                    val memberName = id.substring(ix + 1)
+
+                    // Does the literal name match the expected type name?
+                    // It could be that typeName is qualified; handle that case.
+                    var typeNameMatches = false
+                    ix = typeName.indexOf('.')
+                    if (ix == -1) {
+                        // unqualified
+                        if (expected.name == typeName) {
+                            typeNameMatches = true
+                        }
+                    } else {
+                        // qualified
+                        val qualifier = typeName.substring(0, ix)
+                        val actualName = typeName.substring(ix + 1)
+
+                        // Does the qualifier match?
+                        if (expected.location.programName == qualifier && expected.name == actualName) {
+                            typeNameMatches = true
                         }
                     }
+
+                    if (typeNameMatches && expected.members.any { it.name == memberName }) {
+                        return
+                    }
+
+                    throw IllegalStateException(
+                            "'$id' is not a member of enum type ${expected.name}: members=${expected.members}")
                 }
 
-                throw IllegalStateException(
-                        "'" + id + "' is not a member of enum type " + et.name + ": members=" + et.members)
-            } else {
-                throw IllegalStateException("bad enum literal: " + value.value)
+                else -> throw IllegalStateException("bad enum literal: $valueElement")
             }
         }
     }
 
-    private class CollectionValidator : ConstValueValidator {
-        override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
-            if (value.kind === ConstValueElement.Kind.LIST) {
-                val list = value.getAsList()
+    private object CollectionValidator : ConstValueValidator {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            when (valueElement) {
+                is ListValueElement -> {
+                    val list = valueElement.value
+                    val elementType = when (expected) {
+                        is ListType -> expected.elementType.trueType
+                        is SetType -> expected.elementType.trueType
+                        else -> throw AssertionError("Unexpectedly not a collection type: $expected")
+                    }
 
-                val elementType = when (expected) {
-                    is ListType -> expected.elementType.trueType
-                    is SetType -> expected.elementType.trueType
-                    else -> throw AssertionError("Unexpectedly not a collection type: $expected")
+                    for (element in list) {
+                        Constant.validate(symbolTable, element, elementType)
+                    }
                 }
 
-                for (element in list) {
-                    Constant.validate(symbolTable, element, elementType)
-                }
-            } else if (value.kind === ConstValueElement.Kind.IDENTIFIER) {
-                val id = value.value as String
-                val named = symbolTable.lookupConst(id)
+                is IdentifierValueElement -> {
+                    val id = valueElement.value
+                    val named = symbolTable.lookupConst(id)
 
-                val isConstantOfCorrectType = named != null && named.type.trueType == expected
+                    val isConstantOfCorrectType = named != null && named.type.trueType == expected
 
-                if (!isConstantOfCorrectType) {
-                    throw IllegalStateException("Expected a value with type " + expected.name)
+                    if (!isConstantOfCorrectType) {
+                        throw IllegalStateException("Expected a value with type ${expected.name}")
+                    }
                 }
-            } else {
-                throw IllegalStateException("Expected a list literal, got: " + value.value)
+
+                else -> throw IllegalStateException("Expected a list literal, got: $valueElement")
             }
         }
     }
 
-    private class MapValidator : ConstValueValidator {
-        override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
-            if (value.kind === ConstValueElement.Kind.MAP) {
-                val map = value.getAsMap()
+    private object MapValidator : ConstValueValidator {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            when (valueElement) {
+                is MapValueElement -> {
+                    val map = valueElement.value
 
-                val mapType = expected as MapType
-                val keyType = mapType.keyType.trueType
-                val valueType = mapType.valueType.trueType
+                    val mapType = expected as MapType
+                    val keyType = mapType.keyType.trueType
+                    val valueType = mapType.valueType.trueType
 
-                for ((key, value1) in map) {
-                    Constant.validate(symbolTable, key, keyType)
-                    Constant.validate(symbolTable, value1, valueType)
+                    for ((key, value1) in map) {
+                        Constant.validate(symbolTable, key, keyType)
+                        Constant.validate(symbolTable, value1, valueType)
+                    }
                 }
-            } else if (value.kind === ConstValueElement.Kind.IDENTIFIER) {
-                val id = value.value as String
-                val named = symbolTable.lookupConst(id)
 
-                val isConstantOfCorrectType = named != null && named.type.trueType == expected
+                is IdentifierValueElement -> {
+                    val id = valueElement.value
+                    val named = symbolTable.lookupConst(id)
 
-                if (!isConstantOfCorrectType) {
-                    throw IllegalStateException("Expected a value with type " + expected.name)
+                    val isConstantOfCorrectType = named != null && named.type.trueType == expected
+
+                    if (!isConstantOfCorrectType) {
+                        throw IllegalStateException("Expected a value with type ${expected.name}")
+                    }
                 }
-            } else {
-                throw IllegalStateException("Expected a map literal, got: " + value.value)
+
+                else -> throw IllegalStateException("Expected a map literal, got: $valueElement")
             }
         }
     }

@@ -20,8 +20,6 @@
  */
 package com.microsoft.thrifty.schema.parser
 
-import com.google.common.collect.ImmutableList
-import com.google.common.collect.ImmutableMap
 import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.NamespaceScope
@@ -244,15 +242,15 @@ internal class ThriftListener(
 
     private fun parseFieldList(
             contexts: List<AntlrThriftParser.FieldContext>,
-            defaultRequiredness: Requiredness = Requiredness.DEFAULT): ImmutableList<FieldElement> {
-        var builder: ImmutableList.Builder<FieldElement> = ImmutableList.builder()
+            defaultRequiredness: Requiredness = Requiredness.DEFAULT): List<FieldElement> {
+        val fields = mutableListOf<FieldElement>()
         val ids = mutableSetOf<Int>()
 
         var nextValue = 1
         for (fieldContext in contexts) {
             val element = parseField(nextValue, fieldContext, defaultRequiredness)
             if (element != null) {
-                builder = builder.add(element)
+                fields += element
 
                 if (!ids.add(element.fieldId)) {
                     errorReporter.error(locationOf(fieldContext), "duplicate field ID: ${element.fieldId}")
@@ -271,7 +269,7 @@ internal class ThriftListener(
             }
         }
 
-        return builder.build()
+        return fields
     }
 
     private fun parseField(
@@ -363,8 +361,8 @@ internal class ThriftListener(
         services.add(service)
     }
 
-    private fun parseFunctionList(functionContexts: List<AntlrThriftParser.FunctionContext>): ImmutableList<FunctionElement> {
-        val functions = ImmutableList.builder<FunctionElement>()
+    private fun parseFunctionList(functionContexts: List<AntlrThriftParser.FunctionContext>): List<FunctionElement> {
+        val functions = mutableListOf<FunctionElement>()
 
         for (ctx in functionContexts) {
             val name = ctx.IDENTIFIER().text
@@ -397,10 +395,10 @@ internal class ThriftListener(
                     exceptions = maybeThrowsList ?: emptyList()
             )
 
-            functions.add(function)
+            functions += function
         }
 
-        return functions.build()
+        return functions
     }
 
     override fun visitErrorNode(node: ErrorNode) {
@@ -548,7 +546,7 @@ internal class ThriftListener(
             try {
                 val value = parseLong(ctx.INTEGER())
 
-                return ConstValueElement.integer(locationOf(ctx), ctx.INTEGER().text, value)
+                return IntValueElement(locationOf(ctx), ctx.INTEGER().text, value)
             } catch (e: NumberFormatException) {
                 throw AssertionError("Invalid integer accepted by ANTLR grammar: " + ctx.INTEGER().text)
             }
@@ -560,7 +558,7 @@ internal class ThriftListener(
 
             try {
                 val value = java.lang.Double.parseDouble(text)
-                return ConstValueElement.real(locationOf(ctx), ctx.DOUBLE().text, value)
+                return DoubleValueElement(locationOf(ctx), ctx.DOUBLE().text, value)
             } catch (e: NumberFormatException) {
                 throw AssertionError("Invalid double accepted by ANTLR grammar: $text")
             }
@@ -569,30 +567,30 @@ internal class ThriftListener(
 
         if (ctx.LITERAL() != null) {
             val text = unquote(locationOf(ctx.LITERAL() as TerminalNode), ctx.LITERAL().text)
-            return ConstValueElement.literal(locationOf(ctx), ctx.LITERAL().text, text)
+            return LiteralValueElement(locationOf(ctx), ctx.LITERAL().text, text)
         }
 
         if (ctx.IDENTIFIER() != null) {
             val id = ctx.IDENTIFIER().text
-            return ConstValueElement.identifier(locationOf(ctx), ctx.IDENTIFIER().text, id)
+            return IdentifierValueElement(locationOf(ctx), ctx.IDENTIFIER().text, id)
         }
 
         if (ctx.constList() != null) {
-            val values = ImmutableList.builder<ConstValueElement>()
+            val values = mutableListOf<ConstValueElement>()
             for (valueContext in ctx.constList().constValue()) {
                 values.add(constValueElementOf(valueContext)!!)
             }
-            return ConstValueElement.list(locationOf(ctx), ctx.constList().text, values.build())
+            return ListValueElement(locationOf(ctx), ctx.constList().text, values)
         }
 
         if (ctx.constMap() != null) {
-            val values = ImmutableMap.builder<ConstValueElement, ConstValueElement>()
+            val values = mutableMapOf<ConstValueElement, ConstValueElement>()
             for (entry in ctx.constMap().constMapEntry()) {
                 val key = constValueElementOf(entry.key)
                 val value = constValueElementOf(entry.value)
                 values.put(key!!, value!!)
             }
-            return ConstValueElement.map(locationOf(ctx), ctx.constMap().text, values.build())
+            return MapValueElement(locationOf(ctx), ctx.constMap().text, values)
         }
 
         throw AssertionError("unreachable")

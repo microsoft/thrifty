@@ -50,6 +50,12 @@ import com.microsoft.thrifty.schema.ThriftType
 import com.microsoft.thrifty.schema.TypedefType
 import com.microsoft.thrifty.schema.UserElement
 import com.microsoft.thrifty.schema.parser.ConstValueElement
+import com.microsoft.thrifty.schema.parser.DoubleValueElement
+import com.microsoft.thrifty.schema.parser.IdentifierValueElement
+import com.microsoft.thrifty.schema.parser.IntValueElement
+import com.microsoft.thrifty.schema.parser.ListValueElement
+import com.microsoft.thrifty.schema.parser.LiteralValueElement
+import com.microsoft.thrifty.schema.parser.MapValueElement
 import com.microsoft.thrifty.service.AsyncClientBase
 import com.microsoft.thrifty.service.MethodCall
 import com.microsoft.thrifty.service.ServiceMethodCallback
@@ -972,58 +978,58 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitBool(boolType: BuiltinType) {
-                    if (value.isIdentifier && value.getAsString() in listOf("true", "false")) {
-                        block.add("%L", value.getAsString() == "true")
-                    } else if (value.isInt) {
-                        block.add("%L", value.getAsInt() != 0)
+                    if (value is IdentifierValueElement && value.value in listOf("true", "false")) {
+                        block.add("%L", value.value)
+                    } else if (value is IntValueElement) {
+                        block.add("%L", value.value != 0L)
                     } else {
                         constOrError("Invalid boolean constant")
                     }
                 }
 
                 override fun visitByte(byteType: BuiltinType) {
-                    if (value.isInt) {
-                        block.add("%L", value.getAsInt())
+                    if (value is IntValueElement) {
+                        block.add("%L", value.value)
                     } else {
                         constOrError("Invalid byte constant")
                     }
                 }
 
                 override fun visitI16(i16Type: BuiltinType) {
-                    if (value.isInt) {
-                        block.add("%L", value.getAsInt())
+                    if (value is IntValueElement) {
+                        block.add("%L", value.value)
                     } else {
                         constOrError("Invalid I16 constant")
                     }
                 }
 
                 override fun visitI32(i32Type: BuiltinType) {
-                    if (value.isInt) {
-                        block.add("%L", value.getAsInt())
+                    if (value is IntValueElement) {
+                        block.add("%L", value.value)
                     } else {
                         constOrError("Invalid I32 constant")
                     }
                 }
 
                 override fun visitI64(i64Type: BuiltinType) {
-                    if (value.isInt) {
-                        block.add("%L", value.getAsInt())
+                    if (value is IntValueElement) {
+                        block.add("%L", value.value)
                     } else {
                         constOrError("Invalid I64 constant")
                     }
                 }
 
                 override fun visitDouble(doubleType: BuiltinType) {
-                    if (value.isDouble || value.isInt) {
-                        block.add("%L", value.getAsDouble())
-                    } else {
-                        constOrError("Invalid double constant")
+                    when (value) {
+                        is IntValueElement -> block.add("%L.toDouble()", value.value)
+                        is DoubleValueElement -> block.add("%L", value.value)
+                        else -> constOrError("Invalid double constant")
                     }
                 }
 
                 override fun visitString(stringType: BuiltinType) {
-                    if (value.isString) {
-                        block.add("%S", value.getAsString())
+                    if (value is LiteralValueElement) {
+                        block.add("%S", value.value)
                     } else {
                         constOrError("Invalid string constant")
                     }
@@ -1031,8 +1037,8 @@ class KotlinCodeGenerator(
 
                 override fun visitBinary(binaryType: BuiltinType) {
                     // TODO: Implement support for binary constants in the ANTLR grammar
-                    if (value.isString) {
-                        block.add("%T.decodeHex(%S)", ByteString::class, value.getAsString())
+                    if (value is LiteralValueElement) {
+                        block.add("%T.decodeHex(%S)", ByteString::class, value.value)
                     } else {
                         constOrError("Invalid binary constant")
                     }
@@ -1040,12 +1046,12 @@ class KotlinCodeGenerator(
 
                 override fun visitEnum(enumType: EnumType) {
                     val member = try {
-                        when {
+                        when (value) {
                             // Enum references may or may not be scoped with their typename; either way, we must remove
                             // the type reference to get the member name on its own.
-                            value.isIdentifier -> enumType.findMemberByName(value.getAsString().split(".").last())
-                            value.isInt -> enumType.findMemberById(value.getAsInt())
-                            else -> throw AssertionError("Value kind ${value.kind} is not possibly an enum")
+                            is IdentifierValueElement -> enumType.findMemberByName(value.value.split(".").last())
+                            is IntValueElement -> enumType.findMemberById(value.value.toInt())
+                            else -> throw AssertionError("Value kind $value is not possibly an enum")
                         }
                     } catch (e: NoSuchElementException) {
                         null
@@ -1071,11 +1077,11 @@ class KotlinCodeGenerator(
                 }
 
                 private fun visitCollection(elementType: ThriftType, factoryMethod: String, errorMessage: String) {
-                    if (value.isList) {
+                    if (value is ListValueElement) {
                         block.add("$factoryMethod(%>")
 
                         var first = true
-                        for (elementValue in value.getAsList()) {
+                        for (elementValue in value.value) {
                             if (first) {
                                 first = false
                             } else {
@@ -1093,11 +1099,11 @@ class KotlinCodeGenerator(
                 override fun visitMap(mapType: MapType) {
                     val keyType = mapType.keyType.trueType
                     val valueType = mapType.valueType.trueType
-                    if (value.isMap) {
+                    if (value is MapValueElement) {
                         block.add("mapOf(%>")
 
                         var first = true
-                        for ((k, v) in value.getAsMap()) {
+                        for ((k, v) in value.value) {
                             if (first) {
                                 first = false
                             } else {
@@ -1127,13 +1133,15 @@ class KotlinCodeGenerator(
                 }
 
                 private fun constOrError(error: String) {
-                    val message = "$error: ${value.value} at ${value.location}"
-                    require(value.isIdentifier) { message }
+                    val message = "$error: $value at ${value.location}"
+                    if (value !is IdentifierValueElement) {
+                        throw IllegalStateException(message)
+                    }
 
                     val name: String
                     val expectedProgram: String?
 
-                    val text = value.getAsString()
+                    val text = value.value
                     val ix = text.indexOf(".")
                     if (ix != -1) {
                         expectedProgram = text.substring(0, ix)

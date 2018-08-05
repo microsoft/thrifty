@@ -690,7 +690,7 @@ class ThriftParserTest {
                                                 type = TypeElement.scalar(location.at(4, 6), "i16"),
                                                 name = "baz",
                                                 requiredness = Requiredness.DEFAULT,
-                                                constValue = ConstValueElement.integer(
+                                                constValue = IntValueElement(
                                                         location.at(4, 16),
                                                         "0x0FFF",
                                                         0xFFF)),
@@ -720,7 +720,7 @@ class ThriftParserTest {
                                 location = location.at(1, 1),
                                 type = TypeElement.scalar(location.at(1, 7), "i64"),
                                 name = "DefaultStatusCode",
-                                value = ConstValueElement.integer(location.at(1, 31), "200", 200)
+                                value = IntValueElement(location.at(1, 31), "200", 200)
                         )
                 )
         )
@@ -740,9 +740,9 @@ class ThriftParserTest {
                                 location = location.at(1, 1),
                                 type = TypeElement.scalar(location.at(1, 7), "i64", null),
                                 name = "Yuuuuuge",
-                                value = ConstValueElement.integer(
+                                value = IntValueElement(
                                         location = location.at(1, 22),
-                                        text = "0xFFFFFFFFFF",
+                                        thriftText = "0xFFFFFFFFFF",
                                         value = 0xFFFFFFFFFFL
                                 )
                         )
@@ -763,14 +763,14 @@ class ThriftParserTest {
                         location = location.at(1, 7),
                         elementType = TypeElement.scalar(location.at(1, 12), "string")),
                 name = "Names",
-                value = ConstValueElement.list(
+                value = ListValueElement(
                         location = location.at(1, 28),
-                        text = "[\"foo\"\"bar\",\"baz\";\"quux\"]",
+                        thriftText = "[\"foo\"\"bar\",\"baz\";\"quux\"]",
                         value = listOf(
-                                ConstValueElement.literal(location.at(1, 29), "\"foo\"", "foo"),
-                                ConstValueElement.literal(location.at(1, 35), "\"bar\"", "bar"),
-                                ConstValueElement.literal(location.at(1, 42), "\"baz\"", "baz"),
-                                ConstValueElement.literal(location.at(1, 49), "\"quux\"", "quux"))))
+                                LiteralValueElement(location.at(1, 29), "\"foo\"", "foo"),
+                                LiteralValueElement(location.at(1, 35), "\"bar\"", "bar"),
+                                LiteralValueElement(location.at(1, 42), "\"baz\"", "baz"),
+                                LiteralValueElement(location.at(1, 49), "\"quux\"", "quux"))))
 
         val expected = ThriftFileElement(
                 location = location,
@@ -795,15 +795,15 @@ class ThriftParserTest {
                         keyType = TypeElement.scalar(location.at(1, 11), "string", null),
                         valueType = TypeElement.scalar(location.at(1, 19), "string", null)),
                 name = "Headers",
-                value = ConstValueElement.map(
+                value = MapValueElement(
                         location = location.at(1, 37),
-                        text = "{\"foo\":\"bar\",\"baz\":\"quux\";}",
+                        thriftText = "{\"foo\":\"bar\",\"baz\":\"quux\";}",
                         value = mapOf(
-                                ConstValueElement.literal(location.at(2, 3), "\"foo\"", "foo") to
-                                ConstValueElement.literal(location.at(2, 10), "\"bar\"", "bar"),
+                                LiteralValueElement(location.at(2, 3), "\"foo\"", "foo") to
+                                LiteralValueElement(location.at(2, 10), "\"bar\"", "bar"),
 
-                                ConstValueElement.literal(location.at(3, 3), "\"baz\"", "baz") to
-                                ConstValueElement.literal(location.at(3, 10), "\"quux\"", "quux"))))
+                                LiteralValueElement(location.at(3, 3), "\"baz\"", "baz") to
+                                        LiteralValueElement(location.at(3, 10), "\"quux\"", "quux"))))
 
         val expected = ThriftFileElement(
                 location = location,
@@ -834,7 +834,7 @@ class ThriftParserTest {
                                                 fieldId = 100,
                                                 type = TypeElement.scalar(location.at(2, 8), "i32"),
                                                 name = "num",
-                                                constValue = ConstValueElement.integer(location.at(2, 18), "1", 1)
+                                                constValue = IntValueElement(location.at(2, 18), "1", 1)
                                         )
                                 )
                         )
@@ -1231,7 +1231,7 @@ class ThriftParserTest {
         """.trimIndent()
 
         val constants = parse(thrift).constants
-        assertThat(constants.single().value.getAsDouble(), equalTo(2.0))
+        assertThat((constants.single().value as IntValueElement).value, equalTo(2L))
     }
 
     companion object {

@@ -24,11 +24,13 @@ import com.microsoft.thrifty.schema.parser.ConstElement
 import com.microsoft.thrifty.schema.parser.ConstValueElement
 import com.microsoft.thrifty.schema.parser.EnumElement
 import com.microsoft.thrifty.schema.parser.EnumMemberElement
+import com.microsoft.thrifty.schema.parser.IdentifierValueElement
+import com.microsoft.thrifty.schema.parser.IntValueElement
+import com.microsoft.thrifty.schema.parser.ListValueElement
+import com.microsoft.thrifty.schema.parser.LiteralValueElement
 import com.microsoft.thrifty.schema.parser.TypeElement
 import com.microsoft.thrifty.schema.parser.TypedefElement
 import org.junit.Test
-
-import java.util.Arrays
 
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.Matchers.`is`
@@ -43,10 +45,10 @@ class ConstantTest {
 
     @Test
     fun boolLiteral() {
-        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "true", "true"), BuiltinType.BOOL)
-        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "false", "false"), BuiltinType.BOOL)
+        Constant.validate(symbolTable, IdentifierValueElement(loc, "true", "true"), BuiltinType.BOOL)
+        Constant.validate(symbolTable, IdentifierValueElement(loc, "false", "false"), BuiltinType.BOOL)
         try {
-            Constant.validate(symbolTable, ConstValueElement.literal(loc, "nope", "nope"), BuiltinType.BOOL)
+            Constant.validate(symbolTable, LiteralValueElement(loc, "nope", "nope"), BuiltinType.BOOL)
             fail("Invalid identifier should not validate as a bool")
         } catch (expected: IllegalStateException) {
             assertThat<String>(
@@ -60,12 +62,12 @@ class ConstantTest {
         val c = makeConstant(
                 "aBool",
                 TypeElement.scalar(loc, "string", null),
-                ConstValueElement.identifier(loc, "aBool", "aBool"),
+                IdentifierValueElement(loc, "aBool", "aBool"),
                 BuiltinType.BOOL)
 
         `when`<Constant>(symbolTable.lookupConst("aBool")).thenReturn(c)
 
-        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL)
+        Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
     }
 
     @Test
@@ -73,13 +75,13 @@ class ConstantTest {
         val c = makeConstant(
                 "aBool",
                 TypeElement.scalar(loc, "string", null),
-                ConstValueElement.identifier(loc, "aBool", "aBool"),
+                IdentifierValueElement(loc, "aBool", "abool"),
                 BuiltinType.STRING)
 
         `when`<Constant>(symbolTable.lookupConst("aBool")).thenReturn(c)
 
         try {
-            Constant.validate(symbolTable, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL)
+            Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
             fail("Wrongly-typed constant should not validate")
         } catch (ignored: IllegalStateException) {
         }
@@ -89,7 +91,7 @@ class ConstantTest {
     @Test
     fun boolWithNonConstantIdentifier() {
         try {
-            Constant.validate(symbolTable, ConstValueElement.identifier(loc, "someStruct", "someStruct"), BuiltinType.BOOL)
+            Constant.validate(symbolTable, IdentifierValueElement(loc, "someStruct", "someStruct"), BuiltinType.BOOL)
             fail("Non-constant identifier should not validate")
         } catch (expected: IllegalStateException) {
             assertThat<String>(
@@ -106,26 +108,26 @@ class ConstantTest {
         val c = makeConstant(
                 "aBool",
                 TypeElement.scalar(loc, "Truthiness", null),
-                ConstValueElement.identifier(loc, "aBool", "aBool"),
+                IdentifierValueElement(loc, "aBool", "aBool"),
                 td)
 
         `when`<Constant>(symbolTable.lookupConst("aBool")).thenReturn(c)
 
-        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "aBool", "aBool"), BuiltinType.BOOL)
+        Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
     }
 
     @Test
     fun typedefWithCorrectLiteral() {
         val td = makeTypedef(BuiltinType.STRING, "Message")
 
-        val value = ConstValueElement.literal(loc, "\"y helo thar\"", "y helo thar")
+        val value = LiteralValueElement(loc, "\"y helo thar\"", "y helo thar")
 
         Constant.validate(symbolTable, value, td)
     }
 
     @Test
     fun inRangeInt() {
-        val value = ConstValueElement.integer(loc, "10", 10)
+        val value = IntValueElement(loc, "10", 10)
         val type = BuiltinType.I32
 
         Constant.validate(symbolTable, value, type)
@@ -133,8 +135,8 @@ class ConstantTest {
 
     @Test
     fun tooLargeInt() {
-        val value = ConstValueElement.integer(
-                loc, (Integer.MAX_VALUE.toLong() + 1).toString(), Integer.MAX_VALUE.toLong() + 1)
+        val value = IntValueElement(loc,
+                "${Integer.MAX_VALUE.toLong() + 1}", Integer.MAX_VALUE.toLong() + 1)
         val type = BuiltinType.I32
 
         try {
@@ -148,8 +150,8 @@ class ConstantTest {
 
     @Test
     fun tooSmallInt() {
-        val value = ConstValueElement.integer(
-                loc, (Integer.MIN_VALUE.toLong() - 1).toString(), Integer.MIN_VALUE.toLong() - 1)
+        val value = IntValueElement(loc,
+                "${Integer.MIN_VALUE.toLong() - 1}", Integer.MIN_VALUE.toLong() - 1)
         val type = BuiltinType.I32
 
         try {
@@ -169,7 +171,7 @@ class ConstantTest {
 
         val et = EnumType(enumElement, emptyMap())
 
-        Constant.validate(symbolTable, ConstValueElement.identifier(loc, "TestEnum.TEST", "TestEnum.TEST"), et)
+        Constant.validate(symbolTable, IdentifierValueElement(loc, "TestEnum.TEST", "TestEnum.TEST"), et)
     }
 
     @Test
@@ -181,7 +183,7 @@ class ConstantTest {
         val et = EnumType(enumElement, emptyMap())
 
         try {
-            Constant.validate(symbolTable, ConstValueElement.identifier(loc, "TestEnum.NON_MEMBER", "TestEnum.NON_MEMBER"), et)
+            Constant.validate(symbolTable, IdentifierValueElement(loc, "TestEnum.NON_MEMBER", "TestEnum.NON_MEMBER"), et)
             fail("Non-member identifier should fail")
         } catch (expected: IllegalStateException) {
             assertThat<String>(
@@ -200,7 +202,7 @@ class ConstantTest {
         val et = EnumType(enumElement, emptyMap())
 
         try {
-            Constant.validate(symbolTable, ConstValueElement.identifier(loc, "TEST", "TEST"), et)
+            Constant.validate(symbolTable, IdentifierValueElement(loc, "TEST", "TEST"), et)
             fail("Expected an IllegalStateException")
         } catch (e: IllegalStateException) {
             assertThat<String>(e.message, containsString("Unqualified name 'TEST' is not a valid enum constant value"))
@@ -211,10 +213,10 @@ class ConstantTest {
     @Test
     fun listOfInts() {
         val list = ListType(BuiltinType.I32)
-        val listValue = ConstValueElement.list(loc, "[0, 1, 2]", Arrays.asList(
-                ConstValueElement.integer(loc, "0", 0),
-                ConstValueElement.integer(loc, "1", 1),
-                ConstValueElement.integer(loc, "2", 2)
+        val listValue = ListValueElement(location = loc, thriftText = "[0, 1, 2]", value = listOf(
+                IntValueElement(loc, "0", 0),
+                IntValueElement(loc, "1", 1),
+                IntValueElement(loc, "2", 2)
         ))
 
         Constant.validate(symbolTable, listValue, list)
@@ -223,10 +225,10 @@ class ConstantTest {
     @Test
     fun heterogeneousList() {
         val list = ListType(BuiltinType.I32)
-        val listValue = ConstValueElement.list(loc, "[0, 1, \"2\"]", Arrays.asList(
-                ConstValueElement.integer(loc, "0", 0),
-                ConstValueElement.integer(loc, "1", 1),
-                ConstValueElement.literal(loc, "\"2\"", "2")
+        val listValue = ListValueElement(location = loc, thriftText = "[0, 1, \"2\"]", value = listOf(
+                IntValueElement(loc, "0", 0),
+                IntValueElement(loc, "1", 1),
+                LiteralValueElement(loc, "\"2\"", "2")
         ))
 
         try {
@@ -247,7 +249,7 @@ class ConstantTest {
 
         val typedefType = makeTypedef(et, "Id")
 
-        val value = ConstValueElement.identifier(loc, "AnEnum.FOO", "AnEnum.FOO")
+        val value = IdentifierValueElement(loc, "AnEnum.FOO", "AnEnum.FOO")
 
         Constant.validate(symbolTable, value, typedefType)
     }
@@ -262,7 +264,7 @@ class ConstantTest {
 
         val typedefType = makeTypedef(wt, "Id")
 
-        val value = ConstValueElement.identifier(loc, "AnEnum.FOO", "AnEnum.FOO")
+        val value = IdentifierValueElement(loc, "AnEnum.FOO", "AnEnum.FOO")
 
         try {
             Constant.validate(symbolTable, value, typedefType)
@@ -278,10 +280,10 @@ class ConstantTest {
     @Test
     fun setOfInts() {
         val setType = SetType(BuiltinType.I32)
-        val listValue = ConstValueElement.list(loc, "[0, 1, 2]", Arrays.asList(
-                ConstValueElement.integer(loc, "0", 0),
-                ConstValueElement.integer(loc, "1", 1),
-                ConstValueElement.integer(loc, "2", 2)
+        val listValue = ListValueElement(location = loc, thriftText = "[0, 1, 2]", value = listOf(
+                IntValueElement(loc, "0", 0),
+                IntValueElement(loc, "1", 1),
+                IntValueElement(loc, "2", 2)
         ))
 
         Constant.validate(symbolTable, listValue, setType)
