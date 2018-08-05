@@ -23,6 +23,7 @@ package com.microsoft.thrifty.schema
 import com.google.common.collect.ImmutableMap
 import com.microsoft.thrifty.schema.parser.AnnotationElement
 import com.microsoft.thrifty.schema.parser.FieldElement
+import com.microsoft.thrifty.schema.parser.ScalarTypeElement
 import com.microsoft.thrifty.schema.parser.TypeElement
 import org.junit.Test
 
@@ -37,7 +38,7 @@ class FieldTest {
     private var location: Location = Location.get("", "")
     private var fieldId: Int = 1
     private var fieldName: String = "foo"
-    private var fieldType: TypeElement = TypeElement.scalar(location, "i32", null)
+    private var fieldType: TypeElement = ScalarTypeElement(location, "i32", null)
     private var requiredness: Requiredness = Requiredness.DEFAULT
     private var annotations: AnnotationElement? = null
     private var documentation: String = ""

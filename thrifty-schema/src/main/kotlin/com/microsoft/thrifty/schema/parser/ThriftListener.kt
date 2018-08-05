@@ -374,8 +374,8 @@ internal class ThriftListener(
                         ?: throw AssertionError("Function has no return type, and no VOID token - grammar error")
                 val loc = locationOf(token)
 
-                // Do people actually annotation 'void'?  We'll find out!
-                TypeElement.scalar(loc, "void", null)
+                // Do people actually annotate 'void'?  We'll find out!
+                ScalarTypeElement(loc, "void", null)
             }
 
             val isOneway = ctx.ONEWAY() != null
@@ -492,14 +492,14 @@ internal class ThriftListener(
                 errorReporter.error(locationOf(context), "slist is unsupported; use list<string> instead")
             }
 
-            return TypeElement.scalar(
+            return ScalarTypeElement(
                     locationOf(context),
                     context.baseType().text,
                     annotationsFromAntlr(context.annotationList()))
         }
 
         if (context.IDENTIFIER() != null) {
-            return TypeElement.scalar(
+            return ScalarTypeElement(
                     locationOf(context),
                     context.IDENTIFIER().text,
                     annotationsFromAntlr(context.annotationList()))
@@ -510,7 +510,7 @@ internal class ThriftListener(
             if (containerContext.mapType() != null) {
                 val keyType = typeElementOf(containerContext.mapType().key)
                 val valueType = typeElementOf(containerContext.mapType().value)
-                return TypeElement.map(
+                return MapTypeElement(
                         locationOf(containerContext.mapType()),
                         keyType,
                         valueType,
@@ -518,14 +518,14 @@ internal class ThriftListener(
             }
 
             if (containerContext.setType() != null) {
-                return TypeElement.set(
+                return SetTypeElement(
                         locationOf(containerContext.setType()),
                         typeElementOf(containerContext.setType().fieldType()),
                         annotationsFromAntlr(context.annotationList()))
             }
 
             if (containerContext.listType() != null) {
-                return TypeElement.list(
+                return ListTypeElement(
                         locationOf(containerContext.listType()),
                         typeElementOf(containerContext.listType().fieldType()),
                         annotationsFromAntlr(context.annotationList()))

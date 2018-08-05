@@ -55,6 +55,88 @@ data class AnnotationElement(
 }
 
 /**
+ * Represents a reference to a named type.
+ *
+ * Types can be scalar (numbers, strings, identifiers, etc) or collections.
+ *
+ * @property location The location of the text corresponding to this element.
+ * @property name The name of the type referenced by this element.
+ * @property annotationClass The annotations associated with this type reference, if any.
+ */
+sealed class TypeElement {
+    abstract val location: Location
+    abstract val name: String
+    abstract val annotations: AnnotationElement?
+}
+
+/**
+ * Represents a reference to a scalar type.
+ *
+ * @constructor Creates a new instance of [ScalarTypeElement].
+ * @property location The location of the text corresponding to this element.
+ * @property name The name of the type referenced by this element.
+ * @property annotations The annotations associated with this element, if any.
+ */
+data class ScalarTypeElement(
+        override val location: Location,
+        override val name: String,
+        override val annotations: AnnotationElement? = null
+) : TypeElement()
+
+/**
+ * Represents a reference to a set-type.
+ *
+ * @constructor Creates a new instance of [SetTypeElement].
+ * @property location The location of the text corresponding to this element.
+ * @property elementType A reference to the type of element contained within this set type.
+ * @property annotations The annotations associated with this element, if any.
+ * @property name The name of the type referenced by this element.
+ */
+data class SetTypeElement(
+        override val location: Location,
+        val elementType: TypeElement,
+        override val annotations: AnnotationElement? = null,
+        override val name: String = "set<${elementType.name}>"
+) : TypeElement()
+
+/**
+ * Represents a reference to a list-type.
+ *
+ * @constructor Creates a new instance of [ListTypeElement].
+ * @property location The location of the text corresponding to this element.
+ * @property elementType A reference to the type of element contained within this list type.
+ * @property annotations The annotations associated with this element, if any.
+ * @property name The name of the type referenced by this element.
+ */
+data class ListTypeElement(
+        override val location: Location,
+        val elementType: TypeElement,
+        override val annotations: AnnotationElement? = null,
+        override val name: String = "list<${elementType.name}>"
+) : TypeElement()
+
+/**
+ * Represents a reference to a map-type.
+ *
+ * A map-type is a typical key-value lookup, a.k.a. associative array,
+ * dictionary, etc.
+ *
+ * @constructor Creates a new instance of [MapTypeElement].
+ * @property location The location of the text corresponding to this element.
+ * @property keyType A reference to the type serving as the key-type of this map type.
+ * @property valueType A reference to the type serving as the value-type of this map type.
+ * @property annotations The annotations associated with this element, if any.
+ * @property name The name of the type referenced by this element.
+ */
+data class MapTypeElement(
+        override val location: Location,
+        val keyType: TypeElement,
+        val valueType: TypeElement,
+        override val annotations: AnnotationElement? = null,
+        override val name: String = "map<${keyType.name}, ${valueType.name}>"
+) : TypeElement()
+
+/**
  * Represents the inclusion of one Thrift program into another.
  *
  * @constructor Creates a new instance of [IncludeElement].
