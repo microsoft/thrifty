@@ -11,7 +11,6 @@ import org.junit.Test
 import org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage
 import org.junit.rules.TemporaryFolder
 import java.io.File
-import java.io.IOException
 
 class LoaderTest {
     @get:Rule
@@ -985,7 +984,6 @@ class LoaderTest {
     }
 
     @Test
-    @Throws(IOException::class, LoadFailedException::class)
     fun addIncludeFileSmokeTest() {
         val thriftFile = tempDir.newFile("example.thrift")
         thriftFile.writeText("""
