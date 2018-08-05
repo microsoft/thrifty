@@ -71,6 +71,11 @@ sealed class TypeElement {
 
 /**
  * Represents a reference to a scalar type.
+ *
+ * @constructor Creates a new instance of [ScalarTypeElement].
+ * @property location The location of the text corresponding to this element.
+ * @property name The name of the type referenced by this element.
+ * @property annotations The annotations associated with this element, if any.
  */
 data class ScalarTypeElement(
         override val location: Location,
@@ -81,7 +86,11 @@ data class ScalarTypeElement(
 /**
  * Represents a reference to a set-type.
  *
+ * @constructor Creates a new instance of [SetTypeElement].
+ * @property location The location of the text corresponding to this element.
  * @property elementType A reference to the type of element contained within this set type.
+ * @property annotations The annotations associated with this element, if any.
+ * @property name The name of the type referenced by this element.
  */
 data class SetTypeElement(
         override val location: Location,
@@ -93,7 +102,11 @@ data class SetTypeElement(
 /**
  * Represents a reference to a list-type.
  *
+ * @constructor Creates a new instance of [ListTypeElement].
+ * @property location The location of the text corresponding to this element.
  * @property elementType A reference to the type of element contained within this list type.
+ * @property annotations The annotations associated with this element, if any.
+ * @property name The name of the type referenced by this element.
  */
 data class ListTypeElement(
         override val location: Location,
@@ -108,8 +121,12 @@ data class ListTypeElement(
  * A map-type is a typical key-value lookup, a.k.a. associative array,
  * dictionary, etc.
  *
+ * @constructor Creates a new instance of [MapTypeElement].
+ * @property location The location of the text corresponding to this element.
  * @property keyType A reference to the type serving as the key-type of this map type.
  * @property valueType A reference to the type serving as the value-type of this map type.
+ * @property annotations The annotations associated with this element, if any.
+ * @property name The name of the type referenced by this element.
  */
 data class MapTypeElement(
         override val location: Location,
