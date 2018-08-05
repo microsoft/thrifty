@@ -80,6 +80,28 @@ interface UserElement {
      * @return all annotations present on this element.
      */
     val annotations: Map<String, String>
+
+    /**
+     * A map of namespaces to which this element belongs.
+     */
+    val namespaces: Map<NamespaceScope, String>
+
+    /**
+     * Gets the first namespace found for the given list of scopes.
+     *
+     * Iterates over the scopes in the order provided, returning the first
+     * non-null namespace found for this element.
+     *
+     * @param scopes The list of scopes to search.
+     * @return the first namespace found corresponding to one of the given
+     *         [scopes], or null.
+     */
+    fun getNamespaceFor(vararg scopes: NamespaceScope): String? {
+        for (s in scopes) {
+            namespaces[s]?.let { return it }
+        }
+        return null
+    }
 }
 
 /**

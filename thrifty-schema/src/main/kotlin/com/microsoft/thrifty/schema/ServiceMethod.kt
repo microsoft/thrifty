@@ -24,22 +24,22 @@ import com.microsoft.thrifty.schema.parser.FunctionElement
 
 import java.util.LinkedHashMap
 
-class ServiceMethod internal constructor(
+class ServiceMethod private constructor(
         private val element: FunctionElement,
-        private val mixin: UserElementMixin = UserElementMixin(element),
-        val parameters: List<Field> = element.params.map { Field(it) },
-        val exceptions: List<Field> = element.exceptions.map { Field(it) },
+        private val mixin: UserElementMixin,
+        val parameters: List<Field> = element.params.map { Field(it, mixin.namespaces) },
+        val exceptions: List<Field> = element.exceptions.map { Field(it, mixin.namespaces) },
         private var returnType_: ThriftType? = null
 ) : UserElement by mixin {
 
     val returnType: ThriftType
         get() = returnType_!!
 
-    override val isDeprecated: Boolean
-        get() = mixin.isDeprecated
-
     val oneWay: Boolean
         get() = element.oneWay
+
+    internal constructor(element: FunctionElement, namespaces: Map<NamespaceScope, String>)
+            : this(element, UserElementMixin(element, namespaces))
 
     fun toBuilder(): Builder {
         return Builder(this)

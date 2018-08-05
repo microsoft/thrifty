@@ -303,7 +303,6 @@ abstract class ThriftType internal constructor(
     }
 
     companion object {
-        @JvmStatic
         protected fun merge(
                 baseAnnotations: Map<String, String>,
                 newAnnotations: Map<String, String>): Map<String, String> {
@@ -312,5 +311,14 @@ abstract class ThriftType internal constructor(
             merged.putAll(newAnnotations)
             return merged
         }
+    }
+}
+
+internal fun mergeAnnotations(
+        baseAnnotations: Map<String, String>,
+        newAnnotations: Map<String, String>): Map<String, String> {
+    return mutableMapOf<String, String>().apply {
+        putAll(baseAnnotations)
+        putAll(newAnnotations)
     }
 }

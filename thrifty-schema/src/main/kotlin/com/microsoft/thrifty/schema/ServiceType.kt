@@ -36,13 +36,12 @@ class ServiceType : UserType {
     var extendsService: ThriftType? = null
         private set
 
-    internal constructor(program: Program, element: ServiceElement) : super(program.namespaces, UserElementMixin(element)) {
-
+    internal constructor(element: ServiceElement, namespaces: Map<NamespaceScope, String>) : super(UserElementMixin(element, namespaces)) {
         this.extendsServiceType = element.extendsService
-        this.methods = element.functions.map { ServiceMethod(it) }
+        this.methods = element.functions.map { ServiceMethod(it, namespaces) }
     }
 
-    private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
+    private constructor(builder: Builder) : super(builder.mixin) {
         this.methods = builder.methods
         this.extendsServiceType = builder.extendsServiceType
         this.extendsService = builder.extendsService
@@ -54,7 +53,7 @@ class ServiceType : UserType {
 
     override fun withAnnotations(annotations: Map<String, String>): ThriftType {
         return toBuilder()
-                .annotations(ThriftType.merge(this.annotations, annotations))
+                .annotations(mergeAnnotations(this.annotations, annotations))
                 .build()
     }
 

@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap
 import com.microsoft.thrifty.schema.parser.AnnotationElement
 import com.microsoft.thrifty.schema.parser.FieldElement
 import com.microsoft.thrifty.schema.parser.TypeElement
-import org.junit.Ignore
 import org.junit.Test
 
 import java.util.Collections
@@ -48,7 +47,7 @@ class FieldTest {
         requiredness = Requiredness.REQUIRED
         val element = field()
 
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertTrue(field.required)
         assertFalse(field.optional)
     }
@@ -57,7 +56,7 @@ class FieldTest {
     fun optionalFields() {
         requiredness = Requiredness.OPTIONAL
         val element = field()
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertFalse(field.required)
         assertTrue(field.optional)
     }
@@ -65,7 +64,7 @@ class FieldTest {
     @Test
     fun defaultFields() {
         val element = field()
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertFalse(field.required)
         assertFalse(field.optional)
     }
@@ -73,7 +72,7 @@ class FieldTest {
     @Test
     fun unredactedAndUnobfuscatedByDefault() {
         val element = field()
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertFalse(field.isRedacted)
         assertFalse(field.isObfuscated)
     }
@@ -83,7 +82,7 @@ class FieldTest {
         annotations = annotation("thrifty.redacted")
         val element = field()
 
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertTrue(field.isRedacted)
     }
 
@@ -92,7 +91,7 @@ class FieldTest {
         annotations = annotation("redacted")
         val element = field()
 
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertTrue(field.isRedacted)
     }
 
@@ -101,7 +100,7 @@ class FieldTest {
         documentation = "/** @redacted */"
         val element = field()
 
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertTrue(field.isRedacted)
     }
 
@@ -110,7 +109,7 @@ class FieldTest {
         annotations = annotation("thrifty.obfuscated")
         val element = field()
 
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertTrue(field.isObfuscated)
     }
 
@@ -119,7 +118,7 @@ class FieldTest {
         annotations = annotation("obfuscated")
         val element = field()
 
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertTrue(field.isObfuscated)
     }
 
@@ -128,14 +127,14 @@ class FieldTest {
         documentation = "/** @obfuscated */"
         val element = field()
 
-        val field = Field(element)
+        val field = Field(element, emptyMap())
         assertTrue(field.isObfuscated)
     }
 
     @Test
     fun builderCreatesCorrectField() {
         val fieldElement = field()
-        val field = Field(fieldElement)
+        val field = Field(fieldElement, emptyMap())
 
         val annotations = ImmutableMap.of<String, String>()
         val thriftType = mock(ThriftType::class.java)
@@ -147,15 +146,6 @@ class FieldTest {
 
         assertEquals(builderField.annotations, annotations)
         assertEquals(builderField.type, thriftType)
-    }
-
-    @Test
-    @Ignore
-    fun toBuilderCreatesCorrectField() {
-        val fieldElement = mock(FieldElement::class.java)
-        val field = Field(fieldElement)
-
-        assertEquals(field.toBuilder().build(), field)
     }
 
     private fun annotation(name: String): AnnotationElement {

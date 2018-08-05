@@ -23,9 +23,9 @@ package com.microsoft.thrifty.schema
 import com.microsoft.thrifty.schema.parser.ConstValueElement
 import com.microsoft.thrifty.schema.parser.FieldElement
 
-class Field internal constructor(
+class Field private constructor(
         private val element: FieldElement,
-        private val mixin: UserElementMixin = UserElementMixin(element),
+        private val mixin: UserElementMixin,
         private var type_: ThriftType? = null
 ) : UserElement by mixin {
 
@@ -59,6 +59,9 @@ class Field internal constructor(
                 if (it.isTypedef) it.name else null
             }
         }
+
+    internal constructor(element: FieldElement, namespaces: Map<NamespaceScope, String>)
+            : this(element, UserElementMixin(element, namespaces))
 
     fun toBuilder(): Builder = Builder(this)
 
