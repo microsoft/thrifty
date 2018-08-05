@@ -135,15 +135,15 @@ class ThriftParserTest {
                 typedefs = listOf(
                         TypedefElement(
                                 location = location.at(1, 1),
-                                oldType = TypeElement.scalar(location.at(1, 9), "i32", null),
+                                oldType = ScalarTypeElement(location.at(1, 9), "i32", null),
                                 newName = "MyInt"),
                         TypedefElement(
                                 location = location.at(2, 1),
-                                oldType = TypeElement.scalar(location.at(2, 9), "string", null),
+                                oldType = ScalarTypeElement(location.at(2, 9), "string", null),
                                 newName = "MyString"),
                         TypedefElement(
                                 location = location.at(3, 1),
-                                oldType = TypeElement.scalar(location.at(3, 9), "binary", null),
+                                oldType = ScalarTypeElement(location.at(3, 9), "binary", null),
                                 newName = "PrivateKey")
                 )
         )
@@ -164,26 +164,26 @@ class ThriftParserTest {
                 typedefs = listOf(
                         TypedefElement(
                                 location = location.at(1, 1),
-                                oldType = TypeElement.list(
+                                oldType = ListTypeElement(
                                         location.at(1, 9),
-                                        TypeElement.scalar(location.at(1, 14), "i32")),
+                                        ScalarTypeElement(location.at(1, 14), "i32")),
                                 newName = "IntList"
                         ),
                         TypedefElement(
                                 location = location.at(2, 1),
-                                oldType = TypeElement.set(
+                                oldType = SetTypeElement(
                                         location.at(2, 9),
-                                        TypeElement.scalar(location.at(2, 13), "string")),
+                                        ScalarTypeElement(location.at(2, 13), "string")),
                                 newName = "Names"
                         ),
                         TypedefElement(
                                 location = location.at(3, 1),
-                                oldType = TypeElement.map(
+                                oldType = MapTypeElement(
                                         location.at(3, 9),
-                                        TypeElement.scalar(location.at(3, 15), "i16"),
-                                        TypeElement.set(
+                                        ScalarTypeElement(location.at(3, 15), "i16"),
+                                        SetTypeElement(
                                                 location.at(3, 19),
-                                                TypeElement.scalar(location.at(3, 23), "binary"))),
+                                                ScalarTypeElement(location.at(3, 23), "binary"))),
                                 newName = "BlobMap"
                         )
                     )
@@ -234,14 +234,14 @@ class ThriftParserTest {
                                         FieldElement(
                                                 location = location.at(3, 3),
                                                 fieldId = 1,
-                                                type = TypeElement.scalar(location.at(3, 5), "i32"),
+                                                type = ScalarTypeElement(location.at(3, 5), "i32"),
                                                 name = "foo",
                                                 requiredness = Requiredness.DEFAULT,
                                                 documentation = "This field is optional\n"),
                                         FieldElement(
                                                 location = location.at(5, 3),
                                                 fieldId = 2,
-                                                type = TypeElement.scalar(location.at(5, 15), "string"),
+                                                type = ScalarTypeElement(location.at(5, 15), "string"),
                                                 name = "bar",
                                                 requiredness = Requiredness.REQUIRED,
                                                 documentation = "This next field is required\nand has trailing doc\n")
@@ -276,21 +276,21 @@ class ThriftParserTest {
                                         FieldElement(
                                                 location = location.at(3, 3),
                                                 fieldId = 1,
-                                                type = TypeElement.scalar(location.at(3, 15), "string"),
+                                                type = ScalarTypeElement(location.at(3, 15), "string"),
                                                 name = "standard",
                                                 requiredness = Requiredness.REQUIRED,
                                                 documentation = "cpp-style\n"),
                                         FieldElement(
                                                 location = location.at(4, 3),
                                                 fieldId = 2,
-                                                type = TypeElement.scalar(location.at(4, 15), "string"),
+                                                type = ScalarTypeElement(location.at(4, 15), "string"),
                                                 name = "python",
                                                 requiredness = Requiredness.REQUIRED,
                                                 documentation = "py-style\n"),
                                         FieldElement(
                                                 location = location.at(5, 3),
                                                 fieldId = 3,
-                                                type = TypeElement.scalar(location.at(5, 15), "binary"),
+                                                type = ScalarTypeElement(location.at(5, 15), "binary"),
                                                 name = "knr",
                                                 requiredness = Requiredness.OPTIONAL,
                                                 documentation = "K&R-style *\n")),
@@ -364,91 +364,91 @@ class ThriftParserTest {
                         FieldElement(
                                 location = location.at(2, 1),
                                 fieldId = 1,
-                                type = TypeElement.scalar(location.at(2, 1), "byte", null),
+                                type = ScalarTypeElement(location.at(2, 1), "byte", null),
                                 name = "minimal",
                                 requiredness = Requiredness.DEFAULT),
                         FieldElement(
                                 location = location.at(3, 1),
                                 fieldId = 2,
-                                type = TypeElement.scalar(location.at(3, 1), "byte", null),
+                                type = ScalarTypeElement(location.at(3, 1), "byte", null),
                                 name = "minimalWithSeparator",
                                 requiredness = Requiredness.DEFAULT),
                         FieldElement(
                                 location = location.at(4, 1),
                                 fieldId = 3,
-                                type = TypeElement.scalar(location.at(4, 1), "byte", null),
+                                type = ScalarTypeElement(location.at(4, 1), "byte", null),
                                 name = "minimalWithOtherSeparator",
                                 requiredness = Requiredness.DEFAULT),
                         FieldElement(
                                 location = location.at(5, 1),
                                 fieldId = 4,
-                                type = TypeElement.scalar(location.at(5, 10), "byte", null),
+                                type = ScalarTypeElement(location.at(5, 10), "byte", null),
                                 name = "requiredWithoutSeparator",
                                 requiredness = Requiredness.REQUIRED),
                         FieldElement(
                                 location = location.at(6, 1),
                                 fieldId = 5,
-                                type = TypeElement.scalar(location.at(6, 10), "byte", null),
+                                type = ScalarTypeElement(location.at(6, 10), "byte", null),
                                 name = "requiredWithComma",
                                 requiredness = Requiredness.REQUIRED),
                         FieldElement(
                                 location = location.at(7, 1),
                                 fieldId = 6,
-                                type = TypeElement.scalar(location.at(7, 10), "byte", null),
+                                type = ScalarTypeElement(location.at(7, 10), "byte", null),
                                 name = "requiredWithSemicolon",
                                 requiredness = Requiredness.REQUIRED),
                         FieldElement(
                                 location = location.at(8, 1),
                                 fieldId = 7,
-                                type = TypeElement.scalar(location.at(8, 10), "i16", null),
+                                type = ScalarTypeElement(location.at(8, 10), "i16", null),
                                 name = "optionalWithoutSeparator",
                                 requiredness = Requiredness.OPTIONAL),
                         FieldElement(
                                 location = location.at(9, 1),
                                 fieldId = 8,
-                                type = TypeElement.scalar(location.at(9, 10), "i16", null),
+                                type = ScalarTypeElement(location.at(9, 10), "i16", null),
                                 name = "optionalWithComma",
                                 requiredness = Requiredness.OPTIONAL),
                         FieldElement(
                                 location = location.at(10, 1),
                                 fieldId = 9,
-                                type = TypeElement.scalar(location.at(10, 10), "i16", null),
+                                type = ScalarTypeElement(location.at(10, 10), "i16", null),
                                 name = "optionalWithSemicolon",
                                 requiredness = Requiredness.OPTIONAL),
                         FieldElement(
                                 location = location.at(11, 1),
                                 fieldId = 10,
-                                type = TypeElement.scalar(location.at(11, 5), "i32", null),
+                                type = ScalarTypeElement(location.at(11, 5), "i32", null),
                                 name = "implicitOptional",
                                 requiredness = Requiredness.DEFAULT),
                         FieldElement(
                                 location = location.at(12, 1),
                                 fieldId = 11,
-                                type = TypeElement.scalar(location.at(12, 5), "i32", null),
+                                type = ScalarTypeElement(location.at(12, 5), "i32", null),
                                 name = "implicitOptionalWithComma",
                                 requiredness = Requiredness.DEFAULT),
                         FieldElement(
                                 location = location.at(13, 1),
                                 fieldId = 12,
-                                type = TypeElement.scalar(location.at(13, 5), "i32", null),
+                                type = ScalarTypeElement(location.at(13, 5), "i32", null),
                                 name = "implicitOptionalWithSemicolon",
                                 requiredness = Requiredness.DEFAULT),
                         FieldElement(
                                 location = location.at(14, 1),
                                 fieldId = 13,
-                                type = TypeElement.scalar(location.at(14, 14), "i64", null),
+                                type = ScalarTypeElement(location.at(14, 14), "i64", null),
                                 name = "requiredId",
                                 requiredness = Requiredness.REQUIRED),
                         FieldElement(
                                 location = location.at(15, 1),
                                 fieldId = 14,
-                                type = TypeElement.scalar(location.at(15, 14), "i64", null),
+                                type = ScalarTypeElement(location.at(15, 14), "i64", null),
                                 name = "requiredIdWithComma",
                                 requiredness = Requiredness.REQUIRED),
                         FieldElement(
                                 location = location.at(16, 1),
                                 fieldId = 15,
-                                type = TypeElement.scalar(location.at(16, 14), "i64", null),
+                                type = ScalarTypeElement(location.at(16, 14), "i64", null),
                                 name = "requiredIdWithSemicolon",
                                 requiredness = Requiredness.REQUIRED)
                 )
@@ -506,17 +506,17 @@ class ThriftParserTest {
                                         FunctionElement(
                                                 location = location.at(2, 3),
                                                 name = "foo",
-                                                returnType = TypeElement.scalar(location.at(2, 3), "FooResult"),
+                                                returnType = ScalarTypeElement(location.at(2, 3), "FooResult"),
                                                 params = listOf(
                                                         FieldElement(location.at(2, 17),
                                                                 1,
-                                                                TypeElement.scalar(location.at(2, 19), "FooRequest"),
+                                                                ScalarTypeElement(location.at(2, 19), "FooRequest"),
                                                                 "request",
                                                                 Requiredness.REQUIRED),
                                                         FieldElement(
                                                                 location.at(2, 39),
                                                                 2,
-                                                                TypeElement.scalar(location.at(2, 51), "FooMeta"),
+                                                                ScalarTypeElement(location.at(2, 51), "FooMeta"),
                                                                 "meta",
                                                                 Requiredness.OPTIONAL)
                                                 )
@@ -524,16 +524,16 @@ class ThriftParserTest {
                                         FunctionElement(
                                                 location = location.at(3, 3),
                                                 name = "bar",
-                                                returnType = TypeElement.scalar(location.at(3, 10), "BarResult"),
+                                                returnType = ScalarTypeElement(location.at(3, 10), "BarResult"),
                                                 exceptions = listOf(
                                                         FieldElement(location.at(3, 34),
                                                                 1,
-                                                                TypeElement.scalar(location.at(3, 36), "FooException"),
+                                                                ScalarTypeElement(location.at(3, 36), "FooException"),
                                                                 "foo",
                                                                 Requiredness.DEFAULT),
                                                         FieldElement(location.at(3, 54),
                                                                 2,
-                                                                TypeElement.scalar(location.at(3, 56), "BarException"),
+                                                                ScalarTypeElement(location.at(3, 56), "BarException"),
                                                                 "bar",
                                                                 Requiredness.DEFAULT)
                                                 ),
@@ -567,17 +567,17 @@ class ThriftParserTest {
                                         FunctionElement(
                                                 location = location.at(2, 3),
                                                 name = "foo",
-                                                returnType = TypeElement.scalar(location.at(2, 3), "void"),
+                                                returnType = ScalarTypeElement(location.at(2, 3), "void"),
                                                 exceptions = listOf(FieldElement(
                                                         location = location.at(3, 13),
                                                         fieldId = 1,
-                                                        type = TypeElement.scalar(location.at(3, 16), "Blargh"),
+                                                        type = ScalarTypeElement(location.at(3, 16), "Blargh"),
                                                         name = "blah",
                                                         requiredness = Requiredness.DEFAULT))),
                                         FunctionElement(
                                                 location = location.at(4, 3),
                                                 name = "bar",
-                                                returnType = TypeElement.scalar(location.at(4, 3), "i32"))
+                                                returnType = ScalarTypeElement(location.at(4, 3), "i32"))
                                 ))))
 
         assertThat(parse(thrift, location), equalTo(expected))
@@ -602,12 +602,12 @@ class ThriftParserTest {
                                 fields = listOf(
                                         FieldElement(location.at(2, 3),
                                                 2,
-                                                TypeElement.scalar(location.at(2, 6), "i16"),
+                                                ScalarTypeElement(location.at(2, 6), "i16"),
                                                 "foo",
                                                 Requiredness.DEFAULT),
                                         FieldElement(location.at(3, 3),
                                                 4,
-                                                TypeElement.scalar(location.at(3, 6), "i32"),
+                                                ScalarTypeElement(location.at(3, 6), "i32"),
                                                 "bar",
                                                 Requiredness.DEFAULT)
                                 )
@@ -675,19 +675,19 @@ class ThriftParserTest {
                                         FieldElement(
                                                 location = location.at(2, 3),
                                                 fieldId = 1,
-                                                type = TypeElement.scalar(location.at(2, 6), "i16"),
+                                                type = ScalarTypeElement(location.at(2, 6), "i16"),
                                                 name = "foo",
                                                 requiredness = Requiredness.DEFAULT),
                                         FieldElement(
                                                 location = location.at(3, 3),
                                                 fieldId = 2,
-                                                type = TypeElement.scalar(location.at(3, 6), "i16"),
+                                                type = ScalarTypeElement(location.at(3, 6), "i16"),
                                                 name = "bar",
                                                 requiredness = Requiredness.DEFAULT),
                                         FieldElement(
                                                 location = location.at(4, 3),
                                                 fieldId = 3,
-                                                type = TypeElement.scalar(location.at(4, 6), "i16"),
+                                                type = ScalarTypeElement(location.at(4, 6), "i16"),
                                                 name = "baz",
                                                 requiredness = Requiredness.DEFAULT,
                                                 constValue = IntValueElement(
@@ -697,7 +697,7 @@ class ThriftParserTest {
                                         FieldElement(
                                                 location = location.at(5, 3),
                                                 fieldId = 4,
-                                                type = TypeElement.scalar(location.at(5, 6), "i16"),
+                                                type = ScalarTypeElement(location.at(5, 6), "i16"),
                                                 name = "quux",
                                                 requiredness = Requiredness.DEFAULT)
                                 )
@@ -718,7 +718,7 @@ class ThriftParserTest {
                 constants = listOf(
                         ConstElement(
                                 location = location.at(1, 1),
-                                type = TypeElement.scalar(location.at(1, 7), "i64"),
+                                type = ScalarTypeElement(location.at(1, 7), "i64"),
                                 name = "DefaultStatusCode",
                                 value = IntValueElement(location.at(1, 31), "200", 200)
                         )
@@ -738,7 +738,7 @@ class ThriftParserTest {
                 constants = listOf(
                         ConstElement(
                                 location = location.at(1, 1),
-                                type = TypeElement.scalar(location.at(1, 7), "i64", null),
+                                type = ScalarTypeElement(location.at(1, 7), "i64", null),
                                 name = "Yuuuuuge",
                                 value = IntValueElement(
                                         location = location.at(1, 22),
@@ -759,9 +759,9 @@ class ThriftParserTest {
 
         val element = ConstElement(
                 location.at(1, 1),
-                type = TypeElement.list(
+                type = ListTypeElement(
                         location = location.at(1, 7),
-                        elementType = TypeElement.scalar(location.at(1, 12), "string")),
+                        elementType = ScalarTypeElement(location.at(1, 12), "string")),
                 name = "Names",
                 value = ListValueElement(
                         location = location.at(1, 28),
@@ -790,10 +790,10 @@ class ThriftParserTest {
         val location = Location.get("", "mapConst.thrift")
         val mapConst = ConstElement(
                 location = location.at(1, 1),
-                type = TypeElement.map(
+                type = MapTypeElement(
                         location = location.at(1, 7),
-                        keyType = TypeElement.scalar(location.at(1, 11), "string", null),
-                        valueType = TypeElement.scalar(location.at(1, 19), "string", null)),
+                        keyType = ScalarTypeElement(location.at(1, 11), "string", null),
+                        valueType = ScalarTypeElement(location.at(1, 19), "string", null)),
                 name = "Headers",
                 value = MapValueElement(
                         location = location.at(1, 37),
@@ -832,7 +832,7 @@ class ThriftParserTest {
                                         FieldElement(
                                                 location = location.at(2, 3),
                                                 fieldId = 100,
-                                                type = TypeElement.scalar(location.at(2, 8), "i32"),
+                                                type = ScalarTypeElement(location.at(2, 8), "i32"),
                                                 name = "num",
                                                 constValue = IntValueElement(location.at(2, 18), "1", 1)
                                         )

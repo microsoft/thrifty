@@ -28,6 +28,7 @@ import com.microsoft.thrifty.schema.parser.IdentifierValueElement
 import com.microsoft.thrifty.schema.parser.IntValueElement
 import com.microsoft.thrifty.schema.parser.ListValueElement
 import com.microsoft.thrifty.schema.parser.LiteralValueElement
+import com.microsoft.thrifty.schema.parser.ScalarTypeElement
 import com.microsoft.thrifty.schema.parser.TypeElement
 import com.microsoft.thrifty.schema.parser.TypedefElement
 import org.junit.Test
@@ -61,7 +62,7 @@ class ConstantTest {
     fun boolConstant() {
         val c = makeConstant(
                 "aBool",
-                TypeElement.scalar(loc, "string", null),
+                ScalarTypeElement(loc, "string", null),
                 IdentifierValueElement(loc, "aBool", "aBool"),
                 BuiltinType.BOOL)
 
@@ -74,7 +75,7 @@ class ConstantTest {
     fun boolWithWrongTypeOfConstant() {
         val c = makeConstant(
                 "aBool",
-                TypeElement.scalar(loc, "string", null),
+                ScalarTypeElement(loc, "string", null),
                 IdentifierValueElement(loc, "aBool", "abool"),
                 BuiltinType.STRING)
 
@@ -107,7 +108,7 @@ class ConstantTest {
 
         val c = makeConstant(
                 "aBool",
-                TypeElement.scalar(loc, "Truthiness", null),
+                ScalarTypeElement(loc, "Truthiness", null),
                 IdentifierValueElement(loc, "aBool", "aBool"),
                 td)
 
@@ -302,7 +303,7 @@ class ConstantTest {
     private fun makeTypedef(oldType: ThriftType, newName: String): TypedefType {
         val element = TypedefElement(
                 loc,
-                TypeElement.scalar(loc, "does_not_matter", null),
+                ScalarTypeElement(loc, "does_not_matter", null),
                 newName)
 
         return TypedefType(element, emptyMap(), oldType)
