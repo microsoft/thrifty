@@ -24,32 +24,22 @@ import com.microsoft.thrifty.schema.parser.FunctionElement
 
 import java.util.LinkedHashMap
 
-class ServiceMethod @JvmOverloads internal constructor(
+class ServiceMethod internal constructor(
         private val element: FunctionElement,
         private val mixin: UserElementMixin = UserElementMixin(element),
-        private val parameters: List<Field> = element.params.map { Field(it) },
-        private val exceptions: List<Field> = element.exceptions.map { Field(it) },
-        private var returnType: ThriftType? = null
+        val parameters: List<Field> = element.params.map { Field(it) },
+        val exceptions: List<Field> = element.exceptions.map { Field(it) },
+        private var returnType_: ThriftType? = null
 ) : UserElement by mixin {
+
+    val returnType: ThriftType
+        get() = returnType_!!
 
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
 
-    fun parameters(): List<Field> {
-        return parameters
-    }
-
-    fun exceptions(): List<Field> {
-        return exceptions
-    }
-
-    fun returnType(): ThriftType {
-        return returnType!!
-    }
-
-    fun oneWay(): Boolean {
-        return element.oneWay
-    }
+    val oneWay: Boolean
+        get() = element.oneWay
 
     fun toBuilder(): Builder {
         return Builder(this)
@@ -64,42 +54,42 @@ class ServiceMethod @JvmOverloads internal constructor(
             exception.link(linker)
         }
 
-        returnType = linker.resolveType(element.returnType)
+        returnType_ = linker.resolveType(element.returnType)
     }
 
     internal fun validate(linker: Linker) {
-        if (oneWay() && BuiltinType.VOID != returnType) {
+        if (oneWay && BuiltinType.VOID != returnType) {
             linker.addError(location, "oneway methods may not have a non-void return type")
         }
 
-        if (oneWay() && !exceptions.isEmpty()) {
+        if (oneWay && !exceptions.isEmpty()) {
             linker.addError(location, "oneway methods may not throw exceptions")
         }
 
         val fieldsById = LinkedHashMap<Int, Field>()
         for (param in parameters) {
-            val oldParam = fieldsById.put(param.id(), param)
+            val oldParam = fieldsById.put(param.id, param)
             if (oldParam != null) {
                 val fmt = "Duplicate parameters; param '%s' has the same ID (%s) as param '%s'"
-                linker.addError(param.location, String.format(fmt, param.name, param.id(), oldParam.name))
+                linker.addError(param.location, String.format(fmt, param.name, param.id, oldParam.name))
 
-                fieldsById[oldParam.id()] = oldParam
+                fieldsById[oldParam.id] = oldParam
             }
         }
 
         fieldsById.clear()
         for (exn in exceptions) {
-            val oldExn = fieldsById.put(exn.id(), exn)
+            val oldExn = fieldsById.put(exn.id, exn)
             if (oldExn != null) {
                 val fmt = "Duplicate exceptions; exception '%s' has the same ID (%s) as exception '%s'"
-                linker.addError(exn.location, String.format(fmt, exn.name, exn.id(), oldExn.name))
+                linker.addError(exn.location, String.format(fmt, exn.name, exn.id, oldExn.name))
 
-                fieldsById[oldExn.id()] = oldExn
+                fieldsById[oldExn.id] = oldExn
             }
         }
 
         for (field in exceptions) {
-            val type = field.type()
+            val type = field.type
             if (type.isStruct) {
                 val struct = type as StructType?
                 if (struct!!.isException) {

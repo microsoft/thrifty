@@ -32,7 +32,6 @@ import java.util.Objects
 class StructType : UserType {
     private val structType: StructElement.Type
 
-    @get:JvmName("fields")
     val fields: List<Field>
 
     val isUnion: Boolean
@@ -82,14 +81,14 @@ class StructType : UserType {
 
         val fieldsById = LinkedHashMap<Int, Field>(fields.size)
         for (field in fields) {
-            val dupe = fieldsById.put(field.id(), field)
+            val dupe = fieldsById.put(field.id, field)
             if (dupe != null) {
                 linker.addError(dupe.location,
                         "Duplicate field IDs: " + field.name + " and " + dupe.name
-                                + " both have the same ID (" + field.id() + ")")
+                                + " both have the same ID (" + field.id + ")")
             }
 
-            if (isUnion && field.required()) {
+            if (isUnion && field.required) {
                 linker.addError(field.location, "Unions may not have required fields: " + field.name)
             }
         }

@@ -43,7 +43,7 @@ enum class NamespaceScope(private val thriftName: String) {
     KOTLIN("kt");
 
     companion object {
-        @JvmStatic fun forThriftName(name: String): NamespaceScope? {
+        fun forThriftName(name: String): NamespaceScope? {
             for (scope in values()) {
                 if (scope.thriftName == name) {
                     return scope

@@ -28,16 +28,9 @@ import java.nio.file.Paths
  * @property column The column identified by this object, starting with 1.
  */
 class Location private constructor(
-        @get:JvmName("base")
         val base: String,
-
-        @get:JvmName("path")
         val path: String,
-
-        @get:JvmName("line")
         val line: Int,
-
-        @get:JvmName("column")
         val column: Int
 ) {
     init {
@@ -105,7 +98,7 @@ class Location private constructor(
     }
 
     companion object {
-        @JvmStatic fun get(base: String, path: String): Location {
+        fun get(base: String, path: String): Location {
             return Location(base, path, -1, -1)
         }
     }

@@ -133,7 +133,7 @@ internal open class GenerateReaderVisitor(
     }
 
     override fun visitList(listType: ListType) {
-        val elementType = resolver.getJavaClass(listType.elementType().trueType)
+        val elementType = resolver.getJavaClass(listType.elementType.trueType)
         val genericListType = ParameterizedTypeName.get(TypeNames.LIST, elementType)
         val listImplType = resolver.listOf(elementType)
 
@@ -148,7 +148,7 @@ internal open class GenerateReaderVisitor(
         pushScope {
             nameStack.push(item)
 
-            listType.elementType().trueType.accept(this)
+            listType.elementType.trueType.accept(this)
 
             nameStack.pop()
         }
@@ -159,7 +159,7 @@ internal open class GenerateReaderVisitor(
     }
 
     override fun visitSet(setType: SetType) {
-        val elementType = resolver.getJavaClass(setType.elementType().trueType)
+        val elementType = resolver.getJavaClass(setType.elementType.trueType)
         val genericSetType = ParameterizedTypeName.get(TypeNames.SET, elementType)
         val setImplType = resolver.setOf(elementType)
 
@@ -174,7 +174,7 @@ internal open class GenerateReaderVisitor(
         pushScope {
             nameStack.push(item)
 
-            setType.elementType().accept(this)
+            setType.elementType.accept(this)
 
             nameStack.pop()
         }
@@ -185,8 +185,8 @@ internal open class GenerateReaderVisitor(
     }
 
     override fun visitMap(mapType: MapType) {
-        val keyType = resolver.getJavaClass(mapType.keyType().trueType)
-        val valueType = resolver.getJavaClass(mapType.valueType().trueType)
+        val keyType = resolver.getJavaClass(mapType.keyType.trueType)
+        val valueType = resolver.getJavaClass(mapType.valueType.trueType)
         val genericMapType = ParameterizedTypeName.get(TypeNames.MAP, keyType, valueType)
         val mapImplType = resolver.mapOf(keyType, valueType)
 
@@ -201,11 +201,11 @@ internal open class GenerateReaderVisitor(
             read.beginControlFlow("for (int $1N = 0; $1N < $2N.size; ++$1N)", idx, mapInfo)
 
             nameStack.push(key)
-            mapType.keyType().accept(this)
+            mapType.keyType.accept(this)
             nameStack.pop()
 
             nameStack.push(value)
-            mapType.valueType().accept(this)
+            mapType.valueType.accept(this)
             nameStack.pop()
 
             read.addStatement("\$N.put(\$N, \$N)", nameStack.peek(), key, value)

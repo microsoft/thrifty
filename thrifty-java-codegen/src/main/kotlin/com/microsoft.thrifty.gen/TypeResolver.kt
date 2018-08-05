@@ -135,20 +135,20 @@ private object TypeNameVisitor : ThriftType.Visitor<TypeName> {
     }
 
     override fun visitList(listType: ListType): TypeName {
-        val elementType = listType.elementType().trueType
+        val elementType = listType.elementType.trueType
         val elementTypeName = elementType.accept(this)
         return ParameterizedTypeName.get(TypeNames.LIST, elementTypeName)
     }
 
     override fun visitSet(setType: SetType): TypeName {
-        val elementType = setType.elementType().trueType
+        val elementType = setType.elementType.trueType
         val elementTypeName = elementType.accept(this)
         return ParameterizedTypeName.get(TypeNames.SET, elementTypeName)
     }
 
     override fun visitMap(mapType: MapType): TypeName {
-        val keyType = mapType.keyType().trueType
-        val valueType = mapType.valueType().trueType
+        val keyType = mapType.keyType.trueType
+        val valueType = mapType.valueType.trueType
 
         val keyTypeName = keyType.accept(this)
         val valueTypeName = valueType.accept(this)
@@ -160,7 +160,7 @@ private object TypeNameVisitor : ThriftType.Visitor<TypeName> {
     }
 
     override fun visitTypedef(typedefType: TypedefType): TypeName {
-        return typedefType.oldType().accept(this)
+        return typedefType.oldType.accept(this)
     }
 
     override fun visitService(serviceType: ServiceType): TypeName {
@@ -240,7 +240,7 @@ private object TypeCodeVisitor : ThriftType.Visitor<Byte> {
     }
 
     override fun visitTypedef(typedefType: TypedefType): Byte {
-        return typedefType.oldType().accept(this)
+        return typedefType.oldType.accept(this)
     }
 
     override fun visitService(serviceType: ServiceType): Byte {

@@ -118,18 +118,18 @@ private object TypeNameVisitor : ThriftType.Visitor<TypeName> {
     override fun visitEnum(enumType: EnumType) = userTypeName(enumType)
 
     override fun visitList(listType: ListType): TypeName {
-        val elementType = listType.elementType().accept(this)
+        val elementType = listType.elementType.accept(this)
         return List::class.asTypeName().parameterizedBy(elementType)
     }
 
     override fun visitSet(setType: SetType): TypeName {
-        val elementType = setType.elementType().accept(this)
+        val elementType = setType.elementType.accept(this)
         return Set::class.asTypeName().parameterizedBy(elementType)
     }
 
     override fun visitMap(mapType: MapType): TypeName {
-        val keyType = mapType.keyType().accept(this)
-        val valueType = mapType.valueType().accept(this)
+        val keyType = mapType.keyType.accept(this)
+        val valueType = mapType.valueType.accept(this)
         return Map::class.asTypeName().parameterizedBy(keyType, valueType)
     }
 

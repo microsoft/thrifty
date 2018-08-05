@@ -29,7 +29,7 @@ import com.microsoft.thrifty.schema.parser.ConstValueElement
  */
 class Constant internal constructor (
         private val element: ConstElement,
-        private val namespaces: Map<NamespaceScope, String>,
+        val namespaces: Map<NamespaceScope, String>,
         private val mixin: UserElementMixin = UserElementMixin(
                 element.uuid,
                 element.name,
@@ -37,21 +37,19 @@ class Constant internal constructor (
                 element.documentation,
                 null) // annotations not allowed on Thrift constants
 ) : UserElement by mixin {
-    private var type: ThriftType? = null
+    private var type_: ThriftType? = null
+
+    val type: ThriftType
+        get() = type_!!
+
+    val value: ConstValueElement
+        get() = element.value
 
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
 
     private constructor(builder: Builder) : this(builder.element, builder.namespaces, builder.mixin) {
-        this.type = builder.type
-    }
-
-    fun type(): ThriftType {
-        return type!!
-    }
-
-    fun value(): ConstValueElement {
-        return element.value
+        this.type_ = builder.type
     }
 
     fun getNamespaceFor(scope: NamespaceScope): String? {
@@ -69,23 +67,21 @@ class Constant internal constructor (
         return null
     }
 
-    fun namespaces(): Map<NamespaceScope, String>? {
-        return namespaces
-    }
-
     internal fun link(linker: Linker) {
-        type = linker.resolveType(element.type)
+        type_ = linker.resolveType(element.type)
     }
 
     internal fun validate(linker: Linker) {
-        validate(linker, element.value, type!!)
+        validate(linker, element.value, type)
     }
 
     fun toBuilder(): Builder {
         return Builder(this)
     }
 
-    class Builder internal constructor(constant: Constant) : AbstractUserElementBuilder<Constant, Builder>(constant.mixin) {
+    class Builder internal constructor(
+            constant: Constant
+    ) : AbstractUserElementBuilder<Constant, Builder>(constant.mixin) {
 
         internal val element: ConstElement = constant.element
         internal var namespaces: Map<NamespaceScope, String> = constant.namespaces
@@ -171,7 +167,7 @@ class Constant internal constructor (
                 }
 
                 val constant = symbolTable.lookupConst(identifier)
-                if (constant != null && constant.type().trueType == BuiltinType.BOOL) {
+                if (constant != null && constant.type.trueType == BuiltinType.BOOL) {
                     return
                 }
             }
@@ -182,8 +178,9 @@ class Constant internal constructor (
         }
     }
 
-    private open class BaseValidator internal constructor(private val expectedKind: ConstValueElement.Kind) : ConstValueValidator {
-
+    private open class BaseValidator(
+            private val expectedKind: ConstValueElement.Kind
+    ) : ConstValueValidator {
         override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
             if (value.kind === expectedKind) {
                 return
@@ -194,9 +191,9 @@ class Constant internal constructor (
                 val constant = symbolTable.lookupConst(id)
                         ?: throw IllegalStateException("Unrecognized const identifier: $id")
 
-                if (constant.type().trueType != expected) {
+                if (constant.type.trueType != expected) {
                     throw IllegalStateException("Expected a value of type " + expected.name
-                            + ", but got " + constant.type().name)
+                            + ", but got " + constant.type.name)
                 }
             } else {
                 throw IllegalStateException(
@@ -206,8 +203,10 @@ class Constant internal constructor (
         }
     }
 
-    private class IntegerValidator internal constructor(private val minValue: Long, private val maxValue: Long) : BaseValidator(ConstValueElement.Kind.INTEGER) {
-
+    private class IntegerValidator(
+            private val minValue: Long,
+            private val maxValue: Long
+    ) : BaseValidator(ConstValueElement.Kind.INTEGER) {
         override fun validate(symbolTable: SymbolTable, expected: ThriftType, value: ConstValueElement) {
             super.validate(symbolTable, expected, value)
 
@@ -231,9 +230,9 @@ class Constant internal constructor (
                 val constant = symbolTable.lookupConst(id)
                         ?: throw IllegalStateException("Unrecognized const identifier: $id")
 
-                if (constant.type().trueType != expected) {
+                if (constant.type.trueType != expected) {
                     throw IllegalStateException("Expected a value of type " + expected.name
-                            + ", but got " + constant.type().name)
+                            + ", but got " + constant.type.name)
                 }
             } else {
                 throw IllegalStateException(
@@ -273,7 +272,7 @@ class Constant internal constructor (
                 // member; in this case, constants take precedence over members.  Make sure that
                 // the type is as expected!
                 val constant = symbolTable.lookupConst(id)
-                if (constant != null && constant.type().trueType == expected) {
+                if (constant != null && constant.type.trueType == expected) {
                     return
                 }
 
@@ -329,8 +328,8 @@ class Constant internal constructor (
                 val list = value.getAsList()
 
                 val elementType = when (expected) {
-                    is ListType -> expected.elementType().trueType
-                    is SetType -> expected.elementType().trueType
+                    is ListType -> expected.elementType.trueType
+                    is SetType -> expected.elementType.trueType
                     else -> throw AssertionError("Unexpectedly not a collection type: $expected")
                 }
 
@@ -341,7 +340,7 @@ class Constant internal constructor (
                 val id = value.value as String
                 val named = symbolTable.lookupConst(id)
 
-                val isConstantOfCorrectType = named != null && named.type().trueType == expected
+                val isConstantOfCorrectType = named != null && named.type.trueType == expected
 
                 if (!isConstantOfCorrectType) {
                     throw IllegalStateException("Expected a value with type " + expected.name)
@@ -358,8 +357,8 @@ class Constant internal constructor (
                 val map = value.getAsMap()
 
                 val mapType = expected as MapType
-                val keyType = mapType.keyType().trueType
-                val valueType = mapType.valueType().trueType
+                val keyType = mapType.keyType.trueType
+                val valueType = mapType.valueType.trueType
 
                 for ((key, value1) in map) {
                     Constant.validate(symbolTable, key, keyType)
@@ -369,7 +368,7 @@ class Constant internal constructor (
                 val id = value.value as String
                 val named = symbolTable.lookupConst(id)
 
-                val isConstantOfCorrectType = named != null && named.type().trueType == expected
+                val isConstantOfCorrectType = named != null && named.type.trueType == expected
 
                 if (!isConstantOfCorrectType) {
                     throw IllegalStateException("Expected a value with type " + expected.name)
@@ -381,9 +380,7 @@ class Constant internal constructor (
     }
 
     companion object {
-
         @VisibleForTesting
-        @JvmStatic
         internal fun validate(symbolTable: SymbolTable, value: ConstValueElement, expected: ThriftType) {
             val trueType = expected.trueType
             Validators.forType(trueType).validate(symbolTable, trueType, value)

@@ -23,10 +23,10 @@ package com.microsoft.thrifty.schema
 import com.microsoft.thrifty.schema.parser.ConstValueElement
 import com.microsoft.thrifty.schema.parser.FieldElement
 
-class Field @JvmOverloads internal constructor( // TODO(ben): Remove JvmOverloads when kotlin port is done
+class Field internal constructor(
         private val element: FieldElement,
         private val mixin: UserElementMixin = UserElementMixin(element),
-        private var type: ThriftType? = null
+        private var type_: ThriftType? = null
 ) : UserElement by mixin {
 
     val isRedacted: Boolean
@@ -38,33 +38,39 @@ class Field @JvmOverloads internal constructor( // TODO(ben): Remove JvmOverload
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
 
-    fun type(): ThriftType = type!!
+    val type: ThriftType
+        get() = type_!!
 
-    fun id(): Int = element.fieldId
+    val id: Int
+        get() = element.fieldId
 
-    fun optional(): Boolean = element.requiredness === Requiredness.OPTIONAL
+    val optional: Boolean
+        get() = element.requiredness === Requiredness.OPTIONAL
 
-    fun required(): Boolean = element.requiredness === Requiredness.REQUIRED
+    val required: Boolean
+        get() = element.requiredness === Requiredness.REQUIRED
 
-    fun defaultValue(): ConstValueElement? = element.constValue
+    val defaultValue: ConstValueElement?
+        get() = element.constValue
 
-    fun typedefName(): String? {
-        return type?.let {
-            if (it.isTypedef) it.name else null
+    val typedefName: String?
+        get() {
+            return type_?.let {
+                if (it.isTypedef) it.name else null
+            }
         }
-    }
 
     fun toBuilder(): Builder = Builder(this)
 
     internal fun link(linker: Linker) {
-        this.type = linker.resolveType(element.type)
+        this.type_ = linker.resolveType(element.type)
     }
 
     internal fun validate(linker: Linker) {
         val value = element.constValue
         if (value != null) {
             try {
-                Constant.validate(linker, value, type!!)
+                Constant.validate(linker, value, type_!!)
             } catch (e: IllegalStateException) {
                 linker.addError(value.location, e.message ?: "Error validating default field value")
             }
@@ -77,7 +83,7 @@ class Field @JvmOverloads internal constructor( // TODO(ben): Remove JvmOverload
         private var fieldType: ThriftType? = null
 
         init {
-            this.fieldType = field.type
+            this.fieldType = field.type_
         }
 
         fun type(type: ThriftType): Builder = apply {

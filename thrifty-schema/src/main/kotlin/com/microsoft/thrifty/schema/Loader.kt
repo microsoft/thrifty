@@ -170,8 +170,7 @@ class Loader {
         }
     }
 
-    // TODO: Make this internal again once the Kotlin refactor is complete
-    fun errorReporter(): ErrorReporter {
+    internal fun errorReporter(): ErrorReporter {
         return errorReporter
     }
 
@@ -262,7 +261,7 @@ class Loader {
                 linker.link()
             }
 
-            if (environment.hasErrors()) {
+            if (environment.hasErrors) {
                 throw IllegalStateException("Linking failed")
             }
         }
@@ -286,8 +285,7 @@ class Loader {
         }
     }
 
-    // TODO: Make this internal again once the Kotlin refactor is done
-    fun resolveIncludedProgram(currentPath: Location, importPath: String): Program {
+    internal fun resolveIncludedProgram(currentPath: Location, importPath: String): Program {
         val importPathPath = Paths.get(importPath)
         val resolved = findFirstExisting(importPathPath, currentPath)
                 ?: throw AssertionError("Included thrift file not found: $importPath")

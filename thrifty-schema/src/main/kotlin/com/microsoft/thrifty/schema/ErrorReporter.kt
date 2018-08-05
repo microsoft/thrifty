@@ -21,30 +21,27 @@
 package com.microsoft.thrifty.schema
 
 class ErrorReporter {
-    private var hasError = false
-    private val reports: MutableList<Report> = mutableListOf()
+    var hasError = false
+        private set
+
+    private val reports_: MutableList<Report> = mutableListOf()
+
+    val reports: List<Report>
+        get() = reports_
 
     fun warn(location: Location, message: String) {
-        reports.add(Report(Level.WARNING, location, message))
+        reports_.add(Report(Level.WARNING, location, message))
     }
 
     fun error(location: Location, message: String) {
         hasError = true
-        reports.add(Report(Level.ERROR, location, message))
-    }
-
-    fun hasError(): Boolean {
-        return hasError
-    }
-
-    fun reports(): List<Report> {
-        return reports
+        reports_.add(Report(Level.ERROR, location, message))
     }
 
     fun formattedReports(): List<String> {
         val list = mutableListOf<String>()
         val sb = StringBuilder()
-        for (report in reports) {
+        for (report in reports_) {
             when (report.level) {
                 ErrorReporter.Level.WARNING -> sb.append("W: ")
                 ErrorReporter.Level.ERROR -> sb.append("E: ")
@@ -63,13 +60,8 @@ class ErrorReporter {
     }
 
     data class Report(
-            @get:JvmName("level")
             val level: Level,
-
-            @get:JvmName("location")
             val location: Location,
-
-            @get:JvmName("message")
             val message: String
     )
 

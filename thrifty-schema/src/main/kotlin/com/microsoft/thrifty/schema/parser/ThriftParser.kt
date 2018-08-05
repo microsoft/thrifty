@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.schema.parser
 
-import com.google.common.base.Joiner
 import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.antlr.AntlrThriftLexer
@@ -41,8 +40,6 @@ object ThriftParser {
      * @param reporter an [ErrorReporter] to which parse errors will be reported.
      * @return a [ThriftFileElement] containing all Thrift elements in the input text.
      */
-    @JvmStatic
-    @JvmOverloads
     fun parse(location: Location, text: String, reporter: ErrorReporter = ErrorReporter()): ThriftFileElement {
         val charStream = CharStreams.fromString(text, location.path)
         val lexer = AntlrThriftLexer(charStream)
@@ -54,8 +51,8 @@ object ThriftParser {
 
         ParseTreeWalker.DEFAULT.walk(thriftListener, documentParseTree)
 
-        if (reporter.hasError()) {
-            val errorReports = Joiner.on('\n').join(reporter.formattedReports())
+        if (reporter.hasError) {
+            val errorReports = reporter.formattedReports().joinToString("\n")
             val message = String.format(Locale.US, "Syntax errors in %s:\n%s", location, errorReports)
             throw IllegalStateException(message)
         }

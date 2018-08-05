@@ -25,54 +25,34 @@ import com.microsoft.thrifty.schema.Location
 /**
  * Represents a literal value in a Thrift file for a constant or a field's
  * default value.
+ *
+ * @property location The location of the text corresponding to this element.
+ * @property kind The kind of constant value this is - integer, real, list, identifier, etc.
+ * @property thriftText The actual Thrift text comprising this const value.
+ * @property value The parsed value itself.  Will be of a type dictated by the value's [kind].
  */
 // TODO: Convert this to a sealed class
 data class ConstValueElement(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
         val location: Location,
-
-        /**
-         * The kind of constant value this is - integer, real, list, identifier, etc.
-         */
-        @get:JvmName("kind")
         val kind: Kind,
-
-        /**
-         * The actual Thrift text comprising this const value.
-         */
-        @get:JvmName("thriftText")
         val thriftText: String,
-
-        /**
-         * The parsed value itself.  Will be of a type dictated by the value's [kind].
-         */
-        @get:JvmName("value")
         val value: Any
 ) {
-    @get:JvmName("isInt")
     val isInt: Boolean
         get() = kind == Kind.INTEGER
 
-    @get:JvmName("isDouble")
     val isDouble: Boolean
         get() = kind == Kind.DOUBLE
 
-    @get:JvmName("isString")
     val isString: Boolean
         get() = kind == Kind.STRING
 
-    @get:JvmName("isIdentifier")
     val isIdentifier: Boolean
         get() = kind == Kind.IDENTIFIER
 
-    @get:JvmName("isList")
     val isList: Boolean
         get() = kind == Kind.LIST
 
-    @get:JvmName("isMap")
     val isMap: Boolean
         get() = kind == Kind.MAP
 
@@ -156,32 +136,26 @@ data class ConstValueElement(
     }
 
     companion object {
-        @JvmStatic
         fun integer(location: Location, text: String, value: Long): ConstValueElement {
             return ConstValueElement(location, Kind.INTEGER, text, value)
         }
 
-        @JvmStatic
         fun real(location: Location, text: String, value: Double): ConstValueElement {
             return ConstValueElement(location, Kind.DOUBLE, text, value)
         }
 
-        @JvmStatic
         fun literal(location: Location, text: String, value: String): ConstValueElement {
             return ConstValueElement(location, Kind.STRING, text, value)
         }
 
-        @JvmStatic
         fun identifier(location: Location, text: String, value: String): ConstValueElement {
             return ConstValueElement(location, Kind.IDENTIFIER, text, value)
         }
 
-        @JvmStatic
         fun list(location: Location, text: String, value: List<ConstValueElement>): ConstValueElement {
             return ConstValueElement(location, Kind.LIST, text, value.toList())
         }
 
-        @JvmStatic
         fun map(location: Location, text: String, value: Map<ConstValueElement, ConstValueElement>): ConstValueElement {
             return ConstValueElement(location, Kind.MAP, text, value.toMap())
         }

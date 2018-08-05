@@ -29,31 +29,22 @@ import java.util.UUID
  * Represents an instance of one or more Thrift annotations.
  *
  * @constructor Creates a new instance of [AnnotationElement].
+ * @property location The location of the text corresponding to this element.
+ * @property values The annotation values
  */
 data class AnnotationElement(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
         val location: Location,
-
-        /**
-         * The annotation values.
-         */
-        @get:JvmName("values")
         val values: Map<String, String>
 ) {
     /**
      * True if this element contains no annotation values, otherwise false.
      */
-    @get:JvmName("isEmpty")
     val isEmpty: Boolean
         get() = values.isEmpty()
 
     /**
      * The number of annotation values in this element.
      */
-    @get:JvmName("size")
     val size: Int
         get() = values.size
 
@@ -65,326 +56,162 @@ data class AnnotationElement(
 
 /**
  * Represents the inclusion of one Thrift program into another.
+ *
+ * @constructor Creates a new instance of [IncludeElement].
+ * @property location The location of the text corresponding to this element.
+ * @property isCpp Indicates whether or not this is a `cpp_include` statement.
+ * @property path The path (relative or absolute) of the included program.
  */
 data class IncludeElement(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
         val location: Location,
-
-        /**
-         * Indicates whether or not this is a `cpp_include` statement.
-         */
-        @get:JvmName("isCpp")
         val isCpp: Boolean,
-
-        /**
-         * The path (relative or absolute) of the included program.
-         */
-        @get:JvmName("path")
         val path: String
 )
 
 /**
  * Represents the declaration of a new name for an existing type.
+ *
+ * @constructor Creates a new instance of [TypedefElement].
+ * @property location The location of the text corresponding to this element.
+ * @property oldType The type receiving a new name.
+ * @property newName The new name for [oldType].
+ * @property documentation The documentation associated with this element, if any.
+ * @property uuid A UUID uniquely identifying this element.
+ * @property annotations The annotations associated with this element, if any.
  */
-data class TypedefElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class TypedefElement(
         val location: Location,
-
-        /**
-         * The type receiving a new name.
-         */
-        @get:JvmName("oldType")
         val oldType: TypeElement,
-
-        /**
-         * The new name for [oldType].
-         */
-        @get:JvmName("newName")
         val newName: String,
-
-        /**
-         * The documentation associated with this element, if any.
-         */
-        @get:JvmName("documentation")
         val documentation: String = "",
-
-        /**
-         * A UUID uniquely identifying this element.
-         */
-        @get:JvmName("uuid")
         val uuid: UUID = ThriftyParserPlugins.createUUID(),
-
-        /**
-         * The annotations associated with this element, if any.
-         */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null
 )
 
 /**
  * Represents the declaration of a language-specific namespace in a Thrift
  * program.
+ *
+ * @constructor Creates a new instance of [NamespaceElement].
+ *
+ * @property location The location of the text corresponding to this element.
+ * @property scope The language ("scope") to which this declaration applies.
+ * @property namespace The name of the namespace.
+ * @property annotations The annotations associated with this element, if any.
  */
-data class NamespaceElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class NamespaceElement(
         val location: Location,
-
-        /**
-         * The language ("scope") to which this declaration applies.
-         */
-        @get:JvmName("scope")
         val scope: NamespaceScope,
-
-        /**
-         * The name of the namespace.
-         */
-        @get:JvmName("namespace")
         val namespace: String,
-
-        /**
-         * The annotations associated with this element, if any.
-         */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null
 )
 
 /**
  * Represents the declaration of a named constant value in a Thrift program.
+ *
+ * @constructor Creates a new instance of [ConstElement].
+ * @property location The location of the text corresponding to this element.
+ * @property type The type of the constant's value.
+ * @property name The name of the constant.
+ * @property value The literal value of the constant. This is not guaranteed by the
+ *                 parser to conform to the declared [type].
+ * @property documentation The documentation associated with this element, if any.
+ * @property uuid A UUID uniquely identifying this element.
  */
-data class ConstElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class ConstElement(
         val location: Location,
-
-        /**
-         * The type of the constant's value.
-         */
-        @get:JvmName("type")
         val type: TypeElement,
-
-        /**
-         * The name of the constant.
-         */
-        @get:JvmName("name")
         val name: String,
-
-        /**
-         * The literal value of the constant.
-         *
-         * This is not guaranteed by the parser to conform to the declared [type].
-         */
-        @get:JvmName("value")
         val value: ConstValueElement,
-
-        /**
-         * The documentation associated with this element, if any.
-         */
-        @get:JvmName("documentation")
         val documentation: String = "",
-
-        /**
-         * A UUID uniquely identifying this element.
-         */
-        @get:JvmName("uuid")
         val uuid: UUID = ThriftyParserPlugins.createUUID()
 )
 
 /**
  * Represents a single named member of a Thrift enumeration.
+ *
+ * @constructor Creates a new instance of [EnumMemberElement].
+ * @property location The location of the text corresponding to this element.
+ * @property name The name of the enum member.
+ * @property value The integral value associated with the enum member.
+ * @property documentation The documentation associated with this element, if any.
+ * @property uuid A UUID uniquely identifying this element.
+ * @property annotations The annotations associated with this element, if any.
  */
-data class EnumMemberElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class EnumMemberElement(
         val location: Location,
-
-        /**
-         * The name of the enum member.
-         */
-        @get:JvmName("name")
         val name: String,
-
-        /**
-         * The integral value associated with the enum member.
-         */
-        @get:JvmName("value")
         val value: Int,
-
-        /**
-         * The documentation associated with this element, if any.
-         */
-        @get:JvmName("documentation")
         val documentation: String = "",
-
-        /**
-         * The annotations associated with the enum member, if any.
-         */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null,
-
-        /**
-         * A UUID uniquely identifying this element.
-         */
-        @get:JvmName("uuid")
         val uuid: UUID = ThriftyParserPlugins.createUUID()
 )
 
 /**
  * Represents a Thrift enumeration.
+ *
+ * @constructor Creates a new instance of [EnumElement].
+ * @property location The location of the text corresponding to this element.
+ * @property name The name of the enumeration.
+ * @property members The enumeration members.
+ * @property documentation The documentation associated with this element, if any.
+ * @property uuid A UUID uniquely identifying this element.
+ * @property annotations The annotations associated with this element, if any.
  */
-data class EnumElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class EnumElement(
         val location: Location,
-
-        /**
-         * The name of the enumeration.
-         */
-        @get:JvmName("name")
         val name: String,
-
-        /**
-         * The members comprising this enumeration.
-         */
-        @get:JvmName("members")
         val members: List<EnumMemberElement>,
-
-        /**
-         * The documentation associated with this enumeration, if any.
-         */
-        @get:JvmName("documentation")
         val documentation: String = "",
-
-        /**
-         * The annotations associated with this element, if any.
-         */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null,
-
-        /**
-         * A UUID uniquely identifying this element.
-         */
-        @get:JvmName("uuid")
         val uuid: UUID = ThriftyParserPlugins.createUUID()
 )
 
 /**
  * Represents a field in a Thrift struct, union, or exception.
+ *
+ * @constructor Creates a new instance of [FieldElement].
+ * @property location The location of the text corresponding to this element.
+ * @property fieldId The integer ID of the field.
+ * @property type The type of the field.
+ * @property name The name of the field.
+ * @property requiredness The [Requiredness] of the field.
+ * @property documentation The documentation associated with this element, if any.
+ * @property constValue The default value of the field, if any.
+ * @property annotations The annotations associated with this element, if any.
+ * @property uuid A UUID uniquely identifying this element.
  */
-data class FieldElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class FieldElement(
         val location: Location,
-
-        /**
-         * The integer ID of the field.
-         */
-        @get:JvmName("fieldId")
         val fieldId: Int,
-
-        /**
-         * The type of the field.
-         */
-        @get:JvmName("type")
         val type: TypeElement,
-
-        /**
-         * The name of the field.
-         */
-        @get:JvmName("name")
         val name: String,
-
-        /**
-         * The [Requiredness] of the field.
-         */
-        @get:JvmName("requiredness")
         val requiredness: Requiredness = Requiredness.DEFAULT,
-
-        /**
-         * The documentation associated with the field, if any.
-         */
-        @get:JvmName("documentation")
         val documentation: String = "",
-
-        /**
-         * The default value of the field, if any.
-         */
-        @get:JvmName("constValue")
         val constValue: ConstValueElement? = null,
-
-        /**
-         * The annotations associated with the field, if any.
-         */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null,
-
-        /**
-         * A UUID uniquely identifying this element.
-         */
-        @get:JvmName("uuid")
         val uuid: UUID = ThriftyParserPlugins.createUUID()
 )
 
 /**
  * Represents the definition of a Thrift struct, union, or exception.
+ *
+ * @constructor Creates a new instance of [StructElement].
+ * @property location The location of the text corresponding to this element.
+ * @property name The name of the struct, union, or exception.
+ * @property type The kind of struct represented by this element: struct, union, or exception.
+ * @property fields The fields comprising this struct.
+ * @property documentation The documentation associated with this element, if any.
+ * @property uuid A UUID uniquely identifying this element.
+ * @property annotations The annotations associated with this element, if any.
  */
-data class StructElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class StructElement(
         val location: Location,
-
-        /**
-         * The name of the struct, union, or exception.
-         */
-        @get:JvmName("name")
         val name: String,
-
-        /**
-         * The kind of struct represented by this element: struct, union, or exception.
-         */
-        @get:JvmName("type")
         val type: Type,
-
-        /**
-         * The fields comprising this struct.
-         */
-        @get:JvmName("fields")
         val fields: List<FieldElement>,
-
-        /**
-         * The documentation associated with this struct, if any.
-         */
-        @get:JvmName("documentation")
         val documentation: String = "",
-
-        /**
-         * The annotations associated with this element, if any.
-         */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null,
-
-        /**
-         * A UUID uniquely identifying this element.
-         */
-        @get:JvmName("uuid")
         val uuid: UUID = ThriftyParserPlugins.createUUID()
 ) {
     /**
@@ -416,68 +243,32 @@ data class StructElement @JvmOverloads constructor(
  * Represents an RPC function declaration.
  *
  * Functions are always declared within a [ServiceElement].
+ *
+ * A function defined with the `oneway` keyword has no return type, and
+ * generated clients will not wait for a response from the remote endpoint
+ * when making a one-way RPC call.  One-way function must have a return type
+ * of `void` - this is not validated at parse time.
+ *
+ * @constructor Creates a new instance of [FunctionElement].
+ * @property location The location of the text corresponding to this element.
+ * @property name The name of the function.
+ * @property returnType The return type of the function; may be `void` to indicate no return type.
+ * @property params A list, possibly empty, of function parameters.
+ * @property exceptions A list, possibly empty, of exceptions thrown by this function.
+ * @property documentation The documentation associated with this element, if any.
+ * @property oneWay True if the function is `oneway`, otherwise false.
+ * @property uuid A UUID uniquely identifying this element.
+ * @property annotations The annotations associated with this element, if any.
  */
-data class FunctionElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class FunctionElement(
         val location: Location,
-
-        /**
-         * The name of the function.
-         */
-        @get:JvmName("name")
         val name: String,
-
-        /**
-         * The return type of the function.  May be `void` to indicate no
-         * return type.
-         */
-        @get:JvmName("returnType")
         val returnType: TypeElement,
-
-        /**
-         * A list, possibly empty, of function parameters.
-         */
-        @get:JvmName("params")
         val params: List<FieldElement> = emptyList(),
-
-        /**
-         * A list, possibly empty, of exceptions thrown by this function.
-         */
-        @get:JvmName("exceptions")
         val exceptions: List<FieldElement> = emptyList(),
-
-        /**
-         * True if the function is `oneway`, otherwise false.
-         *
-         * A function declared with the `oneway` keyword has no return type,
-         * and generated service clients will not wait for a response from
-         * the remote endpoint when making a one-way RPC call.
-         *
-         * One-way functions must have a return type of `void`; this is not
-         * validated at parse time.
-         */
-        @get:JvmName("oneWay")
         val oneWay: Boolean = false,
-
-        /**
-         * The documentation associated with this function, if any.
-         */
-        @get:JvmName("documentation")
         val documentation: String = "",
-
-        /**
-         * The annotations associated with this function, if any.
-         */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null,
-
-        /**
-         * A UUID uniquely identifying this element.
-         */
-        @get:JvmName("uuid")
         val uuid: UUID = ThriftyParserPlugins.createUUID()
 )
 
@@ -486,183 +277,53 @@ data class FunctionElement @JvmOverloads constructor(
  *
  * A service is an entity having zero or more functions that can be invoked by
  * remote clients.  Services can inherit the definition of other services, very
- * much like inheritance in an object-oriented language.
+ * much like inheritance in an object-oriented language.  The base type element
+ * here is presumed to identify another service, but this is not validated at
+ * parse time.
+ *
+ * @constructor Creates a new instance of [ServiceElement].
+ * @property location The location of the text corresponding to this element.
+ * @property name The name of the service.
+ * @property functions A list, possibly empty, of functions defined by this service.
+ * @property extendsService The base type, if any, of this service.
+ * @property documentation The documentation associated with this element, if any.
+ * @property uuid A UUID uniquely identifying this element.
+ * @property annotations The annotations associated with this element, if any.
  */
-data class ServiceElement @JvmOverloads constructor(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
+data class ServiceElement(
         val location: Location,
-
-        /**
-         * The name of the service.
-         */
-        @get:JvmName("name")
         val name: String,
-
-        /**
-         * The list, possibly empty, of functions defined by this service.
-         */
-        @get:JvmName("functions")
         val functions: List<FunctionElement> = emptyList(),
-
-        /**
-         * The base type, if any, of this service.
-         *
-         * A base type is presumed to refer to another service, but that is not
-         * enforced by the parser.
-         */
-        @get:JvmName("extendsService")
         val extendsService: TypeElement? = null,
-
-        /**
-         * The documentation associated with this service, if any.
-         */
-        @get:JvmName("documentation")
         val documentation: String = "",
-
-        /**
-         * The annotations associated with this service, if any.
-         */
-        @get:JvmName("annotations")
         val annotations: AnnotationElement? = null,
-
-        /**
-         * A UUID uniquely identifying this element.
-         */
-        @get:JvmName("uuid")
         val uuid: UUID = ThriftyParserPlugins.createUUID()
 )
 
 /**
  * Represents a Thrift file, and everything defined within it.
+ *
+ * @constructor Creates a new instance of [ThriftFileElement].
+ * @property location The location of the text corresponding to this element.
+ * @property namespaces The list of all namespaces defined within the file.
+ * @property includes The list of all other thrift files included by this file.
+ * @property constants The list of all constants defined within the file.
+ * @property typedefs The list of all typedefs defined within the file.
+ * @property enums The list of all enums defined within the file.
+ * @property structs The list of all structs defined within the file.
+ * @property unions The list of all unions defined within the file.
+ * @property exceptions The list of all exceptions defined within the file.
+ * @property services The list of all services defined within the file.
  */
 data class ThriftFileElement(
-        /**
-         * The location of the text corresponding to this element.
-         */
-        @get:JvmName("location")
         val location: Location,
-
-        /**
-         * The list of all namespaces defined within this file.
-         */
-        @get:JvmName("namespaces")
         val namespaces: List<NamespaceElement> = emptyList(),
-
-        /**
-         * The list of all other thrift files included by this file.
-         */
-        @get:JvmName("includes")
         val includes: List<IncludeElement> = emptyList(),
-
-        /**
-         * The list of all constants defined within this file.
-         */
-        @get:JvmName("constants")
         val constants: List<ConstElement> = emptyList(),
-
-        /**
-         * The list of all typedefs defined within this file.
-         */
-        @get:JvmName("typedefs")
         val typedefs: List<TypedefElement> = emptyList(),
-
-        /**
-         * The list of all enums defined within this file.
-         */
-        @get:JvmName("enums")
         val enums: List<EnumElement> = emptyList(),
-
-        /**
-         * The list of all structs defined within this file.
-         */
-        @get:JvmName("structs")
         val structs: List<StructElement> = emptyList(),
-
-        /**
-         * The list of all unions defined within this file.
-         */
-        @get:JvmName("unions")
         val unions: List<StructElement> = emptyList(),
-
-        /**
-         * The list of all exceptions defined within this file.
-         */
-        @get:JvmName("exceptions")
         val exceptions: List<StructElement> = emptyList(),
-
-        /**
-         * The list of all services defined within this file.
-         */
-        @get:JvmName("services")
         val services: List<ServiceElement> = emptyList()
-) {
-    class Builder(private val location: Location) {
-        private var namespaces = emptyList<NamespaceElement>()
-        private var includes = emptyList<IncludeElement>()
-        private var constants = emptyList<ConstElement>()
-        private var typedefs = emptyList<TypedefElement>()
-        private var enums = emptyList<EnumElement>()
-        private var structs = emptyList<StructElement>()
-        private var unions = emptyList<StructElement>()
-        private var exceptions = emptyList<StructElement>()
-        private var services: List<ServiceElement> = emptyList()
-
-        fun namespaces(namespaces: List<NamespaceElement>) = apply {
-            this.namespaces = namespaces
-        }
-
-        fun includes(includes: List<IncludeElement>) = apply {
-            this.includes = includes
-        }
-
-        fun constants(constants: List<ConstElement>) = apply {
-            this.constants = constants
-        }
-
-        fun typedefs(typedefs: List<TypedefElement>) = apply {
-            this.typedefs = typedefs
-        }
-
-        fun enums(enums: List<EnumElement>) = apply {
-            this.enums = enums
-        }
-
-        fun structs(structs: List<StructElement>) = apply {
-            this.structs = structs
-        }
-
-        fun unions(unions: List<StructElement>) = apply {
-            this.unions = unions
-        }
-
-        fun exceptions(exceptions: List<StructElement>) = apply {
-            this.exceptions = exceptions
-        }
-
-        fun services(services: List<ServiceElement>) = apply {
-            this.services = services
-        }
-
-        fun build(): ThriftFileElement {
-            return ThriftFileElement(
-                    location = location,
-                    namespaces = namespaces,
-                    includes = includes,
-                    constants = constants,
-                    typedefs = typedefs,
-                    enums = enums,
-                    structs = structs,
-                    unions = unions,
-                    exceptions = exceptions,
-                    services = services
-            )
-        }
-    }
-
-    companion object {
-        @JvmStatic fun builder(location: Location) = Builder(location)
-    }
-}
+)

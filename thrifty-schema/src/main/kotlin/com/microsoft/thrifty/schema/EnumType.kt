@@ -27,7 +27,6 @@ import com.microsoft.thrifty.schema.parser.EnumElement
  */
 class EnumType : UserType {
 
-    @get:JvmName("members")
     val members: List<EnumMember>
 
     internal constructor(program: Program, element: EnumElement) : super(program.namespaces, UserElementMixin(element)) {

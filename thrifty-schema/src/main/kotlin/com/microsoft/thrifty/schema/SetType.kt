@@ -23,12 +23,10 @@ package com.microsoft.thrifty.schema
 /**
  * Represents a Thrift `set<T>`.
  */
-class SetType @JvmOverloads internal constructor( // TODO(ben): Remove @JvmOverloads when kotlin port is finished
-        private val elementType: ThriftType,
+class SetType internal constructor(
+        val elementType: ThriftType,
         override val annotations: Map<String, String> = emptyMap()
 ) : ThriftType("set<" + elementType.name + ">") {
-
-    fun elementType(): ThriftType = elementType
 
     override val isSet: Boolean = true
 

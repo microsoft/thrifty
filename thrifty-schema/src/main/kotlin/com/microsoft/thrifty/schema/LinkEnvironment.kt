@@ -36,7 +36,6 @@ internal class LinkEnvironment(
         return errorReporter
     }
 
-    fun hasErrors(): Boolean {
-        return errorReporter.hasError()
-    }
+    val hasErrors: Boolean
+        get() = errorReporter.hasError
 }

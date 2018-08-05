@@ -23,14 +23,10 @@ package com.microsoft.thrifty.schema
 /**
  * Represents a Thrift `list<T>`.
  */
-class ListType @JvmOverloads internal constructor( // TODO(ben): Remove @JvmOverloads when kotlin port is finished
-        private val elementType: ThriftType,
+class ListType internal constructor(
+        val elementType: ThriftType,
         override val annotations: Map<String, String> = emptyMap()
 ) : ThriftType("list<" + elementType.name + ">") {
-
-    fun elementType(): ThriftType {
-        return elementType
-    }
 
     override val isList: Boolean = true
 

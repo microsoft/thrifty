@@ -23,15 +23,11 @@ package com.microsoft.thrifty.schema
 /**
  * Represents a Thrift `map<K, V>`.
  */
-class MapType @JvmOverloads internal constructor( // TODO(ben): Remove @JvmOverloads when kotlin port is finished
-        private val keyType: ThriftType,
-        private val valueType: ThriftType,
+class MapType internal constructor(
+        val keyType: ThriftType,
+        val valueType: ThriftType,
         override val annotations: Map<String, String> = emptyMap()
 ) : ThriftType("map<" + keyType.name + ", " + valueType.name + ">") {
-
-    fun keyType(): ThriftType = keyType
-
-    fun valueType(): ThriftType = valueType
 
     override val isMap: Boolean = true
 

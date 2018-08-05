@@ -27,7 +27,10 @@ import java.util.Objects
 class TypedefType : UserType {
     private val oldTypeElement: TypeElement
 
-    private var oldType: ThriftType? = null
+    private var oldType_: ThriftType? = null
+
+    val oldType: ThriftType
+        get() = oldType_!!
 
     internal constructor(program: Program, element: TypedefElement) : super(program.namespaces, UserElementMixin(element)) {
         this.oldTypeElement = element.oldType
@@ -41,19 +44,19 @@ class TypedefType : UserType {
 
     private constructor(builder: Builder) : super(builder.namespaces, builder.mixin) {
         this.oldTypeElement = builder.oldTypeElement
-        this.oldType = builder.oldType
+        this.oldType_ = builder.oldType
     }
 
     internal fun link(linker: Linker) {
-        this.oldType = linker.resolveType(oldTypeElement)
+        this.oldType_ = linker.resolveType(oldTypeElement)
     }
 
     internal fun validate(linker: Linker) {
-        if (oldType!!.isService) {
+        if (oldType_!!.isService) {
             linker.addError(location, "Cannot declare a typedef of a service")
         }
 
-        if (oldType == BuiltinType.VOID) {
+        if (oldType_ == BuiltinType.VOID) {
             linker.addError(location, "Cannot declare a typedef of void")
         }
 
@@ -62,12 +65,10 @@ class TypedefType : UserType {
         // happens in Linker#resolveTypedefs().
     }
 
-    fun oldType(): ThriftType = oldType!!
-
     override val isTypedef: Boolean = true
 
     override val trueType: ThriftType
-        get() = oldType().trueType
+        get() = oldType.trueType
 
     override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitTypedef(this)
 
