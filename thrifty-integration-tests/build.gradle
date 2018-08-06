@@ -75,7 +75,16 @@ task kompileTestThrift(type: Exec) {
     dependsOn jarTask
 
     executable 'java'
-    args = ['-jar', jarTask.archivePath.absolutePath, "--out=$projectDir/build/generated-src/thrifty/kotlin", "--lang=kotlin", "--map-type=java.util.LinkedHashMap", "$projectDir/ClientThriftTest.thrift"]
+    args = [
+            '-jar',
+            jarTask.archivePath.absolutePath,
+            "--out=$projectDir/build/generated-src/thrifty/kotlin",
+            "--lang=kotlin",
+            "--map-type=java.util.LinkedHashMap",
+            "--set-type=java.util.LinkedHashSet",
+            "--list-type=java.util.ArrayList",
+            "$projectDir/ClientThriftTest.thrift"
+    ]
 }
 
 compileTestKotlin {

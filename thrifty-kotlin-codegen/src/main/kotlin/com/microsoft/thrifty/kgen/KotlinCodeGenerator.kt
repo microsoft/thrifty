@@ -1164,16 +1164,13 @@ class KotlinCodeGenerator(
                 private fun emitCustomCollection(elementType: ThriftType, value: ListValueElement, collectionType: TypeName) {
                     block.add("%T(%L).apply {%>\n", collectionType, value.value.size)
 
-                    for ((ix, element) in value.value.withIndex()) {
-                        if (ix > 0) {
-                            block.add("\n")
-                        }
+                    for (element in value.value) {
                         block.add("add(")
                         recursivelyRenderConstValue(block, elementType, element)
-                        block.add(")")
+                        block.add(")\n")
                     }
 
-                    block.add("%<\n")
+                    block.add("%<}")
                 }
 
                 private fun emitDefaultCollection(elementType: ThriftType, value: ListValueElement, factoryMethod: String) {
@@ -1236,19 +1233,15 @@ class KotlinCodeGenerator(
 
                     block.add("%T(%L).apply {\n%>", mapTypeName, value.value.size)
 
-                    var n = 0
                     for ((k, v) in value.value) {
-                        if (n++ > 0) {
-                            block.add("\n")
-                        }
                         block.add("put(")
                         recursivelyRenderConstValue(block, keyType, k)
                         block.add(", ")
                         recursivelyRenderConstValue(block, valueType, v)
-                        block.add(")")
+                        block.add(")\n")
                     }
 
-                    block.add("%<\n}")
+                    block.add("%<}")
                 }
 
                 override fun visitStruct(structType: StructType) {
