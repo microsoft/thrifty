@@ -3,9 +3,13 @@ package com.microsoft.thrifty.kgen
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
+import com.microsoft.thrifty.service.ServiceMethodCallback
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asTypeName
 import io.kotlintest.shouldBe
 import org.junit.Rule
 import org.junit.Test
@@ -150,7 +154,7 @@ class KotlinCodeGeneratorTest {
         xception.propertySpecs.single().name shouldBe "message_"
     }
 
-    @Test fun `services`() {
+    @Test fun services() {
         val thrift = """
             namespace kt test.services
 
@@ -167,13 +171,67 @@ class KotlinCodeGeneratorTest {
         generate(thrift).forEach { println(it) }
     }
 
+    @Test fun `typedefs become typealiases`() {
+        val thrift = """
+            namespace kt test.typedefs
+
+            typedef map<i32, map<string, double>> FooMap;
+
+            struct HasMap {
+              1: optional FooMap theMap;
+            }
+        """.trimIndent()
+
+        generate(thrift).forEach { println(it) }
+    }
+
+    @Test fun `services that return typedefs`() {
+        val thrift = """
+            namespace kt test.typedefs
+
+            typedef i32 TheNumber;
+            service Foo {
+              TheNumber doIt()
+            }
+        """.trimIndent()
+
+        val file = generate(thrift).single()
+        val svc = file.members.first { it is TypeSpec && it.name == "Foo" } as TypeSpec
+        val method = svc.funSpecs.single()
+        method.name shouldBe "doIt"
+        method.parameters.single().type shouldBe ServiceMethodCallback::class
+                .asTypeName()
+                .parameterizedBy(ClassName("test.typedefs", "TheNumber"))
+    }
+
+    @Test fun `constants that are typedefs`() {
+        val thrift = """
+            |namespace kt test.typedefs
+            |
+            |typedef map<i32, i32> Weights
+            |
+            |const Weights WEIGHTS = {1: 2}
+        """.trimMargin()
+
+        "${generate(thrift).single()}" shouldBe """
+            |package test.typedefs
+            |
+            |import kotlin.Int
+            |import kotlin.collections.Map
+            |
+            |typealias Weights = Map<Int, Int>
+            |
+            |val WEIGHTS: Weights = mapOf(1 to 2)
+            |
+        """.trimMargin()
+    }
+
     private fun generate(thrift: String): List<FileSpec> {
         return KotlinCodeGenerator().generate(load(thrift))
     }
 
     private fun load(thrift: String): Schema {
-        val file = tempDir.newFile("test.thrift")
-        file.writeText(thrift)
+        val file = tempDir.newFile("test.thrift").also { it.writeText(thrift) }
         val loader = Loader().apply { addThriftFile(file.toPath()) }
         return loader.load()
     }

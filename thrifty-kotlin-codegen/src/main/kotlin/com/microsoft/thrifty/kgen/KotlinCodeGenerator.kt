@@ -74,6 +74,7 @@ import com.squareup.kotlinpoet.NameAllocator
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeAliasSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
@@ -193,7 +194,9 @@ class KotlinCodeGenerator(
 
         val specsByNamespace = HashMultimap.create<String, TypeSpec>()
         val constantsByNamespace = HashMultimap.create<String, PropertySpec>()
+        val typedefsByNamespace = HashMultimap.create<String, TypeAliasSpec>()
 
+        schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
         schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
         schema.unions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
@@ -226,6 +229,7 @@ class KotlinCodeGenerator(
                         .toMap()
 
                 fileSpecsByNamespace.map { (ns, fileSpec) ->
+                    typedefsByNamespace[ns]?.forEach { fileSpec.addTypeAlias(it) }
                     constantsByNamespace[ns]?.forEach { fileSpec.addProperty(it) }
                     specsByNamespace[ns]
                             ?.mapNotNull { processor.process(it) }
@@ -247,6 +251,12 @@ class KotlinCodeGenerator(
                         yield(spec)
                     }
 
+                    for ((ns, aliases) in typedefsByNamespace.asMap().entries) {
+                        val spec = FileSpec.builder(ns, "Typedefs")
+                        aliases.forEach { spec.addTypeAlias(it) }
+                        yield(spec.build())
+                    }
+
                     for ((ns, props) in constantsByNamespace.asMap().entries) {
                         val spec = FileSpec.builder(ns, "Constants")
                         props.forEach { spec.addProperty(it) }
@@ -257,6 +267,19 @@ class KotlinCodeGenerator(
             }
         }
     }
+
+    // region Aliases
+
+    fun generateTypeAlias(typedef: TypedefType): TypeAliasSpec {
+        return TypeAliasSpec.builder(typedef.name, typedef.oldType.typeName).run {
+            if (typedef.hasJavadoc) {
+                addKdoc("%L", typedef.documentation)
+            }
+            build()
+        }
+    }
+
+    // endregion Aliases
 
     // region Enums
 
@@ -345,7 +368,7 @@ class KotlinCodeGenerator(
             val param = ParameterSpec.builder(fieldName, typeName)
 
             field.defaultValue?.let {
-                param.defaultValue(renderConstValue(schema, field.type.trueType, it))
+                param.defaultValue(renderConstValue(schema, field.type, it))
             }
 
             val prop = PropertySpec.builder(fieldName, typeName)
@@ -433,25 +456,25 @@ class KotlinCodeGenerator(
                 when {
                     field.isRedacted -> add("<REDACTED>")
                     field.isObfuscated -> {
-                        val type = field.type.trueType
+                        val type = field.type
                         when (type) {
                             is ListType -> {
-                                val elementName = type.elementType.trueType.name
+                                val elementName = type.elementType.name
                                 add("\${%T.summarizeCollection($fieldName, %S, %S)}",
                                         ObfuscationUtil::class,
                                         "list",
                                         elementName)
                             }
                             is SetType -> {
-                                val elementName = type.elementType.trueType.name
+                                val elementName = type.elementType.name
                                 add("\${%T.summarizeCollection($fieldName, %S, %S)}",
                                         ObfuscationUtil::class,
                                         "set",
                                         elementName)
                             }
                             is MapType -> {
-                                val keyName = type.keyType.trueType.name
-                                val valName = type.valueType.trueType.name
+                                val keyName = type.keyType.name
+                                val valName = type.valueType.name
                                 add("\${%T.summarizeMap($fieldName, %S, %S)}",
                                         ObfuscationUtil::class,
                                         keyName,
@@ -505,7 +528,7 @@ class KotlinCodeGenerator(
             // Add a private var
 
             val defaultValueBlock = field.defaultValue?.let {
-                renderConstValue(schema, field.type.trueType, it)
+                renderConstValue(schema, field.type, it)
             } ?: CodeBlock.of("null")
 
             val propertySpec = PropertySpec.varBuilder(name, type.asNullable(), KModifier.PRIVATE)
@@ -592,7 +615,7 @@ class KotlinCodeGenerator(
         writer.addStatement("protocol.writeStructBegin(%S)", struct.name)
         for (field in struct.fields) {
             val name = nameAllocator.get(field)
-            val fieldType = field.type.trueType
+            val fieldType = field.type
 
             if (!field.required) {
                 writer.beginControlFlow("if (struct.$name != null)")
@@ -632,7 +655,7 @@ class KotlinCodeGenerator(
 
             for (field in struct.fields) {
                 val name = nameAllocator.get(field)
-                val fieldType = field.type.trueType
+                val fieldType = field.type
 
                 reader.addCode {
                     addStatement("${field.id} -> {%>")
@@ -718,7 +741,7 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitList(listType: ListType) {
-                    val elementType = listType.elementType.trueType
+                    val elementType = listType.elementType
                     writer.addStatement(
                             "%N.writeListBegin(%T.%L, %L.size)",
                             "protocol",
@@ -737,7 +760,7 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitSet(setType: SetType) {
-                    val elementType = setType.elementType.trueType
+                    val elementType = setType.elementType
                     writer.addStatement(
                             "%N.writeSetBegin(%T.%L, %L.size)",
                             "protocol",
@@ -756,8 +779,8 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitMap(mapType: MapType) {
-                    val keyType = mapType.keyType.trueType
-                    val valType = mapType.valueType.trueType
+                    val keyType = mapType.keyType
+                    val valType = mapType.valueType
 
                     writer.addStatement(
                             "%1N.writeMapBegin(%2T.%3L, %2T.%4L, %5L.size)",
@@ -784,7 +807,7 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitTypedef(typedefType: TypedefType) {
-                    typedefType.trueType.accept(this)
+                    typedefType.oldType.accept(this)
                 }
 
                 override fun visitService(serviceType: ServiceType) {
@@ -847,7 +870,7 @@ class KotlinCodeGenerator(
             }
 
             override fun visitList(listType: ListType) {
-                val elementType = listType.elementType.trueType
+                val elementType = listType.elementType
                 val listImplType = ArrayList::class.asTypeName().parameterizedBy(elementType.typeName)
                 val listMeta = "list$scope"
                 block.addStatement("val $listMeta = protocol.readListBegin()")
@@ -862,7 +885,7 @@ class KotlinCodeGenerator(
             }
 
             override fun visitSet(setType: SetType) {
-                val elementType = setType.elementType.trueType
+                val elementType = setType.elementType
                 val setImplType = HashSet::class.asTypeName().parameterizedBy(elementType.typeName)
                 val setMeta = "set$scope"
 
@@ -878,8 +901,8 @@ class KotlinCodeGenerator(
             }
 
             override fun visitMap(mapType: MapType) {
-                val keyType = mapType.keyType.trueType
-                val valType = mapType.valueType.trueType
+                val keyType = mapType.keyType
+                val valType = mapType.valueType
                 val mapImplType = HashMap::class.asTypeName().parameterizedBy(keyType.typeName, valType.typeName)
                 val mapMeta = "map$scope"
 
@@ -920,7 +943,7 @@ class KotlinCodeGenerator(
     //region Constants
 
     fun generateConstantProperty(schema: Schema, allocator: NameAllocator, constant: Constant): PropertySpec {
-        val type = constant.type.trueType
+        val type = constant.type
         val typeName = type.typeName
         val propName = allocator.newName(constant.name, constant)
         val propBuilder = PropertySpec.builder(propName, typeName)
@@ -965,7 +988,7 @@ class KotlinCodeGenerator(
             propBuilder.addModifiers(KModifier.CONST)
         }
 
-        propBuilder.initializer(renderConstValue(schema, constant.type, constant.value))
+        propBuilder.initializer(renderConstValue(schema, type, constant.value))
 
         return propBuilder.build()
     }
@@ -1065,13 +1088,13 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitList(listType: ListType) {
-                    visitCollection(listType.elementType.trueType, "listOf", "Invalid list constant")
+                    visitCollection(listType.elementType, "listOf", "Invalid list constant")
 
                 }
 
                 override fun visitSet(setType: SetType) {
                     visitCollection(
-                            setType.elementType.trueType,
+                            setType.elementType,
                             "setOf",
                             "Invalid set constant")
                 }
@@ -1097,8 +1120,8 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitMap(mapType: MapType) {
-                    val keyType = mapType.keyType.trueType
-                    val valueType = mapType.valueType.trueType
+                    val keyType = mapType.keyType
+                    val valueType = mapType.valueType
                     if (value is MapValueElement) {
                         block.add("mapOf(%>")
 
@@ -1154,7 +1177,7 @@ class KotlinCodeGenerator(
                     val c = schema.constants.asSequence()
                             .firstOrNull {
                                 it.name == name
-                                        && it.type.trueType == type
+                                        && it.type.trueType == type.trueType
                                         && (expectedProgram == null || expectedProgram == it.location.programName)
                             } ?: throw IllegalStateException(message)
 
@@ -1167,7 +1190,7 @@ class KotlinCodeGenerator(
         }
 
         return buildCodeBlock {
-            recursivelyRenderConstValue(this, thriftType.trueType, valueElement)
+            recursivelyRenderConstValue(this, thriftType, valueElement)
         }
     }
 
@@ -1205,11 +1228,7 @@ class KotlinCodeGenerator(
             }
 
             val callbackName = methodNameAllocator.get(Tags.CALLBACK)
-            val callbackResultType = if (method.returnType.trueType == BuiltinType.VOID) {
-                UNIT
-            } else {
-                method.returnType.typeName
-            }
+            val callbackResultType = method.returnType.typeName
             val callbackType = ServiceMethodCallback::class
                     .asTypeName()
                     .parameterizedBy(callbackResultType)
@@ -1277,12 +1296,8 @@ class KotlinCodeGenerator(
 
     private fun buildCallType(schema: Schema, method: ServiceMethod): TypeSpec {
         val callName = method.name.capitalize() + "Call"
-        val returnType = method.returnType.trueType
-        val resultType = if (returnType == BuiltinType.VOID) {
-            UNIT
-        } else {
-            returnType.typeName
-        }
+        val returnType = method.returnType
+        val resultType = returnType.typeName
         val hasResult = resultType != UNIT
         val messageType = if (method.oneWay) "ONEWAY" else "CALL"
         val nameAllocator = nameAllocators[method]
@@ -1307,7 +1322,7 @@ class KotlinCodeGenerator(
 
             for (param in method.parameters) {
                 val name = nameAllocator.get(param)
-                val type = param.type.trueType
+                val type = param.type
                 val typeName = type.typeName
 
                 val defaultValue = param.defaultValue
@@ -1347,7 +1362,7 @@ class KotlinCodeGenerator(
 
             for (param in method.parameters) {
                 val name = nameAllocator.get(param)
-                val type = param.type.trueType
+                val type = param.type
                 val typeCodeName = type.typeCodeName
                 val optional = !param.required
 
@@ -1382,7 +1397,6 @@ class KotlinCodeGenerator(
                     .addAnnotation(AnnotationSpec.builder(Throws::class)
                             .addMember("%T::class", Exception::class)
                             .build())
-
 
             val maybeResultType = resultType.asNullable()
             val resultName = nameAllocator.get(Tags.RESULT)
@@ -1425,7 +1439,7 @@ class KotlinCodeGenerator(
 
             for (exn in method.exceptions) {
                 val name = nameAllocator.get(exn)
-                val type = exn.type.trueType
+                val type = exn.type
                 recv.addCode {
                     addStatement("${exn.id} -> {%>")
                     beginControlFlow("if (%N.typeId == %T.%L)", fieldMeta, TType::class, type.typeCodeName)

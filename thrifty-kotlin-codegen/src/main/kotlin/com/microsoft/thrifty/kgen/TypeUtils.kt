@@ -135,7 +135,7 @@ private object TypeNameVisitor : ThriftType.Visitor<TypeName> {
 
     override fun visitStruct(structType: StructType): TypeName = userTypeName(structType)
 
-    override fun visitTypedef(typedefType: TypedefType) = typedefType.trueType.accept(this)
+    override fun visitTypedef(typedefType: TypedefType) = userTypeName(typedefType)
 
     override fun visitService(serviceType: ServiceType) = userTypeName(serviceType)
 
