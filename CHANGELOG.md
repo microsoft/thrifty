@@ -1,3 +1,13 @@
+1.0.0-RC1 (unreleased)
+------------------
+- General: Broke thrifty-schema API in favor of idiomatic Kotlin
+- #204: Remove deprecated java.io.File methods in Loader
+- #183: Added Kotlin codegen
+- #178: Fix: .thrift files in include paths during path scanning
+- #165: Adopted Guava's case formatter for FieldNamingPolicy
+- #164: Fixed nullability annotations for struct builders
+- #161: Generate @Nullable annotations for union fields
+
 0.4.3 (released 8 January 2018)
 ------------------
 - #156: Add JSON protocol support
