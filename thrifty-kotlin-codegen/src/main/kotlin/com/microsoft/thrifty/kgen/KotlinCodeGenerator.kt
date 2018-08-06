@@ -123,6 +123,10 @@ class KotlinCodeGenerator(
 
     private var parcelize: Boolean = false
 
+    private var listClassName: ClassName? = null
+    private var setClassName: ClassName? = null
+    private var mapClassName: ClassName? = null
+
     private val nameAllocators = CacheBuilder
             .newBuilder()
             .build(object : CacheLoader<UserElement, NameAllocator>() {
@@ -186,6 +190,18 @@ class KotlinCodeGenerator(
     fun filePerNamespace(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_NAMESPACE }
     fun filePerType(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_TYPE }
     fun parcelize(): KotlinCodeGenerator = apply { parcelize = true }
+
+    fun listClassName(name: String): KotlinCodeGenerator = apply {
+        this.listClassName = ClassName.bestGuess(name)
+    }
+
+    fun setClassName(name: String): KotlinCodeGenerator = apply {
+        this.setClassName = ClassName.bestGuess(name)
+    }
+
+    fun mapClassName(name: String): KotlinCodeGenerator = apply {
+        this.mapClassName = ClassName.bestGuess(name)
+    }
 
     private object NoTypeProcessor : KotlinTypeProcessor {
         override fun process(typeSpec: TypeSpec) = typeSpec
@@ -884,7 +900,8 @@ class KotlinCodeGenerator(
 
             override fun visitList(listType: ListType) {
                 val elementType = listType.elementType
-                val listImplType = ArrayList::class.asTypeName().parameterizedBy(elementType.typeName)
+                val listImplClassName = listClassName ?: ArrayList::class.asClassName()
+                val listImplType = listImplClassName.parameterizedBy(elementType.typeName)
                 val listMeta = "list$scope"
                 block.addStatement("val $listMeta = protocol.readListBegin()")
                 block.addStatement("val $name = %T($listMeta.size)", listImplType)
@@ -899,7 +916,8 @@ class KotlinCodeGenerator(
 
             override fun visitSet(setType: SetType) {
                 val elementType = setType.elementType
-                val setImplType = HashSet::class.asTypeName().parameterizedBy(elementType.typeName)
+                val setImplClassName = setClassName ?: LinkedHashSet::class.asClassName()
+                val setImplType = setImplClassName.parameterizedBy(elementType.typeName)
                 val setMeta = "set$scope"
 
                 block.addStatement("val $setMeta = protocol.readSetBegin()")
@@ -916,7 +934,8 @@ class KotlinCodeGenerator(
             override fun visitMap(mapType: MapType) {
                 val keyType = mapType.keyType
                 val valType = mapType.valueType
-                val mapImplType = HashMap::class.asTypeName().parameterizedBy(keyType.typeName, valType.typeName)
+                val mapImplClassName = mapClassName ?: LinkedHashMap::class.asClassName()
+                val mapImplType = mapImplClassName.parameterizedBy(keyType.typeName, valType.typeName)
                 val mapMeta = "map$scope"
 
                 block.addStatement("val $mapMeta = protocol.readMapBegin()")
@@ -951,9 +970,9 @@ class KotlinCodeGenerator(
         return block
     }
 
-    //endregion Adapters
+    // endregion Adapters
 
-    //region Constants
+    // region Constants
 
     fun generateConstantProperty(schema: Schema, allocator: NameAllocator, constant: Constant): PropertySpec {
         val type = constant.type
@@ -1101,59 +1120,128 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitList(listType: ListType) {
-                    visitCollection(listType.elementType, "listOf", "Invalid list constant")
-
+                    visitCollection(
+                            listType.elementType,
+                            listClassName,
+                            "listOf",
+                            "emptyList",
+                            "Invalid list constant")
                 }
 
                 override fun visitSet(setType: SetType) {
                     visitCollection(
                             setType.elementType,
+                            setClassName,
                             "setOf",
+                            "emptySet",
                             "Invalid set constant")
                 }
 
-                private fun visitCollection(elementType: ThriftType, factoryMethod: String, errorMessage: String) {
-                    if (value is ListValueElement) {
-                        block.add("$factoryMethod(%>")
+                private fun visitCollection(
+                        elementType: ThriftType,
+                        customClassName: ClassName?,
+                        factoryMethod: String,
+                        emptyFactory: String,
+                        error: String) {
 
-                        var first = true
-                        for (elementValue in value.value) {
-                            if (first) {
-                                first = false
-                            } else {
-                                block.add(",%W")
-                            }
-                            recursivelyRenderConstValue(block, elementType, elementValue)
+                    if (value is ListValueElement) {
+                        if (value.value.isEmpty()) {
+                            block.add("%L()", emptyFactory)
+                            return
                         }
 
-                        block.add("%<)")
+                        if (customClassName != null) {
+                            val concreteName = customClassName.parameterizedBy(elementType.typeName)
+                            emitCustomCollection(elementType, value, concreteName)
+                        } else {
+                            emitDefaultCollection(elementType, value, factoryMethod)
+                        }
                     } else {
-                        constOrError(errorMessage)
+                        constOrError(error)
                     }
+                }
+
+                private fun emitCustomCollection(elementType: ThriftType, value: ListValueElement, collectionType: TypeName) {
+                    block.add("%T(%L).apply {%>\n", collectionType, value.value.size)
+
+                    for (element in value.value) {
+                        block.add("add(")
+                        recursivelyRenderConstValue(block, elementType, element)
+                        block.add(")\n")
+                    }
+
+                    block.add("%<}")
+                }
+
+                private fun emitDefaultCollection(elementType: ThriftType, value: ListValueElement, factoryMethod: String) {
+                    block.add("$factoryMethod(%>")
+
+                    for ((n, elementValue) in value.value.withIndex()) {
+                        if (n > 0) {
+                            block.add(",%W")
+                        }
+                        recursivelyRenderConstValue(block, elementType, elementValue)
+                    }
+
+                    block.add("%<)")
                 }
 
                 override fun visitMap(mapType: MapType) {
                     val keyType = mapType.keyType
                     val valueType = mapType.valueType
                     if (value is MapValueElement) {
-                        block.add("mapOf(%>")
-
-                        var first = true
-                        for ((k, v) in value.value) {
-                            if (first) {
-                                first = false
-                            } else {
-                                block.add(",%W")
-                            }
-                            recursivelyRenderConstValue(block, keyType, k)
-                            block.add(" to ")
-                            recursivelyRenderConstValue(block, valueType, v)
+                        if (value.value.isEmpty()) {
+                            block.add("emptyMap()")
+                            return
                         }
 
-                        block.add("%<)")
+                        val customType = mapClassName
+                        if (customType != null) {
+                            val concreteType = customType
+                                    .parameterizedBy(keyType.typeName, valueType.typeName)
+                            emitCustomMap(mapType, value, concreteType)
+                        } else {
+                            emitDefaultMap(mapType, value)
+                        }
                     } else {
                         constOrError("Invalid map constant")
                     }
+                }
+
+                private fun emitDefaultMap(mapType: MapType, value: MapValueElement) {
+                    val keyType = mapType.keyType
+                    val valueType = mapType.valueType
+
+                    block.add("mapOf(%>")
+
+                    var n = 0
+                    for ((k, v) in value.value) {
+                        if (n++ > 0) {
+                            block.add(",%W")
+                        }
+                        recursivelyRenderConstValue(block, keyType, k)
+                        block.add(" to ")
+                        recursivelyRenderConstValue(block, valueType, v)
+                    }
+
+                    block.add("%<)")
+                }
+
+                private fun emitCustomMap(mapType: MapType, value: MapValueElement, mapTypeName: TypeName) {
+                    val keyType = mapType.keyType
+                    val valueType = mapType.valueType
+
+                    block.add("%T(%L).apply {\n%>", mapTypeName, value.value.size)
+
+                    for ((k, v) in value.value) {
+                        block.add("put(")
+                        recursivelyRenderConstValue(block, keyType, k)
+                        block.add(", ")
+                        recursivelyRenderConstValue(block, valueType, v)
+                        block.add(")\n")
+                    }
+
+                    block.add("%<}")
                 }
 
                 override fun visitStruct(structType: StructType) {
@@ -1207,7 +1295,7 @@ class KotlinCodeGenerator(
         }
     }
 
-    //endregion Constants
+    // endregion Constants
 
     // region Services
 

@@ -162,7 +162,7 @@ class ThriftyCompiler {
                 else -> null
             }
 
-            if (language != null && impliedLanguage != language) {
+            if (language != null && impliedLanguage != null && impliedLanguage != language) {
                 TermUi.echo(
                         "You specified $language, but provided options implying $impliedLanguage (which will be ignored).",
                         err = true)
@@ -209,6 +209,10 @@ class ThriftyCompiler {
             } else {
                 gen.filePerNamespace()
             }
+
+            listTypeName?.let { gen.listClassName(it) }
+            setTypeName?.let { gen.setClassName(it) }
+            mapTypeName?.let { gen.mapClassName(it) }
 
             val svc = TypeProcessorService.getInstance()
             svc.kotlinProcessor?.let {

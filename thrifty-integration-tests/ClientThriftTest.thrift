@@ -420,3 +420,10 @@ struct ObfuscatedCollections {
 struct HasObfuscation {
   1: optional string ssn (obfuscated = "true")
 }
+
+const map<string, map<string, map<i32, i32>>> HEINOUS = {
+  "foo": {"bar": {1: 2, 3: 4}},
+  "baz": {"qux": {5: 6, 7: 8}}
+}
+
+const list<set<map<string, i32>>> ALL_THE_COLLECTIONS = [[], [{"foo": 1, "bar": 2}]]
