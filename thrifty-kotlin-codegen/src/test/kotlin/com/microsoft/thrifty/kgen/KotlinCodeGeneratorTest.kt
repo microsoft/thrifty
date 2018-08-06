@@ -251,6 +251,34 @@ class KotlinCodeGeneratorTest {
         svc.annotations.any { it.type == parcelize } shouldBe false
     }
 
+    @Test fun `Custom map-type constants`() {
+        val thrift = """
+            |namespace kt test.map_consts
+            |
+            |const map<i32, list<string>> Maps = {1: [], 2: ["foo"]}
+        """.trimMargin()
+
+        val text = generate(thrift) { mapClassName("android.support.v4.util.ArrayMap") }
+                .single()
+                .toString()
+
+        text shouldBe """
+            |package test.map_consts
+            |
+            |import android.support.v4.util.ArrayMap
+            |import kotlin.Int
+            |import kotlin.String
+            |import kotlin.collections.List
+            |import kotlin.collections.Map
+            |
+            |val Maps: Map<Int, List<String>> = ArrayMap<Int, List<String>>(2).apply {
+            |            put(1, emptyList())
+            |            put(2, listOf("foo"))
+            |        }
+            |
+            """.trimMargin()
+    }
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()
