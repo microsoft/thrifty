@@ -24,11 +24,13 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.output.TermUi
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
+import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.validate
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.path
 import com.microsoft.thrifty.gen.ThriftyCodeGenerator
 import com.microsoft.thrifty.kgen.KotlinCodeGenerator
@@ -79,6 +81,11 @@ import java.util.ArrayList
  */
 class ThriftyCompiler {
 
+    enum class Language {
+        JAVA,
+        KOTLIN
+    }
+
     private val cli = object : CliktCommand(name = "thrifty-compiler") {
         val outputDirectory: Path by option("-o", "--out", help = "the output directory for generated files")
                 .path(fileOkay = false, folderOkay = true)
@@ -88,6 +95,13 @@ class ThriftyCompiler {
         val searchPath: List<Path> by option("-p", "--path", help = "the search path for .thrift includes")
                 .path(exists = true, folderOkay = true, fileOkay = false)
                 .multiple()
+
+        val language: Language? by option("-l", "--lang", help = "the target language for generated code")
+                .choice("java" to Language.JAVA, "kotlin" to Language.KOTLIN)
+
+        val nameStyle: FieldNamingPolicy by option("--name-style", "Format style for generated names.  Default ")
+                .choice("default" to FieldNamingPolicy.DEFAULT, "java" to FieldNamingPolicy.JAVA)
+                .default(FieldNamingPolicy.DEFAULT)
 
         val listTypeName: String? by option("--list-type", help = "when specified, the concrete type to use for lists")
         val setTypeName: String? by option("--set-type", help =  "when specified, the concrete type to use for sets")
@@ -99,13 +113,6 @@ class ThriftyCompiler {
 
         val emitParcelable: Boolean by option("--parcelable",
                     help = "When set, generates Parcelable implementations for structs")
-                .flag(default = false)
-
-        val useJavaStyleNames by option("--use-java-style-names",
-                    help = "When set, converts field names to standard java camelCase")
-                .flag(default = false)
-
-        val emitKotlin: Boolean by option("--kotlin", help = "Generate Kotlin instead of Java")
                 .flag(default = false)
 
         val kotlinFilePerType: Boolean by option(
@@ -139,17 +146,27 @@ class ThriftyCompiler {
                 return
             }
 
-            val fieldNamingPolicy = if (useJavaStyleNames) FieldNamingPolicy.JAVA else FieldNamingPolicy.DEFAULT
+            val impliedLanguage = when {
+                kotlinFilePerType -> Language.KOTLIN
+                emitNullabilityAnnotations -> Language.JAVA
+                else -> null
+            }
 
-            if (emitKotlin) {
-                generateKotlin(schema, fieldNamingPolicy)
-            } else {
-                generateJava(schema, fieldNamingPolicy)
+            if (language != null && impliedLanguage != language) {
+                TermUi.echo(
+                        "You specified $language, but provided options implying $impliedLanguage (which will be ignored).",
+                        err = true)
+            }
+
+            when (language ?: impliedLanguage) {
+                null,
+                Language.JAVA -> generateJava(schema)
+                Language.KOTLIN -> generateKotlin(schema)
             }
         }
 
-        private fun generateJava(schema: Schema, fieldNamingPolicy: FieldNamingPolicy) {
-            var gen = ThriftyCodeGenerator(schema, fieldNamingPolicy)
+        private fun generateJava(schema: Schema) {
+            var gen = ThriftyCodeGenerator(schema, nameStyle)
             listTypeName?.let { gen = gen.withListType(it) }
             setTypeName?.let { gen = gen.withSetType(it) }
             mapTypeName?.let { gen = gen.withMapType(it) }
@@ -166,8 +183,16 @@ class ThriftyCompiler {
             gen.generate(outputDirectory)
         }
 
-        private fun generateKotlin(schema: Schema, fieldNamingPolicy: FieldNamingPolicy) {
-            val gen = KotlinCodeGenerator(fieldNamingPolicy)
+        private fun generateKotlin(schema: Schema) {
+            val gen = KotlinCodeGenerator(nameStyle)
+
+            if (emitNullabilityAnnotations) {
+                TermUi.echo("Warning: Nullability annotations are unnecessary in Kotlin and will not be generated")
+            }
+
+            if (emitParcelable) {
+                TermUi.echo("Warning: Parcel generation not yet implemented for Kotlin codegen")
+            }
 
             if (kotlinFilePerType) {
                 gen.filePerType()
