@@ -121,6 +121,8 @@ class KotlinCodeGenerator(
     // TODO: Add a compiler flag to omit struct generation
     private var shouldImplementStruct: Boolean = true
 
+    private var parcelize: Boolean = false
+
     private val nameAllocators = CacheBuilder
             .newBuilder()
             .build(object : CacheLoader<UserElement, NameAllocator>() {
@@ -183,6 +185,7 @@ class KotlinCodeGenerator(
 
     fun filePerNamespace(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_NAMESPACE }
     fun filePerType(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_TYPE }
+    fun parcelize(): KotlinCodeGenerator = apply { parcelize = true }
 
     private object NoTypeProcessor : KotlinTypeProcessor {
         override fun process(typeSpec: TypeSpec) = typeSpec
@@ -296,6 +299,11 @@ class KotlinCodeGenerator(
         if (enumType.isDeprecated) typeBuilder.addAnnotation(makeDeprecated())
         if (enumType.hasJavadoc) typeBuilder.addKdoc("%L", enumType.documentation)
 
+        if (parcelize) {
+            typeBuilder.addAnnotation(makeParcelable())
+            typeBuilder.addAnnotation(suppressLint("ParcelCreator")) // Android Studio bug
+        }
+
         val findByValue = FunSpec.builder("findByValue")
                 .addParameter("value", INT)
                 .returns(enumType.typeName.asNullable())
@@ -338,11 +346,16 @@ class KotlinCodeGenerator(
             if (struct.fields.isNotEmpty()) {
                 addModifiers(KModifier.DATA)
             }
-        }
 
-        if (struct.isDeprecated) typeBuilder.addAnnotation(makeDeprecated())
-        if (struct.hasJavadoc) typeBuilder.addKdoc("%L", struct.documentation)
-        if (struct.isException) typeBuilder.superclass(Exception::class)
+            if (struct.isDeprecated) addAnnotation(makeDeprecated())
+            if (struct.hasJavadoc) addKdoc("%L", struct.documentation)
+            if (struct.isException) superclass(Exception::class)
+
+            if (parcelize) {
+                addAnnotation(makeParcelable())
+                addAnnotation(suppressLint("ParcelCreator")) // Android Studio bug with Parcelize
+            }
+        }
 
         val ctorBuilder = FunSpec.constructorBuilder()
 
@@ -1503,6 +1516,17 @@ class KotlinCodeGenerator(
     private fun makeDeprecated(): AnnotationSpec {
         return AnnotationSpec.builder(Deprecated::class)
                 .addMember("message = %S", "Deprecated in source .thrift")
+                .build()
+    }
+
+    private fun makeParcelable(): AnnotationSpec {
+        return AnnotationSpec.builder(ClassName("kotlinx.android.parcel", "Parcelize"))
+                .build()
+    }
+
+    private fun suppressLint(toSuppress: String): AnnotationSpec {
+        return AnnotationSpec.builder(ClassName("android.annotation", "SuppressLint"))
+                .addMember("%S", toSuppress)
                 .build()
     }
 }

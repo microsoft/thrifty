@@ -226,8 +226,36 @@ class KotlinCodeGeneratorTest {
         """.trimMargin()
     }
 
-    private fun generate(thrift: String): List<FileSpec> {
-        return KotlinCodeGenerator().generate(load(thrift))
+    @Test fun `Parcelize annotations for structs and enums`() {
+        val thrift = """
+            |namespace kt test.parcelize
+            |
+            |struct Foo { 1: required i32 Number; 2: optional string Text }
+            |
+            |enum AnEnum { ONE; TWO; THREE }
+            |
+            |service Svc {
+            |  Foo getFoo(1: AnEnum anEnum)
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) { parcelize() }.single()
+        val struct = file.members.single { it is TypeSpec && it.name == "Foo" } as TypeSpec
+        val anEnum = file.members.single { it is TypeSpec && it.name == "AnEnum"} as TypeSpec
+        val svc = file.members.single { it is TypeSpec && it.name == "SvcClient" } as TypeSpec
+
+        val parcelize = ClassName("kotlinx.android.parcel", "Parcelize")
+
+        struct.annotations.any { it.type == parcelize } shouldBe true
+        anEnum.annotations.any { it.type == parcelize } shouldBe true
+        svc.annotations.any { it.type == parcelize } shouldBe false
+    }
+
+    private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
+        val configOrDefault = config ?: { this }
+        return KotlinCodeGenerator()
+                .run(configOrDefault)
+                .generate(load(thrift))
     }
 
     private fun load(thrift: String): Schema {

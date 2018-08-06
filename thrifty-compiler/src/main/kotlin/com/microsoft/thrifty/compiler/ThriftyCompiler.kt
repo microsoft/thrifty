@@ -201,7 +201,7 @@ class ThriftyCompiler {
             }
 
             if (emitParcelable) {
-                TermUi.echo("Warning: Parcel generation not yet implemented for Kotlin codegen")
+                gen.parcelize()
             }
 
             if (kotlinFilePerType) {
