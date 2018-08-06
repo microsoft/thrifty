@@ -24,6 +24,7 @@ import com.microsoft.thrifty.ThriftException
 import com.microsoft.thrifty.integration.kgen.Insanity
 import com.microsoft.thrifty.integration.kgen.Numberz
 import com.microsoft.thrifty.integration.kgen.ThriftTestClient
+import com.microsoft.thrifty.integration.kgen.UserId
 import com.microsoft.thrifty.integration.kgen.Xception
 import com.microsoft.thrifty.integration.kgen.Xception2
 import com.microsoft.thrifty.integration.kgen.Xtruct
@@ -278,7 +279,7 @@ class KotlinConformanceTest(
     }
 
     @Test fun testTypedef() {
-        val callback = AssertingCallback<Long>()
+        val callback = AssertingCallback<UserId>()
         client.testTypedef(Long.MIN_VALUE, callback)
 
         callback.result shouldBe Long.MIN_VALUE
@@ -324,7 +325,7 @@ class KotlinConformanceTest(
                 2L to mapOf(Numberz.SIX to empty)
         )
 
-        val callback = AssertingCallback<Map<Long, Map<Numberz, Insanity>>>()
+        val callback = AssertingCallback<Map<UserId, Map<Numberz, Insanity>>>()
         client.testInsanity(argument, callback)
 
         callback.result shouldBe expected
