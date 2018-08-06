@@ -53,6 +53,10 @@ import java.util.ArrayList
  * [--list-type=java.util.ArrayList]
  * [--set-type=java.util.HashSet]
  * [--map-type=java.util.HashMap]
+ * [--lang=[java|kotlin]]
+ * [--kt-file-per-type]
+ * [--parcelable]
+ * [--use-android-annotations]
  * file1.thrift
  * file2.thrift
  * ...
@@ -86,7 +90,10 @@ class ThriftyCompiler {
         KOTLIN
     }
 
-    private val cli = object : CliktCommand(name = "thrifty-compiler") {
+    private val cli = object : CliktCommand(
+            name = "thrifty-compiler",
+            help = "Generate Java or Kotlin code from .thrift files"
+    ) {
         val outputDirectory: Path by option("-o", "--out", help = "the output directory for generated files")
                 .path(fileOkay = false, folderOkay = true)
                 .required()
@@ -96,10 +103,13 @@ class ThriftyCompiler {
                 .path(exists = true, folderOkay = true, fileOkay = false)
                 .multiple()
 
-        val language: Language? by option("-l", "--lang", help = "the target language for generated code")
+        val language: Language? by option(
+                        "-l", "--lang", help = "the target language for generated code.  Default is java.")
                 .choice("java" to Language.JAVA, "kotlin" to Language.KOTLIN)
 
-        val nameStyle: FieldNamingPolicy by option("--name-style", "Format style for generated names.  Default ")
+        val nameStyle: FieldNamingPolicy by option(
+                        "--name-style",
+                        help = "Format style for generated names.  Default is to leave names unaltered.")
                 .choice("default" to FieldNamingPolicy.DEFAULT, "java" to FieldNamingPolicy.JAVA)
                 .default(FieldNamingPolicy.DEFAULT)
 
