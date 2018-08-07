@@ -104,12 +104,6 @@ private object Tags {
 /**
  * Generates Kotlin code from a [Schema].
  *
- * While substantially complete, there is a bit more yet to be implemented:
- * - Services (coroutine-based?)
- * - Builderless adapters (builders are dumb, given data classes)
- * - Customizable collection types?  Some droids prefer ArrayMap, ArraySet, etc
- * - Option to emit one file per type
- *
  * @param fieldNamingPolicy A user-specified naming policy for fields.
  */
 class KotlinCodeGenerator(
@@ -187,6 +181,8 @@ class KotlinCodeGenerator(
         }
     })
 
+    // region Configuration
+
     var processor: KotlinTypeProcessor = NoTypeProcessor
     var outputStyle: OutputStyle = OutputStyle.FILE_PER_NAMESPACE
 
@@ -213,6 +209,8 @@ class KotlinCodeGenerator(
     private object NoTypeProcessor : KotlinTypeProcessor {
         override fun process(typeSpec: TypeSpec) = typeSpec
     }
+
+    // endregion Configuration
 
     fun generate(schema: Schema): List<FileSpec> {
         TypeSpec.classBuilder("foo")
@@ -296,7 +294,7 @@ class KotlinCodeGenerator(
 
     // region Aliases
 
-    fun generateTypeAlias(typedef: TypedefType): TypeAliasSpec {
+    internal fun generateTypeAlias(typedef: TypedefType): TypeAliasSpec {
         return TypeAliasSpec.builder(typedef.name, typedef.oldType.typeName).run {
             if (typedef.hasJavadoc) {
                 addKdoc("%L", typedef.documentation)
@@ -309,7 +307,7 @@ class KotlinCodeGenerator(
 
     // region Enums
 
-    fun generateEnumClass(enumType: EnumType): TypeSpec {
+    internal fun generateEnumClass(enumType: EnumType): TypeSpec {
         val typeBuilder = TypeSpec.enumBuilder(enumType.name)
                 .addProperty(PropertySpec.builder("value", INT)
                         .jvmField()
@@ -363,7 +361,7 @@ class KotlinCodeGenerator(
 
     // region Structs
 
-    fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
+    internal fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
         val structClassName = ClassName(struct.kotlinNamespace, struct.name)
         val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
             if (struct.fields.isNotEmpty()) {
@@ -486,7 +484,7 @@ class KotlinCodeGenerator(
 
     // region Redaction/obfuscation
 
-    fun generateToString(struct: StructType): FunSpec {
+    internal fun generateToString(struct: StructType): FunSpec {
 
         val block = buildCodeBlock {
             add("return \"${struct.name}(")
@@ -548,7 +546,7 @@ class KotlinCodeGenerator(
 
     // region Builders
 
-    fun generateBuilderFor(schema: Schema, struct: StructType): TypeSpec {
+    internal fun generateBuilderFor(schema: Schema, struct: StructType): TypeSpec {
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
                 .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
@@ -634,7 +632,15 @@ class KotlinCodeGenerator(
 
     // region Adapters
 
-    fun generateAdapterFor(
+    /**
+     * Generates an adapter for the given struct type.
+     *
+     * The kind of adapter generated depends on whether a [builderType] is
+     * provided.  If so, a conventional [com.microsoft.thrifty.Adapter] gets
+     * created, making use of the given [builderType].  If not, a so-called
+     * "builderless" [com.microsoft.thrifty.kotlin.Adapter] is the result.
+     */
+    internal fun generateAdapterFor(
             struct: StructType,
             adapterName: ClassName,
             adapterInterfaceName: TypeName,
@@ -750,15 +756,19 @@ class KotlinCodeGenerator(
             reader.addStatement("return builder.build()")
         } else {
             val block = CodeBlock.builder()
-            block.add("return %T(", struct.typeName)
+            block.add("%[return %T(", struct.typeName)
+
+            val hasRequiredField = struct.fields.any { it.required }
+            val newlinePerParam = (hasRequiredField && struct.fields.size > 1) || struct.fields.size > 2
+            val separator = if (newlinePerParam) System.lineSeparator() else "%W"
+
+            if (newlinePerParam) {
+                block.add(System.lineSeparator())
+            }
 
             for ((ix, field) in struct.fields.withIndex()) {
                 if (ix > 0) {
-                    block.add(",%W")
-                }
-
-                if (field.required) {
-
+                    block.add(",%L", separator)
                 }
 
                 block.add("%N = ", nameAllocator.get(field))
@@ -771,7 +781,7 @@ class KotlinCodeGenerator(
                 }
             }
 
-            block.add(")")
+            block.add(")%]%L", System.lineSeparator())
 
             reader.addCode(block.build())
         }
@@ -1042,7 +1052,7 @@ class KotlinCodeGenerator(
 
     // region Constants
 
-    fun generateConstantProperty(schema: Schema, allocator: NameAllocator, constant: Constant): PropertySpec {
+    internal fun generateConstantProperty(schema: Schema, allocator: NameAllocator, constant: Constant): PropertySpec {
         val type = constant.type
         val typeName = type.typeName
         val propName = allocator.newName(constant.name, constant)
@@ -1093,7 +1103,7 @@ class KotlinCodeGenerator(
         return propBuilder.build()
     }
 
-    fun renderConstValue(schema: Schema, thriftType: ThriftType, valueElement: ConstValueElement): CodeBlock {
+    internal fun renderConstValue(schema: Schema, thriftType: ThriftType, valueElement: ConstValueElement): CodeBlock {
         fun recursivelyRenderConstValue(block: CodeBlock.Builder, type: ThriftType, value: ConstValueElement) {
             type.accept(object : ThriftType.Visitor<Unit> {
                 override fun visitVoid(voidType: BuiltinType) {
@@ -1367,7 +1377,7 @@ class KotlinCodeGenerator(
 
     // region Services
 
-    fun generateServiceInterface(serviceType: ServiceType): TypeSpec {
+    internal fun generateServiceInterface(serviceType: ServiceType): TypeSpec {
         val type = TypeSpec.interfaceBuilder(serviceType.name).apply {
             if (serviceType.hasJavadoc) addKdoc("%L", serviceType.documentation)
             if (serviceType.isDeprecated) addAnnotation(makeDeprecated())
@@ -1410,7 +1420,7 @@ class KotlinCodeGenerator(
         return type.build()
     }
 
-    fun generateServiceImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
+    internal fun generateServiceImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
         val type = TypeSpec.classBuilder(serviceType.name + "Client").apply {
             val baseType = serviceType.extendsService as? ServiceType
             val baseClassName = if (baseType != null) {
