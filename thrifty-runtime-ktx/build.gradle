@@ -18,29 +18,11 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
+description = 'Provides Kotlin support and compatibility with thrifty-runtime.'
 
 apply plugin: 'kotlin'
 
-description = 'Converts Thrifty Schemas into Kotlin source files'
-
 dependencies {
-    api project(":thrifty-schema")
-    api project(":thrifty-compiler-plugins")
-    api libraries.okio
-    implementation libraries.kotlinPoet
-
+    api project(':thrifty-runtime')
     api libraries.kotlin
-
-    implementation project(':thrifty-runtime')
-    implementation project(':thrifty-runtime-ktx')
-
-    testImplementation libraries.testing
-
-    testImplementation 'com.google.testing.compile:compile-testing:0.9'
-}
-
-kotlin {
-    experimental {
-        coroutines "enable"
-    }
 }

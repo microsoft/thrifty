@@ -32,11 +32,13 @@ import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.ThriftException
 import com.microsoft.thrifty.ThriftField
 import com.microsoft.thrifty.compiler.spi.KotlinTypeProcessor
+import com.microsoft.thrifty.kotlin.Adapter as KtAdapter
 import com.microsoft.thrifty.protocol.MessageMetadata
 import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.schema.BuiltinType
 import com.microsoft.thrifty.schema.Constant
 import com.microsoft.thrifty.schema.EnumType
+import com.microsoft.thrifty.schema.Field
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.ListType
 import com.microsoft.thrifty.schema.MapType
@@ -102,12 +104,6 @@ private object Tags {
 /**
  * Generates Kotlin code from a [Schema].
  *
- * While substantially complete, there is a bit more yet to be implemented:
- * - Services (coroutine-based?)
- * - Builderless adapters (builders are dumb, given data classes)
- * - Customizable collection types?  Some droids prefer ArrayMap, ArraySet, etc
- * - Option to emit one file per type
- *
  * @param fieldNamingPolicy A user-specified naming policy for fields.
  */
 class KotlinCodeGenerator(
@@ -122,6 +118,7 @@ class KotlinCodeGenerator(
     private var shouldImplementStruct: Boolean = true
 
     private var parcelize: Boolean = false
+    private var builderlessDataClasses: Boolean = false
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -184,6 +181,8 @@ class KotlinCodeGenerator(
         }
     })
 
+    // region Configuration
+
     var processor: KotlinTypeProcessor = NoTypeProcessor
     var outputStyle: OutputStyle = OutputStyle.FILE_PER_NAMESPACE
 
@@ -203,9 +202,15 @@ class KotlinCodeGenerator(
         this.mapClassName = ClassName.bestGuess(name)
     }
 
+    fun builderlessDataClasses(): KotlinCodeGenerator = apply {
+        this.builderlessDataClasses = true
+    }
+
     private object NoTypeProcessor : KotlinTypeProcessor {
         override fun process(typeSpec: TypeSpec) = typeSpec
     }
+
+    // endregion Configuration
 
     fun generate(schema: Schema): List<FileSpec> {
         TypeSpec.classBuilder("foo")
@@ -289,7 +294,7 @@ class KotlinCodeGenerator(
 
     // region Aliases
 
-    fun generateTypeAlias(typedef: TypedefType): TypeAliasSpec {
+    internal fun generateTypeAlias(typedef: TypedefType): TypeAliasSpec {
         return TypeAliasSpec.builder(typedef.name, typedef.oldType.typeName).run {
             if (typedef.hasJavadoc) {
                 addKdoc("%L", typedef.documentation)
@@ -302,7 +307,7 @@ class KotlinCodeGenerator(
 
     // region Enums
 
-    fun generateEnumClass(enumType: EnumType): TypeSpec {
+    internal fun generateEnumClass(enumType: EnumType): TypeSpec {
         val typeBuilder = TypeSpec.enumBuilder(enumType.name)
                 .addProperty(PropertySpec.builder("value", INT)
                         .jvmField()
@@ -356,7 +361,7 @@ class KotlinCodeGenerator(
 
     // region Structs
 
-    fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
+    internal fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
         val structClassName = ClassName(struct.kotlinNamespace, struct.name)
         val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
             if (struct.fields.isNotEmpty()) {
@@ -412,7 +417,7 @@ class KotlinCodeGenerator(
             typeBuilder.addProperty(prop.build())
         }
 
-        if (true) { // TODO: Add an option to generate Java-style builders
+        if (!builderlessDataClasses) {
 
             val builderTypeName = ClassName(struct.kotlinNamespace, struct.name, "Builder")
             val adapterTypeName = ClassName(struct.kotlinNamespace, struct.name, "${struct.name}Adapter")
@@ -427,7 +432,17 @@ class KotlinCodeGenerator(
                     .jvmField()
                     .build())
         } else {
-            TODO("Builderless adapters")
+            val adapterTypeName = ClassName(struct.kotlinNamespace, struct.name, "${struct.name}Adapter")
+            val adapterInterfaceTypeName = KtAdapter::class
+                    .asTypeName()
+                    .parameterizedBy(struct.typeName)
+
+            typeBuilder.addType(generateAdapterFor(struct, adapterTypeName, adapterInterfaceTypeName, null))
+
+            companionBuilder.addProperty(PropertySpec.builder("ADAPTER", adapterInterfaceTypeName)
+                    .initializer("%T()", adapterTypeName)
+                    .jvmField()
+                    .build())
         }
 
         if (struct.fields.any { it.isObfuscated || it.isRedacted } || struct.fields.isEmpty()) {
@@ -469,7 +484,7 @@ class KotlinCodeGenerator(
 
     // region Redaction/obfuscation
 
-    fun generateToString(struct: StructType): FunSpec {
+    internal fun generateToString(struct: StructType): FunSpec {
 
         val block = buildCodeBlock {
             add("return \"${struct.name}(")
@@ -531,7 +546,7 @@ class KotlinCodeGenerator(
 
     // region Builders
 
-    fun generateBuilderFor(schema: Schema, struct: StructType): TypeSpec {
+    internal fun generateBuilderFor(schema: Schema, struct: StructType): TypeSpec {
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
                 .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
@@ -617,20 +632,32 @@ class KotlinCodeGenerator(
 
     // region Adapters
 
-    fun generateAdapterFor(
+    /**
+     * Generates an adapter for the given struct type.
+     *
+     * The kind of adapter generated depends on whether a [builderType] is
+     * provided.  If so, a conventional [com.microsoft.thrifty.Adapter] gets
+     * created, making use of the given [builderType].  If not, a so-called
+     * "builderless" [com.microsoft.thrifty.kotlin.Adapter] is the result.
+     */
+    internal fun generateAdapterFor(
             struct: StructType,
             adapterName: ClassName,
             adapterInterfaceName: TypeName,
-            builderType: ClassName): TypeSpec {
+            builderType: ClassName?): TypeSpec {
         val adapter = TypeSpec.classBuilder(adapterName)
                 .addModifiers(KModifier.PRIVATE)
                 .addSuperinterface(adapterInterfaceName)
 
-        val reader = FunSpec.builder("read")
-                .addModifiers(KModifier.OVERRIDE)
-                .returns(struct.typeName)
-                .addParameter("protocol", Protocol::class)
-                .addParameter("builder", builderType)
+        val reader = FunSpec.builder("read").apply {
+            addModifiers(KModifier.OVERRIDE)
+            returns(struct.typeName)
+            addParameter("protocol", Protocol::class)
+
+            if (builderType != null) {
+                addParameter("builder", builderType)
+            }
+        }
 
         val writer = FunSpec.builder("write")
                 .addModifiers(KModifier.OVERRIDE)
@@ -669,6 +696,16 @@ class KotlinCodeGenerator(
 
         // Reader next
 
+        fun localFieldName(field: Field): String {
+            return "_local_${field.name}"
+        }
+
+        if (builderType == null) {
+            for (field in struct.fields) {
+                reader.addStatement("var %N: %T? = null", localFieldName(field), field.type.typeName)
+            }
+        }
+
         reader.addStatement("protocol.readStructBegin()")
         reader.beginControlFlow("while (true)")
 
@@ -691,7 +728,12 @@ class KotlinCodeGenerator(
                     beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
 
                     generateRecursiveReadCall(this, name, fieldType)
-                    addStatement("builder.$name($name)")
+
+                    if (builderType != null) {
+                        addStatement("builder.$name($name)")
+                    } else {
+                        addStatement("%N = $name", localFieldName(field))
+                    }
 
                     nextControlFlow("else")
                     addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
@@ -709,16 +751,52 @@ class KotlinCodeGenerator(
         reader.addStatement("protocol.readFieldEnd()")
         reader.endControlFlow() // while (true)
         reader.addStatement("protocol.readStructEnd()")
-        reader.addStatement("return builder.build()")
+
+        if (builderType != null) {
+            reader.addStatement("return builder.build()")
+        } else {
+            val block = CodeBlock.builder()
+            block.add("%[return %T(", struct.typeName)
+
+            val hasRequiredField = struct.fields.any { it.required }
+            val newlinePerParam = (hasRequiredField && struct.fields.size > 1) || struct.fields.size > 2
+            val separator = if (newlinePerParam) System.lineSeparator() else "%W"
+
+            if (newlinePerParam) {
+                block.add(System.lineSeparator())
+            }
+
+            for ((ix, field) in struct.fields.withIndex()) {
+                if (ix > 0) {
+                    block.add(",%L", separator)
+                }
+
+                block.add("%N = ", nameAllocator.get(field))
+                if (field.required) {
+                    block.add("checkNotNull(%N) { %S }",
+                            localFieldName(field),
+                            "Required field '${nameAllocator.get(field)}' is missing")
+                } else {
+                    block.add("%N", localFieldName(field))
+                }
+            }
+
+            block.add(")%]%L", System.lineSeparator())
+
+            reader.addCode(block.build())
+        }
+
+        if (builderType != null) {
+            adapter.addFunction(FunSpec.builder("read")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addParameter("protocol", Protocol::class)
+                    .addStatement("return read(protocol, %T())", builderType)
+                    .build())
+        }
 
         return adapter
-                .addFunction(writer.build())
                 .addFunction(reader.build())
-                .addFunction(FunSpec.builder("read")
-                        .addModifiers(KModifier.OVERRIDE)
-                        .addParameter("protocol", Protocol::class)
-                        .addStatement("return read(protocol, %T())", builderType)
-                        .build())
+                .addFunction(writer.build())
                 .build()
     }
 
@@ -974,7 +1052,7 @@ class KotlinCodeGenerator(
 
     // region Constants
 
-    fun generateConstantProperty(schema: Schema, allocator: NameAllocator, constant: Constant): PropertySpec {
+    internal fun generateConstantProperty(schema: Schema, allocator: NameAllocator, constant: Constant): PropertySpec {
         val type = constant.type
         val typeName = type.typeName
         val propName = allocator.newName(constant.name, constant)
@@ -1025,7 +1103,7 @@ class KotlinCodeGenerator(
         return propBuilder.build()
     }
 
-    fun renderConstValue(schema: Schema, thriftType: ThriftType, valueElement: ConstValueElement): CodeBlock {
+    internal fun renderConstValue(schema: Schema, thriftType: ThriftType, valueElement: ConstValueElement): CodeBlock {
         fun recursivelyRenderConstValue(block: CodeBlock.Builder, type: ThriftType, value: ConstValueElement) {
             type.accept(object : ThriftType.Visitor<Unit> {
                 override fun visitVoid(voidType: BuiltinType) {
@@ -1299,7 +1377,7 @@ class KotlinCodeGenerator(
 
     // region Services
 
-    fun generateServiceInterface(serviceType: ServiceType): TypeSpec {
+    internal fun generateServiceInterface(serviceType: ServiceType): TypeSpec {
         val type = TypeSpec.interfaceBuilder(serviceType.name).apply {
             if (serviceType.hasJavadoc) addKdoc("%L", serviceType.documentation)
             if (serviceType.isDeprecated) addAnnotation(makeDeprecated())
@@ -1342,7 +1420,7 @@ class KotlinCodeGenerator(
         return type.build()
     }
 
-    fun generateServiceImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
+    internal fun generateServiceImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
         val type = TypeSpec.classBuilder(serviceType.name + "Client").apply {
             val baseType = serviceType.extendsService as? ServiceType
             val baseClassName = if (baseType != null) {

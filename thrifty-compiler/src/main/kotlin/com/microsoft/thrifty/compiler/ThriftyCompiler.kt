@@ -129,6 +129,9 @@ class ThriftyCompiler {
                     "--kt-file-per-type", help = "Generate one .kt file per type; default is one per namespace.")
                 .flag(default = false)
 
+        val kotlinBuilderlessDataClasses: Boolean by option("--experimental-kt-builderless-structs")
+                .flag(default = false)
+
         val thriftFiles: List<Path> by argument(help = "All .thrift files to compile")
                 .path(exists = true, fileOkay = true, folderOkay = false, readable = true)
                 .multiple()
@@ -157,6 +160,7 @@ class ThriftyCompiler {
             }
 
             val impliedLanguage = when {
+                kotlinBuilderlessDataClasses -> Language.KOTLIN
                 kotlinFilePerType -> Language.KOTLIN
                 emitNullabilityAnnotations -> Language.JAVA
                 else -> null
@@ -213,6 +217,10 @@ class ThriftyCompiler {
             listTypeName?.let { gen.listClassName(it) }
             setTypeName?.let { gen.setClassName(it) }
             mapTypeName?.let { gen.mapClassName(it) }
+
+            if (kotlinBuilderlessDataClasses) {
+                gen.builderlessDataClasses()
+            }
 
             val svc = TypeProcessorService.getInstance()
             svc.kotlinProcessor?.let {
