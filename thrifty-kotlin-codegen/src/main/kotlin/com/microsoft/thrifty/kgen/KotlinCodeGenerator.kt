@@ -32,11 +32,13 @@ import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.ThriftException
 import com.microsoft.thrifty.ThriftField
 import com.microsoft.thrifty.compiler.spi.KotlinTypeProcessor
+import com.microsoft.thrifty.kotlin.Adapter as KtAdapter
 import com.microsoft.thrifty.protocol.MessageMetadata
 import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.schema.BuiltinType
 import com.microsoft.thrifty.schema.Constant
 import com.microsoft.thrifty.schema.EnumType
+import com.microsoft.thrifty.schema.Field
 import com.microsoft.thrifty.schema.FieldNamingPolicy
 import com.microsoft.thrifty.schema.ListType
 import com.microsoft.thrifty.schema.MapType
@@ -122,6 +124,7 @@ class KotlinCodeGenerator(
     private var shouldImplementStruct: Boolean = true
 
     private var parcelize: Boolean = false
+    private var builderlessDataClasses: Boolean = false
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -201,6 +204,10 @@ class KotlinCodeGenerator(
 
     fun mapClassName(name: String): KotlinCodeGenerator = apply {
         this.mapClassName = ClassName.bestGuess(name)
+    }
+
+    fun builderlessDataClasses(): KotlinCodeGenerator = apply {
+        this.builderlessDataClasses = true
     }
 
     private object NoTypeProcessor : KotlinTypeProcessor {
@@ -412,7 +419,7 @@ class KotlinCodeGenerator(
             typeBuilder.addProperty(prop.build())
         }
 
-        if (true) { // TODO: Add an option to generate Java-style builders
+        if (!builderlessDataClasses) {
 
             val builderTypeName = ClassName(struct.kotlinNamespace, struct.name, "Builder")
             val adapterTypeName = ClassName(struct.kotlinNamespace, struct.name, "${struct.name}Adapter")
@@ -427,7 +434,17 @@ class KotlinCodeGenerator(
                     .jvmField()
                     .build())
         } else {
-            TODO("Builderless adapters")
+            val adapterTypeName = ClassName(struct.kotlinNamespace, struct.name, "${struct.name}Adapter")
+            val adapterInterfaceTypeName = KtAdapter::class
+                    .asTypeName()
+                    .parameterizedBy(struct.typeName)
+
+            typeBuilder.addType(generateAdapterFor(struct, adapterTypeName, adapterInterfaceTypeName, null))
+
+            companionBuilder.addProperty(PropertySpec.builder("ADAPTER", adapterInterfaceTypeName)
+                    .initializer("%T()", adapterTypeName)
+                    .jvmField()
+                    .build())
         }
 
         if (struct.fields.any { it.isObfuscated || it.isRedacted } || struct.fields.isEmpty()) {
@@ -621,16 +638,20 @@ class KotlinCodeGenerator(
             struct: StructType,
             adapterName: ClassName,
             adapterInterfaceName: TypeName,
-            builderType: ClassName): TypeSpec {
+            builderType: ClassName?): TypeSpec {
         val adapter = TypeSpec.classBuilder(adapterName)
                 .addModifiers(KModifier.PRIVATE)
                 .addSuperinterface(adapterInterfaceName)
 
-        val reader = FunSpec.builder("read")
-                .addModifiers(KModifier.OVERRIDE)
-                .returns(struct.typeName)
-                .addParameter("protocol", Protocol::class)
-                .addParameter("builder", builderType)
+        val reader = FunSpec.builder("read").apply {
+            addModifiers(KModifier.OVERRIDE)
+            returns(struct.typeName)
+            addParameter("protocol", Protocol::class)
+
+            if (builderType != null) {
+                addParameter("builder", builderType)
+            }
+        }
 
         val writer = FunSpec.builder("write")
                 .addModifiers(KModifier.OVERRIDE)
@@ -669,6 +690,16 @@ class KotlinCodeGenerator(
 
         // Reader next
 
+        fun localFieldName(field: Field): String {
+            return "_local_${field.name}"
+        }
+
+        if (builderType == null) {
+            for (field in struct.fields) {
+                reader.addStatement("var %N: %T? = null", localFieldName(field), field.type.typeName)
+            }
+        }
+
         reader.addStatement("protocol.readStructBegin()")
         reader.beginControlFlow("while (true)")
 
@@ -691,7 +722,12 @@ class KotlinCodeGenerator(
                     beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
 
                     generateRecursiveReadCall(this, name, fieldType)
-                    addStatement("builder.$name($name)")
+
+                    if (builderType != null) {
+                        addStatement("builder.$name($name)")
+                    } else {
+                        addStatement("%N = $name", localFieldName(field))
+                    }
 
                     nextControlFlow("else")
                     addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
@@ -709,16 +745,48 @@ class KotlinCodeGenerator(
         reader.addStatement("protocol.readFieldEnd()")
         reader.endControlFlow() // while (true)
         reader.addStatement("protocol.readStructEnd()")
-        reader.addStatement("return builder.build()")
+
+        if (builderType != null) {
+            reader.addStatement("return builder.build()")
+        } else {
+            val block = CodeBlock.builder()
+            block.add("return %T(", struct.typeName)
+
+            for ((ix, field) in struct.fields.withIndex()) {
+                if (ix > 0) {
+                    block.add(",%W")
+                }
+
+                if (field.required) {
+
+                }
+
+                block.add("%N = ", nameAllocator.get(field))
+                if (field.required) {
+                    block.add("checkNotNull(%N) { %S }",
+                            localFieldName(field),
+                            "Required field '${nameAllocator.get(field)}' is missing")
+                } else {
+                    block.add("%N", localFieldName(field))
+                }
+            }
+
+            block.add(")")
+
+            reader.addCode(block.build())
+        }
+
+        if (builderType != null) {
+            adapter.addFunction(FunSpec.builder("read")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addParameter("protocol", Protocol::class)
+                    .addStatement("return read(protocol, %T())", builderType)
+                    .build())
+        }
 
         return adapter
-                .addFunction(writer.build())
                 .addFunction(reader.build())
-                .addFunction(FunSpec.builder("read")
-                        .addModifiers(KModifier.OVERRIDE)
-                        .addParameter("protocol", Protocol::class)
-                        .addStatement("return read(protocol, %T())", builderType)
-                        .build())
+                .addFunction(writer.build())
                 .build()
     }
 

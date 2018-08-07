@@ -27,6 +27,7 @@ dependencies {
     implementation project(':thrifty-compiler')
 
     testImplementation project(':thrifty-runtime')
+    testImplementation project(':thrifty-runtime-ktx')
     testImplementation project(':thrifty-test-server')
     testImplementation libraries.guava
 
