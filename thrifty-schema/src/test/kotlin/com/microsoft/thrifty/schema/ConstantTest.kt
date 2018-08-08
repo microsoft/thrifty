@@ -22,6 +22,7 @@ package com.microsoft.thrifty.schema
 
 import com.microsoft.thrifty.schema.parser.ConstElement
 import com.microsoft.thrifty.schema.parser.ConstValueElement
+import com.microsoft.thrifty.schema.parser.DoubleValueElement
 import com.microsoft.thrifty.schema.parser.EnumElement
 import com.microsoft.thrifty.schema.parser.EnumMemberElement
 import com.microsoft.thrifty.schema.parser.IdentifierValueElement
@@ -160,6 +161,67 @@ class ConstantTest {
             fail("out-of-range i32 should fail")
         } catch (e: IllegalStateException) {
             assertThat<String>(e.message, containsString("out of range for type i32"))
+        }
+
+    }
+
+    @Test
+    fun doubleLiteral() {
+        Constant.validate(symbolTable, IntValueElement(loc, "10", 10), BuiltinType.DOUBLE)
+        Constant.validate(symbolTable, DoubleValueElement(loc, "3.14", 3.14), BuiltinType.DOUBLE)
+        try {
+            Constant.validate(symbolTable, LiteralValueElement(loc, "aString", "aString"), BuiltinType.DOUBLE)
+            fail("String literal should not validate as a double")
+        } catch (expected: IllegalStateException) {
+            assertThat<String>(
+                    expected.message,
+                    containsString("Expected a value of type DOUBLE but got aString"))
+        }
+    }
+
+    @Test
+    fun doubleConstant() {
+        val c = makeConstant(
+                "aDouble",
+                ScalarTypeElement(loc, "string", null),
+                IdentifierValueElement(loc, "aDouble", "aDouble"),
+                BuiltinType.DOUBLE)
+
+        `when`<Constant>(symbolTable.lookupConst("aDouble")).thenReturn(c)
+
+        Constant.validate(symbolTable, IdentifierValueElement(loc, "aDouble", "aDouble"), BuiltinType.DOUBLE)
+    }
+
+    @Test
+    fun doubleWithWrongTypeOfConstant() {
+        val c = makeConstant(
+                "aString",
+                ScalarTypeElement(loc, "string", null),
+                IdentifierValueElement(loc, "aString", "aString"),
+                BuiltinType.STRING)
+
+        `when`<Constant>(symbolTable.lookupConst("aString")).thenReturn(c)
+
+        try {
+            Constant.validate(symbolTable, IdentifierValueElement(loc, "aString", "aString"), BuiltinType.DOUBLE)
+            fail("Wrongly-typed constant should not validate")
+        } catch (expected: IllegalStateException) {
+            assertThat<String>(
+                    expected.message,
+                    containsString("Expected a value of type double, but got string"))
+        }
+
+    }
+
+    @Test
+    fun doubleWithNonConstantIdentifier() {
+        try {
+            Constant.validate(symbolTable, IdentifierValueElement(loc, "someStruct", "someStruct"), BuiltinType.DOUBLE)
+            fail("Non-constant identifier should not validate")
+        } catch (expected: IllegalStateException) {
+            assertThat<String>(
+                    expected.message,
+                    containsString("Unrecognized const identifier: someStruct"))
         }
 
     }
