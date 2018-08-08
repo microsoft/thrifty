@@ -212,8 +212,9 @@ class Constant private constructor (
                                 "Expected a value of type ${expected.name}, but got ${constant.type.name}")
                     }
                 }
+
+                else -> throw IllegalStateException("Expected a value of type DOUBLE but got $valueElement")
             }
-            throw IllegalStateException("Expected a value of type DOUBLE but got $valueElement")
         }
     }
 
