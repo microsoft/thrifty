@@ -432,3 +432,9 @@ struct MapsOfEnums {
   1: map<Numberz, Numberz> mapOne;
   2: map<list<Numberz>, Numberz> mapTwo;
 }
+
+struct MapsOfCollections {
+  1: map<set<i32>, set<string>> mapOfSets;
+  2: map<list<double>, list<i64>> mapOfLists;
+  3: map<map<i32, i32>, map<i8, i8>> mapOfMaps;
+}

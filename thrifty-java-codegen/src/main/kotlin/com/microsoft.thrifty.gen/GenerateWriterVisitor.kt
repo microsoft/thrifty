@@ -33,7 +33,6 @@ import com.microsoft.thrifty.schema.StructType
 import com.microsoft.thrifty.schema.ThriftType
 import com.microsoft.thrifty.schema.TypedefType
 import com.squareup.javapoet.MethodSpec
-import com.squareup.javapoet.NameAllocator
 import com.squareup.javapoet.ParameterizedTypeName
 import java.util.Deque
 
@@ -72,10 +71,6 @@ internal class GenerateWriterVisitor(
      * and temporary names used when writing nested collections.
      */
     private var scopeLevel: Int = 0
-
-    private val nameAllocator = NameAllocator().apply {
-        newName(proto, proto)
-    }
 
     override fun visitBool(boolType: BuiltinType) {
         write.addStatement("\$N.writeBool(\$L)", proto, nameStack.peek())
@@ -132,8 +127,7 @@ internal class GenerateWriterVisitor(
     }
 
     private fun visitSingleElementCollection(elementType: ThriftType, beginMethod: String, endMethod: String) {
-        val tag = "item$scopeLevel"
-        val item = nameAllocator.newName(tag, tag)
+        val item = "item$scopeLevel"
 
         val javaClass = resolver.getJavaClass(elementType)
         val typeCode = resolver.getTypeCode(elementType)
@@ -161,13 +155,9 @@ internal class GenerateWriterVisitor(
     }
 
     override fun visitMap(mapType: MapType) {
-        val entryTag = "entry$scopeLevel"
-        val keyTag = "key$scopeLevel"
-        val valueTag = "value$scopeLevel"
-
-        val entryName = nameAllocator.newName(entryTag, entryTag)
-        val keyName = nameAllocator.newName(keyTag, keyTag)
-        val valueName = nameAllocator.newName(valueTag, valueTag)
+        val entryName = "entry$scopeLevel"
+        val keyName = "key$scopeLevel"
+        val valueName = "value$scopeLevel"
         val kt = mapType.keyType.trueType
         val vt = mapType.valueType.trueType
 
@@ -185,7 +175,7 @@ internal class GenerateWriterVisitor(
         val keyTypeName = resolver.getJavaClass(kt)
         val valueTypeName = resolver.getJavaClass(vt)
         val entry = ParameterizedTypeName.get(TypeNames.MAP_ENTRY, keyTypeName, valueTypeName)
-        write.beginControlFlow("for (\$T \$N : \$L.entrySet())", entry, entryTag, nameStack.peek())
+        write.beginControlFlow("for (\$T \$N : \$L.entrySet())", entry, entryName, nameStack.peek())
         write.addStatement("\$T \$N = \$N.getKey()", keyTypeName, keyName, entryName)
         write.addStatement("\$T \$N = \$N.getValue()", valueTypeName, valueName, entryName)
 
