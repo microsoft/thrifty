@@ -204,9 +204,11 @@ internal open class GenerateReaderVisitor(
             mapType.keyType.accept(this)
             nameStack.pop()
 
-            nameStack.push(value)
-            mapType.valueType.accept(this)
-            nameStack.pop()
+            pushScope {
+                nameStack.push(value)
+                mapType.valueType.accept(this)
+                nameStack.pop()
+            }
 
             read.addStatement("\$N.put(\$N, \$N)", nameStack.peek(), key, value)
 
