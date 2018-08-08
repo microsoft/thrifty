@@ -965,14 +965,12 @@ class KotlinCodeGenerator(
             }
 
             override fun visitEnum(enumType: EnumType) {
-                val codeName = "code$scope"
-                block.addStatement("val $codeName = protocol.readI32()")
-                block.addStatement("val $name = %T.findByValue($codeName)", enumType.typeName)
-                block.beginControlFlow("if ($name == null)")
-                block.addStatement("throw %T(%T.PROTOCOL_ERROR, \"Unexpected value for enum type %T: \$$codeName\")",
+                block.beginControlFlow("val $name = protocol.readI32().let")
+                block.addStatement(
+                        "%1T.findByValue(it) ?: throw %2T(%3T.PROTOCOL_ERROR, \"Unexpected value for enum type %1T: \$it\")",
+                        enumType.typeName,
                         ThriftException::class,
-                        ThriftException.Kind::class,
-                        enumType.typeName)
+                        ThriftException.Kind::class)
                 block.endControlFlow()
             }
 
