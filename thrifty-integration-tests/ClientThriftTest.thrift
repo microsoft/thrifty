@@ -427,3 +427,8 @@ const map<string, map<string, map<i32, i32>>> HEINOUS = {
 }
 
 const list<set<map<string, i32>>> ALL_THE_COLLECTIONS = [[], [{"foo": 1, "bar": 2}]]
+
+struct MapsOfEnums {
+  1: map<Numberz, Numberz> mapOne;
+  2: map<list<Numberz>, Numberz> mapTwo;
+}
