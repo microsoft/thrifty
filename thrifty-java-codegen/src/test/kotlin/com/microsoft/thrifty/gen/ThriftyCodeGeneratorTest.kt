@@ -433,6 +433,41 @@ class ThriftyCodeGeneratorTest {
     }
 
     @Test
+    fun mapsWithEnumKeysAndValues () {
+        val thrift = """
+            namespace java maps.enums
+
+            enum Key { KEY }
+            enum Value { VALUE }
+
+            struct HasMap {
+                1: optional map<Key, Value> m
+            }
+        """
+
+        val expected = """
+              for (int i0 = 0; i0 < mapMetadata0.size; ++i0) {
+                int i32_1 = protocol.readI32();
+                maps.enums.Key key0 = maps.enums.Key.findByValue(i32_1);
+                if (key0 == null) {
+                  throw new ThriftException(ThriftException.Kind.PROTOCOL_ERROR, "Unexpected value for enum-type Key: " + i32_1);
+                }
+                int i32_2 = protocol.readI32();
+                maps.enums.Value value0 = maps.enums.Value.findByValue(i32_2);
+                if (value0 == null) {
+                  throw new ThriftException(ThriftException.Kind.PROTOCOL_ERROR, "Unexpected value for enum-type Value: " + i32_2);
+                }
+                value.put(key0, value0);
+              }
+            """
+
+        val thriftFile = tmp.newFile("maps_enums.thrift")
+        val javaFile = compile(thriftFile, thrift)[2]
+
+        assertThat(javaFile.toString()).contains(expected)
+    }
+
+    @Test
     fun structsWithSigilsInJavadoc() {
         val thrift = """
             namespace java sigils.structs
