@@ -727,7 +727,7 @@ class KotlinCodeGenerator(
                     addStatement("${field.id} -> {%>")
                     beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
 
-                    generateRecursiveReadCall(this, name, fieldType)
+                    generateReadCall(this, name, fieldType)
 
                     if (builderType != null) {
                         addStatement("builder.$name($name)")
@@ -926,7 +926,13 @@ class KotlinCodeGenerator(
         generateRecursiveWrite(name, type, 0)
     }
 
-    private fun generateRecursiveReadCall(block: CodeBlock.Builder, name: String, type: ThriftType, scope: Int = 0): CodeBlock.Builder {
+    private fun generateReadCall(
+            block: CodeBlock.Builder,
+            name: String,
+            type: ThriftType,
+            scope: Int = 0,
+            localNamePrefix: String = ""
+    ): CodeBlock.Builder {
         type.accept(object : ThriftType.Visitor<Unit> {
             override fun visitVoid(voidType: BuiltinType) {
                 error("Cannot read a void, wat r u doing")
@@ -978,12 +984,21 @@ class KotlinCodeGenerator(
                 val elementType = listType.elementType
                 val listImplClassName = listClassName ?: ArrayList::class.asClassName()
                 val listImplType = listImplClassName.parameterizedBy(elementType.typeName)
-                val listMeta = "list$scope"
+                val listMeta = if (localNamePrefix.isNotEmpty()) {
+                    "${localNamePrefix}_list$scope"
+                } else {
+                    "list$scope"
+                }
                 block.addStatement("val $listMeta = protocol.readListBegin()")
                 block.addStatement("val $name = %T($listMeta.size)", listImplType)
 
                 block.beginControlFlow("for (i$scope in 0 until $listMeta.size)")
-                generateRecursiveReadCall(block, "item$scope", elementType, scope + 1)
+                generateReadCall(
+                        block = block,
+                        name = "item$scope",
+                        type = elementType,
+                        scope = scope + 1,
+                        localNamePrefix = "list$scope")
                 block.addStatement("$name += item$scope")
                 block.endControlFlow()
 
@@ -994,13 +1009,22 @@ class KotlinCodeGenerator(
                 val elementType = setType.elementType
                 val setImplClassName = setClassName ?: LinkedHashSet::class.asClassName()
                 val setImplType = setImplClassName.parameterizedBy(elementType.typeName)
-                val setMeta = "set$scope"
+                val setMeta = if (localNamePrefix.isNotEmpty()) {
+                    "${localNamePrefix}_set$scope"
+                } else {
+                    "set$scope"
+                }
 
                 block.addStatement("val $setMeta = protocol.readSetBegin()")
                 block.addStatement("val $name = %T($setMeta.size)", setImplType)
 
                 block.beginControlFlow("for (i$scope in 0 until $setMeta.size)")
-                generateRecursiveReadCall(block, "item$scope", elementType, scope + 1)
+                generateReadCall(
+                        block = block,
+                        name = "item$scope",
+                        type = elementType,
+                        scope = scope + 1,
+                        localNamePrefix = "set$scope")
                 block.addStatement("$name += item$scope")
                 block.endControlFlow()
 
@@ -1012,7 +1036,11 @@ class KotlinCodeGenerator(
                 val valType = mapType.valueType
                 val mapImplClassName = mapClassName ?: LinkedHashMap::class.asClassName()
                 val mapImplType = mapImplClassName.parameterizedBy(keyType.typeName, valType.typeName)
-                val mapMeta = "map$scope"
+                val mapMeta = if (localNamePrefix.isNotEmpty()) {
+                    "${localNamePrefix}_map$scope"
+                } else {
+                    "map$scope"
+                }
 
                 block.addStatement("val $mapMeta = protocol.readMapBegin()")
                 block.addStatement("val $name = %T($mapMeta.size)", mapImplType)
@@ -1022,8 +1050,8 @@ class KotlinCodeGenerator(
                 val keyName = "key$scope"
                 val valName = "val$scope"
 
-                generateRecursiveReadCall(block, keyName, keyType, scope + 1)
-                generateRecursiveReadCall(block, valName, valType, scope + 1)
+                generateReadCall(block, keyName, keyType, scope + 1, localNamePrefix = keyName)
+                generateReadCall(block, valName, valType, scope + 1, localNamePrefix = valName)
 
                 block.addStatement("$name[$keyName] = $valName")
                 block.endControlFlow()
@@ -1604,7 +1632,7 @@ class KotlinCodeGenerator(
                     addStatement("0 -> {%>")
                     beginControlFlow("if (%N.typeId == %T.%L)", fieldMeta, TType::class, returnType.typeCodeName)
 
-                    generateRecursiveReadCall(this, "value", returnType)
+                    generateReadCall(this, "value", returnType)
                     addStatement("%N = value", resultName)
 
                     nextControlFlow("else")
@@ -1621,7 +1649,7 @@ class KotlinCodeGenerator(
                     addStatement("${exn.id} -> {%>")
                     beginControlFlow("if (%N.typeId == %T.%L)", fieldMeta, TType::class, type.typeCodeName)
 
-                    generateRecursiveReadCall(this, "value", type)
+                    generateReadCall(this, "value", type)
                     addStatement("$name = value")
 
                     nextControlFlow("else")
