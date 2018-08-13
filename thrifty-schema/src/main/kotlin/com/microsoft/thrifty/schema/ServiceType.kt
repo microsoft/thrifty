@@ -26,10 +26,20 @@ import com.microsoft.thrifty.schema.parser.TypeElement
 import java.util.ArrayDeque
 import java.util.LinkedHashMap
 
+/**
+ * Represents a `service` defined in a .thrift file.
+ */
 class ServiceType : UserType {
+    /**
+     * The methods defined by this service.
+     */
     val methods: List<ServiceMethod>
     private val extendsServiceType: TypeElement?
 
+    /**
+     * The type of the service that this service extends, or null if this does
+     * not extend any other service.
+     */
     // This is intentionally too broad - it is not legal for a service to extend
     // a non-service type, but if we've parsed that we need to keep the invalid
     // state long enough to catch it during link validation.
@@ -57,6 +67,9 @@ class ServiceType : UserType {
                 .build()
     }
 
+    /**
+     * Creates a [Builder] initialized with this service's values.
+     */
     fun toBuilder(): Builder = Builder(this)
 
     internal fun link(linker: Linker) {
@@ -127,6 +140,9 @@ class ServiceType : UserType {
         }
     }
 
+    /**
+     * An object that can create new [ServiceType] instances.
+     */
     class Builder internal constructor(type: ServiceType) : UserType.UserTypeBuilder<ServiceType, Builder>(type) {
         internal var methods: List<ServiceMethod> = type.methods
         internal val extendsServiceType: TypeElement? = type.extendsServiceType
@@ -137,14 +153,24 @@ class ServiceType : UserType {
             this.extendsService = type.extendsService
         }
 
+        /**
+         * Use the given [methods] for the service under construction.
+         */
         fun methods(methods: List<ServiceMethod>): Builder = apply {
             this.methods = methods
         }
 
-        fun extendsService(extendsService: ThriftType): Builder = apply {
+        /**
+         * Use the given [base type][extendsService] for the service under
+         * construction.
+         */
+        fun extendsService(extendsService: ThriftType?): Builder = apply {
             this.extendsService = extendsService
         }
 
+        /**
+         * Creates a new [ServiceType] instance.
+         */
         override fun build(): ServiceType {
             return ServiceType(this)
         }

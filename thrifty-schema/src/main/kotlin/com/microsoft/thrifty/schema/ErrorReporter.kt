@@ -20,24 +20,44 @@
  */
 package com.microsoft.thrifty.schema
 
+/**
+ * An object that can collect warning and error reports generated during
+ * parsing and schema validation.
+ */
 class ErrorReporter {
+    /**
+     * True if this reporter contains error-level reports.
+     */
     var hasError = false
         private set
 
     private val reports_: MutableList<Report> = mutableListOf()
 
+    /**
+     * All reports collected by this reporter.
+     */
     val reports: List<Report>
         get() = reports_
 
+    /**
+     * Reports a warning at the given [location].
+     */
     fun warn(location: Location, message: String) {
         reports_.add(Report(Level.WARNING, location, message))
     }
 
+    /**
+     * Reports an error at the given [location].
+     */
     fun error(location: Location, message: String) {
         hasError = true
         reports_.add(Report(Level.ERROR, location, message))
     }
 
+    /**
+     * Returns a list of formatted warning and error reports contained in this
+     * reporter.
+     */
     fun formattedReports(): List<String> {
         val list = mutableListOf<String>()
         val sb = StringBuilder()
@@ -59,14 +79,31 @@ class ErrorReporter {
         return list
     }
 
+    /**
+     * A structure containing a report level, content, and location.
+     *
+     * @property level The severity of the report.
+     * @property location The point in a .thrift file containing the subject of the report.
+     * @property message A description of the warning or error condition.
+     */
     data class Report(
             val level: Level,
             val location: Location,
             val message: String
     )
 
+    /**
+     * The severities of reports.
+     */
     enum class Level {
+        /**
+         * A warning is non-fatal, but should be investigated.
+         */
         WARNING,
+
+        /**
+         * An error indicates that loading cannot proceed.
+         */
         ERROR
     }
 }

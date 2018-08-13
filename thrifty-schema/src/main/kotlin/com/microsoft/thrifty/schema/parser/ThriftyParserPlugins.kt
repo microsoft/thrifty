@@ -22,6 +22,10 @@ package com.microsoft.thrifty.schema.parser
 
 import java.util.UUID
 
+/**
+ * An extension point for controlling UUID assignment to parsed Thrift entities
+ * during unit tests or as part of a larger pipeline.
+ */
 object ThriftyParserPlugins {
     private val DEFAULT_UUID_PROVIDER: UUIDProvider = object : UUIDProvider {
         override fun call(): UUID = UUID.randomUUID()
@@ -66,12 +70,15 @@ object ThriftyParserPlugins {
     }
 
     /**
-     * @return a [UUID] as dictated by [uuidProvider]. Default is random UUIDs.
+     * @return a [UUID] as dictated by the current [UUIDProvider]. Default is random UUIDs.
      */
     fun createUUID(): UUID {
         return uuidProvider.call()
     }
 
+    /**
+     * Resets the current [UUIDProvider] to the default, random, UUID provider.
+     */
     fun reset() {
         uuidProvider = DEFAULT_UUID_PROVIDER
     }

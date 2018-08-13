@@ -26,6 +26,12 @@ import com.microsoft.thrifty.compiler.spi.TypeProcessor;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
+/**
+ * An object that locate {@link TypeProcessor} and {@link KotlinTypeProcessor}
+ * objects from the current classpath.
+ *
+ * Used by the compiler to detect and run user-provided processors.
+ */
 public final class TypeProcessorService {
     private static TypeProcessorService instance;
 

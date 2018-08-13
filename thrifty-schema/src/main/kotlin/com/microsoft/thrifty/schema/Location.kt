@@ -61,6 +61,7 @@ class Location private constructor(
         return Location(base, path, line, column)
     }
 
+    /** @inheritdoc */
     override fun toString(): String {
         val sb = StringBuilder(base.length + path.length)
         if (!base.isEmpty()) {
@@ -76,6 +77,7 @@ class Location private constructor(
         return sb.toString()
     }
 
+    /** @inheritdoc */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other is Location) {
@@ -89,6 +91,7 @@ class Location private constructor(
         return false
     }
 
+    /** @inheritdoc */
     override fun hashCode(): Int {
         var result = base.hashCode()
         result = 31 * result + path.hashCode()
@@ -98,6 +101,9 @@ class Location private constructor(
     }
 
     companion object {
+        /**
+         * Creates a [Location] pointing to the given [base] and [path].
+         */
         fun get(base: String, path: String): Location {
             return Location(base, path, -1, -1)
         }

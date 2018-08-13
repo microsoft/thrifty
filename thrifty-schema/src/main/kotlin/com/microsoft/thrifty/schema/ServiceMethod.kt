@@ -24,6 +24,12 @@ import com.microsoft.thrifty.schema.parser.FunctionElement
 
 import java.util.LinkedHashMap
 
+/**
+ * Represents a method defined by a Thrift service.
+ *
+ * @property parameters The parameters accepted by this method.
+ * @property exceptions The exceptions thrown by this method.
+ */
 class ServiceMethod private constructor(
         private val element: FunctionElement,
         private val mixin: UserElementMixin,
@@ -32,15 +38,24 @@ class ServiceMethod private constructor(
         private var returnType_: ThriftType? = null
 ) : UserElement by mixin {
 
+    /**
+     * The type of value returned by this method, or [BuiltinType.VOID].
+     */
     val returnType: ThriftType
         get() = returnType_!!
 
+    /**
+     * True if this method was declared as `oneway`, otherwise false.
+     */
     val oneWay: Boolean
         get() = element.oneWay
 
     internal constructor(element: FunctionElement, namespaces: Map<NamespaceScope, String>)
             : this(element, UserElementMixin(element, namespaces))
 
+    /**
+     * Creates a new [Builder] initialized with this method's values.
+     */
     fun toBuilder(): Builder {
         return Builder(this)
     }
@@ -101,7 +116,12 @@ class ServiceMethod private constructor(
         }
     }
 
-    class Builder internal constructor(method: ServiceMethod) : AbstractUserElementBuilder<ServiceMethod, Builder>(method.mixin) {
+    /**
+     * An object that can create new [ServiceMethod] instances.
+     */
+    class Builder internal constructor(
+            method: ServiceMethod
+    ) : AbstractUserElementBuilder<ServiceMethod, Builder>(method.mixin) {
 
         private val element: FunctionElement = method.element
         private var parameters: List<Field>
@@ -114,18 +134,30 @@ class ServiceMethod private constructor(
             this.returnType = method.returnType
         }
 
+        /**
+         * Use the given [parameters] for the method under construction.
+         */
         fun parameters(parameters: List<Field>): Builder = apply {
             this.parameters = parameters.toList()
         }
 
+        /**
+         * Use the given [exceptions] for the method under construction.
+         */
         fun exceptions(exceptions: List<Field>): Builder = apply {
             this.exceptions = exceptions.toList()
         }
 
+        /**
+         * Use the given return [type] for the method under construction.
+         */
         fun returnType(type: ThriftType): Builder = apply {
             returnType = type
         }
 
+        /**
+         * Creates a new [ServiceMethod] instance.
+         */
         override fun build(): ServiceMethod {
             return ServiceMethod(element, mixin, parameters, exceptions, returnType)
         }

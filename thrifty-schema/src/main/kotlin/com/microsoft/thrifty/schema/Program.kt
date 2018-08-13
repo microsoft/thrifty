@@ -28,11 +28,16 @@ import com.microsoft.thrifty.schema.parser.ThriftFileElement
  */
 class Program internal constructor(element: ThriftFileElement) {
 
+    /**
+     * All namespaces defined for this [Program].
+     */
     val namespaces: Map<NamespaceScope, String> = element.namespaces
             .map { it.scope to it.namespace }
             .toMap()
 
-
+    /**
+     * All `cpp_include` statements in this [Program].
+     */
     val cppIncludes: List<String> = element.includes
             .filter { it.isCpp }
             .map { it.path }
@@ -41,39 +46,65 @@ class Program internal constructor(element: ThriftFileElement) {
             .filter { !it.isCpp }
             .map { it.path }
 
+    /**
+     * All [constants][Constant] contained within this [Program]
+     */
     val constants: List<Constant> = element.constants.map { Constant(it, namespaces) }
 
+    /**
+     * All [enums][EnumType] contained within this [Program].
+     */
     val enums: List<EnumType> = element.enums.map { EnumType(it, namespaces) }
 
-    val structs: List<StructType>    = element.structs.map { StructType(it, namespaces) }
+    /**
+     * All [structs][StructType] contained within this [Program].
+     */
+    val structs: List<StructType> = element.structs.map { StructType(it, namespaces) }
 
-    val unions: List<StructType>     = element.unions.map { StructType(it, namespaces) }
+    /**
+     * All [unions][StructType] contained within this [Program].
+     */
+    val unions: List<StructType> = element.unions.map { StructType(it, namespaces) }
 
+    /**
+     * All [exceptions][StructType] contained within this [Program].
+     */
     val exceptions: List<StructType> = element.exceptions.map { StructType(it, namespaces) }
 
-    val typedefs: List<TypedefType>  = element.typedefs.map { TypedefType(it, namespaces) }
+    /**
+     * All [typedefs][TypedefType] contained within this [Program].
+     */
+    val typedefs: List<TypedefType> = element.typedefs.map { TypedefType(it, namespaces) }
 
-    val services: List<ServiceType>  = element.services.map { ServiceType(it, namespaces) }
+    /**
+     * All [services][ServiceType] contained within this [Program].
+     */
+    val services: List<ServiceType> = element.services.map { ServiceType(it, namespaces) }
 
+    /**
+     * The location of this [Program], possibly relative (if it was loaded from the search path).
+     */
     val location: Location = element.location
 
     private var includedPrograms: List<Program>? = null
-    private var symbols_: Map<String, UserType>? = null
     private var constSymbols: Map<String, Constant>? = null
 
+    /**
+     * All other [programs][Program] included by this [Program].
+     */
     val includes: List<Program>
         get() = includedPrograms ?: emptyList()
 
-    val symbols: Map<String, UserType>
-        get() = symbols_ ?: emptyMap()
-
+    /**
+     * A map of constants in this program indexed by name.
+     */
     val constantMap: Map<String, Constant>
         get() = constSymbols ?: emptyMap()
 
     /**
      * Get all named types declared in this Program.
      *
-     * Note that this does not include [.constants], which are
+     * Note that this does not include [constants], which are
      * not types.
      *
      * @return all user-defined types contained in this Program.
@@ -117,8 +148,6 @@ class Program internal constructor(element: ThriftFileElement) {
             }
         }
 
-        this.symbols_ = symbolMap
-
         val constSymbolMap = mutableMapOf<String, Constant>()
         for (constant in constants) {
             val oldValue = constSymbolMap.put(constant.name, constant)
@@ -138,6 +167,7 @@ class Program internal constructor(element: ThriftFileElement) {
         reporter.error(newValue.location, message)
     }
 
+    /** @inheritdoc */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Program) return false
@@ -146,6 +176,7 @@ class Program internal constructor(element: ThriftFileElement) {
         return location.base == other.location.base && location.path == other.location.path
     }
 
+    /** @inheritdoc */
     override fun hashCode(): Int {
         var result = location.base.hashCode()
         result = 31 * result + location.path.hashCode()

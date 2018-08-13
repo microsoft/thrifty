@@ -35,6 +35,7 @@ abstract class UserType internal constructor(
 
     override val name: String = mixin.name
 
+    /** @inheritdoc */
     override fun equals(other: Any?): Boolean {
         if (!super.equals(other)) return false
         if (other !is UserType) return false
@@ -42,10 +43,14 @@ abstract class UserType internal constructor(
         return this.mixin == other.mixin
     }
 
+    /** @inheritdoc */
     override fun hashCode(): Int {
         return Objects.hash(super.hashCode(), mixin)
     }
 
+    /**
+     * A base type for builders of all UserType-derived types.
+     */
     abstract class UserTypeBuilder<
             TType : UserType,
             TBuilder : UserType.UserTypeBuilder<TType, TBuilder>

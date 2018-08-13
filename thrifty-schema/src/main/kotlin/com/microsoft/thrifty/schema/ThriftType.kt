@@ -20,8 +20,6 @@
  */
 package com.microsoft.thrifty.schema
 
-import java.util.LinkedHashMap
-
 /**
  * A type defined in Thrift.
  *
@@ -149,6 +147,7 @@ abstract class ThriftType internal constructor(
      */
     abstract val annotations: Map<String, String>
 
+    /** @inheritdoc */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || javaClass != other.javaClass) return false
@@ -158,6 +157,7 @@ abstract class ThriftType internal constructor(
         return name == that.name
     }
 
+    /** @inheritdoc */
     override fun hashCode(): Int {
         return name.hashCode()
     }
@@ -301,23 +301,12 @@ abstract class ThriftType internal constructor(
          */
         fun visitService(serviceType: ServiceType): T
     }
-
-    companion object {
-        protected fun merge(
-                baseAnnotations: Map<String, String>,
-                newAnnotations: Map<String, String>): Map<String, String> {
-            val merged = LinkedHashMap<String, String>()
-            merged.putAll(baseAnnotations)
-            merged.putAll(newAnnotations)
-            return merged
-        }
-    }
 }
 
 internal fun mergeAnnotations(
         baseAnnotations: Map<String, String>,
         newAnnotations: Map<String, String>): Map<String, String> {
-    return mutableMapOf<String, String>().apply {
+    return linkedMapOf<String, String>().apply {
         putAll(baseAnnotations)
         putAll(newAnnotations)
     }

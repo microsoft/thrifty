@@ -22,6 +22,8 @@ package com.microsoft.thrifty.schema
 
 /**
  * Represents a Thrift `set<T>`.
+ *
+ * @property elementType The type of value contained by instances of this type.
  */
 class SetType internal constructor(
         val elementType: ThriftType,
@@ -36,8 +38,14 @@ class SetType internal constructor(
         return SetType(elementType, mergeAnnotations(this.annotations, annotations))
     }
 
+    /**
+     * Creates a [Builder] initialized with this type's values.
+     */
     fun toBuilder(): Builder = Builder(this)
 
+    /**
+     * An object that can create new [SetType] instances.
+     */
     class Builder(
         private var elementType: ThriftType,
         private var annotations: Map<String, String>
@@ -47,14 +55,23 @@ class SetType internal constructor(
             this.annotations = type.annotations
         }
 
+        /**
+         * Use the given [elementType] with the set type under construction.
+         */
         fun elementType(elementType: ThriftType): Builder = apply {
             this.elementType = elementType
         }
 
+        /**
+         * Use the given [annotations] with the set type under construction.
+         */
         fun annotations(annotations: Map<String, String>): Builder = apply {
             this.annotations = annotations
         }
 
+        /**
+         * Creates a new [SetType] instance.
+         */
         fun build(): SetType = SetType(elementType, annotations)
     }
 }

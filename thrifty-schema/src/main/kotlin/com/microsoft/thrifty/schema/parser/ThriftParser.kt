@@ -29,6 +29,10 @@ import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.tree.ParseTreeWalker
 import java.util.Locale
 
+/**
+ * A simple driver for the generated ANTLR Thrift parser; parses single
+ * .thrift documents.
+ */
 object ThriftParser {
 
     /**

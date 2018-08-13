@@ -61,7 +61,7 @@ data class AnnotationElement(
  *
  * @property location The location of the text corresponding to this element.
  * @property name The name of the type referenced by this element.
- * @property annotationClass The annotations associated with this type reference, if any.
+ * @property annotations The annotations associated with this type reference, if any.
  */
 sealed class TypeElement {
     abstract val location: Location

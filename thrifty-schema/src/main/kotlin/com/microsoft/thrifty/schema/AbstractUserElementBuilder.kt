@@ -34,40 +34,65 @@ abstract class AbstractUserElementBuilder<
         internal var mixin: UserElementMixin
 ) {
 
+    /**
+     * The name to use for the element under construction.
+     */
     fun name(name: String): TBuilder {
         mixin = mixin.toBuilder().name(name).build()
         return this as TBuilder
     }
 
+    /**
+     * The location to use for the element under construction.
+     */
     fun location(location: Location): TBuilder {
         mixin = mixin.toBuilder().location(location).build()
         return this as TBuilder
     }
 
+    /**
+     * The doc text to use for the element under construction.
+     */
     fun documentation(documentation: String): TBuilder {
         mixin = mixin.toBuilder().documentation(documentation).build()
         return this as TBuilder
     }
 
+    /**
+     * The annotations to use for the element under construction.
+     */
     fun annotations(annotations: Map<String, String>): TBuilder {
         mixin = mixin.toBuilder().annotations(annotations).build()
         return this as TBuilder
     }
 
+    /**
+     * The namespaces to which the element under construction should belong.
+     */
     fun namespaces(namespaces: Map<NamespaceScope, String>): TBuilder {
         mixin = mixin.toBuilder().namespaces(namespaces).build()
         return this as TBuilder
     }
 
+    /**
+     * The type to use as a template for the element under construction.
+     *
+     * Uses the type's name, location, documentation, annotations,
+     * and namespaces.
+     */
     fun type(type: TElement): TBuilder {
         mixin = mixin.toBuilder()
                 .name(type.name)
                 .location(type.location)
                 .documentation(type.documentation)
                 .annotations(type.annotations)
+                .namespaces(type.namespaces)
                 .build()
         return this as TBuilder
     }
 
+    /**
+     * Build and return the element under construction.
+     */
     abstract fun build(): TElement
 }

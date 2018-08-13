@@ -95,6 +95,8 @@ afterEvaluate { project ->
                 suffix = "#L"
             }
 
+            jdkVersion = 8
+
             outputFormat = 'html'
             outputDirectory = "${project.buildDir}/docs/kdoc"
         }

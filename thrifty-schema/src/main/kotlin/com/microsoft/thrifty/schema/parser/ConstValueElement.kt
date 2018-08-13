@@ -44,6 +44,7 @@ data class IntValueElement(
         override val thriftText: String,
         val value: Long
 ) : ConstValueElement() {
+    /** @inheritdoc */
     override fun toString(): String = "$value"
 }
 
@@ -57,6 +58,7 @@ data class DoubleValueElement(
         override val thriftText: String,
         val value: Double
 ) : ConstValueElement() {
+    /** @inheritdoc */
     override fun toString(): String = "$value"
 }
 
@@ -70,6 +72,7 @@ data class LiteralValueElement(
         override val thriftText: String,
         val value: String
 ) : ConstValueElement() {
+    /** @inheritdoc */
     override fun toString(): String = value
 }
 
@@ -83,6 +86,7 @@ data class IdentifierValueElement(
         override val thriftText: String,
         val value: String
 ) : ConstValueElement() {
+    /** @inheritdoc */
     override fun toString(): String = value
 }
 
@@ -96,6 +100,7 @@ data class ListValueElement(
         override val thriftText: String,
         val value: List<ConstValueElement>
 ) : ConstValueElement() {
+    /** @inheritdoc */
     override fun toString(): String = "$value"
 }
 
@@ -109,5 +114,6 @@ data class MapValueElement(
         override val thriftText: String,
         val value: Map<ConstValueElement, ConstValueElement>
 ) : ConstValueElement() {
+    /** @inheritdoc */
     override fun toString(): String = "$value"
 }
