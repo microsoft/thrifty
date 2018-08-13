@@ -20,11 +20,18 @@
  */
 package com.microsoft.thrifty.schema
 
+/**
+ * Represents types defined by the Thrift IDL, such as the numeric types,
+ * strings, binaries, and void.
+ */
 class BuiltinType internal constructor(
         name: String,
         override val annotations: Map<String, String> = emptyMap()
 ) : ThriftType(name) {
 
+    /**
+     * True if this represents a numeric type, otherwise false.
+     */
     val isNumeric: Boolean
         get() = (this == I8
                 || this == I16
@@ -53,6 +60,7 @@ class BuiltinType internal constructor(
         return BuiltinType(name, mergeAnnotations(this.annotations, annotations))
     }
 
+    /** @inheritdoc */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null) return false
@@ -69,6 +77,7 @@ class BuiltinType internal constructor(
         return this.name in synonyms && that.name in synonyms
     }
 
+    /** @inheritdoc */
     override fun hashCode(): Int {
         var name = name
         if (name == I8.name) {
@@ -78,21 +87,67 @@ class BuiltinType internal constructor(
     }
 
     companion object {
+        /**
+         * The boolean type.
+         */
         val BOOL: ThriftType = BuiltinType("bool")
+
+        /**
+         * The (signed) byte type.
+         */
         val BYTE: ThriftType = BuiltinType("byte")
+
+        /**
+         * The (signed) byte type; identical to [BYTE], but with a regularized
+         * name.
+         */
         val I8: ThriftType = BuiltinType("i8")
+
+        /**
+         * A 16-bit signed integer type (e.g. [Short]).
+         */
         val I16: ThriftType = BuiltinType("i16")
+
+        /**
+         * A 32-bit signed integer type (e.g. [Int]).
+         */
         val I32: ThriftType = BuiltinType("i32")
+
+        /**
+         * A 64-bit signed integer type (e.g. [Long]).
+         */
         val I64: ThriftType = BuiltinType("i64")
+
+        /**
+         * A double-precision floating-point type (e.g. [Double]).
+         */
         val DOUBLE: ThriftType = BuiltinType("double")
+
+        /**
+         * A type representing a series of bytes of unspecified encoding,
+         * but we'll use UTF-8.
+         */
         val STRING: ThriftType = BuiltinType("string")
+
+        /**
+         * A type representing a series of bytes.
+         */
         val BINARY: ThriftType = BuiltinType("binary")
+
+        /**
+         * No type; used exclusively to indicate that a service method has no
+         * return value.
+         */
         val VOID: ThriftType = BuiltinType("void")
 
         private val BUILTINS = listOf(BOOL, BYTE, I8, I16, I32, I64, DOUBLE, STRING, BINARY, VOID)
                 .map { it.name to it }
                 .toMap()
 
+        /**
+         * Returns the builtin type corresponding to the given [name], or null
+         * if no such type exists.
+         */
         fun get(name: String): ThriftType? {
             return BUILTINS[name]
         }

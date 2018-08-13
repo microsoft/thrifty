@@ -31,12 +31,39 @@ package com.microsoft.thrifty.schema
  * here, it's perfectly convenient.
  */
 class Schema {
+    /**
+     * All `struct` entities contained in the parsed .thrift files
+     */
     val structs: List<StructType>
+
+    /**
+     * All `union` entities contained in the parsed .thrift files
+     */
     val unions: List<StructType>
+
+    /**
+     * All `exception` entities contained in the parsed .thrift files
+     */
     val exceptions: List<StructType>
+
+    /**
+     * All `enum` types defined in the parsed .thrift files.
+     */
     val enums: List<EnumType>
+
+    /**
+     * All `const` elements defined in the parsed .thrift files.
+     */
     val constants: List<Constant>
+
+    /**
+     * All `typedef` aliases defined in the parsed .thrift files.
+     */
     val typedefs: List<TypedefType>
+
+    /**
+     * All `service` types defined in the parsed .thrift files.
+     */
     val services: List<ServiceType>
 
     internal constructor(programs: Iterable<Program>) {
@@ -77,10 +104,16 @@ class Schema {
         this.services = builder.services
     }
 
+    /**
+     * Returns a [Builder] initialized with this schema's types.
+     */
     fun toBuilder(): Builder {
         return Builder(structs, unions, exceptions, enums, constants, typedefs, services)
     }
 
+    /**
+     * A builder for [schemas][Schema].
+     */
     class Builder internal constructor(
             internal var structs: List<StructType>,
             internal var unions: List<StructType>,
@@ -90,38 +123,62 @@ class Schema {
             internal var typedefs: List<TypedefType>,
             internal var services: List<ServiceType>
     ) {
-
+        /**
+         * Use the given [structs] for the schema under construction.
+         */
         fun structs(structs: List<StructType>): Builder = apply {
             this.structs = structs.toList()
         }
 
+        /**
+         * Use the given [unions] for the schema under construction.
+         */
         fun unions(unions: List<StructType>): Builder = apply {
             this.unions = unions.toList()
         }
 
+        /**
+         * Use the given [exceptions] for the schema under construction.
+         */
         fun exceptions(exceptions: List<StructType>): Builder = apply {
             this.exceptions = exceptions.toList()
         }
 
+        /**
+         * Use the given [enums] for the schema under construction.
+         */
         fun enums(enums: List<EnumType>): Builder = apply {
             this.enums = enums.toList()
         }
 
+        /**
+         * Use the given [constants] for the schema under construction.
+         */
         fun constants(constants: List<Constant>): Builder = apply {
             this.constants = constants.toList()
         }
 
+        /**
+         * Use the given [typedefs] for the schema under construction.
+         */
         fun typedefs(typedefs: List<TypedefType>): Builder = apply {
             this.typedefs = typedefs.toList()
         }
 
+        /**
+         * Use the given [services] for the schema under construction.
+         */
         fun services(services: List<ServiceType>): Builder = apply {
             this.services = services.toList()
         }
 
+        /**
+         * Build a new [Schema].
+         */
         fun build(): Schema = Schema(this)
     }
 
+    /** @inheritdoc */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -139,6 +196,7 @@ class Schema {
         return true
     }
 
+    /** @inheritdoc */
     override fun hashCode(): Int {
         var result = structs.hashCode()
         result = 31 * result + unions.hashCode()

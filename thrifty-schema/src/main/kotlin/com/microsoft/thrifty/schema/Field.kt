@@ -23,36 +23,70 @@ package com.microsoft.thrifty.schema
 import com.microsoft.thrifty.schema.parser.ConstValueElement
 import com.microsoft.thrifty.schema.parser.FieldElement
 
+/**
+ * Represents a named value in a struct, union, or exception; a field also
+ * represents parameters accepted by or exceptions thrown by service methods.
+ */
 class Field private constructor(
         private val element: FieldElement,
         private val mixin: UserElementMixin,
         private var type_: ThriftType? = null
 ) : UserElement by mixin {
 
+    /**
+     * True if this field should be redacted when printed as a string.
+     */
     val isRedacted: Boolean
         get() = mixin.hasThriftOrJavadocAnnotation("redacted")
 
+    /**
+     * True if this field should be obfuscated when printed as a string.
+     *
+     * The difference is that redaction eliminates _all_ information, while
+     * obfuscation preserves _some_.  Typically, scalar values will be rendered
+     * as a hash code, and collections will be rendered as a typename plus a
+     * size, e.g. `list<string>(size=12)`.
+     */
     val isObfuscated: Boolean
         get() = mixin.hasThriftOrJavadocAnnotation("obfuscated")
 
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
 
+    /**
+     * The type of value contained within this field.
+     */
     val type: ThriftType
         get() = type_!!
 
+    /**
+     * The integer ID of this field in its containing structure.
+     */
     val id: Int
         get() = element.fieldId
 
+    /**
+     * True if this field is explicitly marked `optional`, otherwise false.
+     */
     val optional: Boolean
         get() = element.requiredness === Requiredness.OPTIONAL
 
+    /**
+     * True if this field is explicitly marked `required`, otherwise false.
+     */
     val required: Boolean
         get() = element.requiredness === Requiredness.REQUIRED
 
+    /**
+     * The field's default value, if any.
+     */
     val defaultValue: ConstValueElement?
         get() = element.constValue
 
+    /**
+     * If this field's type is a typedef, this value will be the name of the
+     * typedef itself - that is, the "new" name, not the aliased type's name.
+     */
     val typedefName: String?
         get() {
             return type_?.let {
@@ -63,6 +97,9 @@ class Field private constructor(
     internal constructor(element: FieldElement, namespaces: Map<NamespaceScope, String>)
             : this(element, UserElementMixin(element, namespaces))
 
+    /**
+     * Creates a [Builder] initialized with this field's values.
+     */
     fun toBuilder(): Builder = Builder(this)
 
     internal fun link(linker: Linker) {
@@ -81,6 +118,9 @@ class Field private constructor(
         }
     }
 
+    /**
+     * An object that can build new [Field] instances.
+     */
     class Builder internal constructor(field: Field) : AbstractUserElementBuilder<Field, Builder>(field.mixin) {
         private val fieldElement: FieldElement = field.element
         private var fieldType: ThriftType? = null
@@ -89,6 +129,9 @@ class Field private constructor(
             this.fieldType = field.type_
         }
 
+        /**
+         * Use the given [type] for the [Field] under construction.
+         */
         fun type(type: ThriftType): Builder = apply {
             this.fieldType = type
         }

@@ -20,6 +20,12 @@
  */
 package com.microsoft.thrifty.schema
 
+/**
+ * Represents a failure to load .thrift files into a [Schema].
+ *
+ * @property errorReporter
+ * An object containing warnings and errors encountered during loading.
+ */
 class LoadFailedException(
         cause: Throwable,
         val errorReporter: ErrorReporter

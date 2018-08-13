@@ -24,12 +24,18 @@ import com.microsoft.thrifty.schema.parser.TypeElement
 import com.microsoft.thrifty.schema.parser.TypedefElement
 import java.util.Objects
 
+/**
+ * Represents a `typedef` alias defined in a .thrift file.
+ */
 class TypedefType internal constructor(
         mixin: UserElementMixin,
         private val oldTypeElement: TypeElement,
         private var oldType_: ThriftType? = null
 ) : UserType(mixin) {
 
+    /**
+     * The aliased type
+     */
     val oldType: ThriftType
         get() = oldType_!!
 
@@ -70,6 +76,9 @@ class TypedefType internal constructor(
                 .build()
     }
 
+    /**
+     * Creates a [Builder] initialized with this type's values.
+     */
     fun toBuilder(): Builder = Builder(this)
 
     override fun equals(other: Any?): Boolean {
@@ -83,14 +92,25 @@ class TypedefType internal constructor(
         return Objects.hash(super.hashCode(), oldTypeElement)
     }
 
-    class Builder internal constructor(typedef: TypedefType) : UserType.UserTypeBuilder<TypedefType, Builder>(typedef) {
+    /**
+     * An object that can create new [TypedefType] instances
+     */
+    class Builder internal constructor(
+            typedef: TypedefType
+    ) : UserType.UserTypeBuilder<TypedefType, Builder>(typedef) {
         internal var oldTypeElement: TypeElement = typedef.oldTypeElement
         internal var oldType: ThriftType? = typedef.oldType
 
+        /**
+         * Use the given [oldTypeElement] for the typedef under construction.
+         */
         fun oldTypeElement(oldTypeElement: TypeElement): Builder = apply {
             this.oldTypeElement = oldTypeElement
         }
 
+        /**
+         * Use the given [oldType] for the typedef under construction.
+         */
         fun oldType(oldType: ThriftType): Builder = apply {
             this.oldType = oldType
         }

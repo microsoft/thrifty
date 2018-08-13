@@ -27,6 +27,9 @@ import com.microsoft.thrifty.schema.parser.EnumElement
  */
 class EnumType : UserType {
 
+    /**
+     * All members contained within this enum type.
+     */
     val members: List<EnumMember>
 
     internal constructor(element: EnumElement, namespaces: Map<NamespaceScope, String>): super(UserElementMixin(element, namespaces)) {
@@ -37,10 +40,16 @@ class EnumType : UserType {
         this.members = builder.members
     }
 
+    /**
+     * Find the [member][EnumMember] with the given [name], or null.
+     */
     fun findMemberByName(name: String): EnumMember {
         return members.first { it.name == name }
     }
 
+    /**
+     * Find the [member][EnumMember] with the given [id], or null.
+     */
     fun findMemberById(id: Int): EnumMember {
         return members.first { it.value == id }
     }
@@ -55,12 +64,21 @@ class EnumType : UserType {
                 .build()
     }
 
+    /**
+     * Create a [Builder] initialized with this object's values.
+     */
     fun toBuilder(): Builder = Builder(this)
 
+    /**
+     * An object that can build [EnumType] instances.
+     */
     class Builder internal constructor(enumType: EnumType) : UserType.UserTypeBuilder<EnumType, Builder>(enumType) {
         internal var members: List<EnumMember> = enumType.members
             private set
 
+        /**
+         * Use the given [members] for the enum under construction.
+         */
         fun members(members: List<EnumMember>): Builder = apply {
             this.members = members.toList()
         }

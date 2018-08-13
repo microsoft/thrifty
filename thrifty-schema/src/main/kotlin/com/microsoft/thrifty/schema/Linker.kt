@@ -45,7 +45,7 @@ internal interface SymbolTable {
  *
  * In other words, a type-checker.
  */
-internal open class Linker(
+internal class Linker(
         private val environment: LinkEnvironment,
         private val program: Program,
         private val reporter: ErrorReporter

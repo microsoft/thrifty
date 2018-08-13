@@ -85,7 +85,7 @@ buildscript {
 
     dependencies {
         classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.14'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.51"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.60"
         classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.17'
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
     }

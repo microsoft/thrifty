@@ -28,6 +28,9 @@ import java.util.regex.Pattern
  */
 abstract class FieldNamingPolicy {
 
+    /**
+     * Apply this policy to the given [name].
+     */
     abstract fun apply(name: String): String
 
     companion object {

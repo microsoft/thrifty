@@ -22,6 +22,9 @@ package com.microsoft.thrifty.schema
 
 /**
  * Represents a Thrift `map<K, V>`.
+ *
+ * @property keyType The type of keys contained in maps of this type.
+ * @property valueType The type of values contained in maps of this type.
  */
 class MapType internal constructor(
         val keyType: ThriftType,
@@ -37,8 +40,14 @@ class MapType internal constructor(
         return MapType(keyType, valueType, mergeAnnotations(this.annotations, annotations))
     }
 
+    /**
+     * Creates a [Builder] initialized with this map type.
+     */
     fun toBuilder(): Builder = Builder(this)
 
+    /**
+     * An object that can create [MapType] instances.
+     */
     class Builder(
         private var keyType: ThriftType,
         private var valueType: ThriftType,
@@ -46,18 +55,30 @@ class MapType internal constructor(
     ) {
         internal constructor(type: MapType) : this(type.keyType, type.valueType, type.annotations)
 
+        /**
+         * Use the given [keyType] for the [MapType] under construction.
+         */
         fun keyType(keyType: ThriftType): Builder = apply {
             this.keyType = keyType
         }
 
+        /**
+         * Use the given [valueType] for the [MapType] under construction.
+         */
         fun valueType(valueType: ThriftType): Builder = apply {
             this.valueType = valueType
         }
 
+        /**
+         * Use the given [annotations] for the [MapType] under construction.
+         */
         fun annotations(annotations: Map<String, String>): Builder = apply {
             this.annotations = annotations
         }
 
+        /**
+         * Creates a new [MapType] instance.
+         */
         fun build(): MapType {
             return MapType(keyType, valueType, annotations)
         }

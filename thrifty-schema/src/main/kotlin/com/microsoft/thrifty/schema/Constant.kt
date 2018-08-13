@@ -38,9 +38,16 @@ class Constant private constructor (
         private val mixin: UserElementMixin,
         private var type_: ThriftType? = null
 ) : UserElement by mixin {
+
+    /**
+     * The type of the const value.
+     */
     val type: ThriftType
         get() = type_!!
 
+    /**
+     * The const's value.
+     */
     val value: ConstValueElement
         get() = element.value
 
@@ -61,10 +68,16 @@ class Constant private constructor (
         validate(linker, element.value, type)
     }
 
+    /**
+     * Returns a builder initialized with this constant's values.
+     */
     fun toBuilder(): Builder {
         return Builder(this)
     }
 
+    /**
+     * An object that can build [Constants][Constant].
+     */
     class Builder internal constructor(
             constant: Constant
     ) : AbstractUserElementBuilder<Constant, Builder>(constant.mixin) {
