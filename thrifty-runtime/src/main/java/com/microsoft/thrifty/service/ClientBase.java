@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.service;
 
+import com.microsoft.thrifty.Struct;
 import com.microsoft.thrifty.ThriftException;
 import com.microsoft.thrifty.protocol.MessageMetadata;
 import com.microsoft.thrifty.protocol.Protocol;
@@ -149,7 +150,17 @@ public class ClientBase implements Closeable {
                             + " but received " + metadata.name);
         }
 
-        return call.receive(protocol, metadata);
+        try {
+            Object result = call.receive(protocol, metadata);
+            protocol.readMessageEnd();
+            return result;
+        } catch (Exception e) {
+            if (e instanceof Struct) {
+                // Business as usual
+                protocol.readMessageEnd();
+            }
+            throw e;
+        }
     }
 
     static class ServerException extends Exception {

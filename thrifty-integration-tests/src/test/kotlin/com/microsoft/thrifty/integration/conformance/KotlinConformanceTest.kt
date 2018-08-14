@@ -406,4 +406,14 @@ class KotlinConformanceTest(
         error.errorCode shouldBe 2002
         error.struct_thing?.string_thing shouldBe "This is an Xception2"
     }
+
+    @Test fun testConsecutiveCalls() {
+        testStruct()
+        testStruct()
+        testExceptionNormalError()
+        testByte()
+        testBool()
+        testI32()
+        testI64()
+    }
 }
