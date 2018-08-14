@@ -71,4 +71,20 @@ public class FramedTransportTest {
         assertThat(target.readInt(), is(37));
         assertThat(target.readUtf8(), is("this text contains thirty-seven bytes"));
     }
+
+    @Test
+    public void readsSpanningMultipleFrames() throws Exception {
+        Buffer buffer = new Buffer();
+        buffer.writeInt(6);
+        buffer.writeUtf8("abcdef");
+        buffer.writeInt(4);
+        buffer.writeUtf8("ghij");
+
+        FramedTransport transport = new FramedTransport(new BufferTransport(buffer));
+
+        byte[] readBuffer = new byte[10];
+        assertThat(transport.read(readBuffer, 0, 10), is(6));
+        assertThat(transport.read(readBuffer, 6, 4), is(4));
+        assertThat(new String(readBuffer, Charsets.UTF_8), is("abcdefghij"));
+    }
 }
