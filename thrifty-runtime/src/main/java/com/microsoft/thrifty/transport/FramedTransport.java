@@ -55,7 +55,9 @@ public class FramedTransport extends Transport {
         }
 
         int toRead = Math.min(count, remainingBytes);
-        return inner.read(buffer, offset, toRead);
+        int numRead = inner.read(buffer, offset, toRead);
+        remainingBytes -= numRead;
+        return numRead;
     }
 
     private void readHeader() throws IOException {
