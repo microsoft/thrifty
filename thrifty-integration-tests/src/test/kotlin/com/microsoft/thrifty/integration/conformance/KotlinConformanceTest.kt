@@ -24,21 +24,15 @@ import com.microsoft.thrifty.ThriftException
 import com.microsoft.thrifty.integration.kgen.Insanity
 import com.microsoft.thrifty.integration.kgen.Numberz
 import com.microsoft.thrifty.integration.kgen.ThriftTestClient
+import com.microsoft.thrifty.integration.kgen.UserId
 import com.microsoft.thrifty.integration.kgen.Xception
 import com.microsoft.thrifty.integration.kgen.Xception2
 import com.microsoft.thrifty.integration.kgen.Xtruct
 import com.microsoft.thrifty.integration.kgen.Xtruct2
 import com.microsoft.thrifty.protocol.BinaryProtocol
 import com.microsoft.thrifty.protocol.CompactProtocol
-import com.microsoft.thrifty.protocol.DecoratingProtocol
-import com.microsoft.thrifty.protocol.FieldMetadata
 import com.microsoft.thrifty.protocol.JsonProtocol
-import com.microsoft.thrifty.protocol.ListMetadata
-import com.microsoft.thrifty.protocol.MapMetadata
-import com.microsoft.thrifty.protocol.MessageMetadata
 import com.microsoft.thrifty.protocol.Protocol
-import com.microsoft.thrifty.protocol.SetMetadata
-import com.microsoft.thrifty.protocol.StructMetadata
 import com.microsoft.thrifty.service.AsyncClientBase
 import com.microsoft.thrifty.testing.ServerProtocol
 import com.microsoft.thrifty.testing.ServerTransport
@@ -46,11 +40,8 @@ import com.microsoft.thrifty.testing.TestServer
 import com.microsoft.thrifty.transport.FramedTransport
 import com.microsoft.thrifty.transport.SocketTransport
 import com.microsoft.thrifty.transport.Transport
-import io.kotlintest.fail
+import io.kotlintest.matchers.types.shouldBeInstanceOf
 import io.kotlintest.shouldBe
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.awaitAll
-import kotlinx.coroutines.experimental.runBlocking
 import okio.ByteString
 import org.junit.After
 import org.junit.Before
@@ -92,12 +83,12 @@ class KotlinConformanceTest(
         @JvmStatic
         @get:Parameterized.Parameters(name = "{0} - {1}")
         val parameters: Collection<*> = listOf(
+                arrayOf(ServerTransport.BLOCKING, ServerProtocol.BINARY),
                 arrayOf(ServerTransport.BLOCKING, ServerProtocol.COMPACT),
                 arrayOf(ServerTransport.BLOCKING, ServerProtocol.JSON),
-                arrayOf(ServerTransport.BLOCKING, ServerProtocol.BINARY),
+                arrayOf(ServerTransport.NON_BLOCKING, ServerProtocol.BINARY),
                 arrayOf(ServerTransport.NON_BLOCKING, ServerProtocol.COMPACT),
-                arrayOf(ServerTransport.NON_BLOCKING, ServerProtocol.JSON),
-                arrayOf(ServerTransport.NON_BLOCKING, ServerProtocol.BINARY)
+                arrayOf(ServerTransport.NON_BLOCKING, ServerProtocol.JSON)
         )
     }
 
@@ -116,7 +107,7 @@ class KotlinConformanceTest(
         return when (serverProtocol) {
             ServerProtocol.BINARY -> BinaryProtocol(transport)
             ServerProtocol.COMPACT -> CompactProtocol(transport)
-            ServerProtocol.JSON ->  JsonProtocol(transport)
+            ServerProtocol.JSON -> JsonProtocol(transport)
         }
     }
 
@@ -152,37 +143,58 @@ class KotlinConformanceTest(
         testServer.close()
     }
 
-    @Test fun testVoid() = runBlocking {
-        client.testVoid() shouldBe Unit
+    @Test fun testVoid() {
+        val callback = AssertingCallback<Unit>()
+        client.testVoid(callback)
+
+        callback.result shouldBe Unit
     }
 
-    @Test fun testBool() = runBlocking {
-        client.testBool(true) shouldBe true
+    @Test fun testBool() {
+        val callback = AssertingCallback<Boolean>()
+        client.testBool(true, callback)
+
+        callback.result shouldBe true
     }
 
-    @Test fun testByte() = runBlocking {
-        client.testByte(200.toByte()) shouldBe 200.toByte()
+    @Test fun testByte() {
+        val callback = AssertingCallback<Byte>()
+        client.testByte(200.toByte(), callback)
+
+        callback.result shouldBe 200.toByte()
     }
 
-    @Test fun testI32() = runBlocking {
-        client.testI32(404) shouldBe 404
+    @Test fun testI32() {
+        val callback = AssertingCallback<Int>()
+        client.testI32(404, callback)
+
+        callback.result shouldBe 404
     }
 
-    @Test fun testI64() = runBlocking {
-        client.testI64(Long.MAX_VALUE) shouldBe Long.MAX_VALUE
+    @Test fun testI64() {
+        val callback = AssertingCallback<Long>()
+        client.testI64(Long.MAX_VALUE, callback)
+
+        callback.result shouldBe Long.MAX_VALUE
     }
 
-    @Test fun testDouble() = runBlocking {
-        client.testDouble(Math.PI) shouldBe Math.PI
+    @Test fun testDouble() {
+        val callback = AssertingCallback<Double>()
+        client.testDouble(Math.PI, callback)
+
+        callback.result shouldBe Math.PI
     }
 
-    @Test fun testBinary() = runBlocking {
+    @Test fun testBinary() {
         val binary = ByteString.encodeUtf8("Peace on Earth and Thrift for all mankind")
 
-        client.testBinary(binary) shouldBe binary
+        val callback = AssertingCallback<ByteString>()
+        client.testBinary(binary, callback)
+
+        callback.result shouldBe binary
     }
 
-    @Test fun testStruct() = runBlocking {
+    @Test fun testStruct() {
         val xtruct = Xtruct.Builder()
                 .byte_thing(1.toByte())
                 .i32_thing(2)
@@ -190,10 +202,13 @@ class KotlinConformanceTest(
                 .string_thing("foo")
                 .build()
 
-        client.testStruct(xtruct) shouldBe xtruct
+        val callback = AssertingCallback<Xtruct>()
+        client.testStruct(xtruct, callback)
+
+        callback.result shouldBe xtruct
     }
 
-    @Test fun testNest() = runBlocking {
+    @Test fun testNest() {
         val xtruct = Xtruct.Builder()
                 .byte_thing(1.toByte())
                 .i32_thing(2)
@@ -207,49 +222,74 @@ class KotlinConformanceTest(
                 .struct_thing(xtruct)
                 .build()
 
-        client.testNest(nest) shouldBe nest
+        val callback = AssertingCallback<Xtruct2>()
+
+        client.testNest(nest, callback)
+
+        callback.result shouldBe nest
     }
 
-    @Test fun testMap() = runBlocking {
+    @Test fun testMap() {
         val argument = mapOf(1 to 2, 3 to 4, 7 to 8)
 
-        client.testMap(argument) shouldBe argument
+        val callback = AssertingCallback<Map<Int, Int>>()
+        client.testMap(argument, callback)
+
+        callback.result shouldBe argument
     }
 
-    @Test fun testStringMap() = runBlocking {
+    @Test fun testStringMap() {
         val argument = mapOf(
                 "foo" to "bar",
                 "baz" to "quux",
                 "one" to "more"
         )
 
-        client.testStringMap(argument) shouldBe argument
+        val callback = AssertingCallback<Map<String, String>>()
+        client.testStringMap(argument, callback)
+
+        callback.result shouldBe argument
     }
 
-    @Test fun testSet() = runBlocking {
+    @Test fun testSet() {
         val set = setOf(1, 2, 3, 4, 5)
 
-        client.testSet(set) shouldBe set
+        val callback = AssertingCallback<Set<Int>>()
+        client.testSet(set, callback)
+
+        callback.result shouldBe set
     }
 
-    @Test fun testList() = runBlocking {
+    @Test fun testList() {
         val list = listOf(10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 
-        client.testList(list) shouldBe list
+        val callback = AssertingCallback<List<Int>>()
+        client.testList(list, callback)
+
+        callback.result shouldBe list
     }
 
-    @Test fun testEnum() = runBlocking {
+    @Test fun testEnum() {
         val argument = Numberz.EIGHT
 
-        client.testEnum(argument) shouldBe argument
+        val callback = AssertingCallback<Numberz>()
+        client.testEnum(argument, callback)
+
+        callback.result shouldBe argument
     }
 
-    @Test fun testTypedef() = runBlocking {
-        client.testTypedef(Long.MIN_VALUE) shouldBe Long.MIN_VALUE
+    @Test fun testTypedef() {
+        val callback = AssertingCallback<UserId>()
+        client.testTypedef(Long.MIN_VALUE, callback)
+
+        callback.result shouldBe Long.MIN_VALUE
     }
 
-    @Test fun testMapMap() = runBlocking {
-        client.testMapMap(Integer.MAX_VALUE) shouldBe mapOf(
+    @Test fun testMapMap() {
+        val callback = AssertingCallback<Map<Int, Map<Int, Int>>>()
+        client.testMapMap(Integer.MAX_VALUE, callback)
+
+        callback.result shouldBe mapOf(
                 -4 to mapOf(
                         -4 to -4,
                         -3 to -3,
@@ -266,7 +306,7 @@ class KotlinConformanceTest(
         )
     }
 
-    @Test fun testInsanity() = runBlocking {
+    @Test fun testInsanity() {
         val empty = Insanity.Builder().build()
         val argument = Insanity.Builder()
                 .userMap(mapOf(Numberz.ONE to 10L, Numberz.TWO to 20L, Numberz.THREE to 40L))
@@ -285,10 +325,13 @@ class KotlinConformanceTest(
                 2L to mapOf(Numberz.SIX to empty)
         )
 
-        client.testInsanity(argument) shouldBe expected
+        val callback = AssertingCallback<Map<UserId, Map<Numberz, Insanity>>>()
+        client.testInsanity(argument, callback)
+
+        callback.result shouldBe expected
     }
 
-    @Test fun testMulti() = runBlocking {
+    @Test fun testMulti() {
         val expected = Xtruct.Builder()
                 .string_thing("Hello2")
                 .byte_thing(9.toByte())
@@ -296,38 +339,40 @@ class KotlinConformanceTest(
                 .i64_thing(13L)
                 .build()
 
-        val result = client.testMulti(
-                arg0 = 9.toByte(),
-                arg1 = 11,
-                arg2 = 13L,
-                arg3 = mapOf(10.toShort() to "Hello"),
-                arg4 = Numberz.THREE,
-                arg5 = 5L)
+        val callback = AssertingCallback<Xtruct>()
+        client.testMulti(9.toByte(), 11, 13L, mapOf(10.toShort() to "Hello"), Numberz.THREE, 5L, callback)
 
-        result shouldBe expected
+        callback.result shouldBe expected
     }
 
-    @Test fun testExceptionNormalError() = runBlocking {
-        try {
-            client.testException("Xception")
-            fail("Expected an Xception")
-        } catch (e: Xception) {
-            e.errorCode shouldBe 1001
-            e.message_ shouldBe "Xception"
-        }
+    @Test fun testExceptionNormalError() {
+        val callback = AssertingCallback<Unit>()
+        client.testException("Xception", callback)
+
+        val error = callback.error
+        error.shouldBeInstanceOf<Xception>()
+
+        val (errorCode, message) = error as Xception
+        errorCode shouldBe 1001
+        message shouldBe "Xception"
     }
 
-    @Test fun testExceptionInternalError() = runBlocking {
-        try {
-            client.testException("TException")
-            fail("Expected a ThriftException")
-        } catch (e: ThriftException) {
-            e.kind shouldBe ThriftException.Kind.INTERNAL_ERROR
-        }
+    @Test fun testExceptionInternalError() {
+        val callback = AssertingCallback<Unit>()
+        client.testException("TException", callback)
+
+        val error = callback.error
+        error.shouldBeInstanceOf<ThriftException>()
+
+        val e = error as ThriftException
+        e.kind shouldBe ThriftException.Kind.INTERNAL_ERROR
     }
 
-    @Test fun testMultiExceptionNoError() = runBlocking {
-        val (string_thing) = client.testMultiException("Normal", "Hi there")
+    @Test fun testMultiExceptionNoError() {
+        val callback = AssertingCallback<Xtruct>()
+        client.testMultiException("Normal", "Hi there", callback)
+
+        val (string_thing) = callback.result
 
         // Note: We aren't asserting against an expected value because the members
         //       of the result are unspecified besides 'string_thing', and Thrift
@@ -336,41 +381,30 @@ class KotlinConformanceTest(
         string_thing shouldBe "Hi there"
     }
 
-    @Test fun testMultiExceptionErrorOne() = runBlocking {
+    @Test fun testMultiExceptionErrorOne() {
+        val callback = AssertingCallback<Xtruct>()
+        client.testMultiException("Xception", "nope", callback)
+
         val expected = Xception.Builder()
                 .errorCode(1001)
                 .message_("This is an Xception")
                 .build()
 
-        try {
-            client.testMultiException("Xception", "nope")
-            fail("Expected an Xception")
-        } catch (e: Xception) {
-            e shouldBe expected
-        }
+        callback.error shouldBe expected
     }
 
-    @Test fun testMultiExceptionErrorTwo() = runBlocking {
-        try {
-            client.testMultiException("Xception2", "nope")
-            fail("Expected an Xception2")
-        } catch (e: Xception2) {
-            // Note: We aren't asserting against an expected value because the members
-            //       of 'struct_thing' are unspecified besides 'string_thing', and Thrift
-            //       implementations differ on whether to return unset primitive values,
-            //       depending on options set during codegen.
-            e.errorCode shouldBe 2002
-            e.struct_thing?.string_thing shouldBe "This is an Xception2"
-        }
-    }
+    @Test fun testMultiExceptionErrorTwo() {
+        val callback = AssertingCallback<Xtruct>()
+        client.testMultiException("Xception2", "nope", callback)
 
-    @Test fun concurrentAsyncCalls() = runBlocking {
-        val d1 = async { client.testBool(true); 1 }
-        val d2 = async { client.testI32(404); 2 }
-        val d3 = async { client.testI64(Long.MAX_VALUE); 3 }
+        val error = callback.error as Xception2
 
-        val order = awaitAll(d1, d2, d3)
-        println(order)
+        // Note: We aren't asserting against an expected value because the members
+        //       of 'struct_thing' are unspecified besides 'string_thing', and Thrift
+        //       implementations differ on whether to return unset primitive values,
+        //       depending on options set during codegen.
+        error.errorCode shouldBe 2002
+        error.struct_thing?.string_thing shouldBe "This is an Xception2"
     }
 
     @Test fun testConsecutiveCalls() {
@@ -381,212 +415,5 @@ class KotlinConformanceTest(
         testBool()
         testI32()
         testI64()
-    }
-}
-
-private class DebugProtocolWrapper(protocol: Protocol): DecoratingProtocol(protocol) {
-    override fun writeMessageBegin(name: String?, typeId: Byte, seqId: Int) {
-        println("writeMessageBegin($name, $typeId, $seqId")
-        super.writeMessageBegin(name, typeId, seqId)
-    }
-
-    override fun writeMessageEnd() {
-        println("writeMessageEnd")
-        super.writeMessageEnd()
-    }
-
-    override fun writeStructBegin(structName: String?) {
-        println("writeStructBegin($structName)")
-        super.writeStructBegin(structName)
-    }
-
-    override fun writeStructEnd() {
-        println("writeStructEnd()")
-        super.writeStructEnd()
-    }
-
-    override fun writeFieldBegin(fieldName: String?, fieldId: Int, typeId: Byte) {
-        println("writeFieldBegin($fieldName, $fieldId, $typeId)")
-        super.writeFieldBegin(fieldName, fieldId, typeId)
-    }
-
-    override fun writeFieldEnd() {
-        println("writeFieldEnd()")
-        super.writeFieldEnd()
-    }
-
-    override fun writeFieldStop() {
-        println("writeFieldStop()")
-        super.writeFieldStop()
-    }
-
-    override fun writeMapBegin(keyTypeId: Byte, valueTypeId: Byte, mapSize: Int) {
-        println("writeMapBegin($keyTypeId, $valueTypeId, $mapSize)")
-        super.writeMapBegin(keyTypeId, valueTypeId, mapSize)
-    }
-
-    override fun writeMapEnd() {
-        println("writeMapEnd()")
-        super.writeMapEnd()
-    }
-
-    override fun writeListBegin(elementTypeId: Byte, listSize: Int) {
-        println("writeListBegin($elementTypeId, $listSize)")
-        super.writeListBegin(elementTypeId, listSize)
-    }
-
-    override fun writeListEnd() {
-        println("writeListEnd()")
-        super.writeListEnd()
-    }
-
-    override fun writeSetBegin(elementTypeId: Byte, setSize: Int) {
-        println("writeSetBegin($elementTypeId, $setSize)")
-        super.writeSetBegin(elementTypeId, setSize)
-    }
-
-    override fun writeSetEnd() {
-        println("writeSetEnd()")
-        super.writeSetEnd()
-    }
-
-    override fun writeBool(b: Boolean) {
-        println("writeBool($b)")
-        super.writeBool(b)
-    }
-
-    override fun writeByte(b: Byte) {
-        println("writeByte($b)")
-        super.writeByte(b)
-    }
-
-    override fun writeI16(i16: Short) {
-        println("writeI16($i16)")
-        super.writeI16(i16)
-    }
-
-    override fun writeI32(i32: Int) {
-        println("writeI32($i32)")
-        super.writeI32(i32)
-    }
-
-    override fun writeI64(i64: Long) {
-        println("writeI64($i64)")
-        super.writeI64(i64)
-    }
-
-    override fun writeDouble(dub: Double) {
-        println("writeDouble($dub)")
-        super.writeDouble(dub)
-    }
-
-    override fun writeString(str: String?) {
-        println("writeString($str)")
-        super.writeString(str)
-    }
-
-    override fun writeBinary(buf: ByteString?) {
-        println("writeBinary(${buf?.hex()})")
-        super.writeBinary(buf)
-    }
-
-    override fun readMessageBegin(): MessageMetadata {
-        println("readMessageBegin()")
-        return super.readMessageBegin()
-    }
-
-    override fun readMessageEnd() {
-        println("readMessageEnd()")
-        super.readMessageEnd()
-    }
-
-    override fun readStructBegin(): StructMetadata {
-        println("readStructBegin()")
-        return super.readStructBegin()
-    }
-
-    override fun readStructEnd() {
-        println("readStructEnd()")
-        super.readStructEnd()
-    }
-
-    override fun readFieldBegin(): FieldMetadata {
-        println("readFieldBegin()")
-        return super.readFieldBegin()
-    }
-
-    override fun readFieldEnd() {
-        println("readFieldEnd()")
-        super.readFieldEnd()
-    }
-
-    override fun readMapBegin(): MapMetadata {
-        println("readMapBegin()")
-        return super.readMapBegin()
-    }
-
-    override fun readMapEnd() {
-        println("readMapEnd()")
-        super.readMapEnd()
-    }
-
-    override fun readListBegin(): ListMetadata {
-        println("readListBegin()")
-        return super.readListBegin()
-    }
-
-    override fun readListEnd() {
-        println("readListEnd()")
-        super.readListEnd()
-    }
-
-    override fun readSetBegin(): SetMetadata {
-        println("readSetBegin()")
-        return super.readSetBegin()
-    }
-
-    override fun readSetEnd() {
-        println("readSetEnd()")
-        super.readSetEnd()
-    }
-
-    override fun readBool(): Boolean {
-        println("readBool()")
-        return super.readBool()
-    }
-
-    override fun readByte(): Byte {
-        println("readByte()")
-        return super.readByte()
-    }
-
-    override fun readI16(): Short {
-        println("readI16()")
-        return super.readI16()
-    }
-
-    override fun readI32(): Int {
-        println("readI32()")
-        return super.readI32()
-    }
-
-    override fun readI64(): Long {
-        println("readI64()")
-        return super.readI64()
-    }
-
-    override fun readDouble(): Double {
-        println("readDouble()")
-        return super.readDouble()
-    }
-
-    override fun readString(): String {
-        println("readString()")
-        return super.readString()
-    }
-
-    override fun readBinary(): ByteString {
-        println("readBinary()")
-        return super.readBinary()
     }
 }

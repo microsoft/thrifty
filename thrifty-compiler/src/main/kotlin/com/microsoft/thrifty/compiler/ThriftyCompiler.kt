@@ -132,6 +132,9 @@ class ThriftyCompiler {
         val kotlinBuilderlessDataClasses: Boolean by option("--experimental-kt-builderless-structs")
                 .flag(default = false)
 
+        val kotlinCoroutineClients: Boolean by option("--kt-coroutine-clients")
+                .flag(default = false)
+
         val thriftFiles: List<Path> by argument(help = "All .thrift files to compile")
                 .path(exists = true, fileOkay = true, folderOkay = false, readable = true)
                 .multiple()
@@ -220,6 +223,10 @@ class ThriftyCompiler {
 
             if (kotlinBuilderlessDataClasses) {
                 gen.builderlessDataClasses()
+            }
+
+            if (kotlinCoroutineClients) {
+                gen.coroutineServiceClients()
             }
 
             val svc = TypeProcessorService.getInstance()
