@@ -31,7 +31,7 @@ import java.net.ProtocolException;
 
 /**
  * An implementation of the simple Thrift binary protocol.
- *
+ * <p>
  * <p>Instances of this class are <em>not</em> threadsafe.
  */
 public class BinaryProtocol extends Protocol {
@@ -60,18 +60,49 @@ public class BinaryProtocol extends Protocol {
     private boolean strictRead;
     private boolean strictWrite;
 
-    public BinaryProtocol(Transport transport) {
-        this(transport, -1, -1);
+    public static class Builder {
+
+        private Transport transport;
+        private int stringLengthLimit = -1;
+        private int containerLengthLimit = -1;
+        private boolean strictRead;
+        private boolean strictWrite;
+
+        public Builder(Transport transport) {
+            this.transport = transport;
+        }
+
+        public Builder setStringLengthLimit(int stringLengthLimit) {
+            this.stringLengthLimit = stringLengthLimit;
+            return this;
+        }
+
+        public Builder setContainerLengthLimit(int containerLengthLimit) {
+            this.containerLengthLimit = containerLengthLimit;
+            return this;
+        }
+
+        public Builder setStrictRead(boolean strictRead) {
+            this.strictRead = strictRead;
+            return this;
+        }
+
+        public Builder setStrictWrite(boolean strictWrite) {
+            this.strictWrite = strictWrite;
+            return this;
+        }
+
+        public BinaryProtocol build() {
+            return new BinaryProtocol(this);
+        }
     }
 
-    public BinaryProtocol(Transport transport, int stringLengthLimit) {
-        this(transport, stringLengthLimit, -1);
-    }
-
-    public BinaryProtocol(Transport transport, int stringLengthLimit, int containerLengthLimit) {
-        super(transport);
-        this.stringLengthLimit = stringLengthLimit;
-        this.containerLengthLimit = containerLengthLimit;
+    BinaryProtocol(Builder builder) {
+        super(builder.transport);
+        this.stringLengthLimit = builder.stringLengthLimit;
+        this.containerLengthLimit = builder.containerLengthLimit;
+        this.strictRead = builder.strictRead;
+        this.strictWrite = builder.strictWrite;
     }
 
     @Override
@@ -170,8 +201,8 @@ public class BinaryProtocol extends Protocol {
     public void writeI32(int i32) throws IOException {
         buffer[0] = (byte) ((i32 >> 24) & 0xFF);
         buffer[1] = (byte) ((i32 >> 16) & 0xFF);
-        buffer[2] = (byte) ((i32 >>  8) & 0xFF);
-        buffer[3] = (byte)  (i32        & 0xFF);
+        buffer[2] = (byte) ((i32 >> 8) & 0xFF);
+        buffer[3] = (byte) (i32 & 0xFF);
 
         transport.write(buffer, 0, 4);
     }
@@ -184,8 +215,8 @@ public class BinaryProtocol extends Protocol {
         buffer[3] = (byte) ((i64 >> 32) & 0xFF);
         buffer[4] = (byte) ((i64 >> 24) & 0xFF);
         buffer[5] = (byte) ((i64 >> 16) & 0xFF);
-        buffer[6] = (byte) ((i64 >>  8) & 0xFF);
-        buffer[7] = (byte)  (i64        & 0xFF);
+        buffer[6] = (byte) ((i64 >> 8) & 0xFF);
+        buffer[7] = (byte) (i64 & 0xFF);
 
         transport.write(buffer, 0, 8);
     }
@@ -314,7 +345,7 @@ public class BinaryProtocol extends Protocol {
     public short readI16() throws IOException {
         readFully(buffer, 2);
         return (short) (((buffer[0] & 0xFF) << 8)
-                       | (buffer[1] & 0xFF));
+                | (buffer[1] & 0xFF));
     }
 
     @Override
@@ -322,9 +353,9 @@ public class BinaryProtocol extends Protocol {
         readFully(buffer, 4);
 
         return ((buffer[0] & 0xFF) << 24)
-             | ((buffer[1] & 0xFF) << 16)
-             | ((buffer[2] & 0xFF) <<  8)
-             |  (buffer[3] & 0xFF);
+                | ((buffer[1] & 0xFF) << 16)
+                | ((buffer[2] & 0xFF) << 8)
+                | (buffer[3] & 0xFF);
     }
 
     @Override
@@ -332,13 +363,13 @@ public class BinaryProtocol extends Protocol {
         readFully(buffer, 8);
 
         return ((buffer[0] & 0xFFL) << 56)
-             | ((buffer[1] & 0xFFL) << 48)
-             | ((buffer[2] & 0xFFL) << 40)
-             | ((buffer[3] & 0xFFL) << 32)
-             | ((buffer[4] & 0xFFL) << 24)
-             | ((buffer[5] & 0xFFL) << 16)
-             | ((buffer[6] & 0xFFL) <<  8)
-             |  (buffer[7] & 0xFFL);
+                | ((buffer[1] & 0xFFL) << 48)
+                | ((buffer[2] & 0xFFL) << 40)
+                | ((buffer[3] & 0xFFL) << 32)
+                | ((buffer[4] & 0xFFL) << 24)
+                | ((buffer[5] & 0xFFL) << 16)
+                | ((buffer[6] & 0xFFL) << 8)
+                | (buffer[7] & 0xFFL);
     }
 
     @Override

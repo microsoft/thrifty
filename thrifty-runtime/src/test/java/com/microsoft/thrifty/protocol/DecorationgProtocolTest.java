@@ -31,7 +31,7 @@ public final class DecorationgProtocolTest {
 
     @Test
     public void testCtor() {
-        Protocol binaryProtocol = new BinaryProtocol(new BufferTransport());
+        Protocol binaryProtocol = new BinaryProtocol.Builder(new BufferTransport()).build();
         Protocol decoratingProtocol = new DecoratingProtocol(binaryProtocol) {};
         assertThat(decoratingProtocol.transport).isSameAs(binaryProtocol.transport);
     }
