@@ -537,7 +537,6 @@ class ThriftyCodeGenerator {
                 .returns(typeResolver.getJavaClass(structType))
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addParameter(builderClassName, "builder")
-                .addException(TypeNames.THRIFT_EXCEPTION)
                 .addException(TypeNames.IO_EXCEPTION)
 
         val readHelper = MethodSpec.methodBuilder("read")
@@ -545,7 +544,6 @@ class ThriftyCodeGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .returns(typeResolver.getJavaClass(structType))
                 .addParameter(TypeNames.PROTOCOL, "protocol")
-                .addException(TypeNames.THRIFT_EXCEPTION)
                 .addException(TypeNames.IO_EXCEPTION)
                 .addStatement("return read(protocol, new \$T())", builderClassName)
                 .build()
