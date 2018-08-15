@@ -300,7 +300,7 @@ internal class Linker(
         val servicesToValidate = ArrayDeque<ServiceType>(program.services.size)
 
         for (service in program.services) {
-            // If this service extends another, add the parent -> child relationship to the multmap.
+            // If this service extends another, add the parent -> child relationship to the multimap.
             // Otherwise, this is a root node, and should be added to the processing queue.
             val baseType = service.extendsService
             if (baseType != null) {
@@ -377,7 +377,7 @@ internal class Linker(
         typesByName[type.name] = type
     }
 
-    open fun resolveType(type: TypeElement): ThriftType {
+    fun resolveType(type: TypeElement): ThriftType {
         val annotationElement = type.annotations
         val annotations = annotationElement?.values ?: ImmutableMap.of()
 
@@ -449,6 +449,6 @@ internal class Linker(
     private class LinkFailureException : RuntimeException {
         internal constructor()
 
-        internal constructor(message: String) : super(message) {}
+        internal constructor(message: String) : super(message)
     }
 }
