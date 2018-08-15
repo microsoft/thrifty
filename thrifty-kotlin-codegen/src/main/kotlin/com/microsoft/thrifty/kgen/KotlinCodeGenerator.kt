@@ -240,11 +240,14 @@ class KotlinCodeGenerator(
         }
 
         schema.services.forEach {
-            val iface = if (coroutineServiceClients) generateCoroServiceInterface(it) else generateServiceInterface(it)
-            val impl = if (coroutineServiceClients) {
-                generateCoroServiceImplementation(schema, it, iface)
+            val iface: TypeSpec
+            val impl: TypeSpec
+            if (coroutineServiceClients) {
+                iface = generateCoroServiceInterface(it)
+                impl = generateCoroServiceImplementation(schema, it, iface)
             } else {
-                generateServiceImplementation(schema, it, iface)
+                iface = generateServiceInterface(it)
+                impl = generateServiceImplementation(schema, it, iface)
             }
             specsByNamespace.put(it.kotlinNamespace, iface)
             specsByNamespace.put(it.kotlinNamespace, impl)

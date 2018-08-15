@@ -439,4 +439,11 @@ public abstract class ConformanceBase {
         assertThat(error.struct_thing.string_thing, equalTo("This is an Xception2"));
     }
 
+    @Test
+    public void testOneway() throws Throwable {
+        AssertingCallback<Void> callback = new AssertingCallback<>();
+        client.testOneway(0, callback);
+        assertThat(callback.getResult(), is(nullValue()));
+        assertThat(callback.getError(), is(nullValue()));
+    }
 }
