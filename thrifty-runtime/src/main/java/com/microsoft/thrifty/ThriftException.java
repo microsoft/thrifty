@@ -29,7 +29,7 @@ import java.io.IOException;
 /**
  * Represents a Thrift protocol-level error.
  */
-public class ThriftException extends Exception {
+public class ThriftException extends RuntimeException {
     /**
      * Identifies kinds of protocol violation.
      */
