@@ -1579,13 +1579,25 @@ class KotlinCodeGenerator(
             val method = serviceType.methods[index]
             val call = buildCallType(schema, method)
             val resultType = interfaceFun.returnType ?: UNIT
+            val callbackResultType = if (method.oneWay) UNIT.asNullable() else resultType
             val callbackType = ServiceMethodCallback::class.asTypeName().parameterizedBy(resultType)
             val callback = TypeSpec.anonymousClassBuilder()
                     .addSuperinterface(callbackType)
                     .addFunction(FunSpec.builder("onSuccess")
                             .addModifiers(KModifier.OVERRIDE)
-                            .addParameter("result", resultType)
-                            .addStatement("cont.resume(result)")
+                            .addParameter("result", callbackResultType)
+                            .apply {
+                                // oneway calls don't have results, which the Java code represents as a null instance
+                                // of type Void.  We deal with this by making the callback accept a Unit? for oneway
+                                // functions; they are they only ones to accept a nullable result.
+                                //
+                                // It's a bit ungainly, but as an implementation detail it's acceptable.
+                                if (method.oneWay) {
+                                    addStatement("cont.resume(Unit)")
+                                } else {
+                                    addStatement("cont.resume(result)")
+                                }
+                            }
                             .build())
                     .addFunction(FunSpec.builder("onError")
                             .addModifiers(KModifier.OVERRIDE)

@@ -374,4 +374,8 @@ class CoroutineConformanceTests(
 
         awaitAll(d1, d2, d3, d4, d5)
     }
+
+    @Test fun oneway() = runBlocking {
+        client.testOneway(secondsToSleep = 0)
+    }
 }
