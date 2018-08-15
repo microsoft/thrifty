@@ -88,9 +88,30 @@ task kompileTestThrift(type: Exec) {
     ]
 }
 
+task kompileCoroutineTestThrift(type: Exec) {
+    def jarTask = project.tasks['shadowJar'] as Jar
+
+    inputs.file("$projectDir/CoroutineClientTest.thrift")
+    inputs.files(jarTask.outputs)
+    outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
+
+    dependsOn jarTask
+
+    executable 'java'
+    args = [
+            '-jar',
+            jarTask.archivePath.absolutePath,
+            "--out=$projectDir/build/generated-src/thrifty/kotlin",
+            "--lang=kotlin",
+            "--kt-coroutine-clients",
+            "$projectDir/CoroutineClientTest.thrift"
+    ]
+}
+
 compileTestKotlin {
     dependsOn compileTestThrift
     dependsOn kompileTestThrift
+    dependsOn kompileCoroutineTestThrift
 }
 
 task cleanTestCode(type: Delete) {
@@ -109,5 +130,11 @@ compileTestJava {
 
 tasks['javadoc'].configure {
     exclude '**/generated-src/**'
+}
+
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
 }
 

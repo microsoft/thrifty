@@ -22,7 +22,7 @@ package com.microsoft.thrifty.kgen
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
-import com.google.common.collect.HashMultimap
+import com.google.common.collect.LinkedHashMultimap
 import com.microsoft.thrifty.Adapter
 import com.microsoft.thrifty.Obfuscated
 import com.microsoft.thrifty.Redacted
@@ -119,6 +119,7 @@ class KotlinCodeGenerator(
 
     private var parcelize: Boolean = false
     private var builderlessDataClasses: Boolean = false
+    private var coroutineServiceClients: Boolean = false
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -206,6 +207,10 @@ class KotlinCodeGenerator(
         this.builderlessDataClasses = true
     }
 
+    fun coroutineServiceClients(): KotlinCodeGenerator = apply {
+        this.coroutineServiceClients = true
+    }
+
     private object NoTypeProcessor : KotlinTypeProcessor {
         override fun process(typeSpec: TypeSpec) = typeSpec
     }
@@ -216,9 +221,9 @@ class KotlinCodeGenerator(
         TypeSpec.classBuilder("foo")
                 .addModifiers(KModifier.DATA)
 
-        val specsByNamespace = HashMultimap.create<String, TypeSpec>()
-        val constantsByNamespace = HashMultimap.create<String, PropertySpec>()
-        val typedefsByNamespace = HashMultimap.create<String, TypeAliasSpec>()
+        val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
+        val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
+        val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
 
         schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
@@ -235,8 +240,15 @@ class KotlinCodeGenerator(
         }
 
         schema.services.forEach {
-            val iface = generateServiceInterface(it)
-            val impl = generateServiceImplementation(schema, it, iface)
+            val iface: TypeSpec
+            val impl: TypeSpec
+            if (coroutineServiceClients) {
+                iface = generateCoroServiceInterface(it)
+                impl = generateCoroServiceImplementation(schema, it, iface)
+            } else {
+                iface = generateServiceInterface(it)
+                impl = generateServiceImplementation(schema, it, iface)
+            }
             specsByNamespace.put(it.kotlinNamespace, iface)
             specsByNamespace.put(it.kotlinNamespace, impl)
         }
@@ -1491,6 +1503,131 @@ class KotlinCodeGenerator(
                     }
                     add("))")
                 }
+            }
+            type.addType(call)
+            type.addFunction(spec.build())
+        }
+
+        return type.build()
+    }
+
+    internal fun generateCoroServiceInterface(serviceType: ServiceType): TypeSpec {
+        val type = TypeSpec.interfaceBuilder(serviceType.name).apply {
+            if (serviceType.hasJavadoc) addKdoc("%L", serviceType.documentation)
+            if (serviceType.isDeprecated) addAnnotation(makeDeprecated())
+
+            serviceType.extendsService?.let {
+                addSuperinterface(it.typeName)
+            }
+        }
+
+        val allocator = nameAllocators[serviceType]
+        for (method in serviceType.methods) {
+            val name = allocator.get(method)
+            val funSpec = FunSpec.builder(name).apply {
+                addModifiers(KModifier.SUSPEND, KModifier.ABSTRACT)
+
+                if (method.hasJavadoc) addKdoc("%L", method.documentation)
+                if (method.isDeprecated) addAnnotation(makeDeprecated())
+
+                val methodNameAllocator = nameAllocators[method]
+                for (param in method.parameters) {
+                    val paramName = methodNameAllocator.get(param)
+                    val paramSpec = ParameterSpec.builder(paramName, param.type.typeName).apply {
+                        if (param.isDeprecated) addAnnotation(makeDeprecated())
+                    }
+                    addParameter(paramSpec.build())
+                }
+
+                returns(method.returnType.typeName)
+            }
+
+            type.addFunction(funSpec.build())
+        }
+
+        return type.build()
+    }
+
+    internal fun generateCoroServiceImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
+        val type = TypeSpec.classBuilder(serviceType.name + "Client").apply {
+            val baseType = serviceType.extendsService as? ServiceType
+            val baseClassName = if (baseType != null) {
+                ClassName(baseType.kotlinNamespace, baseType.name + "Client")
+            } else {
+                AsyncClientBase::class.asClassName()
+            }
+
+            superclass(baseClassName)
+            addSuperinterface(ClassName(serviceType.kotlinNamespace, serviceType.name))
+
+            // If any servces extend this, then this needs to be open.
+            if (schema.services.any { it.extendsService == serviceType }) {
+                addModifiers(KModifier.OPEN)
+            }
+
+            primaryConstructor(FunSpec.constructorBuilder()
+                    .addParameter("protocol", Protocol::class)
+                    .addParameter("listener", AsyncClientBase.Listener::class)
+                    .build())
+
+            addSuperclassConstructorParameter("protocol", Protocol::class)
+            addSuperclassConstructorParameter("listener", AsyncClientBase.Listener::class)
+        }
+
+        // suspendCoroutine is obviously not a class, but until kotlinpoet supports
+        // importing fully-qualified fun names, we can pun and use a ClassName.
+        val suspendCoroFn = ClassName("kotlin.coroutines.experimental", "suspendCoroutine")
+
+        for ((index, interfaceFun) in serviceInterface.funSpecs.withIndex()) {
+            val method = serviceType.methods[index]
+            val call = buildCallType(schema, method)
+            val resultType = interfaceFun.returnType ?: UNIT
+            val callbackResultType = if (method.oneWay) UNIT.asNullable() else resultType
+            val callbackType = ServiceMethodCallback::class.asTypeName().parameterizedBy(resultType)
+            val callback = TypeSpec.anonymousClassBuilder()
+                    .addSuperinterface(callbackType)
+                    .addFunction(FunSpec.builder("onSuccess")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .addParameter("result", callbackResultType)
+                            .apply {
+                                // oneway calls don't have results, which the Java code represents as a null instance
+                                // of type Void.  We deal with this by making the callback accept a Unit? for oneway
+                                // functions; they are they only ones to accept a nullable result.
+                                //
+                                // It's a bit ungainly, but as an implementation detail it's acceptable.
+                                if (method.oneWay) {
+                                    addStatement("cont.resume(Unit)")
+                                } else {
+                                    addStatement("cont.resume(result)")
+                                }
+                            }
+                            .build())
+                    .addFunction(FunSpec.builder("onError")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .addParameter("error", Throwable::class)
+                            .addStatement("cont.resumeWithException(error)")
+                            .build())
+                    .build()
+
+            val spec = FunSpec.builder(interfaceFun.name).apply {
+                addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
+                returns(resultType)
+
+                for (param in interfaceFun.parameters) {
+                    addParameter(param)
+                }
+
+                // HACK: suspendCoroFn isn't a type
+                addCode("return %T { cont ->%>\n", suspendCoroFn)
+
+                addCode("%[this.enqueue(%N(", call)
+                for (param in interfaceFun.parameters) {
+                    addCode("%N, ", param.name)
+                }
+
+                addCode("%L))%]\n", callback)
+
+                addCode("%<}\n")
             }
             type.addType(call)
             type.addFunction(spec.build())

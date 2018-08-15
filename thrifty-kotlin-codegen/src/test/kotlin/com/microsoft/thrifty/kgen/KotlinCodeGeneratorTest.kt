@@ -10,6 +10,8 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import io.kotlintest.matchers.string.contain
+import io.kotlintest.should
 import io.kotlintest.shouldBe
 import org.junit.Rule
 import org.junit.Test
@@ -277,6 +279,39 @@ class KotlinCodeGeneratorTest {
             |        }
             |
             """.trimMargin()
+    }
+
+    @Test fun `suspend-fun service clients`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |service Svc {
+            |  i32 doSomething(1: i32 foo);
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) { coroutineServiceClients() }
+
+        file.single().toString() should contain("""
+            |interface Svc {
+            |    suspend fun doSomething(foo: Int): Int
+            |}
+            |
+            |class SvcClient(protocol: Protocol, listener: AsyncClientBase.Listener) : AsyncClientBase(protocol, listener),
+            |        Svc {
+            |    override suspend fun doSomething(foo: Int): Int = suspendCoroutine { cont ->
+            |        this.enqueue(DoSomethingCall(foo, object : ServiceMethodCallback<Int> {
+            |            override fun onSuccess(result: Int) {
+            |                cont.resume(result)
+            |            }
+            |
+            |            override fun onError(error: Throwable) {
+            |                cont.resumeWithException(error)
+            |            }
+            |        }))
+            |    }
+            |
+        """.trimMargin())
     }
 
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {

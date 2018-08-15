@@ -31,7 +31,6 @@ dependencies {
 
     api libraries.kotlin
 
-    implementation project(':thrifty-runtime')
     implementation project(':thrifty-runtime-ktx')
 
     testImplementation libraries.testing
