@@ -1578,29 +1578,32 @@ class KotlinCodeGenerator(
         for ((index, interfaceFun) in serviceInterface.funSpecs.withIndex()) {
             val method = serviceType.methods[index]
             val call = buildCallType(schema, method)
+            val resultType = interfaceFun.returnType ?: UNIT
+            val callbackType = ServiceMethodCallback::class.asTypeName().parameterizedBy(resultType)
+            val callback = TypeSpec.anonymousClassBuilder()
+                    .addSuperinterface(callbackType)
+                    .addFunction(FunSpec.builder("onSuccess")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .addParameter("result", resultType)
+                            .addStatement("cont.resume(result)")
+                            .build())
+                    .addFunction(FunSpec.builder("onError")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .addParameter("error", Throwable::class)
+                            .addStatement("cont.resumeWithException(error)")
+                            .build())
+                    .build()
+
             val spec = FunSpec.builder(interfaceFun.name).apply {
                 addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
+                returns(resultType)
+
                 for (param in interfaceFun.parameters) {
                     addParameter(param)
                 }
 
-                val resultType = interfaceFun.returnType ?: UNIT
-                val callbackType = ServiceMethodCallback::class.asTypeName().parameterizedBy(resultType)
-                val callback = TypeSpec.anonymousClassBuilder()
-                        .addSuperinterface(callbackType)
-                        .addFunction(FunSpec.builder("onSuccess")
-                                .addModifiers(KModifier.OVERRIDE)
-                                .addParameter("result", resultType)
-                                .addStatement("cont.resume(result)")
-                                .build())
-                        .addFunction(FunSpec.builder("onError")
-                                .addModifiers(KModifier.OVERRIDE)
-                                .addParameter("error", Throwable::class)
-                                .addStatement("cont.resumeWithException(error)")
-                                .build())
-                        .build()
-
-                addCode("return %T { cont ->%>\n", suspendCoroFn.parameterizedBy(resultType)) // HACK: suspendCoroFn isn't a type
+                // HACK: suspendCoroFn isn't a type
+                addCode("return %T { cont ->%>\n", suspendCoroFn)
 
                 addCode("%[this.enqueue(%N(", call)
                 for (param in interfaceFun.parameters) {
