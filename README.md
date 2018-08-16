@@ -33,7 +33,7 @@ repositories {
 }
 
 dependencies {
-  compile 'com.microsoft.thrifty:thrifty-runtime:0.4.3'
+  compile 'com.microsoft.thrifty:thrifty-runtime:1.0.0-RC1'
 }
 ```
 
@@ -398,6 +398,84 @@ Obfuscated fields that are collections are not hashed; instead, their type is pr
 
 Close readers will note that the compiler will also respond to `@redacted` and `@obfuscated` in field documentation; this is currently valid *but not supported
 and subject to change in future releases*.  It is a legacy from the time before Thrifty implemented Thrift annotations.
+
+## Kotlin Support
+
+As of version 1.0.0-RC1, Thrifty supports generated Kotlin code that is (almost) as small as its Java counterpart.  Instead of classes with final fields, Thrifty Kotlin structs are represented as `data class` structures whose members are annotated as `@JvmField`.  This produces classes which, when compiled, are nearly as small as their Java counterparts; the `Query` class above looks like this in Kotlin:
+
+```kotlin
+data class Query(
+  @JvmField
+  @ThriftField(fieldId = 1, required = true)
+  val text: String,
+
+  @JvmField
+  @ThriftField(fieldId = 2, optional = true)
+  val resultsNewerThan: Long?
+) : Struct {
+
+  override fun write(protocol: Protocol) {
+    ADAPTER.write(protocol, this)
+  }
+
+  private class QueryAdapter : Adapter<Query, Builder> {
+    override fun read(protocol: Protocol): Query {
+      // deserialization code as above
+    }
+
+    override fun write(protcol: Protocol, struct: Query) {
+      // serialization code as above
+    }
+  }
+
+  companion object {
+    @JvmField val ADAPTER: Adapter<Query> = QueryAdapter()
+  }
+}
+```
+
+Notice that, thanks to data classes, there are no longer custom `toString`, `equals`, or `hashCode` methods.  Because we can accurately model required/optional in the Kotlin type system, we no longer require builders to enforce struct validity - if you can instantiate a Thrifty Kotlin struct, it is valid by definition.
+
+Also note that redacted and obfuscated fields are still supported, and _will_ result in a custom `toString` implementation.
+
+### How To Enable Kotlin
+
+Add `--lang=kotlin` to your thrifty-compiler.jar invocation, and add the new `com.microsoft.thrifty:thrifty-runtime-ktx:1.0.0-RC1` dependency.
+
+### Kotlin-specific command-line options
+
+There are a few new command-line options to control Kotlin code generation:
+
+```
+java -jar thrifty-compiler.jar \
+    --lang=kotlin \
+    --kt-coroutine-clients \
+    --experimental-kt-builderless-structs \
+    --kt-file-per-type \
+    ...
+```
+
+The new option `--lang=kotlin` accepts either `java` or `kotlin`; use the latter to generate Kotlin code.
+
+By default, standard callback-based service clients will be generated:
+
+```kotlin
+interface Google {
+  fun search(query: Query, callback: ServiceMethodCallback<List<SearchResult>>)
+}
+```
+
+If, instead, you wish to have a coroutine-based client, specify `--kt-coroutine-clients`:
+
+```kotlin
+interface Google {
+  suspend fun search(query: Query): List<SearchResult>
+}
+```
+
+Although builders are no longer strictly necessary, for compatibility with existing code, Thrifty will still generate them by default.  You can suppress them with the `--experimental-kt-builderless-structs` flag, which (as its name suggests) is currently considered "experimental".
+
+The final new flag is `--kt-file-per-type`.  Thrifty's convention is to generate a single Kotlin file per distinct JVM namespace.  For particularly large .thrift inputs, this is suboptimal.  Outlook Mobile's single, large, Kotlin file took up to one minute just to typecheck, using Kotlin 1.2.51!  For these cases, `--kt-file-per-type` will tell Thrifty to generate one single file per top-level class - just like the Java code.
 
 ### Thanks
 

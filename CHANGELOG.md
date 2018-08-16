@@ -1,5 +1,10 @@
-1.0.0-RC1 (unreleased)
+1.0.0-RC1 (released 15 August 2018)
 ------------------
+- #225: Add Kotlin coroutine-based service client APIs
+- #224: Fix ClientBase by adding missing call to protocol.readMessageEnd()
+- #223: Fix FramedTransport reads over > 1 frame
+- #217: Avoid scope collisions when reading map values (thanks again, @jparise!)
+- #216: Fix const validation for doubles (thanks, @jparise)
 - General: Broke thrifty-schema API in favor of idiomatic Kotlin
 - #204: Remove deprecated java.io.File methods in Loader
 - #183: Added Kotlin codegen
