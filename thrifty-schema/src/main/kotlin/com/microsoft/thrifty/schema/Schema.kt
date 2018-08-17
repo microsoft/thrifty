@@ -66,6 +66,13 @@ class Schema {
      */
     val services: List<ServiceType>
 
+    /**
+     * @return an [Iterable] of all [UserElements][UserElement] in this [Schema].
+     */
+    fun elements(): Iterable<UserElement> {
+        return structs + unions + exceptions + enums + constants + typedefs + services
+    }
+
     internal constructor(programs: Iterable<Program>) {
         val structs = mutableListOf<StructType>()
         val unions = mutableListOf<StructType>()

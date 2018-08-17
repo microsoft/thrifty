@@ -28,7 +28,7 @@ package com.microsoft.thrifty.schema
  * by Thrift and so are included to retain fidelity.  Scopes relevant to
  * Thrifty are [ALL], [JAVA], and [KOTLIN].
  */
-enum class NamespaceScope(private val thriftName: String) {
+enum class NamespaceScope(internal val thriftName: String) {
     /**
      * Represents all languages; often used as a fallback value.
      */
