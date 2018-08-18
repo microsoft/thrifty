@@ -155,5 +155,10 @@ enum class NamespaceScope(private val thriftName: String) {
             }
             return null
         }
+
+        /**
+         * @return a [Set] of all the members that are [JVM] sub-types.
+         */
+        fun jvmMembers() = setOf(JAVA, KOTLIN)
     }
 }
