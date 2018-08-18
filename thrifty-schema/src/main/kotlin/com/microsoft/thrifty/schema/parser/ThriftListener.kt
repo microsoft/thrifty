@@ -72,10 +72,8 @@ internal class ThriftListener(
     fun buildFileElement(): ThriftFileElement {
         // Default JVM subtypes to the JVM namespace if present
         namespaces.find { it.scope == NamespaceScope.JVM }?.let { jvmElement ->
-            NamespaceScope.jvmMembers().forEach { subType ->
-                if (namespaces.none { it.scope == subType }) {
-                    namespaces.add(jvmElement.copy(scope = subType))
-                }
+            NamespaceScope.jvmMembers().subtract(namespaces.map { it.scope }).forEach { subType ->
+                namespaces.add(jvmElement.copy(scope = subType))
             }
         }
         return ThriftFileElement(

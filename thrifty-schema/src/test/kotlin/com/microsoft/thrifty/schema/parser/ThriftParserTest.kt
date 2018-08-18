@@ -1233,6 +1233,78 @@ class ThriftParserTest {
         assertThat((constants.single().value as IntValueElement).value, equalTo(2L))
     }
 
+    @Test
+    fun `jvm namespaces fall back`() {
+        val thrift = """
+            const double foo = 2
+        """.trimIndent()
+
+        val constants = parse(thrift).constants
+        assertThat((constants.single().value as IntValueElement).value, equalTo(2L))
+    }
+
+    @Test
+    fun `jvm namespaces fall back to JVM declaration`() {
+        val thrift = "namespace jvm com.microsoft.thrifty.parser"
+
+        val location = Location.get("", "namespaces.thrift")
+        val file = parse(thrift, location)
+
+        val expected = ThriftFileElement(
+            location = location,
+            namespaces = listOf(
+                NamespaceElement(
+                    location = location.at(1, 1),
+                    scope = NamespaceScope.JVM,
+                    namespace = "com.microsoft.thrifty.parser"
+                ),
+                NamespaceElement(
+                    location = location.at(1, 1),
+                    scope = NamespaceScope.JAVA,
+                    namespace = "com.microsoft.thrifty.parser"
+                ),
+                NamespaceElement(
+                    location = location.at(1, 1),
+                    scope = NamespaceScope.KOTLIN,
+                    namespace = "com.microsoft.thrifty.parser"
+                )
+            )
+        )
+
+        assertThat(file, equalTo(expected))
+    }
+
+    @Test
+    fun `jvm namespaces fall back to JVM declaration but not if specified`() {
+        val thrift = "namespace jvm com.microsoft.thrifty.parser\nnamespace java com.microsoft.thrifty.parser.java\n"
+
+        val location = Location.get("", "namespaces.thrift")
+        val file = parse(thrift, location)
+
+        val expected = ThriftFileElement(
+            location = location,
+            namespaces = listOf(
+                NamespaceElement(
+                    location = location.at(1, 1),
+                    scope = NamespaceScope.JVM,
+                    namespace = "com.microsoft.thrifty.parser"
+                ),
+                NamespaceElement(
+                    location = location.at(2, 1),
+                    scope = NamespaceScope.JAVA,
+                    namespace = "com.microsoft.thrifty.parser.java"
+                ),
+                NamespaceElement(
+                    location = location.at(1, 1),
+                    scope = NamespaceScope.KOTLIN,
+                    namespace = "com.microsoft.thrifty.parser"
+                )
+            )
+        )
+
+        assertThat(file, equalTo(expected))
+    }
+
     companion object {
 
         private val TEST_UUID = UUID.fromString("ecafa042-668a-4403-a6d3-70983866ffbe")
