@@ -41,6 +41,10 @@ enum class NamespaceScope(internal val thriftName: String) {
 
     /**
      * Represents a Java namespace scope.
+     *
+     * Usually redundant with [KOTLIN] or [JVM], but is available for use in those cases
+     * where generated Java code should not share a namespace with generated
+     * Kotlin code.
      */
     JAVA("java"),
 
@@ -127,11 +131,16 @@ enum class NamespaceScope(internal val thriftName: String) {
     /**
      * Represents a Kotlin namespace scope.
      *
-     * Usually redundant with [JAVA], but is available for use in those cases
+     * Usually redundant with [JAVA] or [JVM], but is available for use in those cases
      * where generated Kotlin code should not share a namespace with generated
      * Java code.
      */
-    KOTLIN("kt");
+    KOTLIN("kt"),
+
+    /**
+     * Represents a JVM namespace scope.
+     */
+    JVM("jvm");
 
     companion object {
         /**
@@ -146,5 +155,10 @@ enum class NamespaceScope(internal val thriftName: String) {
             }
             return null
         }
+
+        /**
+         * @return a [Set] of all the members that are [JVM] sub-types.
+         */
+        fun jvmMembers() = setOf(JAVA, KOTLIN)
     }
 }

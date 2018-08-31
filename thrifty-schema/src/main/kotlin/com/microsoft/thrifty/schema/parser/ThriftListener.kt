@@ -69,7 +69,14 @@ internal class ThriftListener(
     private val consts = mutableListOf<ConstElement>()
     private val services = mutableListOf<ServiceElement>()
 
-    fun buildFileElement(): ThriftFileElement = ThriftFileElement(
+    fun buildFileElement(): ThriftFileElement {
+        // Default JVM subtypes to the JVM namespace if present
+        namespaces.find { it.scope == NamespaceScope.JVM }?.let { jvmElement ->
+            NamespaceScope.jvmMembers().subtract(namespaces.map { it.scope }).forEach { subType ->
+                namespaces.add(jvmElement.copy(scope = subType))
+            }
+        }
+        return ThriftFileElement(
             location = location,
             includes = includes,
             namespaces = namespaces,
@@ -80,7 +87,8 @@ internal class ThriftListener(
             exceptions = exceptions,
             constants = consts,
             services = services
-    )
+        )
+    }
 
     override fun exitInclude(ctx: AntlrThriftParser.IncludeContext) {
         val pathNode = ctx.LITERAL()
