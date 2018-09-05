@@ -191,7 +191,7 @@ class ThriftyCodeGeneratorTest {
 
         val java = file.toString()
 
-        assertThat(java).contains("@Deprecated\npublic enum Foo")
+        assertThat(java).contains("@Deprecated")
     }
 
     @Test
@@ -242,6 +242,12 @@ class ThriftyCodeGeneratorTest {
         assertThat(file.toString()).isEqualTo("""
             package byte_consts;
 
+            import javax.annotation.Generated;
+
+            @Generated(
+                value = "com.microsoft.thrifty.gen.ThriftyCodeGenerator",
+                comments = "https://github.com/microsoft/thrifty"
+            )
             public final class Constants {
               public static final byte I8 = (byte) 123;
 
@@ -265,6 +271,12 @@ class ThriftyCodeGeneratorTest {
         assertThat(file.toString()).isEqualTo("""
             package short_consts;
 
+            import javax.annotation.Generated;
+
+            @Generated(
+                value = "com.microsoft.thrifty.gen.ThriftyCodeGenerator",
+                comments = "https://github.com/microsoft/thrifty"
+            )
             public final class Constants {
               public static final short INT = (short) 0xFF;
 
@@ -288,6 +300,12 @@ class ThriftyCodeGeneratorTest {
         assertThat(file.toString()).isEqualTo("""
             package int_consts;
 
+            import javax.annotation.Generated;
+
+            @Generated(
+                value = "com.microsoft.thrifty.gen.ThriftyCodeGenerator",
+                comments = "https://github.com/microsoft/thrifty"
+            )
             public final class Constants {
               public static final int INT = 12345;
 
@@ -311,6 +329,12 @@ class ThriftyCodeGeneratorTest {
         assertThat(file.toString()).isEqualTo("""
             package long_consts;
 
+            import javax.annotation.Generated;
+
+            @Generated(
+                value = "com.microsoft.thrifty.gen.ThriftyCodeGenerator",
+                comments = "https://github.com/microsoft/thrifty"
+            )
             public final class Constants {
               public static final long LONG = 0xFFFFFFFFFFL;
 
@@ -361,6 +385,12 @@ class ThriftyCodeGeneratorTest {
         val expectedFormat = """
             package sigils.consts;
 
+            import javax.annotation.Generated;
+
+            @Generated(
+                value = "com.microsoft.thrifty.gen.ThriftyCodeGenerator",
+                comments = "https://github.com/microsoft/thrifty"
+            )
             public final class Constants {
               /**
                * This comment has ${"$"}Dollar ${"$"}Signs
@@ -401,9 +431,15 @@ class ThriftyCodeGeneratorTest {
         val expected = """
             package sigils.enums;
 
+            import javax.annotation.Generated;
+
             /**
              * ${"$"}Sigil here
              */
+            @Generated(
+                value = "com.microsoft.thrifty.gen.ThriftyCodeGenerator",
+                comments = "https://github.com/microsoft/thrifty"
+            )
             public enum TestEnum {
               /**
                * ${"$"}Good, here's another
@@ -483,6 +519,10 @@ class ThriftyCodeGeneratorTest {
             /**
              * ${"$"}A ${"$"}B ${"$"}C ${"$"}D ${"$"}E
              */
+            @Generated(
+                value = "com.microsoft.thrifty.gen.ThriftyCodeGenerator",
+                comments = "https://github.com/microsoft/thrifty"
+            )
             public final class Foo implements Struct {
         """.trimRawString()
 
