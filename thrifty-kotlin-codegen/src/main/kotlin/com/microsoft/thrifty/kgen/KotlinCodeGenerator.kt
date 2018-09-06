@@ -87,6 +87,7 @@ import com.squareup.kotlinpoet.jvm.jvmStatic
 import kotlin.coroutines.experimental.buildSequence
 import okio.ByteString
 import java.io.IOException
+import javax.annotation.Generated
 
 private object Tags {
     val ADAPTER = "RESERVED:ADAPTER"
@@ -186,6 +187,7 @@ class KotlinCodeGenerator(
 
     var processor: KotlinTypeProcessor = NoTypeProcessor
     var outputStyle: OutputStyle = OutputStyle.FILE_PER_NAMESPACE
+    var emitGeneratedAnnotations = true
 
     fun filePerNamespace(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_NAMESPACE }
     fun filePerType(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_TYPE }
@@ -209,6 +211,10 @@ class KotlinCodeGenerator(
 
     fun coroutineServiceClients(): KotlinCodeGenerator = apply {
         this.coroutineServiceClients = true
+    }
+
+    fun emitGeneratedAnnotations(shouldEmit: Boolean): KotlinCodeGenerator = apply {
+        this.emitGeneratedAnnotations = shouldEmit
     }
 
     private object NoTypeProcessor : KotlinTypeProcessor {
@@ -321,6 +327,7 @@ class KotlinCodeGenerator(
 
     internal fun generateEnumClass(enumType: EnumType): TypeSpec {
         val typeBuilder = TypeSpec.enumBuilder(enumType.name)
+                .addGeneratedAnnotation()
                 .addProperty(PropertySpec.builder("value", INT)
                         .jvmField()
                         .initializer("value")
@@ -376,6 +383,8 @@ class KotlinCodeGenerator(
     internal fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
         val structClassName = ClassName(struct.kotlinNamespace, struct.name)
         val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
+            addGeneratedAnnotation()
+
             if (struct.fields.isNotEmpty()) {
                 addModifiers(KModifier.DATA)
             }
@@ -1095,6 +1104,7 @@ class KotlinCodeGenerator(
         val typeName = type.typeName
         val propName = allocator.newName(constant.name, constant)
         val propBuilder = PropertySpec.builder(propName, typeName)
+                .addGeneratedAnnotation()
 
         if (constant.isDeprecated) propBuilder.addAnnotation(makeDeprecated())
         if (constant.hasJavadoc) propBuilder.addKdoc("%L", constant.documentation)
@@ -1423,6 +1433,8 @@ class KotlinCodeGenerator(
             serviceType.extendsService?.let { baseType ->
                 addSuperinterface(baseType.typeName)
             }
+
+            addGeneratedAnnotation()
         }
 
         val allocator = nameAllocators[serviceType]
@@ -1469,6 +1481,8 @@ class KotlinCodeGenerator(
 
             superclass(baseClassName)
             addSuperinterface(ClassName(serviceType.kotlinNamespace, serviceType.name))
+
+            addGeneratedAnnotation()
 
             // If any servces extend this, then this needs to be open.
             if (schema.services.any { it.extendsService == serviceType }) {
@@ -1519,6 +1533,8 @@ class KotlinCodeGenerator(
             serviceType.extendsService?.let {
                 addSuperinterface(it.typeName)
             }
+
+            addGeneratedAnnotation()
         }
 
         val allocator = nameAllocators[serviceType]
@@ -1559,6 +1575,8 @@ class KotlinCodeGenerator(
 
             superclass(baseClassName)
             addSuperinterface(ClassName(serviceType.kotlinNamespace, serviceType.name))
+
+            addGeneratedAnnotation()
 
             // If any servces extend this, then this needs to be open.
             if (schema.services.any { it.extendsService == serviceType }) {
@@ -1857,6 +1875,25 @@ class KotlinCodeGenerator(
         return AnnotationSpec.builder(ClassName("android.annotation", "SuppressLint"))
                 .addMember("%S", toSuppress)
                 .build()
+    }
+
+    private fun generatedAnnotation(): AnnotationSpec {
+        return AnnotationSpec.builder(Generated::class.java)
+                .addMember("value = %S", KotlinCodeGenerator::class.java.name)
+                .addMember("comments = %S", "https://github.com/microsoft/thrifty")
+                .build()
+    }
+
+    private fun TypeSpec.Builder.addGeneratedAnnotation(): TypeSpec.Builder = apply {
+        if (emitGeneratedAnnotations) {
+            addAnnotation(generatedAnnotation())
+        }
+    }
+
+    private fun PropertySpec.Builder.addGeneratedAnnotation(): PropertySpec.Builder = apply {
+        if (emitGeneratedAnnotations) {
+            addAnnotation(generatedAnnotation())
+        }
     }
 }
 

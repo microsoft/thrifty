@@ -58,6 +58,7 @@ import java.util.ArrayList
  * [--parcelable]
  * [--use-android-annotations]
  * [--omit-file-comments]
+ * [--omit-generated-annotations]
  * file1.thrift
  * file2.thrift
  * ...
@@ -128,6 +129,10 @@ class ThriftyCompiler {
 
         val omitFileComments: Boolean by option("--omit-file-comments",
                     help = "When set, don't add file comments to generated files")
+                .flag(default = false)
+
+        val omitGeneratedAnnotations: Boolean by option("--omit-generated-annotations",
+                    help = "When set, @Generated annotations will be suppressed")
                 .flag(default = false)
 
         val kotlinFilePerType: Boolean by option(
@@ -202,12 +207,14 @@ class ThriftyCompiler {
             gen.emitAndroidAnnotations(emitNullabilityAnnotations)
             gen.emitFileComment(!omitFileComments)
             gen.emitParcelable(emitParcelable)
+            gen.emitGeneratedAnnotations(!omitGeneratedAnnotations)
 
             gen.generate(outputDirectory)
         }
 
         private fun generateKotlin(schema: Schema) {
             val gen = KotlinCodeGenerator(nameStyle)
+                    .emitGeneratedAnnotations(!omitGeneratedAnnotations)
 
             if (emitNullabilityAnnotations) {
                 TermUi.echo("Warning: Nullability annotations are unnecessary in Kotlin and will not be generated")

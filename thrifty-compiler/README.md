@@ -23,6 +23,7 @@ Option | Description
 `--use-android-annotations` | Optional.  When given, Android Support Annotations will be added for generated fields (`@NonNull` and `@Nullable`).
 `--parcelable` | Optional.  Structs, unions, and exceptions will have implementations of Parcelable generated.
 `--omit-file-comments` | Optional.  When set, don't add file comments to generated files.
+`--omit-generated-annotations` | Optional.  When set, don't add @Generated annotations to generated types.
 `--list-type=[classname]` | A java.util.List implementation to be used wherever lists are instantiated in generated code.
 `--set-type=[classname]` | A java.util.Set implementation to be used wherever sets are instantiated in generated code.
 `--map-type=[classname]` | A java.util.Map implementation, as above.

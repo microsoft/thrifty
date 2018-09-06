@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter
 import java.util.ArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import javax.annotation.Generated
 
 class ThriftyCodeGenerator {
 
@@ -71,6 +72,7 @@ class ThriftyCodeGenerator {
     private var emitAndroidAnnotations: Boolean = false
     private var emitParcelable: Boolean = false
     private var emitFileComment = true
+    private var emitGeneratedAnnotations = true
 
     constructor(schema: Schema, namingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT) {
 
@@ -113,6 +115,10 @@ class ThriftyCodeGenerator {
     fun emitFileComment(emitFileComment: Boolean): ThriftyCodeGenerator {
         this.emitFileComment = emitFileComment
         return this
+    }
+
+    fun emitGeneratedAnnotations(emitGeneratedAnnotations: Boolean): ThriftyCodeGenerator = apply {
+        this.emitGeneratedAnnotations = emitGeneratedAnnotations
     }
 
     fun usingTypeProcessor(typeProcessor: TypeProcessor): ThriftyCodeGenerator {
@@ -175,9 +181,17 @@ class ThriftyCodeGenerator {
     }
 
     private fun assembleJavaFile(packageName: String, spec: TypeSpec, location: Location? = null): JavaFile? {
+        val annotatedSpec = if (emitGeneratedAnnotations) {
+            spec.toBuilder()
+                    .addAnnotation(generatedAnnotation())
+                    .build()
+        } else {
+            spec
+        }
+
         val processedSpec = typeProcessor?.let { processor ->
-            processor.process(spec) ?: return null
-        } ?: spec
+            processor.process(annotatedSpec) ?: return null
+        } ?: annotatedSpec
 
         val file = JavaFile.builder(packageName, processedSpec)
                 .skipJavaLangImports(true)
@@ -191,6 +205,13 @@ class ThriftyCodeGenerator {
         }
 
         return file.build()
+    }
+
+    private fun generatedAnnotation(): AnnotationSpec {
+        return AnnotationSpec.builder(Generated::class.java)
+                .addMember("value", "\$S", ThriftyCodeGenerator::class.java.name)
+                .addMember("comments", "\$S", "https://github.com/microsoft/thrifty")
+                .build()
     }
 
     private fun buildStruct(type: StructType): TypeSpec {
