@@ -57,6 +57,7 @@ import java.util.ArrayList
  * [--kt-file-per-type]
  * [--parcelable]
  * [--use-android-annotations]
+ * [--omit-file-comments]
  * file1.thrift
  * file2.thrift
  * ...
@@ -123,6 +124,10 @@ class ThriftyCompiler {
 
         val emitParcelable: Boolean by option("--parcelable",
                     help = "When set, generates Parcelable implementations for structs")
+                .flag(default = false)
+
+        val omitFileComments: Boolean by option("--omit-file-comments",
+                    help = "When set, don't add file comments to generated files")
                 .flag(default = false)
 
         val kotlinFilePerType: Boolean by option(
@@ -195,6 +200,7 @@ class ThriftyCompiler {
             }
 
             gen.emitAndroidAnnotations(emitNullabilityAnnotations)
+            gen.emitFileComment(!omitFileComments)
             gen.emitParcelable(emitParcelable)
 
             gen.generate(outputDirectory)
