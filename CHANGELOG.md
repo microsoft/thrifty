@@ -1,3 +1,11 @@
+1.0.0-RC2 (released 10 September 2018)
+------------------
+- #235: Emit `@Generated` annotations on generated types
+- #234: Add '--omit-file-comments' compiler flag (thanks, @jparise)
+- #232: Add synthetic "JVM" namespace scope (yet again, thanks @hzsweers)
+- #231: Add "functional-equality" implementation for schemas (thanks, @hzsweers)
+- #230: Add rendering tool for thrifty-schema (thanks, @hzsweers)
+
 1.0.0-RC1 (released 15 August 2018)
 ------------------
 - #225: Add Kotlin coroutine-based service client APIs
