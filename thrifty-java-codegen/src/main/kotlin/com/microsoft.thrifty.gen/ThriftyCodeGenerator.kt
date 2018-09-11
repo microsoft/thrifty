@@ -885,7 +885,7 @@ class ThriftyCodeGenerator {
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
 
             if (constant.hasJavadoc) {
-                field.addJavadoc("\$L", constant.documentation + "\n\nGenerated from: " + constant.location + "\n")
+                field.addJavadoc("\$L", constant.documentation + "\n\nGenerated from: " + constant.location.path + " at " + constant.location.line + ":" + constant.location.column + "\n")
             }
 
             if (constant.isDeprecated) {

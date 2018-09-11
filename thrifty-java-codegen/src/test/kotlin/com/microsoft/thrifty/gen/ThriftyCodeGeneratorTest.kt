@@ -411,7 +411,7 @@ class ThriftyCodeGeneratorTest {
         val javaFile = compile(thriftFile, thrift)[0]
 
         val javaText = javaFile.toString()
-        val expected = String.format(expectedFormat, thriftFile.absolutePath)
+        val expected = String.format(expectedFormat, thriftFile.name)
 
         assertThat(javaText).isEqualTo(expected)
     }
