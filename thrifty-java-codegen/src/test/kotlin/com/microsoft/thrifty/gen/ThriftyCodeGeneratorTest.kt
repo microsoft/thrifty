@@ -358,15 +358,12 @@ class ThriftyCodeGeneratorTest {
             const i32 INT = 12345
         """
 
-        val expectedFormat = """
+        val expected = """
             package sigils.consts;
 
             public final class Constants {
               /**
                * This comment has ${"$"}Dollar ${"$"}Signs
-               *
-               *
-               * Generated from: %s at 4:1
                */
               public static final int INT = 12345;
 
@@ -381,7 +378,6 @@ class ThriftyCodeGeneratorTest {
         val javaFile = compile(thriftFile, thrift)[0]
 
         val javaText = javaFile.toString()
-        val expected = String.format(expectedFormat, thriftFile.absolutePath)
 
         assertThat(javaText).isEqualTo(expected)
     }
