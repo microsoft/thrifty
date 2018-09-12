@@ -78,7 +78,7 @@ class Loader {
     fun addThriftFile(file: Path): Loader = apply {
         Preconditions.checkNotNull(file, "file")
         Preconditions.checkArgument(Files.isRegularFile(file), "thrift file must be a regular file")
-        thriftFiles.add(file)
+        thriftFiles.add(file.toAbsolutePath().canonicalPath)
     }
 
     /**
@@ -98,7 +98,7 @@ class Loader {
     fun addIncludePath(path: Path): Loader = apply {
         Preconditions.checkNotNull(path, "path")
         Preconditions.checkArgument(Files.isDirectory(path), "path must be a directory")
-        includePaths.add(path.toAbsolutePath())
+        includePaths.add(path.toAbsolutePath().canonicalPath)
     }
 
     /**
@@ -184,7 +184,7 @@ class Loader {
         val file = findFirstExisting(path, null)?.normalize()
         if (file != null) {
             // Resolve symlinks, redundant '.' and '..' segments.
-            if (loadedFiles.containsKey(file.toAbsolutePath())) {
+            if (loadedFiles.containsKey(file)) {
                 return
             }
 
@@ -194,7 +194,7 @@ class Loader {
             throw FileNotFoundException("Failed to locate $path in $includePaths")
         }
 
-        loadedFiles[file.normalize().toAbsolutePath()] = element
+        loadedFiles[file] = element
 
         if (element.includes.isNotEmpty()) {
             includePaths.addFirst(dir)
@@ -259,19 +259,21 @@ class Loader {
     private fun findFirstExisting(path: Path, currentLocation: Location?): Path? {
         if (path.isAbsolute) {
             // absolute path, should be loaded as-is
-            return if (Files.exists(path)) path else null
+            return if (Files.exists(path)) path.canonicalPath else null
         }
 
         if (currentLocation != null) {
             val maybePath = Paths.get(currentLocation.base, path.toString())
             if (Files.exists(maybePath)) {
-                return maybePath
+                return maybePath.canonicalPath
             }
         }
 
-        return includePaths
+        val firstExisting = includePaths
                 .map { it.resolve(path).normalize() }
                 .firstOrNull { Files.exists(it) }
+
+        return firstExisting?.canonicalPath
     }
 
     private fun getProgramForPath(absolutePath: Path): Program {
@@ -281,6 +283,11 @@ class Loader {
         return loadedPrograms[absolutePath]
                 ?: throw AssertionError("All includes should have been resolved by now: $absolutePath")
     }
+
+    private val Path.canonicalPath: Path
+        get() {
+            return toFile().canonicalFile.toPath()
+        }
 }
 
 private val THRIFT_PATH_MATCHER = FileSystems.getDefault().getPathMatcher("glob:*.thrift")

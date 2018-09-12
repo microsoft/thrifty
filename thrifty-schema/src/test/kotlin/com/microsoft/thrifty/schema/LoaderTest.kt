@@ -219,7 +219,8 @@ class LoaderTest {
 
     @Test
     fun crazyIncludes() {
-        val f1 = tempDir.newFile("a.thrift")
+        val nestedDir = tempDir.newFolder("nested")
+        val f1 = File(nestedDir, "a.thrift")
         val f2 = tempDir.newFile("b.thrift")
         val f3 = tempDir.newFile("c.thrift")
 
@@ -255,11 +256,14 @@ class LoaderTest {
         f3.writeText(c)
 
         val loader = Loader()
-        loader.addThriftFile(f1.toPath())
+        loader.addIncludePath(nestedDir.toPath())
         loader.addThriftFile(f2.toPath())
         loader.addThriftFile(f3.toPath())
 
-        loader.load()
+        val schema = loader.load()
+
+        assertThat(schema.structs, hasSize(2))
+        assertThat(schema.enums, hasSize(1))
     }
 
     @Test
