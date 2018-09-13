@@ -1879,7 +1879,7 @@ class KotlinCodeGenerator(
 
     private fun generatedAnnotation(): AnnotationSpec {
         return AnnotationSpec.builder(Generated::class.java)
-                .addMember("value = %S", KotlinCodeGenerator::class.java.name)
+                .addMember("value = [%S]", KotlinCodeGenerator::class.java.name)
                 .addMember("comments = %S", "https://github.com/microsoft/thrifty")
                 .build()
     }

@@ -245,7 +245,7 @@ class KotlinCodeGeneratorTest {
             |typealias Weights = Map<Int, Int>
             |
             |@Generated(
-            |        value = "com.microsoft.thrifty.kgen.KotlinCodeGenerator",
+            |        value = ["com.microsoft.thrifty.kgen.KotlinCodeGenerator"],
             |        comments = "https://github.com/microsoft/thrifty"
             |)
             |val WEIGHTS: Weights = mapOf(1 to 2)
@@ -300,7 +300,7 @@ class KotlinCodeGeneratorTest {
             |import kotlin.collections.Map
             |
             |@Generated(
-            |        value = "com.microsoft.thrifty.kgen.KotlinCodeGenerator",
+            |        value = ["com.microsoft.thrifty.kgen.KotlinCodeGenerator"],
             |        comments = "https://github.com/microsoft/thrifty"
             |)
             |val Maps: Map<Int, List<String>> = ArrayMap<Int, List<String>>(2).apply {
@@ -324,7 +324,7 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |@Generated(
-            |        value = "com.microsoft.thrifty.kgen.KotlinCodeGenerator",
+            |        value = ["com.microsoft.thrifty.kgen.KotlinCodeGenerator"],
             |        comments = "https://github.com/microsoft/thrifty"
             |)
             |interface Svc {
@@ -332,7 +332,7 @@ class KotlinCodeGeneratorTest {
             |}
             |
             |@Generated(
-            |        value = "com.microsoft.thrifty.kgen.KotlinCodeGenerator",
+            |        value = ["com.microsoft.thrifty.kgen.KotlinCodeGenerator"],
             |        comments = "https://github.com/microsoft/thrifty"
             |)
             |class SvcClient(protocol: Protocol, listener: AsyncClientBase.Listener) : AsyncClientBase(protocol, listener),
