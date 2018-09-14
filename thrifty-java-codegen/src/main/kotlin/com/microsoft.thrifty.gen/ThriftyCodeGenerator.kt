@@ -997,6 +997,10 @@ class ThriftyCodeGenerator {
                 .addParameter(Int::class.javaPrimitiveType, "value")
                 .beginControlFlow("switch (value)")
 
+        if (emitAndroidAnnotations) {
+            fromCodeMethod.addAnnotation(TypeNames.NULLABLE)
+        }
+
         for (member in type.members) {
             val name = member.name
 
