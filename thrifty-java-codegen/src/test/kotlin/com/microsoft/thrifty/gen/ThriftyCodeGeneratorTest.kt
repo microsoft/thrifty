@@ -215,6 +215,28 @@ class ThriftyCodeGeneratorTest {
     }
 
     @Test
+    fun nullableEnumFindByValue() {
+        val thrift = """
+            namespace java enums
+
+            // a generated enum
+            enum BuildStatus {
+                OK = 0,
+                FAIL = 1
+            }
+        """
+
+        val schema = parse("enum_nullable.thrift", thrift)
+        val gen = ThriftyCodeGenerator(schema).emitAndroidAnnotations(true)
+        val javaFiles = gen.generateTypes()
+        val file = javaFiles[0]
+
+        val java = file.toString()
+
+        assertThat(java).contains("@Nullable\n  public static BuildStatus findByValue")
+    }
+
+    @Test
     fun stringConstantsAreNotUnboxed() {
         val thrift = """
             namespace java string_consts
