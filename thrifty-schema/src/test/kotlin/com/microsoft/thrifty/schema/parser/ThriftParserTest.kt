@@ -24,9 +24,13 @@ import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.NamespaceScope
 import com.microsoft.thrifty.schema.Requiredness
-import okio.Okio
-
+import okio.buffer
+import okio.source
 import org.junit.After
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThat
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 
@@ -35,7 +39,6 @@ import java.util.UUID
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.isEmptyString
-import org.junit.Assert.*
 
 class ThriftParserTest {
 
@@ -848,7 +851,7 @@ class ThriftParserTest {
     fun canParseOfficialTestCase() {
         val classLoader = javaClass.classLoader
         val stream = classLoader.getResourceAsStream("cases/TestThrift.thrift")
-        val thrift = Okio.buffer(Okio.source(stream)).readUtf8()
+        val thrift = stream.source().buffer().readUtf8()
         val location = Location.get("cases", "TestThrift.thrift")
 
         // Not crashing is good enough here.  We'll be more strict with this file in the loader test.
