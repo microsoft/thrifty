@@ -4,14 +4,14 @@ Contributing to Thrifty
 The Thrifty team welcomes contributions of all kinds, from simple bug reports through documentation, test cases,
 bugfixes, and features.
 
-DOs and DON'Ts
+DO's and DON'Ts
 --------------
 
 * DO follow our coding style (as described below)
 * DO give priority to the current style of the project or file you're changing even if it diverges from the general guidelines.
 * DO include tests when adding new features. When fixing bugs, start with adding a test that highlights how the current behavior is broken.
 * DO keep the discussions focused. When a new or related topic comes up it's often better to create new issue than to side track the discussion.
-* DO run all Gradle verification tasks (`./gradlew check`) before submitting a pull request
+* DO run all Gradle verification tasks (`./gradlew check`) before submitting a pull request.
 
 * DO NOT send PRs for style changes.
 * DON'T surprise us with big pull requests. Instead, file an issue and start a discussion so we can agree on a direction before you invest a large amount of time.
