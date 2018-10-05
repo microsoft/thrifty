@@ -416,9 +416,14 @@ class ThriftyCodeGenerator {
                 .addAnnotation(TypeNames.OVERRIDE)
                 .addModifiers(Modifier.PUBLIC)
 
+        val structParameterBuilder = ParameterSpec.builder(structClassName, "struct")
+        if (emitAndroidAnnotations) {
+            structParameterBuilder.addAnnotation(AnnotationSpec.builder(TypeNames.NOT_NULL).build())
+        }
+
         val copyCtor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(structClassName, "struct")
+                .addParameter(structParameterBuilder.build())
 
         val defaultCtor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
