@@ -565,6 +565,26 @@ class ThriftyCodeGeneratorTest {
         assertThat(javaFile.toString()).contains(expectedFieldJavadoc)
     }
 
+    @Test
+    fun structBuilderCopyCtor() {
+        val thrift = """
+            namespace java structs.copy
+
+            struct Foo {
+              1: required string bar
+            }
+        """
+
+        val schema = parse("structs_builder_ctor.thrift", thrift)
+        val gen = ThriftyCodeGenerator(schema).emitAndroidAnnotations(true)
+        val javaFiles = gen.generateTypes()
+        val file = javaFiles[0]
+
+        val java = file.toString()
+
+        assertThat(java).contains("public Builder(@NonNull Foo struct)")
+    }
+
     private fun compile(filename: String, text: String): List<JavaFile> {
         val schema = parse(filename, text)
         val gen = ThriftyCodeGenerator(schema).emitFileComment(false)
