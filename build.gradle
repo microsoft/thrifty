@@ -28,7 +28,7 @@ allprojects {
     version VERSION
 
     project.ext {
-        kotlin_version = '1.2.60'
+        kotlin_version = '1.2.71'
 
         libraries = [
                 clikt: [
