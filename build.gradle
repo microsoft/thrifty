@@ -172,3 +172,8 @@ afterEvaluate {
         apply from: file("${rootDir}/gradle/gradle-mvn-push.gradle")
     }
 }
+
+wrapper{
+    gradleVersion = "4.7710.2"
+    distributionType = Wrapper.DistributionType.ALL
+}
