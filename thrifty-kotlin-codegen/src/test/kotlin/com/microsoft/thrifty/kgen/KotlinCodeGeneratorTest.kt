@@ -352,6 +352,114 @@ class KotlinCodeGeneratorTest {
         """.trimMargin())
     }
 
+
+    private val union: String
+        get() {
+            val thrift = """
+                |namespace kt test.coro
+                |
+                |union Union {
+                |  1: i32 Foo;
+                |  2: i64 Bar;
+                |  3: string Baz
+                |}
+            """.trimMargin()
+            return thrift
+        }
+
+    @Test fun `union generate sealed`() {
+        val thrift = union
+
+        val file = generate(thrift) { coroutineServiceClients() }
+
+        file.single().toString() should contain("""
+            |sealed class Union {
+        """.trimMargin())
+    }
+
+
+    @Test fun `union properties as data`() {
+        val thrift = union
+
+        val file = generate(thrift) { coroutineServiceClients() }
+
+        file.single().toString() should contain("""
+            |
+            |    data class Foo(var value: Int?) : Union()
+            |
+            |    data class Bar(var value: Long?) : Union()
+            |
+            |    data class Baz(var value: String?) : Union()
+            |
+        """.trimMargin())
+    }
+
+
+    @Test fun `union has builder`() {
+        val thrift = union
+
+        val file = generate(thrift) { coroutineServiceClients() }
+
+        file.single().toString() should contain("""
+            |    class Builder {
+            |        private var Foo: Int?
+            |
+            |        private var Bar: Long?
+            |
+            |        private var Baz: String?
+            |
+            |        constructor() {
+            |            this.Foo = null
+            |            this.Bar = null
+            |            this.Baz = null
+            |        }
+            |
+            |        constructor(source: Union) {
+            |            this.Foo = source.Foo
+            |            this.Bar = source.Bar
+            |            this.Baz = source.Baz
+            |        }
+            |
+            |        fun Foo(value: Int) = apply {
+            |            this.Foo = value
+            |            this.Bar = null
+            |            this.Baz = null
+            |        }
+            |
+            |        fun Bar(value: Long) = apply {
+            |            this.Foo = null
+            |            this.Bar = value
+            |            this.Baz = null
+            |        }
+            |
+            |        fun Baz(value: String) = apply {
+            |            this.Foo = null
+            |            this.Bar = null
+            |            this.Baz = value
+            |        }
+            |
+            |        fun build(): Union = when {
+            |            Foo != null -> Foo(Foo)
+            |            Bar != null -> Bar(Bar)
+            |            Baz != null -> Baz(Baz)
+            |            else -> throw AssertionError("unpossible")
+            |        }
+            |    }
+        """.trimMargin())
+    }
+
+
+    @Test fun `union define toString`() {
+        val thrift = union
+
+        val file = generate(thrift) { coroutineServiceClients() }
+
+        file.single().toString() should contain("""
+            |override fun toString() = "Union(Foo=${'$'}Foo, Bar=${'$'}Bar, Baz=${'$'}Baz)"
+        """.trimMargin())
+    }
+
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()

@@ -234,7 +234,7 @@ class KotlinCodeGenerator(
         schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
         schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
-        schema.unions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
+        schema.unions.forEach { specsByNamespace.put(it.kotlinNamespace, generateSealedClass(schema, it)) }
         schema.exceptions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
 
         val constantNameAllocators = mutableMapOf<String, NameAllocator>()
@@ -501,6 +501,53 @@ class KotlinCodeGenerator(
                 .build()
     }
 
+
+    internal fun generateSealedClass(schema: Schema, struct: StructType): TypeSpec {
+        val structClassName = ClassName(struct.kotlinNamespace, struct.name)
+        val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
+            addGeneratedAnnotation()
+
+            if (struct.fields.isNotEmpty()) {
+                addModifiers(KModifier.SEALED)
+            }
+
+            if (struct.isDeprecated) addAnnotation(makeDeprecated())
+            if (struct.hasJavadoc) addKdoc("%L", struct.documentation)
+            if (struct.isException) superclass(Exception::class)
+
+            if (parcelize) {
+                addAnnotation(makeParcelable())
+                addAnnotation(suppressLint("ParcelCreator")) // Android Studio bug with Parcelize
+            }
+        }
+
+        val nameAllocator = nameAllocators[struct]
+        for (field in struct.fields) {
+            val name = nameAllocator.get(field)
+            val type = field.type.typeName
+
+            val propertySpec = PropertySpec.varBuilder("value", type.asNullable())
+                    .initializer("value")
+
+            val propConstructor = FunSpec.constructorBuilder()
+                    .addParameter("value", type.asNullable())
+
+            val dataProp = TypeSpec.classBuilder(name)
+                    .addModifiers(KModifier.DATA)
+                    .superclass(structClassName)
+                    .addProperty(propertySpec.build())
+                    .primaryConstructor(propConstructor.build())
+                    .build()
+            typeBuilder.addType(dataProp)
+        }
+
+        typeBuilder.addType(generateUnionBuilder(schema, struct))
+
+        return typeBuilder
+                .addFunction(generateToString(struct))
+                .build()
+    }
+
     // endregion Structs
 
     // region Redaction/obfuscation
@@ -648,6 +695,74 @@ class KotlinCodeGenerator(
                 .addFunction(resetFunSpec.build())
                 .build()
     }
+
+
+    internal fun generateUnionBuilder(schema: Schema, struct: StructType): TypeSpec {
+        val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
+        val spec = TypeSpec.classBuilder("Builder")
+        val buildFunSpec = FunSpec.builder("build")
+                .returns(structTypeName)
+                .beginControlFlow("return when")
+
+        val copyCtor = FunSpec.constructorBuilder()
+                .addParameter("source", structTypeName)
+
+        val defaultCtor = FunSpec.constructorBuilder()
+
+        val nameAllocator = nameAllocators[struct]
+        for (field in struct.fields) {
+            val name = nameAllocator.get(field)
+            val type = field.type.typeName
+
+            // Add a private var
+
+            val defaultValueBlock = field.defaultValue?.let {
+                renderConstValue(schema, field.type, it)
+            } ?: CodeBlock.of("null")
+
+            val propertySpec = PropertySpec.varBuilder(name, type.asNullable(), KModifier.PRIVATE)
+
+            // Add a builder fun
+            var content = "return apply {\n"
+            for (field2 in struct.fields) {
+                val name2 = nameAllocator.get(field2)
+                if (name == name2) {
+                    content += "    this.$name2 = value\n"
+                } else {
+                    content += "    this.$name2 = null\n"
+                }
+            }
+            content += "}"
+            val builderFunSpec = FunSpec.builder(name)
+                    .addParameter("value", type)
+                    .addStatement(content)
+
+            // Add initialization in default ctor
+            defaultCtor.addStatement("this.$name = %L", defaultValueBlock)
+
+            // Add initialization in copy ctor
+            copyCtor.addStatement("this.$name = source.$name")
+
+            // Add field to build-method ctor-invocation arg builder
+            // TODO: Add newlines and indents if numFields > 1
+            buildFunSpec.addStatement("$name != null -> $name($name)")
+
+
+            // Finish off the property and builder fun
+            spec.addProperty(propertySpec.build())
+            spec.addFunction(builderFunSpec.build())
+        }
+
+        buildFunSpec.addStatement("else -> throw AssertionError(\"unpossible\")")
+        buildFunSpec.endControlFlow()
+
+        return spec
+                .addFunction(defaultCtor.build())
+                .addFunction(copyCtor.build())
+                .addFunction(buildFunSpec.build())
+                .build()
+    }
+
 
     // endregion Builders
 
