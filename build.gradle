@@ -95,7 +95,6 @@ subprojects { sp ->
     apply plugin: 'java-library'
     apply plugin: 'idea'
     apply plugin: 'checkstyle'
-    apply plugin: 'net.ltgt.errorprone'
     apply plugin: 'jacoco'
 
     sourceCompatibility = '1.8'
@@ -106,10 +105,6 @@ subprojects { sp ->
         configProperties = ["checkstyle.cache.file": file('build/checkstyle.cache')]
         showViolations = true
         sourceSets = [sourceSets.main]
-    }
-
-    configurations.errorprone {
-        resolutionStrategy.force 'com.google.errorprone:error_prone_core:2.0.18'
     }
 
     tasks.withType(Checkstyle) {
@@ -170,6 +165,12 @@ codeCoverageReport.dependsOn {
 afterEvaluate {
     subprojects {
         apply from: file("${rootDir}/gradle/gradle-mvn-push.gradle")
+
+        configurations.all { Configuration c ->
+            if (c.name == "errorprone") {
+                resolutionStrategy.force 'com.google.errorprone:error_prone_core:2.3.2'
+            }
+        }
     }
 }
 

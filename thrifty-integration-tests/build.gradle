@@ -125,7 +125,6 @@ clean {
 compileTestJava {
     dependsOn compileTestThrift
     dependsOn kompileTestThrift
-    options.compilerArgs += [ '-Xep:ReferenceEquality:OFF' ]
 }
 
 tasks['javadoc'].configure {

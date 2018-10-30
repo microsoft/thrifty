@@ -32,7 +32,3 @@ tasks['javadoc'].configure {
 
 // Ditto for checkstyle violations - though I think Thrifty does a little better here ;)
 tasks['checkstyleMain'].enabled = false
-
-compileJava {
-    options.compilerArgs += [ '-Xep:MissingOverride:OFF', '-Xep:NonOverridingEquals:OFF' ]
-}
