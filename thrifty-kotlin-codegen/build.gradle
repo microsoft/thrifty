@@ -37,9 +37,3 @@ dependencies {
 
     testImplementation 'com.google.testing.compile:compile-testing:0.9'
 }
-
-kotlin {
-    experimental {
-        coroutines "enable"
-    }
-}

@@ -41,9 +41,9 @@ import com.microsoft.thrifty.transport.SocketTransport
 import com.microsoft.thrifty.transport.Transport
 import io.kotlintest.fail
 import io.kotlintest.shouldBe
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.awaitAll
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import okio.ByteString
 import org.junit.After
 import org.junit.Before

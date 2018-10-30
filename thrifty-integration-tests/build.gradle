@@ -131,10 +131,3 @@ compileTestJava {
 tasks['javadoc'].configure {
     exclude '**/generated-src/**'
 }
-
-kotlin {
-    experimental {
-        coroutines "enable"
-    }
-}
-

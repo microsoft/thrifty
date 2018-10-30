@@ -28,7 +28,7 @@ allprojects {
     version VERSION
 
     project.ext {
-        kotlin_version = '1.2.71'
+        kotlin_version = '1.3.0'
 
         libraries = [
                 clikt: [
@@ -85,7 +85,7 @@ buildscript {
 
     dependencies {
         classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.14'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.60"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.0"
         classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.17'
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
     }

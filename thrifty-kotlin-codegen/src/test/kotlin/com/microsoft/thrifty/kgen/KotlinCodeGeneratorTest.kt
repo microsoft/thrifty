@@ -340,11 +340,11 @@ class KotlinCodeGeneratorTest {
             |    override suspend fun doSomething(foo: Int): Int = suspendCoroutine { cont ->
             |        this.enqueue(DoSomethingCall(foo, object : ServiceMethodCallback<Int> {
             |            override fun onSuccess(result: Int) {
-            |                cont.resume(result)
+            |                cont.resumeWith(Result.success(result))
             |            }
             |
             |            override fun onError(error: Throwable) {
-            |                cont.resumeWithException(error)
+            |                cont.resumeWith(Result.failure(error))
             |            }
             |        }))
             |    }
