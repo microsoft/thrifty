@@ -84,7 +84,6 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.jvm.jvmField
 import com.squareup.kotlinpoet.jvm.jvmStatic
-import kotlin.coroutines.experimental.buildSequence
 import okio.ByteString
 import java.io.IOException
 import javax.annotation.Generated
@@ -281,7 +280,7 @@ class KotlinCodeGenerator(
             }
 
             OutputStyle.FILE_PER_TYPE -> {
-                buildSequence {
+                sequence {
 
                     val types = specsByNamespace.entries().asSequence()
                     for ((ns, type) in types) {
@@ -1594,7 +1593,8 @@ class KotlinCodeGenerator(
 
         // suspendCoroutine is obviously not a class, but until kotlinpoet supports
         // importing fully-qualified fun names, we can pun and use a ClassName.
-        val suspendCoroFn = ClassName("kotlin.coroutines.experimental", "suspendCoroutine")
+        val suspendCoroFn = ClassName("kotlin.coroutines", "suspendCoroutine")
+        val coroResultClass = ClassName("kotlin", "Result")
 
         for ((index, interfaceFun) in serviceInterface.funSpecs.withIndex()) {
             val method = serviceType.methods[index]
@@ -1614,16 +1614,16 @@ class KotlinCodeGenerator(
                                 //
                                 // It's a bit ungainly, but as an implementation detail it's acceptable.
                                 if (method.oneWay) {
-                                    addStatement("cont.resume(Unit)")
+                                    addStatement("cont.resumeWith(%T.success(Unit))", coroResultClass)
                                 } else {
-                                    addStatement("cont.resume(result)")
+                                    addStatement("cont.resumeWith(%T.success(result))", coroResultClass)
                                 }
                             }
                             .build())
                     .addFunction(FunSpec.builder("onError")
                             .addModifiers(KModifier.OVERRIDE)
                             .addParameter("error", Throwable::class)
-                            .addStatement("cont.resumeWithException(error)")
+                            .addStatement("cont.resumeWith(%T.failure(error))", coroResultClass)
                             .build())
                     .build()
 

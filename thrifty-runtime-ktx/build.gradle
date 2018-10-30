@@ -25,11 +25,5 @@ apply plugin: 'kotlin'
 dependencies {
     api project(':thrifty-runtime')
     api libraries.kotlin
-    api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.24.0'
-}
-
-kotlin {
-    experimental {
-        coroutines "enable"
-    }
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.0'
 }
