@@ -67,7 +67,7 @@ public class FramedTransport extends Transport {
         remainingBytes = ((headerBytes[0] & 0xFF) << 24)
                        | ((headerBytes[1] & 0xFF) << 16)
                        | ((headerBytes[2] & 0xFF) <<  8)
-                       | ((headerBytes[3] & 0xFF));
+                       | (headerBytes[3] & 0xFF);
     }
 
     @Override
