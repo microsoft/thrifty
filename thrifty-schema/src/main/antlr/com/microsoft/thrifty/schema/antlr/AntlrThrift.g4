@@ -77,6 +77,7 @@ constDef
 constValue
     : INTEGER
     | DOUBLE
+    | BINARY
     | LITERAL
     | IDENTIFIER
     | constList
@@ -217,7 +218,7 @@ fragment SINGLE_QUOTE_LITERAL
 
 fragment ESCAPE_CHAR
     : '\\' [0\\btnr]
-    | '\\u' HEX HEX HEX HEX
+    | '\\u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT
     ;
 
 VOID
@@ -249,19 +250,27 @@ fragment ID_START_CHAR : [_a-zA-Z] ;
 
 fragment ID_CHAR : [_a-zA-Z0-9.] ;
 
-fragment HEX
+fragment HEX_DIGIT
     : [a-fA-F0-9]
+    ;
+
+fragment HEX
+    : '0' [Xx] HEX_DIGIT+
     ;
 
 INTEGER
     : [+\-]? INT
-    | [+\-]? '0' [Xx] [0-9a-fA-F]+
+    | [+\-]? HEX
     ;
 
 DOUBLE
     : [+\-]? INT '.' [0-9]+ EXP?
     | [+\-]? INT EXP
     | [+\-]? INT
+    ;
+
+BINARY
+    : '"' HEX '"'
     ;
 
 fragment INT

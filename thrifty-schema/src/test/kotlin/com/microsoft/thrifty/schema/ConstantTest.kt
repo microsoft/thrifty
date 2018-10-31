@@ -20,18 +20,8 @@
  */
 package com.microsoft.thrifty.schema
 
-import com.microsoft.thrifty.schema.parser.ConstElement
-import com.microsoft.thrifty.schema.parser.ConstValueElement
-import com.microsoft.thrifty.schema.parser.DoubleValueElement
-import com.microsoft.thrifty.schema.parser.EnumElement
-import com.microsoft.thrifty.schema.parser.EnumMemberElement
-import com.microsoft.thrifty.schema.parser.IdentifierValueElement
-import com.microsoft.thrifty.schema.parser.IntValueElement
-import com.microsoft.thrifty.schema.parser.ListValueElement
-import com.microsoft.thrifty.schema.parser.LiteralValueElement
-import com.microsoft.thrifty.schema.parser.ScalarTypeElement
-import com.microsoft.thrifty.schema.parser.TypeElement
-import com.microsoft.thrifty.schema.parser.TypedefElement
+import com.microsoft.thrifty.schema.parser.*
+import okio.ByteString
 import org.junit.Test
 
 import org.hamcrest.CoreMatchers.containsString
@@ -350,6 +340,24 @@ class ConstantTest {
         ))
 
         Constant.validate(symbolTable, listValue, setType)
+    }
+
+    @Test
+    fun binaryLiteral() {
+        Constant.validate(symbolTable, BinaryValueElement(loc, "0xDEADBEEF", ByteString.decodeHex("DEADBEEF")), BuiltinType.BINARY)
+    }
+
+    @Test
+    fun binaryConstant() {
+        val c = makeConstant(
+                "aBinary",
+                ScalarTypeElement(loc, "string", null),
+                IdentifierValueElement(loc, "aBinary", "aBinary"),
+                BuiltinType.BINARY)
+
+        `when`<Constant>(symbolTable.lookupConst("aBinary")).thenReturn(c)
+
+        Constant.validate(symbolTable, IdentifierValueElement(loc, "aBinary", "aBinary"), BuiltinType.BINARY)
     }
 
     private fun makeConstant(name: String, typeElement: TypeElement, value: ConstValueElement, thriftType: ThriftType): Constant {

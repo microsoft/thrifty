@@ -21,14 +21,8 @@
 package com.microsoft.thrifty.schema
 
 import com.google.common.annotations.VisibleForTesting
-import com.microsoft.thrifty.schema.parser.ConstElement
-import com.microsoft.thrifty.schema.parser.ConstValueElement
-import com.microsoft.thrifty.schema.parser.DoubleValueElement
-import com.microsoft.thrifty.schema.parser.IdentifierValueElement
-import com.microsoft.thrifty.schema.parser.IntValueElement
-import com.microsoft.thrifty.schema.parser.ListValueElement
-import com.microsoft.thrifty.schema.parser.LiteralValueElement
-import com.microsoft.thrifty.schema.parser.MapValueElement
+import com.microsoft.thrifty.schema.parser.*
+import okio.ByteString
 
 /**
  * Represents a Thrift const definition.
@@ -102,6 +96,7 @@ class Constant private constructor (
         private val I64 = IntegerValidator(java.lang.Long.MIN_VALUE, java.lang.Long.MAX_VALUE)
         private val DOUBLE = DoubleValidator
         private val STRING = StringValidator
+        private val BINARY = BinaryValidator
 
         private val ENUM = EnumValidator
         private val COLLECTION = CollectionValidator
@@ -118,10 +113,7 @@ class Constant private constructor (
                 if (tt == BuiltinType.I64) return I64
                 if (tt == BuiltinType.DOUBLE) return DOUBLE
                 if (type == BuiltinType.STRING) return STRING
-
-                if (tt == BuiltinType.BINARY) {
-                    throw IllegalStateException("Binary constants are unsupported")
-                }
+                if (tt == BuiltinType.BINARY) return BINARY
 
                 if (tt == BuiltinType.VOID) {
                     throw IllegalStateException("Cannot declare a constant of type 'void'")
@@ -235,6 +227,15 @@ class Constant private constructor (
         override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
             if (valueElement !is LiteralValueElement) {
                 super.validate(symbolTable, expected, valueElement)
+            }
+        }
+    }
+
+    private object BinaryValidator : BaseValidator() {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            when (valueElement) {
+                is BinaryValueElement -> return
+                else -> super.validate(symbolTable, expected, valueElement)
             }
         }
     }

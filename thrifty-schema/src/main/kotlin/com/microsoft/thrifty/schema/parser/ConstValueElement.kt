@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.schema.parser
 
 import com.microsoft.thrifty.schema.Location
+import okio.ByteString
 
 /**
  * Represents a literal value in a Thrift file for a constant or a field's
@@ -60,6 +61,14 @@ data class DoubleValueElement(
 ) : ConstValueElement() {
     /** @inheritdoc */
     override fun toString(): String = "$value"
+}
+
+data class BinaryValueElement(
+        override val location: Location,
+        override val thriftText: String,
+        val value: ByteString
+): ConstValueElement() {
+    override fun toString(): String = value.toString()
 }
 
 /**
