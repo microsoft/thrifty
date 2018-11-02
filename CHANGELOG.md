@@ -1,3 +1,12 @@
+1.0.0 (released 2 November 2018)
+------------------
+- #259: Enable configurable `@Generated` annotation type
+- #254: Update to Kotlin 1.3, update generated coroutine APIs to be non-experimental
+- #250: Add `@NonNull` to struct builder's copy ctor (thanks, @jparise)
+- #241: Add nullable annotation to gen'd `findByValue` methods (thanks, @jparise)
+- #239: Fix: Canonicalize paths of all loaded thrift files
+- #236: Only use base filename in constants' comments (thanks, @jparise)
+
 1.0.0-RC2 (released 10 September 2018)
 ------------------
 - #235: Emit `@Generated` annotations on generated types
