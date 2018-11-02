@@ -86,7 +86,6 @@ import com.squareup.kotlinpoet.jvm.jvmField
 import com.squareup.kotlinpoet.jvm.jvmStatic
 import okio.ByteString
 import java.io.IOException
-import javax.annotation.Generated
 
 private object Tags {
     val ADAPTER = "RESERVED:ADAPTER"
@@ -186,7 +185,7 @@ class KotlinCodeGenerator(
 
     var processor: KotlinTypeProcessor = NoTypeProcessor
     var outputStyle: OutputStyle = OutputStyle.FILE_PER_NAMESPACE
-    var emitGeneratedAnnotations = true
+    var generatedAnnotationType: ClassName? = null
 
     fun filePerNamespace(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_NAMESPACE }
     fun filePerType(): KotlinCodeGenerator = apply { outputStyle = OutputStyle.FILE_PER_TYPE }
@@ -212,8 +211,8 @@ class KotlinCodeGenerator(
         this.coroutineServiceClients = true
     }
 
-    fun emitGeneratedAnnotations(shouldEmit: Boolean): KotlinCodeGenerator = apply {
-        this.emitGeneratedAnnotations = shouldEmit
+    fun emitGeneratedAnnotations(type: String?): KotlinCodeGenerator = apply {
+        this.generatedAnnotationType = type?.let { ClassName.bestGuess(type) }
     }
 
     private object NoTypeProcessor : KotlinTypeProcessor {
@@ -1878,20 +1877,20 @@ class KotlinCodeGenerator(
     }
 
     private fun generatedAnnotation(): AnnotationSpec {
-        return AnnotationSpec.builder(Generated::class.java)
+        return AnnotationSpec.builder(generatedAnnotationType!!)
                 .addMember("value = [%S]", KotlinCodeGenerator::class.java.name)
                 .addMember("comments = %S", "https://github.com/microsoft/thrifty")
                 .build()
     }
 
     private fun TypeSpec.Builder.addGeneratedAnnotation(): TypeSpec.Builder = apply {
-        if (emitGeneratedAnnotations) {
+        if (generatedAnnotationType != null) {
             addAnnotation(generatedAnnotation())
         }
     }
 
     private fun PropertySpec.Builder.addGeneratedAnnotation(): PropertySpec.Builder = apply {
-        if (emitGeneratedAnnotations) {
+        if (generatedAnnotationType != null) {
             addAnnotation(generatedAnnotation())
         }
     }

@@ -59,7 +59,6 @@ import java.time.format.DateTimeFormatter
 import java.util.ArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import javax.annotation.Generated
 
 class ThriftyCodeGenerator {
 
@@ -72,7 +71,9 @@ class ThriftyCodeGenerator {
     private var emitAndroidAnnotations: Boolean = false
     private var emitParcelable: Boolean = false
     private var emitFileComment = true
-    private var emitGeneratedAnnotations = true
+    private var generatedAnnotationType: ClassName? = null
+    private val emitGeneratedAnnotations: Boolean
+        get() = generatedAnnotationType != null
 
     constructor(schema: Schema, namingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT) {
 
@@ -117,8 +118,8 @@ class ThriftyCodeGenerator {
         return this
     }
 
-    fun emitGeneratedAnnotations(emitGeneratedAnnotations: Boolean): ThriftyCodeGenerator = apply {
-        this.emitGeneratedAnnotations = emitGeneratedAnnotations
+    fun emitGeneratedAnnotations(annotationTypeName: String?) = apply {
+        this.generatedAnnotationType = annotationTypeName?.let { ClassName.bestGuess(it) }
     }
 
     fun usingTypeProcessor(typeProcessor: TypeProcessor): ThriftyCodeGenerator {
@@ -208,7 +209,7 @@ class ThriftyCodeGenerator {
     }
 
     private fun generatedAnnotation(): AnnotationSpec {
-        return AnnotationSpec.builder(Generated::class.java)
+        return AnnotationSpec.builder(generatedAnnotationType!!)
                 .addMember("value", "\$S", ThriftyCodeGenerator::class.java.name)
                 .addMember("comments", "\$S", "https://github.com/microsoft/thrifty")
                 .build()
