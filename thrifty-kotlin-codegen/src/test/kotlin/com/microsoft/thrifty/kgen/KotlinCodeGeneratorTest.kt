@@ -238,16 +238,11 @@ class KotlinCodeGeneratorTest {
         "${generate(thrift).single()}" shouldBe """
             |package test.typedefs
             |
-            |import javax.annotation.Generated
             |import kotlin.Int
             |import kotlin.collections.Map
             |
             |typealias Weights = Map<Int, Int>
             |
-            |@Generated(
-            |        value = ["com.microsoft.thrifty.kgen.KotlinCodeGenerator"],
-            |        comments = "https://github.com/microsoft/thrifty"
-            |)
             |val WEIGHTS: Weights = mapOf(1 to 2)
             |
         """.trimMargin()
@@ -293,16 +288,11 @@ class KotlinCodeGeneratorTest {
             |package test.map_consts
             |
             |import android.support.v4.util.ArrayMap
-            |import javax.annotation.Generated
             |import kotlin.Int
             |import kotlin.String
             |import kotlin.collections.List
             |import kotlin.collections.Map
             |
-            |@Generated(
-            |        value = ["com.microsoft.thrifty.kgen.KotlinCodeGenerator"],
-            |        comments = "https://github.com/microsoft/thrifty"
-            |)
             |val Maps: Map<Int, List<String>> = ArrayMap<Int, List<String>>(2).apply {
             |            put(1, emptyList())
             |            put(2, listOf("foo"))
@@ -323,18 +313,10 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |@Generated(
-            |        value = ["com.microsoft.thrifty.kgen.KotlinCodeGenerator"],
-            |        comments = "https://github.com/microsoft/thrifty"
-            |)
             |interface Svc {
             |    suspend fun doSomething(foo: Int): Int
             |}
             |
-            |@Generated(
-            |        value = ["com.microsoft.thrifty.kgen.KotlinCodeGenerator"],
-            |        comments = "https://github.com/microsoft/thrifty"
-            |)
             |class SvcClient(protocol: Protocol, listener: AsyncClientBase.Listener) : AsyncClientBase(protocol, listener),
             |        Svc {
             |    override suspend fun doSomething(foo: Int): Int = suspendCoroutine { cont ->
