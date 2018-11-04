@@ -353,22 +353,17 @@ class KotlinCodeGeneratorTest {
     }
 
 
-    private val union: String
-        get() {
-            val thrift = """
-                |namespace kt test.coro
-                |
-                |union Union {
-                |  1: i32 Foo;
-                |  2: i64 Bar;
-                |  3: string Baz
-                |}
-            """.trimMargin()
-            return thrift
-        }
-
     @Test fun `union generate sealed`() {
-        val thrift = union
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
 
         val file = generate(thrift) { coroutineServiceClients() }
 
@@ -377,9 +372,17 @@ class KotlinCodeGeneratorTest {
         """.trimMargin())
     }
 
-
     @Test fun `union properties as data`() {
-        val thrift = union
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
 
         val file = generate(thrift) { coroutineServiceClients() }
 
@@ -391,12 +394,22 @@ class KotlinCodeGeneratorTest {
             |
             |    data class Baz(var value: String?) : Union()
             |
+            |    data class NotFoo(var value: Int?) : Union()
+            |
         """.trimMargin())
     }
 
-
     @Test fun `union has builder`() {
-        val thrift = union
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
 
         val file = generate(thrift) { coroutineServiceClients() }
 
@@ -408,58 +421,123 @@ class KotlinCodeGeneratorTest {
             |
             |        private var Baz: String?
             |
+            |        private var NotFoo: Int?
+            |
             |        constructor() {
             |            this.Foo = null
             |            this.Bar = null
             |            this.Baz = null
+            |            this.NotFoo = null
             |        }
             |
-            |        constructor(source: Union) {
-            |            this.Foo = source.Foo
-            |            this.Bar = source.Bar
-            |            this.Baz = source.Baz
+            |        constructor(source: Union) : this() {
+            |            when(source) {
+            |                is Foo -> this.Foo = source.value
+            |                is Bar -> this.Bar = source.value
+            |                is Baz -> this.Baz = source.value
+            |                is NotFoo -> this.NotFoo = source.value
+            |            }
             |        }
             |
             |        fun Foo(value: Int) = apply {
             |            this.Foo = value
             |            this.Bar = null
             |            this.Baz = null
+            |            this.NotFoo = null
             |        }
             |
             |        fun Bar(value: Long) = apply {
             |            this.Foo = null
             |            this.Bar = value
             |            this.Baz = null
+            |            this.NotFoo = null
             |        }
             |
             |        fun Baz(value: String) = apply {
             |            this.Foo = null
             |            this.Bar = null
             |            this.Baz = value
+            |            this.NotFoo = null
+            |        }
+            |
+            |        fun NotFoo(value: Int) = apply {
+            |            this.Foo = null
+            |            this.Bar = null
+            |            this.Baz = null
+            |            this.NotFoo = value
             |        }
             |
             |        fun build(): Union = when {
-            |            Foo != null -> Foo(Foo)
-            |            Bar != null -> Bar(Bar)
-            |            Baz != null -> Baz(Baz)
-            |            else -> throw AssertionError("unpossible")
+            |            Foo != null -> Union.Foo(Foo)
+            |            Bar != null -> Union.Bar(Bar)
+            |            Baz != null -> Union.Baz(Baz)
+            |            NotFoo != null -> Union.NotFoo(NotFoo)
+            |            else -> throw IllegalStateException("unpossible")
             |        }
             |    }
         """.trimMargin())
     }
 
-
-    @Test fun `union define toString`() {
-        val thrift = union
+    @Test fun `empty union generate sealed`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |}
+        """.trimMargin()
 
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |override fun toString() = "Union(Foo=${'$'}Foo, Bar=${'$'}Bar, Baz=${'$'}Baz)"
+            |sealed class Union {
         """.trimMargin())
     }
 
+    @Test fun `struct with union`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |struct Bonk {
+            |  1: string message;
+            |  2: i32 type;
+            |}
+            |
+            |union UnionStruct {
+            |  1: Bonk Struct
+            |}
+        """.trimMargin()
 
+        val file = generate(thrift) { coroutineServiceClients() }
+
+        file.single().toString() should contain("""
+            |sealed class UnionStruct {
+            |    data class Struct(var value: Bonk?) : UnionStruct()
+            |
+            |    class Builder {
+            |        private var Struct: Bonk?
+            |
+            |        constructor() {
+            |            this.Struct = null
+            |        }
+            |
+            |        constructor(source: UnionStruct) : this() {
+            |            when(source) {
+            |                is Struct -> this.Struct = source.value
+            |            }
+            |        }
+            |
+            |        fun Struct(value: Bonk) = apply {
+            |            this.Struct = value
+            |        }
+            |
+            |        fun build(): UnionStruct = when {
+            |            Struct != null -> UnionStruct.Struct(Struct)
+            |            else -> throw IllegalStateException("unpossible")
+            |        }
+            |    }
+            |}
+        """.trimMargin())
+    }
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()

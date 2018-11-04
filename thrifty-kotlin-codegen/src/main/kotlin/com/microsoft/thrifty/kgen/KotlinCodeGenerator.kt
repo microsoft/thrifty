@@ -507,18 +507,10 @@ class KotlinCodeGenerator(
         val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
             addGeneratedAnnotation()
 
-            if (struct.fields.isNotEmpty()) {
-                addModifiers(KModifier.SEALED)
-            }
+            addModifiers(KModifier.SEALED)
 
             if (struct.isDeprecated) addAnnotation(makeDeprecated())
             if (struct.hasJavadoc) addKdoc("%L", struct.documentation)
-            if (struct.isException) superclass(Exception::class)
-
-            if (parcelize) {
-                addAnnotation(makeParcelable())
-                addAnnotation(suppressLint("ParcelCreator")) // Android Studio bug with Parcelize
-            }
         }
 
         val nameAllocator = nameAllocators[struct]
@@ -544,7 +536,6 @@ class KotlinCodeGenerator(
         typeBuilder.addType(generateUnionBuilder(schema, struct))
 
         return typeBuilder
-                .addFunction(generateToString(struct))
                 .build()
     }
 
@@ -706,6 +697,8 @@ class KotlinCodeGenerator(
 
         val copyCtor = FunSpec.constructorBuilder()
                 .addParameter("source", structTypeName)
+                .callThisConstructor()
+                .beginControlFlow("when(source)")
 
         val defaultCtor = FunSpec.constructorBuilder()
 
@@ -741,20 +734,21 @@ class KotlinCodeGenerator(
             defaultCtor.addStatement("this.$name = %L", defaultValueBlock)
 
             // Add initialization in copy ctor
-            copyCtor.addStatement("this.$name = source.$name")
+            copyCtor.addStatement("is $name -> this.$name = source.value")
 
             // Add field to build-method ctor-invocation arg builder
             // TODO: Add newlines and indents if numFields > 1
-            buildFunSpec.addStatement("$name != null -> $name($name)")
-
+            buildFunSpec.addStatement("$name != null -> ${struct.name}.$name($name)")
 
             // Finish off the property and builder fun
             spec.addProperty(propertySpec.build())
             spec.addFunction(builderFunSpec.build())
         }
 
-        buildFunSpec.addStatement("else -> throw AssertionError(\"unpossible\")")
+        buildFunSpec.addStatement("else -> throw IllegalStateException(\"unpossible\")")
         buildFunSpec.endControlFlow()
+
+        copyCtor.endControlFlow()
 
         return spec
                 .addFunction(defaultCtor.build())
