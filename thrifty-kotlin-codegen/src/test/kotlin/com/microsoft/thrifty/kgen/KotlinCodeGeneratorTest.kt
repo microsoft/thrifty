@@ -30,17 +30,21 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import io.kotlintest.shouldNot
 import io.kotlintest.matchers.string.contain
 import io.kotlintest.should
 import io.kotlintest.shouldBe
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class KotlinCodeGeneratorTest {
-    @get:Rule val tempDir = TemporaryFolder()
+    @get:Rule
+    val tempDir = TemporaryFolder()
 
-    @Test fun `struct to data class`() {
+    @Test
+    fun `struct to data class`() {
         val schema = load("""
             namespace kt com.test
 
@@ -82,7 +86,8 @@ class KotlinCodeGeneratorTest {
         files.forEach { println("$it") }
     }
 
-    @Test fun `output styles work as advertised`() {
+    @Test
+    fun `output styles work as advertised`() {
         val thrift = """
             namespace kt com.test
 
@@ -101,13 +106,14 @@ class KotlinCodeGeneratorTest {
 
         // Default should be one file per namespace
         gen.outputStyle shouldBe KotlinCodeGenerator.OutputStyle.FILE_PER_NAMESPACE
-        gen.generate(schema).size shouldBe  1
+        gen.generate(schema).size shouldBe 1
 
         gen.outputStyle = KotlinCodeGenerator.OutputStyle.FILE_PER_TYPE
         gen.generate(schema).size shouldBe 2
     }
 
-    @Test fun `file-per-type puts constants into a file named 'Constants'`() {
+    @Test
+    fun `file-per-type puts constants into a file named 'Constants'`() {
         val thrift = """
             namespace kt com.test
 
@@ -123,7 +129,8 @@ class KotlinCodeGeneratorTest {
         specs.single().name shouldBe "Constants" // ".kt" suffix is appended when the file is written out
     }
 
-    @Test fun `empty structs get default equals, hashcode, and toString methods`() {
+    @Test
+    fun `empty structs get default equals, hashcode, and toString methods`() {
         val thrift = """
             namespace kt com.test
 
@@ -140,10 +147,11 @@ class KotlinCodeGeneratorTest {
         struct.modifiers.any { it == KModifier.DATA } shouldBe false
         struct.funSpecs.any { it.name == "toString" } shouldBe true
         struct.funSpecs.any { it.name == "hashCode" } shouldBe true
-        struct.funSpecs.any { it.name == "equals"   } shouldBe true
+        struct.funSpecs.any { it.name == "equals" } shouldBe true
     }
 
-    @Test fun `Non-empty structs are data classes`() {
+    @Test
+    fun `Non-empty structs are data classes`() {
         val thrift = """
             namespace kt com.test
 
@@ -160,10 +168,11 @@ class KotlinCodeGeneratorTest {
         struct.modifiers.any { it == KModifier.DATA } shouldBe true
         struct.funSpecs.any { it.name == "toString" } shouldBe false
         struct.funSpecs.any { it.name == "hashCode" } shouldBe false
-        struct.funSpecs.any { it.name == "equals"   } shouldBe false
+        struct.funSpecs.any { it.name == "equals" } shouldBe false
     }
 
-    @Test fun `exceptions with reserved field names get renamed fields`() {
+    @Test
+    fun `exceptions with reserved field names get renamed fields`() {
         val thrift = """
             namespace kt com.test
 
@@ -176,7 +185,8 @@ class KotlinCodeGeneratorTest {
         xception.propertySpecs.single().name shouldBe "message_"
     }
 
-    @Test fun services() {
+    @Test
+    fun services() {
         val thrift = """
             namespace kt test.services
 
@@ -193,7 +203,8 @@ class KotlinCodeGeneratorTest {
         generate(thrift).forEach { println(it) }
     }
 
-    @Test fun `typedefs become typealiases`() {
+    @Test
+    fun `typedefs become typealiases`() {
         val thrift = """
             namespace kt test.typedefs
 
@@ -207,7 +218,8 @@ class KotlinCodeGeneratorTest {
         generate(thrift).forEach { println(it) }
     }
 
-    @Test fun `services that return typedefs`() {
+    @Test
+    fun `services that return typedefs`() {
         val thrift = """
             namespace kt test.typedefs
 
@@ -226,7 +238,8 @@ class KotlinCodeGeneratorTest {
                 .parameterizedBy(ClassName("test.typedefs", "TheNumber"))
     }
 
-    @Test fun `constants that are typedefs`() {
+    @Test
+    fun `constants that are typedefs`() {
         val thrift = """
             |namespace kt test.typedefs
             |
@@ -253,7 +266,8 @@ class KotlinCodeGeneratorTest {
         """.trimMargin()
     }
 
-    @Test fun `Parcelize annotations for structs and enums`() {
+    @Test
+    fun `Parcelize annotations for structs and enums`() {
         val thrift = """
             |namespace kt test.parcelize
             |
@@ -268,7 +282,7 @@ class KotlinCodeGeneratorTest {
 
         val file = generate(thrift) { parcelize() }.single()
         val struct = file.members.single { it is TypeSpec && it.name == "Foo" } as TypeSpec
-        val anEnum = file.members.single { it is TypeSpec && it.name == "AnEnum"} as TypeSpec
+        val anEnum = file.members.single { it is TypeSpec && it.name == "AnEnum" } as TypeSpec
         val svc = file.members.single { it is TypeSpec && it.name == "SvcClient" } as TypeSpec
 
         val parcelize = ClassName("kotlinx.android.parcel", "Parcelize")
@@ -278,7 +292,8 @@ class KotlinCodeGeneratorTest {
         svc.annotations.any { it.type == parcelize } shouldBe false
     }
 
-    @Test fun `Custom map-type constants`() {
+    @Test
+    fun `Custom map-type constants`() {
         val thrift = """
             |namespace kt test.map_consts
             |
@@ -311,7 +326,8 @@ class KotlinCodeGeneratorTest {
             """.trimMargin()
     }
 
-    @Test fun `suspend-fun service clients`() {
+    @Test
+    fun `suspend-fun service clients`() {
         val thrift = """
             |namespace kt test.coro
             |
@@ -353,7 +369,8 @@ class KotlinCodeGeneratorTest {
     }
 
 
-    @Test fun `union generate sealed`() {
+    @Test
+    fun `union generate sealed`() {
         val thrift = """
             |namespace kt test.coro
             |
@@ -368,11 +385,12 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |sealed class Union {
+            |sealed class Union : Struct {
         """.trimMargin())
     }
 
-    @Test fun `union properties as data`() {
+    @Test
+    fun `union properties as data`() {
         val thrift = """
             |namespace kt test.coro
             |
@@ -399,7 +417,8 @@ class KotlinCodeGeneratorTest {
         """.trimMargin())
     }
 
-    @Test fun `union has builder`() {
+    @Test
+    fun `union has builder`() {
         val thrift = """
             |namespace kt test.coro
             |
@@ -414,7 +433,7 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |    class Builder {
+            |    class Builder : StructBuilder<Union> {
             |        private var Foo: Int?
             |
             |        private var Bar: Long?
@@ -467,18 +486,296 @@ class KotlinCodeGeneratorTest {
             |            this.NotFoo = value
             |        }
             |
-            |        fun build(): Union = when {
+            |        override fun build(): Union = when {
             |            Foo != null -> Union.Foo(Foo)
             |            Bar != null -> Union.Bar(Bar)
             |            Baz != null -> Union.Baz(Baz)
             |            NotFoo != null -> Union.NotFoo(NotFoo)
             |            else -> throw IllegalStateException("unpossible")
             |        }
+            |
+            |        override fun reset() {
+            |            this.Foo = null
+            |            this.Bar = null
+            |            this.Baz = null
+            |            this.NotFoo = null
+            |        }
             |    }
         """.trimMargin())
     }
 
-    @Test fun `empty union generate sealed`() {
+    @Test
+    fun `union wont generate builder when disabled`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) { builderlessDataClasses() }
+
+        file.single().toString() shouldNot contain("""
+            |    class Builder
+        """.trimMargin())
+    }
+
+    @Ignore
+    @Test
+    fun `union wont generate struct when disabled`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) //{ shouldImplementStruct() }
+
+        file.single().toString() shouldNot contain("""
+            |    : Struct
+        """.trimMargin())
+
+        file.single().toString() shouldNot contain("""
+            |    write
+        """.trimMargin())
+    }
+
+    @Test
+    fun `union generate write function`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) //{ shouldImplementStruct() }
+
+        file.single().toString() should contain("""            |
+            |        override fun write(protocol: Protocol, struct: Union) {
+            |            protocol.writeStructBegin("Union")
+            |            if (struct is Foo) {
+            |                protocol.writeFieldBegin("Foo", 1, TType.I32)
+            |                protocol.writeI32(struct.value!!)
+            |                protocol.writeFieldEnd()
+            |            }
+            |            if (struct is Bar) {
+            |                protocol.writeFieldBegin("Bar", 2, TType.I64)
+            |                protocol.writeI64(struct.value!!)
+            |                protocol.writeFieldEnd()
+            |            }
+            |            if (struct is Baz) {
+            |                protocol.writeFieldBegin("Baz", 3, TType.STRING)
+            |                protocol.writeString(struct.value!!)
+            |                protocol.writeFieldEnd()
+            |            }
+            |            if (struct is NotFoo) {
+            |                protocol.writeFieldBegin("NotFoo", 4, TType.I32)
+            |                protocol.writeI32(struct.value!!)
+            |                protocol.writeFieldEnd()
+            |            }
+            |            protocol.writeFieldStop()
+            |            protocol.writeStructEnd()
+            |        }
+            |    }
+        """.trimMargin())
+    }
+
+    @Test
+    fun `union generate read function`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) //{ shouldImplementStruct() }
+
+        file.single().toString() should contain("""
+            |        override fun read(protocol: Protocol) = read(protocol, Builder())
+            |
+            |        override fun read(protocol: Protocol, builder: Builder): Union {
+            |            protocol.readStructBegin()
+            |            while (true) {
+            |                val fieldMeta = protocol.readFieldBegin()
+            |                if (fieldMeta.typeId == TType.STOP) {
+            |                    break
+            |                }
+            |                when (fieldMeta.fieldId.toInt()) {
+            |                    1 -> {
+            |                        if (fieldMeta.typeId == TType.I32) {
+            |                            val Foo = protocol.readI32()
+            |                            builder.Foo(Foo)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    2 -> {
+            |                        if (fieldMeta.typeId == TType.I64) {
+            |                            val Bar = protocol.readI64()
+            |                            builder.Bar(Bar)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    3 -> {
+            |                        if (fieldMeta.typeId == TType.STRING) {
+            |                            val Baz = protocol.readString()
+            |                            builder.Baz(Baz)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    4 -> {
+            |                        if (fieldMeta.typeId == TType.I32) {
+            |                            val NotFoo = protocol.readI32()
+            |                            builder.NotFoo(NotFoo)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                }
+            |                protocol.readFieldEnd()
+            |            }
+            |            protocol.readStructEnd()
+            |            return builder.build()
+            |        }
+        """.trimMargin())
+    }
+
+    @Test
+    fun `union generate read function without builder`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) { builderlessDataClasses() }
+
+
+        file.single().toString() should contain("""
+            |        override fun read(protocol: Protocol): Union {
+            |            protocol.readStructBegin()
+            |            var result : Union? = null
+            |            while (true) {
+            |                val fieldMeta = protocol.readFieldBegin()
+            |                if (fieldMeta.typeId == TType.STOP) {
+            |                    break
+            |                }
+            |                when (fieldMeta.fieldId.toInt()) {
+            |                    1 -> {
+            |                        if (fieldMeta.typeId == TType.I32) {
+            |                            val Foo = protocol.readI32()
+            |                            result = Foo(Foo)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    2 -> {
+            |                        if (fieldMeta.typeId == TType.I64) {
+            |                            val Bar = protocol.readI64()
+            |                            result = Bar(Bar)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    3 -> {
+            |                        if (fieldMeta.typeId == TType.STRING) {
+            |                            val Baz = protocol.readString()
+            |                            result = Baz(Baz)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    4 -> {
+            |                        if (fieldMeta.typeId == TType.I32) {
+            |                            val NotFoo = protocol.readI32()
+            |                            result = NotFoo(NotFoo)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                }
+            |                protocol.readFieldEnd()
+            |            }
+            |            protocol.readStructEnd()
+            |            if (null == result) {
+            |                throw IllegalStateException("unreadable")
+            |            } else {
+            |                return result
+            |            }
+            |        }
+        """.trimMargin())
+    }
+
+    @Test
+    fun `union generate Adapter with builder`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift)
+
+        file.single().toString() should contain("""
+            |    private class UnionAdapter : Adapter<Union, Builder> {
+        """.trimMargin())
+    }
+
+    @Test
+    fun `union generate Adapter`() {
+        val thrift = """
+            |namespace kt test.coro
+            |
+            |union Union {
+            |  1: i32 Foo;
+            |  2: i64 Bar;
+            |  3: string Baz;
+            |  4: i32 NotFoo;
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) { builderlessDataClasses() }
+
+        file.single().toString() should contain("""
+            |    private class UnionAdapter : Adapter<Union> {
+        """.trimMargin())
+    }
+
+    @Test
+    fun `empty union generate sealed`() {
         val thrift = """
             |namespace kt test.coro
             |
@@ -489,11 +786,12 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |sealed class Union {
+            |sealed class Union : Struct {
         """.trimMargin())
     }
 
-    @Test fun `struct with union`() {
+    @Test
+    fun `struct with union`() {
         val thrift = """
             |namespace kt test.coro
             |
@@ -510,10 +808,14 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |sealed class UnionStruct {
+            |sealed class UnionStruct : Struct {
+            |    override fun write(protocol: Protocol) {
+            |        ADAPTER.write(protocol, this)
+            |    }
+            |
             |    data class Struct(var value: Bonk?) : UnionStruct()
             |
-            |    class Builder {
+            |    class Builder : StructBuilder<UnionStruct> {
             |        private var Struct: Bonk?
             |
             |        constructor() {
@@ -530,14 +832,57 @@ class KotlinCodeGeneratorTest {
             |            this.Struct = value
             |        }
             |
-            |        fun build(): UnionStruct = when {
+            |        override fun build(): UnionStruct = when {
             |            Struct != null -> UnionStruct.Struct(Struct)
             |            else -> throw IllegalStateException("unpossible")
             |        }
+            |
+            |        override fun reset() {
+            |            this.Struct = null
+            |        }
             |    }
-            |}
+            |
+            |    private class UnionStructAdapter : Adapter<UnionStruct, Builder> {
+            |        override fun read(protocol: Protocol) = read(protocol, Builder())
+            |
+            |        override fun read(protocol: Protocol, builder: Builder): UnionStruct {
+            |            protocol.readStructBegin()
+            |            while (true) {
+            |                val fieldMeta = protocol.readFieldBegin()
+            |                if (fieldMeta.typeId == TType.STOP) {
+            |                    break
+            |                }
+            |                when (fieldMeta.fieldId.toInt()) {
+            |                    1 -> {
+            |                        if (fieldMeta.typeId == TType.STRUCT) {
+            |                            val Struct = Bonk.ADAPTER.read(protocol)
+            |                            builder.Struct(Struct)
+            |                        } else {
+            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                        }
+            |                    }
+            |                    else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |                }
+            |                protocol.readFieldEnd()
+            |            }
+            |            protocol.readStructEnd()
+            |            return builder.build()
+            |        }
+            |
+            |        override fun write(protocol: Protocol, struct: UnionStruct) {
+            |            protocol.writeStructBegin("UnionStruct")
+            |            if (struct is Struct) {
+            |                protocol.writeFieldBegin("Struct", 1, TType.STRUCT)
+            |                Bonk.ADAPTER.write(protocol, struct.value!!)
+            |                protocol.writeFieldEnd()
+            |            }
+            |            protocol.writeFieldStop()
+            |            protocol.writeStructEnd()
+            |        }
+            |    }
         """.trimMargin())
     }
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()

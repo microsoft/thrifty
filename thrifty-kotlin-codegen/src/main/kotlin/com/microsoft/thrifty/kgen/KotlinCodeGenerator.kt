@@ -392,8 +392,8 @@ class KotlinCodeGenerator(
             if (struct.isDeprecated) addAnnotation(makeDeprecated())
             if (struct.hasJavadoc) addKdoc("%L", struct.documentation)
             if (struct.isException) superclass(Exception::class)
-
             if (parcelize) {
+
                 addAnnotation(makeParcelable())
                 addAnnotation(suppressLint("ParcelCreator")) // Android Studio bug with Parcelize
             }
@@ -518,6 +518,7 @@ class KotlinCodeGenerator(
             val name = nameAllocator.get(field)
             val type = field.type.typeName
 
+
             val propertySpec = PropertySpec.varBuilder("value", type.asNullable())
                     .initializer("value")
 
@@ -532,10 +533,41 @@ class KotlinCodeGenerator(
                     .build()
             typeBuilder.addType(dataProp)
         }
+        var builderTypeName : ClassName? = null
+        var adapterInterfaceTypeName = KtAdapter::class
+                .asTypeName()
+                .parameterizedBy(struct.typeName)
+        if (!builderlessDataClasses) {
+            builderTypeName = ClassName(struct.kotlinNamespace, struct.name, "Builder")
 
-        typeBuilder.addType(generateUnionBuilder(schema, struct))
+            typeBuilder.addType(generateBuilderForSealed(schema, struct))
+            adapterInterfaceTypeName = Adapter::class.asTypeName().parameterizedBy(
+                    struct.typeName, builderTypeName)
+        }
+
+        val adapterTypeName = ClassName(struct.kotlinNamespace, struct.name, "${struct.name}Adapter")
+
+        typeBuilder.addType(generateAdapterForSealed(struct, adapterTypeName, adapterInterfaceTypeName, builderTypeName))
+
+        val companionBuilder = TypeSpec.companionObjectBuilder()
+        companionBuilder.addProperty(PropertySpec.builder("ADAPTER", adapterInterfaceTypeName)
+                .initializer("%T()", adapterTypeName)
+                .jvmField()
+                .build())
+
+
+        if (shouldImplementStruct) {
+            typeBuilder
+                    .addSuperinterface(Struct::class)
+                    .addFunction(FunSpec.builder("write")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .addParameter("protocol", Protocol::class)
+                            .addStatement("%L.write(protocol, this)", nameAllocator.get(Tags.ADAPTER))
+                            .build())
+        }
 
         return typeBuilder
+                .addType(companionBuilder.build())
                 .build()
     }
 
@@ -688,12 +720,17 @@ class KotlinCodeGenerator(
     }
 
 
-    internal fun generateUnionBuilder(schema: Schema, struct: StructType): TypeSpec {
+    internal fun generateBuilderForSealed(schema: Schema, struct: StructType): TypeSpec {
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
+                .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
         val buildFunSpec = FunSpec.builder("build")
+                .addModifiers(KModifier.OVERRIDE)
                 .returns(structTypeName)
                 .beginControlFlow("return when")
+
+        val resetFunSpec = FunSpec.builder("reset")
+                .addModifiers(KModifier.OVERRIDE)
 
         val copyCtor = FunSpec.constructorBuilder()
                 .addParameter("source", structTypeName)
@@ -736,6 +773,9 @@ class KotlinCodeGenerator(
             // Add initialization in copy ctor
             copyCtor.addStatement("is $name -> this.$name = source.value")
 
+            // reset field
+            resetFunSpec.addStatement("this.$name = %L", defaultValueBlock)
+
             // Add field to build-method ctor-invocation arg builder
             // TODO: Add newlines and indents if numFields > 1
             buildFunSpec.addStatement("$name != null -> ${struct.name}.$name($name)")
@@ -754,6 +794,7 @@ class KotlinCodeGenerator(
                 .addFunction(defaultCtor.build())
                 .addFunction(copyCtor.build())
                 .addFunction(buildFunSpec.build())
+                .addFunction(resetFunSpec.build())
                 .build()
     }
 
@@ -914,6 +955,146 @@ class KotlinCodeGenerator(
             block.add(")%]%L", System.lineSeparator())
 
             reader.addCode(block.build())
+        }
+
+        if (builderType != null) {
+            adapter.addFunction(FunSpec.builder("read")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addParameter("protocol", Protocol::class)
+                    .addStatement("return read(protocol, %T())", builderType)
+                    .build())
+        }
+
+        return adapter
+                .addFunction(reader.build())
+                .addFunction(writer.build())
+                .build()
+    }
+
+
+    /**
+     * Generates an adapter for the given struct type.
+     *
+     * The kind of adapter generated depends on whether a [builderType] is
+     * provided.  If so, a conventional [com.microsoft.thrifty.Adapter] gets
+     * created, making use of the given [builderType].  If not, a so-called
+     * "builderless" [com.microsoft.thrifty.kotlin.Adapter] is the result.
+     */
+    internal fun generateAdapterForSealed(
+            struct: StructType,
+            adapterName: ClassName,
+            adapterInterfaceName: TypeName,
+            builderType: ClassName?): TypeSpec {
+        val adapter = TypeSpec.classBuilder(adapterName)
+                .addModifiers(KModifier.PRIVATE)
+                .addSuperinterface(adapterInterfaceName)
+
+        val reader = FunSpec.builder("read").apply {
+            addModifiers(KModifier.OVERRIDE)
+            returns(struct.typeName)
+            addParameter("protocol", Protocol::class)
+
+            if (builderType != null) {
+                addParameter("builder", builderType)
+            }
+        }
+
+        val writer = FunSpec.builder("write")
+                .addModifiers(KModifier.OVERRIDE)
+                .addParameter("protocol", Protocol::class)
+                .addParameter("struct", struct.typeName)
+
+        // Writer first, b/c it is easier
+
+        val nameAllocator = nameAllocators[struct]
+
+        writer.addStatement("protocol.writeStructBegin(%S)", struct.name)
+        for (field in struct.fields) {
+            val name = nameAllocator.get(field)
+            val fieldType = field.type
+
+            if (!field.required) {
+                writer.beginControlFlow("if (struct is $name)")
+            }
+
+            writer.addStatement("protocol.writeFieldBegin(%S, %L, %T.%L)",
+                    field.name,
+                    field.id,
+                    TType::class,
+                    fieldType.typeCodeName)
+
+            generateWriteCall(writer, "struct.value!!", fieldType)
+
+            writer.addStatement("protocol.writeFieldEnd()")
+
+            if (!field.required) {
+                writer.endControlFlow()
+            }
+        }
+        writer.addStatement("protocol.writeFieldStop()")
+        writer.addStatement("protocol.writeStructEnd()")
+
+        // Reader next
+
+        reader.addStatement("protocol.readStructBegin()")
+        if (builderType == null) {
+            reader.addStatement("var result : ${struct.name}? = null")
+        }
+        reader.beginControlFlow("while (true)")
+
+        reader.addStatement("val fieldMeta = protocol.readFieldBegin()")
+
+        reader.beginControlFlow("if (fieldMeta.typeId == %T.STOP)", TType::class)
+        reader.addStatement("break")
+        reader.endControlFlow()
+
+
+        if (struct.fields.isNotEmpty()) {
+            reader.beginControlFlow("when (fieldMeta.fieldId.toInt())")
+
+            for (field in struct.fields) {
+                val name = nameAllocator.get(field)
+                val fieldType = field.type
+
+                reader.addCode {
+                    addStatement("${field.id} -> {%>")
+                    beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
+
+                    generateReadCall(this, name, fieldType)
+
+                    if (builderType != null) {
+                        addStatement("builder.$name($name)")
+                    } else {
+                        addStatement("result = $name($name)")
+                    }
+
+                    nextControlFlow("else")
+                    addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+                    endControlFlow()
+                    addStatement("%<}")
+                }
+            }
+
+            reader.addStatement("else -> %T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+            reader.endControlFlow() // when (fieldMeta.fieldId.toInt())
+        } else {
+            reader.addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+        }
+
+        reader.addStatement("protocol.readFieldEnd()")
+        reader.endControlFlow() // while (true)
+        reader.addStatement("protocol.readStructEnd()")
+
+        if (builderType != null) {
+            reader.addStatement("return builder.build()")
+        } else {
+            reader.addCode {
+                beginControlFlow("if (null == result)")
+                addStatement("throw IllegalStateException(\"unreadable\")")
+                nextControlFlow("else")
+                addStatement("return result")
+                endControlFlow()
+            }
         }
 
         if (builderType != null) {
