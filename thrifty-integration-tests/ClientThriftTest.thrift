@@ -315,7 +315,7 @@ service ThriftTest
    * Prints 'testUnionArgument()' and returns the argument unmodified, wrapped in a
    * HasUnion struct.
    **/
-  NonEmptyUnion testUnionArgument(1: NonEmptyUnion arg0)
+  HasUnion testUnionArgument(1: NonEmptyUnion arg0)
 }
 
 service SecondService
