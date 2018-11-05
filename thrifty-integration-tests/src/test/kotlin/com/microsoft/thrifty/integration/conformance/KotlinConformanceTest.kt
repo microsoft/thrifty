@@ -21,7 +21,9 @@
 package com.microsoft.thrifty.integration.conformance
 
 import com.microsoft.thrifty.ThriftException
+import com.microsoft.thrifty.integration.kgen.HasUnion
 import com.microsoft.thrifty.integration.kgen.Insanity
+import com.microsoft.thrifty.integration.kgen.NonEmptyUnion
 import com.microsoft.thrifty.integration.kgen.Numberz
 import com.microsoft.thrifty.integration.kgen.ThriftTestClient
 import com.microsoft.thrifty.integration.kgen.UserId
@@ -405,6 +407,17 @@ class KotlinConformanceTest(
         //       depending on options set during codegen.
         error.errorCode shouldBe 2002
         error.struct_thing?.string_thing shouldBe "This is an Xception2"
+    }
+
+    @Test fun testUnionArgument() {
+        val callback = AssertingCallback<HasUnion>()
+        client.testUnionArgument(NonEmptyUnion.Builder().AString("foo").build(), callback)
+
+        val expected = HasUnion.Builder()
+                .TheUnion(NonEmptyUnion.Builder().AString("foo").build())
+                .build()
+
+        callback.result shouldBe expected
     }
 
     @Test fun testConsecutiveCalls() {

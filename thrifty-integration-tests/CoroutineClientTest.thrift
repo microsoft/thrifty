@@ -44,6 +44,12 @@ enum Numberz
 
 typedef i64 UserId
 
+struct Bonk
+{
+  1: string message,
+  2: i32 type
+}
+
 struct Xtruct
 {
   1:  string string_thing,
@@ -75,6 +81,19 @@ exception Xception {
 exception Xception2 {
   1: i32 errorCode,
   2: Xtruct struct_thing
+}
+
+union TheEmptyUnion {}
+
+union NonEmptyUnion {
+  1: i32 AnInt;
+  2: i64 ALong;
+  3: string AString;
+  4: Bonk ABonk;
+}
+
+struct HasUnion {
+    1: required NonEmptyUnion TheUnion;
 }
 
 service ThriftTest
@@ -254,5 +273,11 @@ service ThriftTest
    * @param i32 secondsToSleep - the number of seconds to sleep
    */
   oneway void testOneway(1:i32 secondsToSleep)
+
+  /**
+   * Prints 'testUnionArgument()' and returns the argument unmodified, wrapped in a
+   * HasUnion struct.
+   **/
+  HasUnion testUnionArgument(1: NonEmptyUnion arg0)
 }
 

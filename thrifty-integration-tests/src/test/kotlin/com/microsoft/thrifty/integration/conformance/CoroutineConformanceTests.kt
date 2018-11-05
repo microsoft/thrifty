@@ -21,7 +21,10 @@
 package com.microsoft.thrifty.integration.conformance
 
 import com.microsoft.thrifty.ThriftException
+import com.microsoft.thrifty.integration.kgen.coro.Bonk
+import com.microsoft.thrifty.integration.kgen.coro.HasUnion
 import com.microsoft.thrifty.integration.kgen.coro.Insanity
+import com.microsoft.thrifty.integration.kgen.coro.NonEmptyUnion
 import com.microsoft.thrifty.integration.kgen.coro.Numberz
 import com.microsoft.thrifty.integration.kgen.coro.ThriftTestClient
 import com.microsoft.thrifty.integration.kgen.coro.Xception
@@ -355,6 +358,14 @@ class CoroutineConformanceTests(
             e.errorCode shouldBe 2002
             e.struct_thing?.string_thing shouldBe "This is an Xception2"
         }
+    }
+
+    @Test fun testUnionArguments() = runBlocking {
+        val bonk = Bonk(message = "foo", type = 42)
+        val union = NonEmptyUnion.Builder().ABonk(bonk).build()
+        val expected = HasUnion(union)
+
+        client.testUnionArgument(union) shouldBe expected
     }
 
     @Test fun concurrentAsyncCalls() = runBlocking<Unit> {
