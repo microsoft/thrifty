@@ -120,6 +120,19 @@ struct OneField {
   1: EmptyStruct field
 }
 
+union TheEmptyUnion {}
+
+union NonEmptyUnion {
+  1: i32 AnInt;
+  2: i64 ALong;
+  3: string AString;
+  4: Bonk ABonk;
+}
+
+struct HasUnion {
+    1: required NonEmptyUnion TheUnion;
+}
+
 service ThriftTest
 {
   /**
@@ -297,6 +310,12 @@ service ThriftTest
    * @param i32 secondsToSleep - the number of seconds to sleep
    */
   oneway void testOneway(1:i32 secondsToSleep)
+
+  /**
+   * Prints 'testUnionArgument()' and returns the argument unmodified, wrapped in a
+   * HasUnion struct.
+   **/
+  NonEmptyUnion testUnionArgument(1: NonEmptyUnion arg0)
 }
 
 service SecondService

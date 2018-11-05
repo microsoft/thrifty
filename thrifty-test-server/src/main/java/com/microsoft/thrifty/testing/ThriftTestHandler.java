@@ -20,7 +20,9 @@
  */
 package com.microsoft.thrifty.testing;
 
+import com.microsoft.thrifty.test.gen.HasUnion;
 import com.microsoft.thrifty.test.gen.Insanity;
+import com.microsoft.thrifty.test.gen.NonEmptyUnion;
 import com.microsoft.thrifty.test.gen.Numberz;
 import com.microsoft.thrifty.test.gen.ThriftTest;
 import com.microsoft.thrifty.test.gen.Xception;
@@ -236,5 +238,13 @@ public class ThriftTestHandler implements ThriftTest.Iface {
     @Override
     public void testOneway(int secondsToSleep) throws TException {
 
+    }
+
+    @Override
+    public HasUnion testUnionArgument(NonEmptyUnion arg0) throws TException {
+        out.printf("testUnionArgument(%s)", arg0);
+        HasUnion result = new HasUnion();
+        result.setTheUnion(arg0);
+        return result;
     }
 }
