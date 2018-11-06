@@ -27,7 +27,6 @@ import com.microsoft.thrifty.schema.Requiredness
 import com.microsoft.thrifty.schema.antlr.AntlrThriftBaseListener
 import com.microsoft.thrifty.schema.antlr.AntlrThriftLexer
 import com.microsoft.thrifty.schema.antlr.AntlrThriftParser
-import okio.ByteString
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Lexer
 import org.antlr.v4.runtime.ParserRuleContext
@@ -572,11 +571,6 @@ internal class ThriftListener(
                 throw AssertionError("Invalid double accepted by ANTLR grammar: $text")
             }
 
-        }
-
-        if(ctx.BINARY() != null) {
-            val text = ctx.BINARY().text
-            return BinaryValueElement(locationOf(ctx), ctx.BINARY().text, ByteString.decodeHex(text.substring(2)))
         }
 
         if (ctx.LITERAL() != null) {

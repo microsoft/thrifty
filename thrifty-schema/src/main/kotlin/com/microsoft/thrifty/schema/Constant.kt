@@ -234,8 +234,14 @@ class Constant private constructor (
     private object BinaryValidator : BaseValidator() {
         override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
             when (valueElement) {
-                is BinaryValueElement -> return
-                else -> super.validate(symbolTable, expected, valueElement)
+                is LiteralValueElement -> {
+                    val text = valueElement.value
+                    val hexRegex = Regex("0[Xx][a-fA-F0-9]+")
+
+                    if(!hexRegex.matches(text)) {
+                        throw IllegalStateException("Expected binary value as hex but got $text")
+                    }
+                }
             }
         }
     }

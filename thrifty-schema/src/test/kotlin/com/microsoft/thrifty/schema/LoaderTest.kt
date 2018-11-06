@@ -1051,6 +1051,38 @@ class LoaderTest {
         load(thrift)
     }
 
+    @Test
+    fun stringWithBinaryLiteral() {
+        val thrift = """
+            const string STRING_WITH_BINARY_LITERAL = "0xDEADBEEF"
+        """.trimIndent()
+
+        load(thrift)
+    }
+
+    @Test
+    fun validBinaryLiteral() {
+        val thrift = """
+            const binary VALID_BINARY = "0xDEADBEEF"
+        """.trimIndent()
+
+        load(thrift)
+    }
+
+    @Test
+    fun invalidHexBinaryLiteral() {
+        val thrift = """
+            const binary INVALID_HEX_BINARY = "0XNOTAHEX"
+        """.trimIndent()
+
+        try {
+            load(thrift)
+            fail()
+        } catch (expected: LoadFailedException) {
+            assertThat(expected, hasMessage(containsString("Expected binary value as hex but got 0XNOTAHEX")))
+        }
+    }
+
     private fun load(thrift: String): Schema {
         val f = tempDir.newFile()
         f.writeText(thrift)

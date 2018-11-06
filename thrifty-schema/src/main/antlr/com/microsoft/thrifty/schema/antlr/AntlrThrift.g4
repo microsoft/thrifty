@@ -77,7 +77,6 @@ constDef
 constValue
     : INTEGER
     | DOUBLE
-    | BINARY
     | LITERAL
     | IDENTIFIER
     | constList
@@ -267,10 +266,6 @@ DOUBLE
     : [+\-]? INT '.' [0-9]+ EXP?
     | [+\-]? INT EXP
     | [+\-]? INT
-    ;
-
-BINARY
-    : '"' HEX '"'
     ;
 
 fragment INT

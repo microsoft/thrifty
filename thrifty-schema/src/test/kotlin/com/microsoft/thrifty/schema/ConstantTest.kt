@@ -343,8 +343,20 @@ class ConstantTest {
     }
 
     @Test
-    fun binaryLiteral() {
-        Constant.validate(symbolTable, BinaryValueElement(loc, "0xDEADBEEF", ByteString.decodeHex("DEADBEEF")), BuiltinType.BINARY)
+    fun validBinaryLiteral() {
+        Constant.validate(symbolTable, LiteralValueElement(loc, "0xDEADBEEF", "0xDEADBEEF"), BuiltinType.BINARY)
+    }
+
+    @Test
+    fun invalidHexBinaryLiteral() {
+        try {
+            Constant.validate(symbolTable, LiteralValueElement(loc, "0XNOTAHEX", "0XNOTAHEX"), BuiltinType.BINARY)
+            fail("A binary should contain a valid hex value")
+        } catch (expected: IllegalStateException) {
+            assertThat<String>(
+                    expected.message,
+                    `is`("Expected binary value as hex but got 0XNOTAHEX"))
+        }
     }
 
     @Test

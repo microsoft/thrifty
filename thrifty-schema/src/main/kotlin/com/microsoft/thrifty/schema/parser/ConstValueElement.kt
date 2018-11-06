@@ -63,14 +63,6 @@ data class DoubleValueElement(
     override fun toString(): String = "$value"
 }
 
-data class BinaryValueElement(
-        override val location: Location,
-        override val thriftText: String,
-        val value: ByteString
-): ConstValueElement() {
-    override fun toString(): String = value.toString()
-}
-
 /**
  * A string constant.
  *
