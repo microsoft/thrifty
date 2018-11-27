@@ -25,6 +25,7 @@ import com.microsoft.thrifty.schema.parser.AnnotationElement
 import com.microsoft.thrifty.schema.parser.FieldElement
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement
 import com.microsoft.thrifty.schema.parser.TypeElement
+import com.nhaarman.mockitokotlin2.mock
 import org.junit.Test
 
 import java.util.Collections
@@ -32,7 +33,6 @@ import java.util.Collections
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.mockito.Mockito.mock
 
 class FieldTest {
     private var location: Location = Location.get("", "")
@@ -138,7 +138,7 @@ class FieldTest {
         val field = Field(fieldElement, emptyMap())
 
         val annotations = ImmutableMap.of<String, String>()
-        val thriftType = mock(ThriftType::class.java)
+        val thriftType = mock<ThriftType>()
 
         val builderField = field.toBuilder()
                 .annotations(annotations)

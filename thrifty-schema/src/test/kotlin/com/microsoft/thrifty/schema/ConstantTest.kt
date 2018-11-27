@@ -32,17 +32,17 @@ import com.microsoft.thrifty.schema.parser.LiteralValueElement
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement
 import com.microsoft.thrifty.schema.parser.TypeElement
 import com.microsoft.thrifty.schema.parser.TypedefElement
+import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.whenever
 import org.junit.Test
 
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.Matchers.`is`
 import org.junit.Assert.assertThat
 import org.junit.Assert.fail
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
 
 class ConstantTest {
-    private val symbolTable: SymbolTable = mock(SymbolTable::class.java)
+    private val symbolTable: SymbolTable = mock()
     private val loc = Location.get("", "")
 
     @Test
@@ -67,7 +67,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aBool", "aBool"),
                 BuiltinType.BOOL)
 
-        `when`<Constant>(symbolTable.lookupConst("aBool")).thenReturn(c)
+        whenever(symbolTable.lookupConst("aBool")).thenReturn(c)
 
         Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
     }
@@ -80,7 +80,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aBool", "abool"),
                 BuiltinType.STRING)
 
-        `when`<Constant>(symbolTable.lookupConst("aBool")).thenReturn(c)
+        whenever(symbolTable.lookupConst("aBool")).thenReturn(c)
 
         try {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
@@ -113,7 +113,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aBool", "aBool"),
                 td)
 
-        `when`<Constant>(symbolTable.lookupConst("aBool")).thenReturn(c)
+        whenever(symbolTable.lookupConst("aBool")).thenReturn(c)
 
         Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
     }
@@ -187,7 +187,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aDouble", "aDouble"),
                 BuiltinType.DOUBLE)
 
-        `when`<Constant>(symbolTable.lookupConst("aDouble")).thenReturn(c)
+        whenever(symbolTable.lookupConst("aDouble")).thenReturn(c)
 
         Constant.validate(symbolTable, IdentifierValueElement(loc, "aDouble", "aDouble"), BuiltinType.DOUBLE)
     }
@@ -200,7 +200,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aString", "aString"),
                 BuiltinType.STRING)
 
-        `when`<Constant>(symbolTable.lookupConst("aString")).thenReturn(c)
+        whenever(symbolTable.lookupConst("aString")).thenReturn(c)
 
         try {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "aString", "aString"), BuiltinType.DOUBLE)
