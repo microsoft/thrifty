@@ -120,8 +120,13 @@ afterEvaluate { project ->
     }
 
     artifacts {
-        archives jar
         archives javadocJar
         archives sourcesJar
+
+        if (project.plugins.hasPlugin('com.github.johnrengelman.shadow')) {
+            archives shadowJar
+        } else {
+            archives jar
+        }
     }
 }
