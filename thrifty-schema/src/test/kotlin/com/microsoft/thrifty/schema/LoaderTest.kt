@@ -268,19 +268,21 @@ class LoaderTest {
 
     @Test
     fun circularInclude() {
-        val f1 = tempDir.newFile()
-        val f2 = tempDir.newFile()
-        val f3 = tempDir.newFile()
+        val f1 = tempDir.newFile("A")
+        val f2 = tempDir.newFile("B")
+        val f3 = tempDir.newFile("C")
+        val f4 = tempDir.newFile("D")
 
         f1.writeText("include '${f2.name}'")
         f2.writeText("include '${f3.name}'")
-        f3.writeText("include '${f1.name}'")
+        f3.writeText("include '${f4.name}'")
+        f4.writeText("include '${f2.name}'")
 
         try {
-            load(f1, f2, f3)
+            load(f1, f2, f3, f4)
             fail("Circular includes should fail to load")
         } catch (e: LoadFailedException) {
-            assertHasError(e, "Circular include")
+            assertHasError(e, "Circular include; file includes itself transitively B -> D -> C -> B")
         }
 
     }

@@ -117,24 +117,37 @@ class Program internal constructor(element: ThriftFileElement) {
     /**
      * Loads this program's symbol table and list of included Programs.
      * @param loader
-     * @param visited
+     * @param visited A [MutableMap] used to track a parent [Program], if it was visited from one.
+     * @param parent The parent [Program] that is including this [Program],
+     * `null` if this [Program] is not being loaded from another [Program].
      */
-    internal fun loadIncludedPrograms(loader: Loader, visited: MutableSet<Program>) {
-        if (!visited.add(this)) {
+    internal fun loadIncludedPrograms(loader: Loader, visited: MutableMap<Program, Program?>, parent: Program?) {
+        if (visited.containsKey(this)) {
             if (includedPrograms == null) {
-                loader.errorReporter().error(location, "Circular include; file includes itself transitively")
+                val includeChain = StringBuilder(this.location.programName);
+                var current: Program? = parent
+                while (current != null) {
+                    includeChain.append(" -> ")
+                    includeChain.append(current.location.programName)
+                    if (current == this) {
+                        break
+                    }
+                    current = visited[current]
+                }
+                loader.errorReporter().error(location, "Circular include; file includes itself transitively $includeChain")
                 throw IllegalStateException("Circular include: " + location.path
-                        + " includes itself transitively")
+                        + " includes itself transitively " + includeChain)
             }
             return
         }
+        visited[this] = parent
 
         check(this.includedPrograms == null) { "Included programs already resolved" }
 
         val includes = mutableListOf<Program>()
         for (thriftImport in thriftIncludes) {
             val included = loader.resolveIncludedProgram(location, thriftImport)
-            included.loadIncludedPrograms(loader, visited)
+            included.loadIncludedPrograms(loader, visited, this)
             includes.add(included)
         }
 
