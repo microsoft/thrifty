@@ -3,7 +3,6 @@ jdk:
   - oraclejdk8
   - openjdk10
 
-sudo: false
 install: echo './gradlew check will install dependencies'
 
 script:
