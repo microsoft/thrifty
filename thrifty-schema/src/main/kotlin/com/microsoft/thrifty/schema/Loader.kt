@@ -164,9 +164,9 @@ class Loader {
         }
 
         // Link included programs together
-        val visited = HashSet<Program>(loadedPrograms.size)
+        val visited = HashMap<Program, Program?>(loadedPrograms.size)
         for (program in loadedPrograms.values) {
-            program.loadIncludedPrograms(this, visited)
+            program.loadIncludedPrograms(this, visited, null)
         }
     }
 
