@@ -86,43 +86,43 @@ fun ThriftType.checkFunctionallyEquals(
         }
         is SetType -> {
             check(other is SetType)
-            elementType.checkFunctionallyEquals((other as SetType).elementType, deepCheck, lazyMessage)
+            elementType.checkFunctionallyEquals(other.elementType, deepCheck, lazyMessage)
         }
         is ListType -> {
             check(other is ListType)
-            elementType.checkFunctionallyEquals((other as ListType).elementType, deepCheck, lazyMessage)
+            elementType.checkFunctionallyEquals(other.elementType, deepCheck, lazyMessage)
         }
         is MapType -> {
             check(other is MapType)
-            keyType.checkFunctionallyEquals((other as MapType).keyType, deepCheck, lazyMessage)
+            keyType.checkFunctionallyEquals(other.keyType, deepCheck, lazyMessage)
             valueType.checkFunctionallyEquals(other.valueType, deepCheck, lazyMessage)
         }
         is UserType -> {
             when (this) {
                 is StructType -> {
                     check(other is StructType, lazyMessage)
-                    check(fqcn == (other as StructType).fqcn, lazyMessage)
+                    check(fqcn == other.fqcn, lazyMessage)
                     if (deepCheck) {
                         checkFunctionallyEquals(other)
                     }
                 }
                 is EnumType -> {
                     check(other is EnumType, lazyMessage)
-                    check(fqcn == (other as EnumType).fqcn, lazyMessage)
+                    check(fqcn == other.fqcn, lazyMessage)
                     if (deepCheck) {
                         checkFunctionallyEquals(other)
                     }
                 }
                 is TypedefType -> {
                     check(other is TypedefType, lazyMessage)
-                    check(fqcn == (other as TypedefType).fqcn, lazyMessage)
+                    check(fqcn == other.fqcn, lazyMessage)
                     if (deepCheck) {
                         checkFunctionallyEquals(other)
                     }
                 }
                 is ServiceType -> {
                     check(other is ServiceType, lazyMessage)
-                    check(fqcn == (other as ServiceType).fqcn, lazyMessage)
+                    check(fqcn == other.fqcn, lazyMessage)
                     if (deepCheck) {
                         checkFunctionallyEquals(other)
                     }
