@@ -24,6 +24,7 @@ import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.NamespaceScope
 import com.microsoft.thrifty.schema.Requiredness
+import io.kotlintest.shouldBe
 import okio.Okio
 
 import org.junit.After
@@ -1085,6 +1086,16 @@ class ThriftParserTest {
 
         assertNotNull(anno)
         assertThat(anno?.get("python.immutable"), equalTo("true"))
+    }
+
+    @Test
+    fun annotationsOnListElementTypes() {
+        val thrift = """const list<i64 (type = "js")> TIMESTAMPS = [];"""
+        val consts = parse(thrift).constants
+        val tss = consts[0]
+        val listType = tss.type as ListTypeElement
+        val elementType = listType.elementType
+        elementType.annotations?.get("type") shouldBe "js"
     }
 
     @Test
