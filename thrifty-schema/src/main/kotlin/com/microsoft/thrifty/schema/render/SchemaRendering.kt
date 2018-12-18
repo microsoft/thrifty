@@ -174,11 +174,11 @@ fun <A : Appendable> Schema.renderTo(buffer: A) = buffer.apply {
         typedefs
             .sortedWith(Comparator { o1, o2 ->
               // Sort by the type first, then the name. This way we can group types together
-              val typeComparison = o1.oldType().name().compareTo(o2.oldType().name())
+              val typeComparison = o1.oldType.name.compareTo(o2.oldType.name)
               return@Comparator if (typeComparison != 0) {
                 typeComparison
               } else {
-                o1.name().compareTo(o2.name())
+                o1.name.compareTo(o2.name)
               }
             })
             .joinEachTo(
