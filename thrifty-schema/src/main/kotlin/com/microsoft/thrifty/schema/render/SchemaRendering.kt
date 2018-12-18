@@ -171,7 +171,16 @@ fun Schema.render() = renderTo(StringBuilder()).toString()
 @Suppress("RemoveExplicitTypeArguments") // False positive
 fun <A : Appendable> Schema.renderTo(buffer: A) = buffer.apply {
     if (typedefs.isNotEmpty()) {
-        typedefs.sortedBy(TypedefType::name)
+        typedefs
+            .sortedWith(Comparator { o1, o2 ->
+              // Sort by the type first, then the name. This way we can group types together
+              val typeComparison = o1.oldType().name().compareTo(o2.oldType().name())
+              return@Comparator if (typeComparison != 0) {
+                typeComparison
+              } else {
+                o1.name().compareTo(o2.name())
+              }
+            })
             .joinEachTo(
                 buffer = buffer,
                 separator = DOUBLE_NEWLINE,
