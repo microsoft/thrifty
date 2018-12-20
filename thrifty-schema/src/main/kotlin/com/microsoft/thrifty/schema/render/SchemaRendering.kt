@@ -467,7 +467,8 @@ private fun <A : Appendable> UserElement.renderJavadocTo(buffer: A, indent: Stri
                     prefix = "$indent/**$NEWLINE",
                     postfix = "$NEWLINE$indent */$NEWLINE"
                 ) {
-                    "$indent * $it"
+                    val line = if (it.isBlank()) "" else " ${it.trimEnd()}"
+                    "$indent *$line"
                 }
             }
         }
