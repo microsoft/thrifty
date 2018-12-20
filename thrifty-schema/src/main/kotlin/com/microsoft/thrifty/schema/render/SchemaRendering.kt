@@ -24,6 +24,7 @@ package com.microsoft.thrifty.schema.render
 
 import com.microsoft.thrifty.schema.*
 import com.microsoft.thrifty.schema.NamespaceScope.JAVA
+import com.microsoft.thrifty.schema.parser.ConstValueElement
 import java.io.File
 
 /*
@@ -348,6 +349,7 @@ private fun <A : Appendable> Field.renderTo(buffer: A, indent: String = "  ") = 
     type.renderTypeTo(buffer, location)
     if (type !is UserType) type.annotations.renderTo(buffer)
     append(" ", name)
+    defaultValue?.renderTo(buffer)
     renderAnnotationsTo(buffer, indent)
 }
 
@@ -395,8 +397,13 @@ private fun <A : Appendable> Constant.renderTo(buffer: A) = buffer.apply {
     append(" ")
     type.annotations
         .renderTo(buffer)
-    append(" ", name, " = ", value.thriftText)
+    append(" ", name)
+    value.renderTo(buffer)
     renderAnnotationsTo(buffer)
+}
+
+private fun <A : Appendable> ConstValueElement.renderTo(buffer: A, prefix: String = " ") = buffer.apply {
+    append(prefix, "= ", thriftText)
 }
 
 /**
