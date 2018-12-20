@@ -32,7 +32,7 @@ package com.microsoft.thrifty.schema
  * For comparing docs, we remove stars as things get weird in the parser.
  */
 private fun String.cleanedDoc(): String {
-    return trim().replace("*", "")
+    return trim().replace("*", "").split("\n").joinToString("\n") { it.trimEnd() }
 }
 
 /**
