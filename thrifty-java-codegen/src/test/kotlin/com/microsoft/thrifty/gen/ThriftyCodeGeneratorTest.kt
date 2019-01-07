@@ -505,7 +505,7 @@ class ThriftyCodeGeneratorTest {
             /**
              * ${"$"}A ${"$"}B ${"$"}C ${"$"}D ${"$"}E
              */
-            public final class Foo implements Struct {
+            public final class Foo implements Struct<Foo> {
         """.trimRawString()
 
         val expectedFieldJavadoc = """

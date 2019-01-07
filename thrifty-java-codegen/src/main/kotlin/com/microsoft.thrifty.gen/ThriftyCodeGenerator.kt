@@ -222,7 +222,7 @@ class ThriftyCodeGenerator {
 
         val structBuilder = TypeSpec.classBuilder(type.name)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addSuperinterface(Struct::class.java)
+                .addSuperinterface(ParameterizedTypeName.get(ClassName.get(Struct::class.java), structTypeName))
 
         if (type.hasJavadoc) {
             structBuilder.addJavadoc("\$L", type.documentation)
@@ -331,6 +331,7 @@ class ThriftyCodeGenerator {
         structBuilder.addMethod(buildHashCodeFor(type))
         structBuilder.addMethod(buildToStringFor(type))
         structBuilder.addMethod(buildWrite())
+        structBuilder.addMethod(buildRead(structTypeName))
 
         return structBuilder.build()
     }
@@ -657,6 +658,17 @@ class ThriftyCodeGenerator {
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addStatement("ADAPTER.write(protocol, this)")
                 .addException(TypeNames.IO_EXCEPTION)
+                .build()
+    }
+
+    private fun buildRead(structTypeName: ClassName): MethodSpec {
+        return MethodSpec.methodBuilder("read")
+                .addAnnotation(TypeNames.OVERRIDE)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(TypeNames.PROTOCOL, "protocol")
+                .addStatement("return ADAPTER.read(protocol)")
+                .addException(TypeNames.IO_EXCEPTION)
+                .returns(structTypeName)
                 .build()
     }
 

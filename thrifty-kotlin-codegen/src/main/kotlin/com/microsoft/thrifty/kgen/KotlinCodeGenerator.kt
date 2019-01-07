@@ -485,11 +485,20 @@ class KotlinCodeGenerator(
 
         if (shouldImplementStruct) {
             typeBuilder
-                    .addSuperinterface(Struct::class)
+                    .addSuperinterface(Struct::class.asTypeName().parameterizedBy(structClassName))
+            typeBuilder
                     .addFunction(FunSpec.builder("write")
                             .addModifiers(KModifier.OVERRIDE)
                             .addParameter("protocol", Protocol::class)
                             .addStatement("%L.write(protocol, this)", nameAllocator.get(Tags.ADAPTER))
+                            .build())
+
+            typeBuilder
+                    .addFunction(FunSpec.builder("read")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .addParameter("protocol", Protocol::class)
+                            .addStatement("return %L.read(protocol)", nameAllocator.get(Tags.ADAPTER))
+                            .returns(structClassName)
                             .build())
         }
 

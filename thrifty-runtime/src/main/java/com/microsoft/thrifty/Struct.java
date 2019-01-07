@@ -27,7 +27,7 @@ import java.io.IOException;
 /**
  * An interface that Thrift struct objects should implement.
  */
-public interface Struct {
+public interface Struct<T> {
 
   /**
    * Writes this {@link Struct} instance to the given {@code protocol}.
@@ -36,4 +36,12 @@ public interface Struct {
    * @throws IOException if writing fails
    */
   void write(Protocol protocol) throws IOException;
+
+  /**
+   * Reads a new instance of {@link T} from the given {@code protocol}.
+   *
+   * @return an instance of {@link T} populated with the data just read.
+   * @throws IOException if reading fails, or if the struct is malformed
+   */
+   T read(Protocol protocol) throws IOException;
 }

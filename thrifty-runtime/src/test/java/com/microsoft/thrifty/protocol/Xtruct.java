@@ -29,7 +29,7 @@ import com.microsoft.thrifty.util.ProtocolUtil;
 
 import java.io.IOException;
 
-public final class Xtruct implements Struct {
+public final class Xtruct implements Struct<Xtruct> {
     public static final Adapter<Xtruct, Builder> ADAPTER = new XtructAdapter();
 
     @ThriftField(
@@ -112,6 +112,11 @@ public final class Xtruct implements Struct {
     @Override
     public void write(Protocol protocol) throws IOException {
         ADAPTER.write(protocol, this);
+    }
+
+    @Override
+    public Xtruct read(Protocol protocol) throws IOException {
+        return ADAPTER.read(protocol);
     }
 
     public static final class Builder implements StructBuilder<Xtruct> {
