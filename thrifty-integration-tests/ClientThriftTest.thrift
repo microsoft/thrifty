@@ -457,3 +457,16 @@ struct MapsOfCollections {
   2: map<list<double>, list<i64>> mapOfLists;
   3: map<map<i32, i32>, map<i8, i8>> mapOfMaps;
 }
+
+union TestUnion {
+  1: i32 AnInt;
+  2: i64 ALong;
+  3: string Text;
+  4: Bonk aBonk;
+}
+
+union EmptyUnion {};
+
+struct HasEmptyUnion {
+  1: EmptyUnion theEmptyUnion;
+}
