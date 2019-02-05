@@ -232,7 +232,14 @@ class KotlinCodeGenerator(
         schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
         schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
-        schema.unions.forEach { specsByNamespace.put(it.kotlinNamespace, generateSealedClass(schema, it)) }
+        schema.unions.forEach {
+            // NOTE: We can't adequately represent empty unions with sealed classes, because one can't
+            //       _isntantiate_ an empty sealed class.  As an ugly hack, we represent empty unions
+            //       as a plain-old class.  We could technically make it an object, but I don't really
+            //       care enough to do it.  Empty unions themselves are ugly, so this ugly hack is fitting.
+            val spec = if (it.fields.isNotEmpty()) { generateSealedClass(schema, it) } else { generateDataClass(schema, it) }
+            specsByNamespace.put(it.kotlinNamespace, spec)
+        }
         schema.exceptions.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
 
         val constantNameAllocators = mutableMapOf<String, NameAllocator>()
@@ -501,6 +508,10 @@ class KotlinCodeGenerator(
 
 
     internal fun generateSealedClass(schema: Schema, struct: StructType): TypeSpec {
+        if (struct.fields.isEmpty()) {
+            error("Cannot create an empty sealed class (type=${struct.name})")
+        }
+
         val structClassName = ClassName(struct.kotlinNamespace, struct.name)
         val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
             addGeneratedAnnotation()
@@ -648,7 +659,13 @@ class KotlinCodeGenerator(
                 .addModifiers(KModifier.OVERRIDE)
 
         val copyCtor = FunSpec.constructorBuilder()
-                .addParameter("source", structTypeName)
+                .apply {
+                    val paramSpec = ParameterSpec.builder("source", structTypeName)
+                    if (struct.fields.isEmpty()) {
+                        paramSpec.addAnnotation(suppressUnusedParam())
+                    }
+                    addParameter(paramSpec.build())
+                }
 
         val defaultCtor = FunSpec.constructorBuilder()
 
@@ -719,6 +736,10 @@ class KotlinCodeGenerator(
 
 
     internal fun generateBuilderForSealed(schema: Schema, struct: StructType): TypeSpec {
+        if (struct.fields.isEmpty()) {
+            error("Cannot create an empty sealed class builder (type=${struct.name})")
+        }
+
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
                 .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
@@ -783,9 +804,10 @@ class KotlinCodeGenerator(
             spec.addFunction(builderFunSpec.build())
         }
 
-        buildFunSpec.addStatement("else -> throw IllegalStateException(\"unpossible\")")
+        buildFunSpec.addStatement("else -> error(%S)", "unpossible")
         buildFunSpec.endControlFlow()
 
+        copyCtor.addStatement("else -> error(%S)", "unpossible")
         copyCtor.endControlFlow()
 
         return spec
@@ -2170,6 +2192,12 @@ class KotlinCodeGenerator(
         return AnnotationSpec.builder(generatedAnnotationType!!)
                 .addMember("value = [%S]", KotlinCodeGenerator::class.java.name)
                 .addMember("comments = %S", "https://github.com/microsoft/thrifty")
+                .build()
+    }
+
+    private fun suppressUnusedParam(): AnnotationSpec {
+        return AnnotationSpec.builder(Suppress::class)
+                .addMember("%S", "UNUSED_PARAMETER")
                 .build()
     }
 

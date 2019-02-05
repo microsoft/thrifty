@@ -437,6 +437,7 @@ class KotlinCodeGeneratorTest {
             |                is Bar -> this.Bar = source.value
             |                is Baz -> this.Baz = source.value
             |                is NotFoo -> this.NotFoo = source.value
+            |                else -> error("unpossible")
             |            }
             |        }
             |
@@ -473,7 +474,7 @@ class KotlinCodeGeneratorTest {
             |            Bar != null -> Union.Bar(Bar)
             |            Baz != null -> Union.Baz(Baz)
             |            NotFoo != null -> Union.NotFoo(NotFoo)
-            |            else -> throw IllegalStateException("unpossible")
+            |            else -> error("unpossible")
             |        }
             |
             |        override fun reset() {
@@ -757,7 +758,7 @@ class KotlinCodeGeneratorTest {
     }
 
     @Test
-    fun `empty union generate sealed`() {
+    fun `empty union generate non-sealed class`() {
         val thrift = """
             |namespace kt test.coro
             |
@@ -768,7 +769,7 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |sealed class Union : Struct {
+            |class Union() : Struct {
         """.trimMargin())
     }
 
@@ -807,6 +808,7 @@ class KotlinCodeGeneratorTest {
             |        constructor(source: UnionStruct) : this() {
             |            when(source) {
             |                is Struct -> this.Struct = source.value
+            |                else -> error("unpossible")
             |            }
             |        }
             |
@@ -816,7 +818,7 @@ class KotlinCodeGeneratorTest {
             |
             |        override fun build(): UnionStruct = when {
             |            Struct != null -> UnionStruct.Struct(Struct)
-            |            else -> throw IllegalStateException("unpossible")
+            |            else -> error("unpossible")
             |        }
             |
             |        override fun reset() {
