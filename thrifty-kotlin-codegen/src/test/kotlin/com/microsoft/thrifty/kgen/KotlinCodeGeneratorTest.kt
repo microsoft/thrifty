@@ -388,13 +388,17 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |
-            |    data class Foo(var value: Int?) : Union()
+            |    data class Foo(var value: Int?) : Union() {
+            |        override fun toString(): String = "Union(Foo=${'$'}value)"}
             |
-            |    data class Bar(var value: Long?) : Union()
+            |    data class Bar(var value: Long?) : Union() {
+            |        override fun toString(): String = "Union(Bar=${'$'}value)"}
             |
-            |    data class Baz(var value: String?) : Union()
+            |    data class Baz(var value: String?) : Union() {
+            |        override fun toString(): String = "Union(Baz=${'$'}value)"}
             |
-            |    data class NotFoo(var value: Int?) : Union()
+            |    data class NotFoo(var value: Int?) : Union() {
+            |        override fun toString(): String = "Union(NotFoo=${'$'}value)"}
             |
         """.trimMargin())
     }
@@ -796,7 +800,8 @@ class KotlinCodeGeneratorTest {
             |        ADAPTER.write(protocol, this)
             |    }
             |
-            |    data class Struct(var value: Bonk?) : UnionStruct()
+            |    data class Struct(var value: Bonk?) : UnionStruct() {
+            |        override fun toString(): String = "UnionStruct(Struct=${'$'}value)"}
             |
             |    class Builder : StructBuilder<UnionStruct> {
             |        private var Struct: Bonk?

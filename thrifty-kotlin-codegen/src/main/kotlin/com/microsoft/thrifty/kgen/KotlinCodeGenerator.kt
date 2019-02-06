@@ -539,6 +539,11 @@ class KotlinCodeGenerator(
                     .superclass(structClassName)
                     .addProperty(propertySpec.build())
                     .primaryConstructor(propConstructor.build())
+                    .addFunction(FunSpec.builder("toString")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .returns(String::class)
+                            .addCode("return \"${struct.name}($name=\$value)\"")
+                            .build())
                     .build()
             typeBuilder.addType(dataProp)
         }
