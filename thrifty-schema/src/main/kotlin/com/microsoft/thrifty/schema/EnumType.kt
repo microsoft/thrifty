@@ -41,14 +41,18 @@ class EnumType : UserType {
     }
 
     /**
-     * Find the [member][EnumMember] with the given [name], or null.
+     * Find the [member][EnumMember] with the given [name].
+     *
+     * @throws NoSuchElementException
      */
     fun findMemberByName(name: String): EnumMember {
         return members.first { it.name == name }
     }
 
     /**
-     * Find the [member][EnumMember] with the given [id], or null.
+     * Find the [member][EnumMember] with the given [id].
+     *
+     * @throws NoSuchElementException
      */
     fun findMemberById(id: Int): EnumMember {
         return members.first { it.value == id }
