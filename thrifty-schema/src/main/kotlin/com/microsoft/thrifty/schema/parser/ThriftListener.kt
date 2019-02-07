@@ -205,21 +205,12 @@ internal class ThriftListener(
         val name = ctx.IDENTIFIER().text
         val fields = parseFieldList(ctx.field())
 
-        var numFieldsWithDefaultValues = 0
         for (i in fields.indices) {
             val element = fields[i]
             if (element.requiredness == Requiredness.REQUIRED) {
                 val fieldContext = ctx.field(i)
                 errorReporter.error(locationOf(fieldContext), "unions cannot have required fields")
             }
-
-            if (element.constValue != null) {
-                ++numFieldsWithDefaultValues
-            }
-        }
-
-        if (numFieldsWithDefaultValues > 1) {
-            errorReporter.error(locationOf(ctx), "unions can have at most one default value")
         }
 
         val element = StructElement(
