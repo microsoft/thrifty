@@ -20,6 +20,9 @@
  */
 package com.microsoft.thrifty.schema
 
+import io.kotlintest.shouldBe
+import io.kotlintest.shouldNotBe
+import io.kotlintest.shouldThrowExactly
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.hasEntry
@@ -1051,6 +1054,36 @@ class LoaderTest {
         """.trimIndent()
 
         load(thrift)
+    }
+
+    @Test
+    fun unionWithOneDefaultValue() {
+        val thrift = """
+            union HasDefault {
+                1: i32 a = 1;
+                2: i64 b;
+                3: string c;
+            }
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val union = schema.unions.single()
+        union.fields[0].defaultValue shouldNotBe null
+        union.fields[1].defaultValue shouldBe null
+        union.fields[2].defaultValue shouldBe null
+    }
+
+    @Test
+    fun unionWithMultipleDefaultValues() {
+        val thrift = """
+            union HasManyDefaults {
+                1: i32 a = 1;
+                2: i64 b = 2;
+                3: string c;
+            }
+        """.trimIndent()
+
+        shouldThrowExactly<LoadFailedException> { load(thrift) }
     }
 
     private fun load(thrift: String): Schema {
