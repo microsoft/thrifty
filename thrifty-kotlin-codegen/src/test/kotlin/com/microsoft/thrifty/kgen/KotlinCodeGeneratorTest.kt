@@ -388,16 +388,16 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |
-            |    data class Foo(var value: Int?) : Union() {
+            |    data class Foo(val value: Int) : Union() {
             |        override fun toString(): String = "Union(Foo=${'$'}value)"}
             |
-            |    data class Bar(var value: Long?) : Union() {
+            |    data class Bar(val value: Long) : Union() {
             |        override fun toString(): String = "Union(Bar=${'$'}value)"}
             |
-            |    data class Baz(var value: String?) : Union() {
+            |    data class Baz(val value: String) : Union() {
             |        override fun toString(): String = "Union(Baz=${'$'}value)"}
             |
-            |    data class NotFoo(var value: Int?) : Union() {
+            |    data class NotFoo(val value: Int) : Union() {
             |        override fun toString(): String = "Union(NotFoo=${'$'}value)"}
             |
         """.trimMargin())
@@ -420,73 +420,27 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |    class Builder : StructBuilder<Union> {
-            |        private var Foo: Int?
+            |        private var value: Union? = null
             |
-            |        private var Bar: Long?
-            |
-            |        private var Baz: String?
-            |
-            |        private var NotFoo: Int?
-            |
-            |        constructor() {
-            |            this.Foo = null
-            |            this.Bar = null
-            |            this.Baz = null
-            |            this.NotFoo = null
-            |        }
+            |        constructor()
             |
             |        constructor(source: Union) : this() {
-            |            when(source) {
-            |                is Foo -> this.Foo = source.value
-            |                is Bar -> this.Bar = source.value
-            |                is Baz -> this.Baz = source.value
-            |                is NotFoo -> this.NotFoo = source.value
-            |                else -> error("unpossible")
-            |            }
+            |            this.value = source
             |        }
             |
-            |        fun Foo(value: Int) = apply {
-            |            this.Foo = value
-            |            this.Bar = null
-            |            this.Baz = null
-            |            this.NotFoo = null
-            |        }
-            |
-            |        fun Bar(value: Long) = apply {
-            |            this.Foo = null
-            |            this.Bar = value
-            |            this.Baz = null
-            |            this.NotFoo = null
-            |        }
-            |
-            |        fun Baz(value: String) = apply {
-            |            this.Foo = null
-            |            this.Bar = null
-            |            this.Baz = value
-            |            this.NotFoo = null
-            |        }
-            |
-            |        fun NotFoo(value: Int) = apply {
-            |            this.Foo = null
-            |            this.Bar = null
-            |            this.Baz = null
-            |            this.NotFoo = value
-            |        }
-            |
-            |        override fun build(): Union = when {
-            |            Foo != null -> Union.Foo(Foo)
-            |            Bar != null -> Union.Bar(Bar)
-            |            Baz != null -> Union.Baz(Baz)
-            |            NotFoo != null -> Union.NotFoo(NotFoo)
-            |            else -> error("unpossible")
-            |        }
+            |        override fun build(): Union = value ?: error("Invalid union; at least one value is required")
             |
             |        override fun reset() {
-            |            this.Foo = null
-            |            this.Bar = null
-            |            this.Baz = null
-            |            this.NotFoo = null
+            |            value = null
             |        }
+            |
+            |        fun Foo(value: Int) = apply { this.value = Union.Foo(value) }
+            |
+            |        fun Bar(value: Long) = apply { this.value = Union.Bar(value) }
+            |
+            |        fun Baz(value: String) = apply { this.value = Union.Baz(value) }
+            |
+            |        fun NotFoo(value: Int) = apply { this.value = Union.NotFoo(value) }
             |    }
         """.trimMargin())
     }
@@ -556,22 +510,22 @@ class KotlinCodeGeneratorTest {
             |            protocol.writeStructBegin("Union")
             |            if (struct is Foo) {
             |                protocol.writeFieldBegin("Foo", 1, TType.I32)
-            |                protocol.writeI32(struct.value!!)
+            |                protocol.writeI32(struct.value)
             |                protocol.writeFieldEnd()
             |            }
             |            if (struct is Bar) {
             |                protocol.writeFieldBegin("Bar", 2, TType.I64)
-            |                protocol.writeI64(struct.value!!)
+            |                protocol.writeI64(struct.value)
             |                protocol.writeFieldEnd()
             |            }
             |            if (struct is Baz) {
             |                protocol.writeFieldBegin("Baz", 3, TType.STRING)
-            |                protocol.writeString(struct.value!!)
+            |                protocol.writeString(struct.value)
             |                protocol.writeFieldEnd()
             |            }
             |            if (struct is NotFoo) {
             |                protocol.writeFieldBegin("NotFoo", 4, TType.I32)
-            |                protocol.writeI32(struct.value!!)
+            |                protocol.writeI32(struct.value)
             |                protocol.writeFieldEnd()
             |            }
             |            protocol.writeFieldStop()
@@ -800,35 +754,25 @@ class KotlinCodeGeneratorTest {
             |        ADAPTER.write(protocol, this)
             |    }
             |
-            |    data class Struct(var value: Bonk?) : UnionStruct() {
+            |    data class Struct(val value: Bonk) : UnionStruct() {
             |        override fun toString(): String = "UnionStruct(Struct=${'$'}value)"}
             |
             |    class Builder : StructBuilder<UnionStruct> {
-            |        private var Struct: Bonk?
+            |        private var value: UnionStruct? = null
             |
-            |        constructor() {
-            |            this.Struct = null
-            |        }
+            |        constructor()
             |
             |        constructor(source: UnionStruct) : this() {
-            |            when(source) {
-            |                is Struct -> this.Struct = source.value
-            |                else -> error("unpossible")
-            |            }
+            |            this.value = source
             |        }
             |
-            |        fun Struct(value: Bonk) = apply {
-            |            this.Struct = value
-            |        }
-            |
-            |        override fun build(): UnionStruct = when {
-            |            Struct != null -> UnionStruct.Struct(Struct)
-            |            else -> error("unpossible")
-            |        }
+            |        override fun build(): UnionStruct = value ?: error("Invalid union; at least one value is required")
             |
             |        override fun reset() {
-            |            this.Struct = null
+            |            value = null
             |        }
+            |
+            |        fun Struct(value: Bonk) = apply { this.value = UnionStruct.Struct(value) }
             |    }
             |
             |    private class UnionStructAdapter : Adapter<UnionStruct, Builder> {
@@ -862,7 +806,7 @@ class KotlinCodeGeneratorTest {
             |            protocol.writeStructBegin("UnionStruct")
             |            if (struct is Struct) {
             |                protocol.writeFieldBegin("Struct", 1, TType.STRUCT)
-            |                Bonk.ADAPTER.write(protocol, struct.value!!)
+            |                Bonk.ADAPTER.write(protocol, struct.value)
             |                protocol.writeFieldEnd()
             |            }
             |            protocol.writeFieldStop()

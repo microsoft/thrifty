@@ -98,6 +98,7 @@ private object Tags {
     val RECEIVE = "RESERVED:receive"
     val RESULT = "RESERVED:resultValue"
     val FIELD = "RESERVED:fieldMeta"
+    val BUILDER = "RESERVED:builder"
 }
 
 /**
@@ -527,12 +528,11 @@ class KotlinCodeGenerator(
             val name = nameAllocator.get(field)
             val type = field.type.typeName
 
-
-            val propertySpec = PropertySpec.varBuilder("value", type.asNullable())
+            val propertySpec = PropertySpec.builder("value", type)
                     .initializer("value")
 
             val propConstructor = FunSpec.constructorBuilder()
-                    .addParameter("value", type.asNullable())
+                    .addParameter("value", type)
 
             val dataProp = TypeSpec.classBuilder(name)
                     .addModifiers(KModifier.DATA)
@@ -745,82 +745,45 @@ class KotlinCodeGenerator(
             error("Cannot create an empty sealed class builder (type=${struct.name})")
         }
 
+        val nameAllocator = nameAllocators[struct]
+        val builderValName = nameAllocator.newName("value", Tags.BUILDER)
+
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
                 .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
-        val buildFunSpec = FunSpec.builder("build")
-                .addModifiers(KModifier.OVERRIDE)
-                .returns(structTypeName)
-                .beginControlFlow("return when")
+                .addProperty(PropertySpec.varBuilder(builderValName, structTypeName.asNullable(), KModifier.PRIVATE)
+                        .initializer("null")
+                        .build())
+                .addFunction(FunSpec.constructorBuilder().build())
+                .addFunction(FunSpec.constructorBuilder()
+                        .addParameter("source", structTypeName)
+                        .callThisConstructor()
+                        .addStatement("this.$builderValName = source")
+                        .build())
+                .addFunction(FunSpec.builder("build")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .returns(structTypeName)
+                        .addStatement(
+                                "return $builderValName ?: error(%S)",
+                                "Invalid union; at least one value is required")
+                        .build())
+                .addFunction(FunSpec.builder("reset")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .addStatement("$builderValName = null")
+                        .build())
 
-        val resetFunSpec = FunSpec.builder("reset")
-                .addModifiers(KModifier.OVERRIDE)
-
-        val copyCtor = FunSpec.constructorBuilder()
-                .addParameter("source", structTypeName)
-                .callThisConstructor()
-                .beginControlFlow("when(source)")
-
-        val defaultCtor = FunSpec.constructorBuilder()
-
-        val nameAllocator = nameAllocators[struct]
         for (field in struct.fields) {
             val name = nameAllocator.get(field)
             val type = field.type.typeName
 
-            // Add a private var
-
-            val defaultValueBlock = field.defaultValue?.let {
-                renderConstValue(schema, field.type, it)
-            } ?: CodeBlock.of("null")
-
-            val propertySpec = PropertySpec.varBuilder(name, type.asNullable(), KModifier.PRIVATE)
-
             // Add a builder fun
-            var content = "return apply {\n"
-            for (field2 in struct.fields) {
-                val name2 = nameAllocator.get(field2)
-                if (name == name2) {
-                    content += "    this.$name2 = value\n"
-                } else {
-                    content += "    this.$name2 = null\n"
-                }
-            }
-            content += "}"
-            val builderFunSpec = FunSpec.builder(name)
+            spec.addFunction(FunSpec.builder(name)
                     .addParameter("value", type)
-                    .addStatement(content)
-
-            // Add initialization in default ctor
-            defaultCtor.addStatement("this.$name = %L", defaultValueBlock)
-
-            // Add initialization in copy ctor
-            copyCtor.addStatement("is $name -> this.$name = source.value")
-
-            // reset field
-            resetFunSpec.addStatement("this.$name = %L", defaultValueBlock)
-
-            // Add field to build-method ctor-invocation arg builder
-            // TODO: Add newlines and indents if numFields > 1
-            buildFunSpec.addStatement("$name != null -> ${struct.name}.$name($name)")
-
-            // Finish off the property and builder fun
-            spec.addProperty(propertySpec.build())
-            spec.addFunction(builderFunSpec.build())
+                    .addStatement("return apply { this.$builderValName = ${struct.name}.$name(value) }")
+                    .build())
         }
 
-        buildFunSpec.addStatement("else -> error(%S)", "unpossible")
-        buildFunSpec.endControlFlow()
-
-        copyCtor.addStatement("else -> error(%S)", "unpossible")
-        copyCtor.endControlFlow()
-
-        return spec
-                .addFunction(defaultCtor.build())
-                .addFunction(copyCtor.build())
-                .addFunction(buildFunSpec.build())
-                .addFunction(resetFunSpec.build())
-                .build()
+        return spec.build()
     }
 
 
@@ -1048,7 +1011,7 @@ class KotlinCodeGenerator(
                     TType::class,
                     fieldType.typeCodeName)
 
-            generateWriteCall(writer, "struct.value!!", fieldType)
+            generateWriteCall(writer, "struct.value", fieldType)
 
             writer.addStatement("protocol.writeFieldEnd()")
 
