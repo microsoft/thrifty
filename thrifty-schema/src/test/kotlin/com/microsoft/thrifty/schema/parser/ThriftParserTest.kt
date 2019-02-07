@@ -1326,7 +1326,7 @@ class ThriftParserTest {
 
         val ex = shouldThrowExactly<IllegalStateException> { parse(thrift) }
         ex.message should startWith("Syntax error")
-        // ex.message.shouldContain("';'") // reenable when we have improved syntax error reporting
+        ex.message.shouldContain("extraneous input ';'") // reenable when we have improved syntax error reporting
     }
 
     companion object {
