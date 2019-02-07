@@ -465,7 +465,7 @@ union TestUnion {
   4: Bonk aBonk;
 }
 
-union EmptyUnion {};
+union EmptyUnion {}
 
 struct HasEmptyUnion {
   1: EmptyUnion theEmptyUnion;

@@ -20,7 +20,7 @@
  */
 grammar AntlrThrift;
 
-document: header* definition*;
+document: header* definition* EOF;
 
 header
     : include
