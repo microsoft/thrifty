@@ -179,29 +179,33 @@ class CoroutineConformanceTests(
     }
 
     @Test fun testStruct() = runBlocking {
-        val xtruct = Xtruct.Builder()
-                .byte_thing(1.toByte())
-                .i32_thing(2)
-                .i64_thing(3L)
-                .string_thing("foo")
-                .build()
+        val xtruct = Xtruct(
+                byte_thing = 1.toByte(),
+                i32_thing = 2,
+                i64_thing = 3L,
+                string_thing = "foo",
+                bool_thing = null,
+                double_thing = null
+        )
 
         client.testStruct(xtruct) shouldBe xtruct
     }
 
     @Test fun testNest() = runBlocking {
-        val xtruct = Xtruct.Builder()
-                .byte_thing(1.toByte())
-                .i32_thing(2)
-                .i64_thing(3L)
-                .string_thing("foo")
-                .build()
+        val xtruct = Xtruct(
+                byte_thing = 1.toByte(),
+                i32_thing = 2,
+                i64_thing = 3L,
+                string_thing = "foo",
+                bool_thing = null,
+                double_thing = null
+        )
 
-        val nest = Xtruct2.Builder()
-                .byte_thing(4.toByte())
-                .i32_thing(5)
-                .struct_thing(xtruct)
-                .build()
+        val nest = Xtruct2(
+                byte_thing = 4.toByte(),
+                i32_thing = 5,
+                struct_thing = xtruct
+        )
 
         client.testNest(nest) shouldBe nest
     }
@@ -263,18 +267,17 @@ class CoroutineConformanceTests(
     }
 
     @Test fun testInsanity() = runBlocking {
-        val empty = Insanity.Builder().build()
-        val argument = Insanity.Builder()
-                .userMap(mapOf(Numberz.ONE to 10L, Numberz.TWO to 20L, Numberz.THREE to 40L))
-                .xtructs(listOf(
-                        Xtruct.Builder()
-                                .byte_thing(18.toByte())
-                                .i32_thing(37)
-                                .i64_thing(101L)
-                                .string_thing("what")
-                                .build()
-                ))
-                .build()
+        val empty = Insanity(null, null)
+        val argument = Insanity(
+                userMap = mapOf(Numberz.ONE to 10L, Numberz.TWO to 20L, Numberz.THREE to 40L),
+                xtructs = listOf(
+                        Xtruct(
+                                byte_thing = 18.toByte(),
+                                i32_thing = 37,
+                                i64_thing = 101L,
+                                string_thing = "what",
+                                bool_thing = null,
+                                double_thing = null)))
 
         val expected = mapOf(
                 1L to mapOf(Numberz.TWO to argument, Numberz.THREE to argument),
@@ -285,12 +288,14 @@ class CoroutineConformanceTests(
     }
 
     @Test fun testMulti() = runBlocking {
-        val expected = Xtruct.Builder()
-                .string_thing("Hello2")
-                .byte_thing(9.toByte())
-                .i32_thing(11)
-                .i64_thing(13L)
-                .build()
+        val expected = Xtruct(
+                string_thing = "Hello2",
+                byte_thing = 9.toByte(),
+                i32_thing = 11,
+                i64_thing = 13L,
+                bool_thing = null,
+                double_thing = null
+        )
 
         val result = client.testMulti(
                 arg0 = 9.toByte(),
@@ -333,10 +338,9 @@ class CoroutineConformanceTests(
     }
 
     @Test fun testMultiExceptionErrorOne() = runBlocking {
-        val expected = Xception.Builder()
-                .errorCode(1001)
-                .message_("This is an Xception")
-                .build()
+        val expected = Xception(
+                errorCode = 1001,
+                message_ = "This is an Xception")
 
         try {
             client.testMultiException("Xception", "nope")
@@ -362,7 +366,7 @@ class CoroutineConformanceTests(
 
     @Test fun testUnionArguments() = runBlocking {
         val bonk = Bonk(message = "foo", type = 42)
-        val union = NonEmptyUnion.Builder().ABonk(bonk).build()
+        val union = NonEmptyUnion.ABonk(bonk)
         val expected = HasUnion(union)
 
         client.testUnionArgument(union) shouldBe expected

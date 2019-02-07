@@ -927,7 +927,7 @@ class KotlinCodeGenerator(
 
             for ((ix, field) in struct.fields.withIndex()) {
                 if (ix > 0) {
-                    block.add(",%L", separator)
+                    block.add(",$separator")
                 }
 
                 block.add("%N = ", nameAllocator.get(field))
@@ -992,18 +992,17 @@ class KotlinCodeGenerator(
                 .addParameter("protocol", Protocol::class)
                 .addParameter("struct", struct.typeName)
 
-        // Writer first, b/c it is easier
+        // Writer
 
         val nameAllocator = nameAllocators[struct]
 
         writer.addStatement("protocol.writeStructBegin(%S)", struct.name)
+        writer.beginControlFlow("when (struct)")
         for (field in struct.fields) {
             val name = nameAllocator.get(field)
             val fieldType = field.type
 
-            if (!field.required) {
-                writer.beginControlFlow("if (struct is $name)")
-            }
+            writer.beginControlFlow("is $name ->")
 
             writer.addStatement("protocol.writeFieldBegin(%S, %L, %T.%L)",
                     field.name,
@@ -1015,14 +1014,13 @@ class KotlinCodeGenerator(
 
             writer.addStatement("protocol.writeFieldEnd()")
 
-            if (!field.required) {
-                writer.endControlFlow()
-            }
+            writer.endControlFlow()
         }
+        writer.endControlFlow()
         writer.addStatement("protocol.writeFieldStop()")
         writer.addStatement("protocol.writeStructEnd()")
 
-        // Reader next
+        // Reader
 
         reader.addStatement("protocol.readStructBegin()")
         if (builderType == null) {
@@ -1076,13 +1074,7 @@ class KotlinCodeGenerator(
         if (builderType != null) {
             reader.addStatement("return builder.build()")
         } else {
-            reader.addCode {
-                beginControlFlow("if (null == result)")
-                addStatement("throw IllegalStateException(\"unreadable\")")
-                nextControlFlow("else")
-                addStatement("return result")
-                endControlFlow()
-            }
+            reader.addStatement("return result ?: error(%S)", "unreadable")
         }
 
         if (builderType != null) {

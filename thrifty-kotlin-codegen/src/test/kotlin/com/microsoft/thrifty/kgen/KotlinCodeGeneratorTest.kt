@@ -491,51 +491,6 @@ class KotlinCodeGeneratorTest {
     }
 
     @Test
-    fun `union generate write function`() {
-        val thrift = """
-            |namespace kt test.coro
-            |
-            |union Union {
-            |  1: i32 Foo;
-            |  2: i64 Bar;
-            |  3: string Baz;
-            |  4: i32 NotFoo;
-            |}
-        """.trimMargin()
-
-        val file = generate(thrift) //{ shouldImplementStruct() }
-
-        file.single().toString() should contain("""            |
-            |        override fun write(protocol: Protocol, struct: Union) {
-            |            protocol.writeStructBegin("Union")
-            |            if (struct is Foo) {
-            |                protocol.writeFieldBegin("Foo", 1, TType.I32)
-            |                protocol.writeI32(struct.value)
-            |                protocol.writeFieldEnd()
-            |            }
-            |            if (struct is Bar) {
-            |                protocol.writeFieldBegin("Bar", 2, TType.I64)
-            |                protocol.writeI64(struct.value)
-            |                protocol.writeFieldEnd()
-            |            }
-            |            if (struct is Baz) {
-            |                protocol.writeFieldBegin("Baz", 3, TType.STRING)
-            |                protocol.writeString(struct.value)
-            |                protocol.writeFieldEnd()
-            |            }
-            |            if (struct is NotFoo) {
-            |                protocol.writeFieldBegin("NotFoo", 4, TType.I32)
-            |                protocol.writeI32(struct.value)
-            |                protocol.writeFieldEnd()
-            |            }
-            |            protocol.writeFieldStop()
-            |            protocol.writeStructEnd()
-            |        }
-            |    }
-        """.trimMargin())
-    }
-
-    @Test
     fun `union generate read function`() {
         val thrift = """
             |namespace kt test.coro
@@ -666,11 +621,7 @@ class KotlinCodeGeneratorTest {
             |                protocol.readFieldEnd()
             |            }
             |            protocol.readStructEnd()
-            |            if (null == result) {
-            |                throw IllegalStateException("unreadable")
-            |            } else {
-            |                return result
-            |            }
+            |            return result ?: error("unreadable")
             |        }
         """.trimMargin())
     }
@@ -758,61 +709,6 @@ class KotlinCodeGeneratorTest {
             |        override fun toString(): String = "UnionStruct(Struct=${'$'}value)"}
             |
             |    class Builder : StructBuilder<UnionStruct> {
-            |        private var value: UnionStruct? = null
-            |
-            |        constructor()
-            |
-            |        constructor(source: UnionStruct) : this() {
-            |            this.value = source
-            |        }
-            |
-            |        override fun build(): UnionStruct = value ?: error("Invalid union; at least one value is required")
-            |
-            |        override fun reset() {
-            |            value = null
-            |        }
-            |
-            |        fun Struct(value: Bonk) = apply { this.value = UnionStruct.Struct(value) }
-            |    }
-            |
-            |    private class UnionStructAdapter : Adapter<UnionStruct, Builder> {
-            |        override fun read(protocol: Protocol) = read(protocol, Builder())
-            |
-            |        override fun read(protocol: Protocol, builder: Builder): UnionStruct {
-            |            protocol.readStructBegin()
-            |            while (true) {
-            |                val fieldMeta = protocol.readFieldBegin()
-            |                if (fieldMeta.typeId == TType.STOP) {
-            |                    break
-            |                }
-            |                when (fieldMeta.fieldId.toInt()) {
-            |                    1 -> {
-            |                        if (fieldMeta.typeId == TType.STRUCT) {
-            |                            val Struct = Bonk.ADAPTER.read(protocol)
-            |                            builder.Struct(Struct)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                }
-            |                protocol.readFieldEnd()
-            |            }
-            |            protocol.readStructEnd()
-            |            return builder.build()
-            |        }
-            |
-            |        override fun write(protocol: Protocol, struct: UnionStruct) {
-            |            protocol.writeStructBegin("UnionStruct")
-            |            if (struct is Struct) {
-            |                protocol.writeFieldBegin("Struct", 1, TType.STRUCT)
-            |                Bonk.ADAPTER.write(protocol, struct.value)
-            |                protocol.writeFieldEnd()
-            |            }
-            |            protocol.writeFieldStop()
-            |            protocol.writeStructEnd()
-            |        }
-            |    }
         """.trimMargin())
     }
 
