@@ -24,7 +24,11 @@ import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.antlr.AntlrThriftLexer
 import com.microsoft.thrifty.schema.antlr.AntlrThriftParser
-import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.ANTLRErrorListener
+import org.antlr.v4.runtime.CharStreams
+import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.ConsoleErrorListener
+import org.antlr.v4.runtime.Recognizer
 import org.antlr.v4.runtime.tree.ParseTreeWalker
 import java.util.Locale
 
