@@ -24,7 +24,11 @@ import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.NamespaceScope
 import com.microsoft.thrifty.schema.Requiredness
+import io.kotlintest.matchers.startWith
+import io.kotlintest.matchers.string.shouldContain
+import io.kotlintest.should
 import io.kotlintest.shouldBe
+import io.kotlintest.shouldThrowExactly
 import okio.Okio
 
 import org.junit.After
@@ -1314,6 +1318,15 @@ class ThriftParserTest {
         )
 
         assertThat(file, equalTo(expected))
+    }
+
+    @Test
+    fun `top-level semicolons are a syntax error`() {
+        val thrift = "struct Empty {};"
+
+        val ex = shouldThrowExactly<IllegalStateException> { parse(thrift) }
+        ex.message should startWith("Syntax error")
+        // ex.message.shouldContain("';'") // reenable when we have improved syntax error reporting
     }
 
     companion object {
