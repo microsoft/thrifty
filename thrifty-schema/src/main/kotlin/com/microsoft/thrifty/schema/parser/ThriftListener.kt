@@ -409,10 +409,6 @@ internal class ThriftListener(
         return functions
     }
 
-    override fun visitErrorNode(node: ErrorNode) {
-        errorReporter.error(locationOf(node), node.text)
-    }
-
     // region Utilities
 
     private fun annotationsFromAntlr(ctx: AntlrThriftParser.AnnotationListContext?): AnnotationElement? {

@@ -24,8 +24,11 @@ import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.antlr.AntlrThriftLexer
 import com.microsoft.thrifty.schema.antlr.AntlrThriftParser
+import org.antlr.v4.runtime.ANTLRErrorListener
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.ConsoleErrorListener
+import org.antlr.v4.runtime.Recognizer
 import org.antlr.v4.runtime.tree.ParseTreeWalker
 import java.util.Locale
 
@@ -45,10 +48,11 @@ object ThriftParser {
      * @return a [ThriftFileElement] containing all Thrift elements in the input text.
      */
     fun parse(location: Location, text: String, reporter: ErrorReporter = ErrorReporter()): ThriftFileElement {
+        val errorListener = ParserErrorListener(location, reporter)
         val charStream = CharStreams.fromString(text, location.path)
-        val lexer = AntlrThriftLexer(charStream)
+        val lexer = AntlrThriftLexer(charStream).withErrorReporting(errorListener)
         val tokenStream = CommonTokenStream(lexer)
-        val antlrParser = AntlrThriftParser(tokenStream)
+        val antlrParser = AntlrThriftParser(tokenStream).withErrorReporting(errorListener)
         val documentParseTree = antlrParser.document()
 
         val thriftListener = ThriftListener(tokenStream, reporter, location)
@@ -62,5 +66,11 @@ object ThriftParser {
         }
 
         return thriftListener.buildFileElement()
+    }
+
+    private fun <T : Recognizer<*, *>> T.withErrorReporting(errorListener: ANTLRErrorListener): T {
+        removeErrorListener(ConsoleErrorListener.INSTANCE)
+        addErrorListener(errorListener)
+        return this
     }
 }
