@@ -192,11 +192,11 @@ class Loader {
 
             dir = file.parent
             element = loadSingleFile(dir!!, file.fileName) ?: run {
-                val suffix = sourceElement?.let { "\n--> Included from ${it.location.filepath} " } ?: ""
+                val suffix = sourceElement?.let { "\n--> Included from ${it.location.filepath}" } ?: ""
                 throw FileNotFoundException("Failed to locate $path in $includePaths$suffix")
             }
         } else {
-            val suffix = sourceElement?.let { "\n--> Included from ${it.location.filepath} " } ?: ""
+            val suffix = sourceElement?.let { "\n--> Included from ${it.location.filepath}" } ?: ""
             throw FileNotFoundException("Failed to locate $path in $includePaths$suffix")
         }
 
