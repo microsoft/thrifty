@@ -23,8 +23,8 @@ package com.microsoft.thrifty.schema
 import com.google.common.base.Preconditions
 import com.microsoft.thrifty.schema.parser.ThriftFileElement
 import com.microsoft.thrifty.schema.parser.ThriftParser
+import com.microsoft.thrifty.schema.render.filepath
 import okio.Okio
-import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.file.FileSystems
@@ -32,7 +32,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.ArrayDeque
-import java.util.HashSet
 import java.util.LinkedHashMap
 
 /**
@@ -176,8 +175,11 @@ class Loader {
      *
      * @param path A relative or absolute path to a Thrift file.
      * @param loadedFiles A mapping of absolute paths to parsed Thrift files.
+     * @param sourceElement An optional source element for debugging purposes.
      */
-    private fun loadFileRecursively(path: Path, loadedFiles: MutableMap<Path, ThriftFileElement>) {
+    private fun loadFileRecursively(path: Path,
+        loadedFiles: MutableMap<Path, ThriftFileElement>,
+        sourceElement: ThriftFileElement? = null) {
         val dir: Path?
 
         val element: ThriftFileElement
@@ -189,9 +191,13 @@ class Loader {
             }
 
             dir = file.parent
-            element = loadSingleFile(dir!!, file.fileName) ?: throw FileNotFoundException("Failed to locate $path in $includePaths")
+            element = loadSingleFile(dir!!, file.fileName) ?: run {
+                val suffix = sourceElement?.let { "\n--> Included from ${it.location.filepath}" } ?: ""
+                throw FileNotFoundException("Failed to locate $path in $includePaths$suffix")
+            }
         } else {
-            throw FileNotFoundException("Failed to locate $path in $includePaths")
+            val suffix = sourceElement?.let { "\n--> Included from ${it.location.filepath}" } ?: ""
+            throw FileNotFoundException("Failed to locate $path in $includePaths$suffix")
         }
 
         loadedFiles[file] = element
@@ -200,7 +206,7 @@ class Loader {
             includePaths.addFirst(dir)
             for (include in element.includes) {
                 if (!include.isCpp) {
-                    loadFileRecursively(Paths.get(include.path), loadedFiles)
+                    loadFileRecursively(Paths.get(include.path), loadedFiles, element)
                 }
             }
             includePaths.removeFirst()
