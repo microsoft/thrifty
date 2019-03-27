@@ -103,8 +103,10 @@ internal object TypeNames {
     val OBFUSCATED = classNameOf<Obfuscated>()
     val THRIFT_FIELD = classNameOf<ThriftField>()
 
-    val NOT_NULL = ClassName.get("android.support.annotation", "NonNull")
-    val NULLABLE = ClassName.get("android.support.annotation", "Nullable")
+    val ANDROID_SUPPORT_NOT_NULL = ClassName.get("android.support.annotation", "NonNull")
+    val ANDROID_SUPPORT_NULLABLE = ClassName.get("android.support.annotation", "Nullable")
+    val ANDROIDX_NOT_NULL = ClassName.get("androidx.annotation", "NonNull")
+    val ANDROIDX_NULLABLE = ClassName.get("androidx.annotation", "Nullable")
 
     val SERVICE_CALLBACK = classNameOf<ServiceMethodCallback<*>>()
     val SERVICE_CLIENT_BASE = classNameOf<AsyncClientBase>()
@@ -141,6 +143,21 @@ internal object TypeNames {
             else -> throw NoSuchElementException("not a TType member: $code")
         }
     }
+}
+
+enum class NullabilityAnnotationType(
+    internal val notNullClassName: ClassName?,
+    internal val nullableClassName: ClassName?
+) {
+    NONE(null, null),
+    ANDROID_SUPPORT(
+            notNullClassName = TypeNames.ANDROID_SUPPORT_NOT_NULL,
+            nullableClassName = TypeNames.ANDROID_SUPPORT_NULLABLE
+    ),
+    ANDROIDX(
+            notNullClassName = TypeNames.ANDROIDX_NOT_NULL,
+            nullableClassName = TypeNames.ANDROIDX_NULLABLE
+    )
 }
 
 internal inline fun <reified T> classNameOf(): ClassName = ClassName.get(T::class.java)

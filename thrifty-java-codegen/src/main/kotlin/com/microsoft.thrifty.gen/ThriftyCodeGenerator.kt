@@ -68,7 +68,7 @@ class ThriftyCodeGenerator {
     private val constantBuilder: ConstantBuilder
     private val serviceBuilder: ServiceBuilder
     private var typeProcessor: TypeProcessor? = null
-    private var emitAndroidAnnotations: Boolean = false
+    private var nullabilityAnnotationType: NullabilityAnnotationType = NullabilityAnnotationType.NONE
     private var emitParcelable: Boolean = false
     private var emitFileComment = true
     private var generatedAnnotationType: ClassName? = null
@@ -103,8 +103,8 @@ class ThriftyCodeGenerator {
         return this
     }
 
-    fun emitAndroidAnnotations(shouldEmit: Boolean): ThriftyCodeGenerator {
-        emitAndroidAnnotations = shouldEmit
+    fun nullabilityAnnotationType(type: NullabilityAnnotationType): ThriftyCodeGenerator {
+        nullabilityAnnotationType = type
         return this
     }
 
@@ -267,11 +267,11 @@ class ThriftyCodeGenerator {
                     .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                     .addAnnotation(fieldAnnotation(field))
 
-            if (emitAndroidAnnotations) {
+            if (nullabilityAnnotationType != NullabilityAnnotationType.NONE) {
                 val nullability = when {
-                    isUnion        -> TypeNames.NULLABLE
-                    field.required -> TypeNames.NOT_NULL
-                    else           -> TypeNames.NULLABLE
+                    isUnion        -> nullabilityAnnotationType.nullableClassName
+                    field.required -> nullabilityAnnotationType.notNullClassName
+                    else           -> nullabilityAnnotationType.nullableClassName
                 }
                 fieldBuilder.addAnnotation(nullability)
             }
@@ -418,8 +418,10 @@ class ThriftyCodeGenerator {
                 .addModifiers(Modifier.PUBLIC)
 
         val structParameterBuilder = ParameterSpec.builder(structClassName, "struct")
-        if (emitAndroidAnnotations) {
-            structParameterBuilder.addAnnotation(AnnotationSpec.builder(TypeNames.NOT_NULL).build())
+        if (nullabilityAnnotationType != NullabilityAnnotationType.NONE) {
+            structParameterBuilder
+                    .addAnnotation(AnnotationSpec.builder(nullabilityAnnotationType.notNullClassName)
+                    .build())
         }
 
         val copyCtor = MethodSpec.constructorBuilder()
@@ -451,8 +453,8 @@ class ThriftyCodeGenerator {
                 f.addJavadoc("\$L", field.documentation)
             }
 
-            if (emitAndroidAnnotations) {
-                f.addAnnotation(AnnotationSpec.builder(TypeNames.NULLABLE).build())
+            if (nullabilityAnnotationType != NullabilityAnnotationType.NONE) {
+                f.addAnnotation(AnnotationSpec.builder(nullabilityAnnotationType.nullableClassName).build())
             }
 
             val fieldDefaultValue = field.defaultValue
@@ -481,11 +483,11 @@ class ThriftyCodeGenerator {
 
             val parameterBuilder = ParameterSpec.builder(javaTypeName, fieldName)
 
-            if (emitAndroidAnnotations) {
+            if (nullabilityAnnotationType != NullabilityAnnotationType.NONE) {
                 val nullabilityAnnotation = if (field.required) {
-                    TypeNames.NOT_NULL
+                    nullabilityAnnotationType.notNullClassName
                 } else {
-                    TypeNames.NULLABLE
+                    nullabilityAnnotationType.nullableClassName
                 }
 
                 parameterBuilder.addAnnotation(AnnotationSpec.builder(nullabilityAnnotation).build())
@@ -1003,8 +1005,8 @@ class ThriftyCodeGenerator {
                 .addParameter(Int::class.javaPrimitiveType, "value")
                 .beginControlFlow("switch (value)")
 
-        if (emitAndroidAnnotations) {
-            fromCodeMethod.addAnnotation(TypeNames.NULLABLE)
+        if (nullabilityAnnotationType != NullabilityAnnotationType.NONE) {
+            fromCodeMethod.addAnnotation(nullabilityAnnotationType.nullableClassName)
         }
 
         for (member in type.members) {
