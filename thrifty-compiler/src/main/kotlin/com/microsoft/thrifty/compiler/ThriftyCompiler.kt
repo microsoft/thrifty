@@ -29,6 +29,7 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.transformAll
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.path
@@ -201,13 +202,13 @@ class ThriftyCompiler {
                         "none" to NullabilityAnnotationType.NONE,
                         "android-support" to NullabilityAnnotationType.ANDROID_SUPPORT,
                         "androidx" to NullabilityAnnotationType.ANDROIDX)
-                .default(
-                    if (emitNullabilityAnnotations) {
+                .transformAll {
+                    it.lastOrNull() ?: if (emitNullabilityAnnotations) {
                         NullabilityAnnotationType.ANDROID_SUPPORT
                     } else {
                         NullabilityAnnotationType.NONE
                     }
-                )
+                }
 
         val emitParcelable: Boolean by option("--parcelable",
                     help = "When set, generates Parcelable implementations for structs")
