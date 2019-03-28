@@ -57,6 +57,7 @@ import java.util.ArrayList
  * [--lang=[java|kotlin]]
  * [--kt-file-per-type]
  * [--parcelable]
+ * [--use-android-annotations]
  * [--nullability-annotation-type=[none|android-support|androidx]]
  * [--omit-file-comments]
  * [--omit-generated-annotations]
@@ -93,6 +94,12 @@ import java.util.ArrayList
  *
  * `--parcelable` is optional.  When provided, generated types will contain a
  * `Parcelable` implementation.  Kotlin types will use the `@Parcelize` extension.
+ *
+ * `--use-android-annotations` (deprecated) is optional.  When specified, generated Java classes
+ * will have `@android.support.annotation.Nullable` or `@android.support.annotation.NotNull`
+ * annotations, as appropriate.  Has no effect on Kotlin code.  Note: This option is superseded by
+ * `--nullability-annotation-type`. Setting this is equivalent to
+ * `--nullability-annotation-type=android-support`.
  *
  * `--nullability-annotation-type=[none|android-support|androidx]` is optional, defaulting to
  * `none`.  When specified as something other than `none`, generated Java classes will have
@@ -183,6 +190,10 @@ class ThriftyCompiler {
         val setTypeName: String? by option("--set-type", help =  "when specified, the concrete type to use for sets")
         val mapTypeName: String? by option("--map-type", help = "when specified, the concrete type to use for maps")
 
+        val emitNullabilityAnnotations: Boolean by option("--use-android-annotations",
+                    help = "Deprecated.  When set, will add android.support nullability annotations to fields.  Equivalent to --nullability-annotation-type=android-support.")
+                .flag(default = false)
+
         val nullabilityAnnotationType: NullabilityAnnotationType by option(
                         "--nullability-annotation-type",
                         help = "the type of nullability annotations, if any, to add to fields.  Default is none.")
@@ -190,7 +201,13 @@ class ThriftyCompiler {
                         "none" to NullabilityAnnotationType.NONE,
                         "android-support" to NullabilityAnnotationType.ANDROID_SUPPORT,
                         "androidx" to NullabilityAnnotationType.ANDROIDX)
-                .default(NullabilityAnnotationType.NONE)
+                .default(
+                    if (emitNullabilityAnnotations) {
+                        NullabilityAnnotationType.ANDROID_SUPPORT
+                    } else {
+                        NullabilityAnnotationType.NONE
+                    }
+                )
 
         val emitParcelable: Boolean by option("--parcelable",
                     help = "When set, generates Parcelable implementations for structs")
@@ -272,6 +289,10 @@ class ThriftyCompiler {
                 TermUi.echo(
                         "You specified $language, but provided options implying $impliedLanguage (which will be ignored).",
                         err = true)
+            }
+
+            if (emitNullabilityAnnotations) {
+                TermUi.echo("Warning: --use-android-annotations is deprecated and superseded by the --nullability-annotation-type option.")
             }
 
             when (language ?: impliedLanguage) {
