@@ -98,13 +98,13 @@ import java.util.ArrayList
  * `--use-android-annotations` (deprecated) is optional.  When specified, generated Java classes
  * will have `@android.support.annotation.Nullable` or `@android.support.annotation.NotNull`
  * annotations, as appropriate.  Has no effect on Kotlin code.  Note: This option is superseded by
- * `--nullability-annotation-type`. Setting this is equivalent to
+ * `--nullability-annotation-type`.  Setting this is equivalent to
  * `--nullability-annotation-type=android-support`.
  *
  * `--nullability-annotation-type=[none|android-support|androidx]` is optional, defaulting to
  * `none`.  When specified as something other than `none`, generated Java classes will have
  * `@Nullable` or `@NotNull` annotations, as appropriate.  Since AndroidX was introduced, these
- * annotations were repackaged from `android.support.annotation` to `androidx.annotation`. Use
+ * annotations were repackaged from `android.support.annotation` to `androidx.annotation`.  Use
  * the `android-support` option for projects that are using the Android Support Library and have
  * not migrated to AndroidX.  Use the `androidx` option for projects that have migrated to AndroidX.
  * Has no effect on Kotlin code.
