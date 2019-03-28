@@ -236,9 +236,9 @@ class ThriftyCodeGeneratorTest {
         assertThat(java).contains("@Nullable\n  public static BuildStatus findByValue")
     }
 
-  @Test
-  fun noNullabilityAnnotations() {
-    val thrift = """
+    @Test
+    fun noNullabilityAnnotations() {
+        val thrift = """
             namespace java no_nullability
 
             struct foo {
@@ -246,17 +246,17 @@ class ThriftyCodeGeneratorTest {
             }
         """
 
-    val schema = parse("no_nullability.thrift", thrift)
-    val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.NONE)
-    val javaFiles = gen.generateTypes()
-    val file = javaFiles[0]
+        val schema = parse("no_nullability.thrift", thrift)
+        val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.NONE)
+        val javaFiles = gen.generateTypes()
+        val file = javaFiles[0]
 
-    val java = file.toString()
+        val java = file.toString()
 
-    assertThat(java).doesNotContain("@Nullable")
-    assertThat(java).doesNotContain("import android.support.annotation")
-    assertThat(java).doesNotContain("import androidx.annotation")
-  }
+        assertThat(java).doesNotContain("@Nullable")
+        assertThat(java).doesNotContain("import android.support.annotation")
+        assertThat(java).doesNotContain("import androidx.annotation")
+    }
 
     @Test
     fun nullableAndroidSupportAnnotations() {
@@ -282,7 +282,7 @@ class ThriftyCodeGeneratorTest {
 
     @Test
     fun nullableAndroidXAnnotations() {
-      val thrift = """
+        val thrift = """
             namespace java nullable_androidx
 
             struct foo {
