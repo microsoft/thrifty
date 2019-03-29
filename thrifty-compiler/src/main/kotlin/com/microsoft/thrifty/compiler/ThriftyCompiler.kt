@@ -29,9 +29,11 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.transformAll
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.path
+import com.microsoft.thrifty.gen.NullabilityAnnotationType
 import com.microsoft.thrifty.gen.ThriftyCodeGenerator
 import com.microsoft.thrifty.kgen.KotlinCodeGenerator
 import com.microsoft.thrifty.schema.FieldNamingPolicy
@@ -57,9 +59,10 @@ import java.util.ArrayList
  * [--kt-file-per-type]
  * [--parcelable]
  * [--use-android-annotations]
+ * [--nullability-annotation-type=[none|android-support|androidx]]
  * [--omit-file-comments]
  * [--omit-generated-annotations]
- * [--generated-annotation-type=[jdk8|jdk9|native]
+ * [--generated-annotation-type=[jdk8|jdk9|native]]
  * file1.thrift
  * file2.thrift
  * ...
@@ -93,9 +96,19 @@ import java.util.ArrayList
  * `--parcelable` is optional.  When provided, generated types will contain a
  * `Parcelable` implementation.  Kotlin types will use the `@Parcelize` extension.
  *
- * `--use-android-annotations` is optional.  When specified, generated Java classes
+ * `--use-android-annotations` (deprecated) is optional.  When specified, generated Java classes
  * will have `@android.support.annotation.Nullable` or `@android.support.annotation.NotNull`
- * annotations, as appropriate.  Has no effect on Kotlin code.
+ * annotations, as appropriate.  Has no effect on Kotlin code.  Note: This option is superseded by
+ * `--nullability-annotation-type`.  Setting this is equivalent to
+ * `--nullability-annotation-type=android-support`.
+ *
+ * `--nullability-annotation-type=[none|android-support|androidx]` is optional, defaulting to
+ * `none`.  When specified as something other than `none`, generated Java classes will have
+ * `@Nullable` or `@NotNull` annotations, as appropriate.  Since AndroidX was introduced, these
+ * annotations were repackaged from `android.support.annotation` to `androidx.annotation`.  Use
+ * the `android-support` option for projects that are using the Android Support Library and have
+ * not migrated to AndroidX.  Use the `androidx` option for projects that have migrated to AndroidX.
+ * Has no effect on Kotlin code.
  *
  * `--omit-file-comments` is optional.  When specified, no file-header comment is generated.
  * The default behavior is to prefix generated files with a comment indicating that they
@@ -179,8 +192,23 @@ class ThriftyCompiler {
         val mapTypeName: String? by option("--map-type", help = "when specified, the concrete type to use for maps")
 
         val emitNullabilityAnnotations: Boolean by option("--use-android-annotations",
-                    help = "When set, will add android.support nullability annotations to fields")
+                    help = "Deprecated.  When set, will add android.support nullability annotations to fields.  Equivalent to --nullability-annotation-type=android-support.")
                 .flag(default = false)
+
+        val nullabilityAnnotationType: NullabilityAnnotationType by option(
+                        "--nullability-annotation-type",
+                        help = "the type of nullability annotations, if any, to add to fields.  Default is none.")
+                .choice(
+                        "none" to NullabilityAnnotationType.NONE,
+                        "android-support" to NullabilityAnnotationType.ANDROID_SUPPORT,
+                        "androidx" to NullabilityAnnotationType.ANDROIDX)
+                .transformAll {
+                    it.lastOrNull() ?: if (emitNullabilityAnnotations) {
+                        NullabilityAnnotationType.ANDROID_SUPPORT
+                    } else {
+                        NullabilityAnnotationType.NONE
+                    }
+                }
 
         val emitParcelable: Boolean by option("--parcelable",
                     help = "When set, generates Parcelable implementations for structs")
@@ -254,7 +282,7 @@ class ThriftyCompiler {
             val impliedLanguage = when {
                 kotlinBuilderlessDataClasses -> Language.KOTLIN
                 kotlinFilePerType -> Language.KOTLIN
-                emitNullabilityAnnotations -> Language.JAVA
+                nullabilityAnnotationType != NullabilityAnnotationType.NONE -> Language.JAVA
                 else -> null
             }
 
@@ -262,6 +290,10 @@ class ThriftyCompiler {
                 TermUi.echo(
                         "You specified $language, but provided options implying $impliedLanguage (which will be ignored).",
                         err = true)
+            }
+
+            if (emitNullabilityAnnotations) {
+                TermUi.echo("Warning: --use-android-annotations is deprecated and superseded by the --nullability-annotation-type option.")
             }
 
             when (language ?: impliedLanguage) {
@@ -283,7 +315,7 @@ class ThriftyCompiler {
                 gen = gen.usingTypeProcessor(processor)
             }
 
-            gen.emitAndroidAnnotations(emitNullabilityAnnotations)
+            gen.nullabilityAnnotationType(nullabilityAnnotationType)
             gen.emitFileComment(!omitFileComments)
             gen.emitParcelable(emitParcelable)
             gen.emitGeneratedAnnotations(generatedAnnotationClassName)
@@ -295,7 +327,7 @@ class ThriftyCompiler {
             val gen = KotlinCodeGenerator(nameStyle)
                     .emitGeneratedAnnotations(generatedAnnotationClassName)
 
-            if (emitNullabilityAnnotations) {
+            if (nullabilityAnnotationType != NullabilityAnnotationType.NONE) {
                 TermUi.echo("Warning: Nullability annotations are unnecessary in Kotlin and will not be generated")
             }
 

@@ -227,13 +227,79 @@ class ThriftyCodeGeneratorTest {
         """
 
         val schema = parse("enum_nullable.thrift", thrift)
-        val gen = ThriftyCodeGenerator(schema).emitAndroidAnnotations(true)
+        val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.ANDROID_SUPPORT)
         val javaFiles = gen.generateTypes()
         val file = javaFiles[0]
 
         val java = file.toString()
 
         assertThat(java).contains("@Nullable\n  public static BuildStatus findByValue")
+    }
+
+    @Test
+    fun noNullabilityAnnotations() {
+        val thrift = """
+            namespace java no_nullability
+
+            struct foo {
+                1: string bar
+            }
+        """
+
+        val schema = parse("no_nullability.thrift", thrift)
+        val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.NONE)
+        val javaFiles = gen.generateTypes()
+        val file = javaFiles[0]
+
+        val java = file.toString()
+
+        assertThat(java).doesNotContain("@Nullable")
+        assertThat(java).doesNotContain("import android.support.annotation")
+        assertThat(java).doesNotContain("import androidx.annotation")
+    }
+
+    @Test
+    fun nullableAndroidSupportAnnotations() {
+        val thrift = """
+            namespace java nullable_android_support
+
+            struct foo {
+                1: string bar
+            }
+        """
+
+        val schema = parse("nullable_android_support.thrift", thrift)
+        val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.ANDROID_SUPPORT)
+        val javaFiles = gen.generateTypes()
+        val file = javaFiles[0]
+
+        val java = file.toString()
+
+        assertThat(java).contains("@Nullable\n  public final String bar")
+        assertThat(java).contains("import android.support.annotation")
+        assertThat(java).doesNotContain("import androidx.annotation")
+    }
+
+    @Test
+    fun nullableAndroidXAnnotations() {
+        val thrift = """
+            namespace java nullable_androidx
+
+            struct foo {
+                1: string bar
+            }
+        """
+
+        val schema = parse("nullable_androidx.thrift", thrift)
+        val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.ANDROIDX)
+        val javaFiles = gen.generateTypes()
+        val file = javaFiles[0]
+
+        val java = file.toString()
+
+        assertThat(java).contains("@Nullable\n  public final String bar")
+        assertThat(java).contains("import androidx.annotation")
+        assertThat(java).doesNotContain("import android.support.annotation")
     }
 
     @Test
@@ -536,7 +602,7 @@ class ThriftyCodeGeneratorTest {
         """
 
         val schema = parse("structs_builder_ctor.thrift", thrift)
-        val gen = ThriftyCodeGenerator(schema).emitAndroidAnnotations(true)
+        val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.ANDROID_SUPPORT)
         val javaFiles = gen.generateTypes()
         val file = javaFiles[0]
 
