@@ -465,6 +465,13 @@ union TestUnion {
   4: Bonk aBonk;
 }
 
+union UnionWithDefault {
+  1: i32 num;
+  2: double floater;
+  3: list<i32> moreNumbers = [1, 2, 3, 4];
+  4: string text;
+}
+
 union EmptyUnion {}
 
 struct HasEmptyUnion {
