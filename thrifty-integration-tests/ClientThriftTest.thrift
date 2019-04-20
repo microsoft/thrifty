@@ -316,6 +316,11 @@ service ThriftTest
    * HasUnion struct.
    **/
   HasUnion testUnionArgument(1: NonEmptyUnion arg0)
+
+  /**
+   * Returns the argument unaltered.
+   */
+  UnionWithDefault testUnionWithDefault(1: UnionWithDefault theArg)
 }
 
 service SecondService
@@ -466,10 +471,9 @@ union TestUnion {
 }
 
 union UnionWithDefault {
-  1: i32 num;
-  2: double floater;
-  3: list<i32> moreNumbers = [1, 2, 3, 4];
-  4: string text;
+  1: string Text;
+  2: i32 Int;
+  3: double Real = 3.14
 }
 
 union EmptyUnion {}
