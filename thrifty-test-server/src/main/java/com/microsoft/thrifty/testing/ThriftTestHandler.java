@@ -20,7 +20,16 @@
  */
 package com.microsoft.thrifty.testing;
 
-import com.microsoft.thrifty.test.gen.*;
+import com.microsoft.thrifty.test.gen.HasUnion;
+import com.microsoft.thrifty.test.gen.Insanity;
+import com.microsoft.thrifty.test.gen.NonEmptyUnion;
+import com.microsoft.thrifty.test.gen.Numberz;
+import com.microsoft.thrifty.test.gen.ThriftTest;
+import com.microsoft.thrifty.test.gen.UnionWithDefault;
+import com.microsoft.thrifty.test.gen.Xception;
+import com.microsoft.thrifty.test.gen.Xception2;
+import com.microsoft.thrifty.test.gen.Xtruct;
+import com.microsoft.thrifty.test.gen.Xtruct2;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.thrift.TException;
 
