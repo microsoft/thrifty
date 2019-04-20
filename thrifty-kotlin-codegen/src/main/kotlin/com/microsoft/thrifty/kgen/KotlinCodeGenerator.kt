@@ -99,6 +99,7 @@ private object Tags {
     val RESULT = "RESERVED:resultValue"
     val FIELD = "RESERVED:fieldMeta"
     val BUILDER = "RESERVED:builder"
+    val DEFAULT = "RESERVED:default"
 }
 
 /**
@@ -138,6 +139,10 @@ class KotlinCodeGenerator(
                         if (elem.isException) {
                             newName("message", Tags.MESSAGE)
                             newName("cause", Tags.CAUSE)
+                        }
+
+                        if (elem.isUnion && elem.fields.any { it.defaultValue != null }) {
+                            newName("DEFAULT", Tags.DEFAULT)
                         }
 
                         for (field in elem.fields) {
@@ -523,6 +528,7 @@ class KotlinCodeGenerator(
             if (struct.hasJavadoc) addKdoc("%L", struct.documentation)
         }
 
+        var defaultValueTypeName: ClassName? = null
         val nameAllocator = nameAllocators[struct]
         for (field in struct.fields) {
             val name = nameAllocator.get(field)
@@ -546,7 +552,13 @@ class KotlinCodeGenerator(
                             .build())
                     .build()
             typeBuilder.addType(dataProp)
+
+            if (field.defaultValue != null) {
+                check(defaultValueTypeName == null) { "Error in thrifty-schema; unions may not have > 1 default value" }
+                defaultValueTypeName = structClassName.nestedClass(name)
+            }
         }
+
         var builderTypeName : ClassName? = null
         var adapterInterfaceTypeName = KtAdapter::class
                 .asTypeName()
@@ -569,6 +581,19 @@ class KotlinCodeGenerator(
                 .jvmField()
                 .build())
 
+        // Unions may have a single default value.  If present, we'll add a DEFAULT
+        // member
+        struct.fields.singleOrNull { it.defaultValue != null }?.let { field ->
+            checkNotNull(defaultValueTypeName)
+
+            val defaultValue = field.defaultValue!!
+            val renderedValue = renderConstValue(schema, field.type, defaultValue)
+            val propBuilder = PropertySpec.builder("DEFAULT", structClassName)
+                    .jvmStatic()
+                    .initializer("%T(%L)", defaultValueTypeName, renderedValue)
+
+            companionBuilder.addProperty(propBuilder.build())
+        }
 
         if (shouldImplementStruct) {
             typeBuilder
@@ -746,30 +771,35 @@ class KotlinCodeGenerator(
         }
 
         val nameAllocator = nameAllocators[struct]
-        val builderValName = nameAllocator.newName("value", Tags.BUILDER)
+        val builderVarName = nameAllocator.newName("value", Tags.BUILDER)
+        val defaultValue = if (struct.fields.any { it.defaultValue != null }) {
+            CodeBlock.of("DEFAULT")
+        } else {
+            CodeBlock.of("null")
+        }
 
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
                 .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
-                .addProperty(PropertySpec.varBuilder(builderValName, structTypeName.asNullable(), KModifier.PRIVATE)
-                        .initializer("null")
+                .addProperty(PropertySpec.varBuilder(builderVarName, structTypeName.asNullable(), KModifier.PRIVATE)
+                        .initializer(defaultValue)
                         .build())
                 .addFunction(FunSpec.constructorBuilder().build())
                 .addFunction(FunSpec.constructorBuilder()
                         .addParameter("source", structTypeName)
                         .callThisConstructor()
-                        .addStatement("this.$builderValName = source")
+                        .addStatement("this.$builderVarName = source")
                         .build())
                 .addFunction(FunSpec.builder("build")
                         .addModifiers(KModifier.OVERRIDE)
                         .returns(structTypeName)
                         .addStatement(
-                                "return $builderValName ?: error(%S)",
+                                "return $builderVarName ?: error(%S)",
                                 "Invalid union; at least one value is required")
                         .build())
                 .addFunction(FunSpec.builder("reset")
                         .addModifiers(KModifier.OVERRIDE)
-                        .addStatement("$builderValName = null")
+                        .addStatement("$builderVarName = %L", defaultValue)
                         .build())
 
         for (field in struct.fields) {
@@ -779,7 +809,7 @@ class KotlinCodeGenerator(
             // Add a builder fun
             spec.addFunction(FunSpec.builder(name)
                     .addParameter("value", type)
-                    .addStatement("return apply { this.$builderValName = ${struct.name}.$name(value) }")
+                    .addStatement("return apply { this.$builderVarName = ${struct.name}.$name(value) }")
                     .build())
         }
 
@@ -1024,7 +1054,14 @@ class KotlinCodeGenerator(
 
         reader.addStatement("protocol.readStructBegin()")
         if (builderType == null) {
-            reader.addStatement("var result : ${struct.name}? = null")
+            val init = if (struct.fields.any { it.defaultValue != null }) {
+                // TODO: This assumes that the client and server share the same belief about the default value.  Is that sound?
+                CodeBlock.of("DEFAULT")
+            } else {
+                CodeBlock.of("null")
+            }
+
+            reader.addStatement("var result : ${struct.name}? = %L", init)
         }
         reader.beginControlFlow("while (true)")
 

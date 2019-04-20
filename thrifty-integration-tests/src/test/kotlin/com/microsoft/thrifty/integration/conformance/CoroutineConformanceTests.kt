@@ -27,6 +27,7 @@ import com.microsoft.thrifty.integration.kgen.coro.Insanity
 import com.microsoft.thrifty.integration.kgen.coro.NonEmptyUnion
 import com.microsoft.thrifty.integration.kgen.coro.Numberz
 import com.microsoft.thrifty.integration.kgen.coro.ThriftTestClient
+import com.microsoft.thrifty.integration.kgen.coro.UnionWithDefault
 import com.microsoft.thrifty.integration.kgen.coro.Xception
 import com.microsoft.thrifty.integration.kgen.coro.Xception2
 import com.microsoft.thrifty.integration.kgen.coro.Xtruct
@@ -370,6 +371,11 @@ class CoroutineConformanceTests(
         val expected = HasUnion(union)
 
         client.testUnionArgument(union) shouldBe expected
+    }
+
+    @Test fun testUnionWithDefault() = runBlocking {
+        val expected = UnionWithDefault.DEFAULT
+        client.testUnionWithDefault(UnionWithDefault.DEFAULT) shouldBe expected
     }
 
     @Test fun concurrentAsyncCalls() = runBlocking<Unit> {

@@ -96,6 +96,12 @@ struct HasUnion {
     1: required NonEmptyUnion TheUnion;
 }
 
+union UnionWithDefault {
+  1: string Text;
+  2: i32 Int;
+  3: double Real = 3.14
+}
+
 service ThriftTest
 {
   /**
@@ -279,5 +285,10 @@ service ThriftTest
    * HasUnion struct.
    **/
   HasUnion testUnionArgument(1: NonEmptyUnion arg0)
+
+  /**
+   * Returns the argument unaltered.
+   */
+  UnionWithDefault testUnionWithDefault(1: UnionWithDefault theArg)
 }
 

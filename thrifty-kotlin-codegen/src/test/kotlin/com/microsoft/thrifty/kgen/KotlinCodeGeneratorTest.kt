@@ -712,6 +712,27 @@ class KotlinCodeGeneratorTest {
         """.trimMargin())
     }
 
+    @Test
+    fun `union with default value`() {
+        val thrift = """
+            namespace kt test.union
+
+            union HasDefault {
+                1: i8 b;
+                2: i16 short;
+                3: i32 int = 16;
+                4: i64 long;
+            }
+        """.trimIndent()
+
+        val file = generate(thrift)
+
+        file.single().toString() should contain("""
+            |        @JvmStatic
+            |        val DEFAULT: HasDefault = int(16)
+        """.trimMargin())
+    }
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()

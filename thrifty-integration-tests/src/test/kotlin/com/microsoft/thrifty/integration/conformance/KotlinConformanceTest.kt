@@ -26,6 +26,7 @@ import com.microsoft.thrifty.integration.kgen.Insanity
 import com.microsoft.thrifty.integration.kgen.NonEmptyUnion
 import com.microsoft.thrifty.integration.kgen.Numberz
 import com.microsoft.thrifty.integration.kgen.ThriftTestClient
+import com.microsoft.thrifty.integration.kgen.UnionWithDefault
 import com.microsoft.thrifty.integration.kgen.UserId
 import com.microsoft.thrifty.integration.kgen.Xception
 import com.microsoft.thrifty.integration.kgen.Xception2
@@ -416,6 +417,15 @@ class KotlinConformanceTest(
         val expected = HasUnion.Builder()
                 .TheUnion(NonEmptyUnion.Builder().AString("foo").build())
                 .build()
+
+        callback.result shouldBe expected
+    }
+
+    @Test fun testUnionWithDefault() {
+        val callback = AssertingCallback<UnionWithDefault>()
+        val expected = UnionWithDefault.Text("blah")
+
+        client.testUnionWithDefault(expected, callback)
 
         callback.result shouldBe expected
     }
