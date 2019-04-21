@@ -532,6 +532,7 @@ class KotlinCodeGenerator(
         val nameAllocator = nameAllocators[struct]
         for (field in struct.fields) {
             val name = nameAllocator.get(field)
+            val sealedName = FieldNamingPolicy.PASCAL.apply(name)
             val type = field.type.typeName
 
             val propertySpec = PropertySpec.builder("value", type)
@@ -540,7 +541,7 @@ class KotlinCodeGenerator(
             val propConstructor = FunSpec.constructorBuilder()
                     .addParameter("value", type)
 
-            val dataProp = TypeSpec.classBuilder(name)
+            val dataProp = TypeSpec.classBuilder(sealedName)
                     .addModifiers(KModifier.DATA)
                     .superclass(structClassName)
                     .addProperty(propertySpec.build())
@@ -555,7 +556,7 @@ class KotlinCodeGenerator(
 
             if (field.defaultValue != null) {
                 check(defaultValueTypeName == null) { "Error in thrifty-schema; unions may not have > 1 default value" }
-                defaultValueTypeName = structClassName.nestedClass(name)
+                defaultValueTypeName = structClassName.nestedClass(sealedName)
             }
         }
 
@@ -805,11 +806,12 @@ class KotlinCodeGenerator(
         for (field in struct.fields) {
             val name = nameAllocator.get(field)
             val type = field.type.typeName
+            val typeName = FieldNamingPolicy.PASCAL.apply(name)
 
             // Add a builder fun
             spec.addFunction(FunSpec.builder(name)
                     .addParameter("value", type)
-                    .addStatement("return apply { this.$builderVarName = ${struct.name}.$name(value) }")
+                    .addStatement("return apply { this.$builderVarName = ${struct.name}.$typeName(value) }")
                     .build())
         }
 
@@ -1031,8 +1033,9 @@ class KotlinCodeGenerator(
         for (field in struct.fields) {
             val name = nameAllocator.get(field)
             val fieldType = field.type
+            val typeName = FieldNamingPolicy.PASCAL.apply(name)
 
-            writer.beginControlFlow("is $name ->")
+            writer.beginControlFlow("is $typeName ->")
 
             writer.addStatement("protocol.writeFieldBegin(%S, %L, %T.%L)",
                     field.name,
@@ -1078,6 +1081,7 @@ class KotlinCodeGenerator(
             for (field in struct.fields) {
                 val name = nameAllocator.get(field)
                 val fieldType = field.type
+                val typeName = FieldNamingPolicy.PASCAL.apply(name)
 
                 reader.addCode {
                     addStatement("${field.id} -> {%>")
@@ -1088,7 +1092,7 @@ class KotlinCodeGenerator(
                     if (builderType != null) {
                         addStatement("builder.$name($name)")
                     } else {
-                        addStatement("result = $name($name)")
+                        addStatement("result = $typeName($name)")
                     }
 
                     nextControlFlow("else")
