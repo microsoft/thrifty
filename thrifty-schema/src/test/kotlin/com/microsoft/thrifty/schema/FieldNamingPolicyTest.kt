@@ -71,5 +71,6 @@ class FieldNamingPolicyTest {
         policy.apply("MyField") shouldBe "MyField"
         policy.apply("MY_FIELD") shouldBe "MyField"
         policy.apply("my_f234") shouldBe "MyF234"
+        policy.apply("myField") shouldBe "MyField"
     }
 }

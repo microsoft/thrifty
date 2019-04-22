@@ -92,7 +92,7 @@ abstract class FieldNamingPolicy {
                 }
 
                 // Unknown format.  We'll bulldoze the name by uppercasing the
-                // first char, then just removing any subsequent nom-identifier chars.
+                // first char, then just removing any subsequent non-identifier chars.
                 return buildString {
                     append(Character.toUpperCase(name[0]))
                     name.substring(1)
