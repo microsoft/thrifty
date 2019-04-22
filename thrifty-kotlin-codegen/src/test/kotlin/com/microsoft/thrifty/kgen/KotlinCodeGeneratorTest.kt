@@ -729,7 +729,7 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |        @JvmStatic
-            |        val DEFAULT: HasDefault = int(16)
+            |        val DEFAULT: HasDefault = Int(16)
         """.trimMargin())
     }
 

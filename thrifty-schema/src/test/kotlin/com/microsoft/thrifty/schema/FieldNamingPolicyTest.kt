@@ -62,4 +62,15 @@ class FieldNamingPolicyTest {
         // UPPER_UNDERSCORE
         policy.apply("MY_FIELD") shouldBe "myField"
     }
+
+    @Test
+    fun pascalPolicy() {
+        val policy = FieldNamingPolicy.PASCAL
+        policy.apply("my_field") shouldBe "MyField"
+        policy.apply("my-field") shouldBe "MyField"
+        policy.apply("MyField") shouldBe "MyField"
+        policy.apply("MY_FIELD") shouldBe "MyField"
+        policy.apply("my_f234") shouldBe "MyF234"
+        policy.apply("myField") shouldBe "MyField"
+    }
 }

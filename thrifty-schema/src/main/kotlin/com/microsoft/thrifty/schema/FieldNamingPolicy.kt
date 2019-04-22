@@ -82,6 +82,27 @@ abstract class FieldNamingPolicy {
         }
 
         /**
+         * The Pascal-case policy generates PascalCase names.
+         */
+        val PASCAL: FieldNamingPolicy = object : FieldNamingPolicy() {
+            override fun apply(name: String): String {
+                val caseFormat = caseFormatOf(name)
+                if (caseFormat != null) {
+                    return caseFormat.to(CaseFormat.UPPER_CAMEL, name)
+                }
+
+                // Unknown format.  We'll bulldoze the name by uppercasing the
+                // first char, then just removing any subsequent non-identifier chars.
+                return buildString {
+                    append(Character.toUpperCase(name[0]))
+                    name.substring(1)
+                            .filter { it.isJavaIdentifierPart() }
+                            .forEach { append(it) }
+                }
+            }
+        }
+
+        /**
          * Find case format from string.
          * @param s the input String
          * @return CaseFormat the case format of the string.
