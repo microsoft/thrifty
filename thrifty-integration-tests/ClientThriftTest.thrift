@@ -481,3 +481,18 @@ union EmptyUnion {}
 struct HasEmptyUnion {
   1: EmptyUnion theEmptyUnion;
 }
+
+union UnionWithRedactions {
+  1: string text;
+  2: string obfuscated_text (obfuscated = "true");
+  3: string redacted_text (redacted = "true");
+  4: list<i32> nums;
+  5: list<i32> obfuscated_nums (obfuscated = "true");
+  6: list<i32> redacted_nums (redacted = "true");
+  7: set<double> dubs;
+  8: set<double> obfuscated_dubs (obfuscated = "true");
+  9: set<double> redacted_dubs (redacted = "true");
+  10: map<i8, i8> bytes;
+  11: map<i8, i8> obfuscated_bytes (obfuscated = "true");
+  12: map<i8, i8> redacted_bytes (redacted = "true");
+}
