@@ -533,26 +533,66 @@ class KotlinCodeGenerator(
         for (field in struct.fields) {
             val name = nameAllocator.get(field)
             val sealedName = FieldNamingPolicy.PASCAL.apply(name)
-            val type = field.type.typeName
+            val type = field.type
+            val typeName = type.typeName
 
-            val propertySpec = PropertySpec.builder("value", type)
+            val propertySpec = PropertySpec.builder("value", typeName)
                     .initializer("value")
 
             val propConstructor = FunSpec.constructorBuilder()
-                    .addParameter("value", type)
+                    .addParameter("value", typeName)
 
-            val dataProp = TypeSpec.classBuilder(sealedName)
+            val dataPropBuilder = TypeSpec.classBuilder(sealedName)
                     .addModifiers(KModifier.DATA)
                     .superclass(structClassName)
                     .addProperty(propertySpec.build())
                     .primaryConstructor(propConstructor.build())
-                    .addFunction(FunSpec.builder("toString")
-                            .addModifiers(KModifier.OVERRIDE)
-                            .returns(String::class)
-                            .addCode("return \"${struct.name}($name=\$value)\"")
-                            .build())
-                    .build()
-            typeBuilder.addType(dataProp)
+
+            val toStringBody = buildCodeBlock {
+                add("return \"${struct.name}($name=")
+                when {
+                    field.isRedacted -> add("<REDACTED>")
+                    !field.isObfuscated -> add("\$value")
+                    else -> {
+                        when (type) {
+                            is ListType -> {
+                                val elementName = type.elementType.name
+                                add("\${%T.summarizeCollection(value, %S, %S)}",
+                                        ObfuscationUtil::class,
+                                        "list",
+                                        elementName)
+                            }
+                            is SetType -> {
+                                val elementName = type.elementType.name
+                                add("\${%T.summarizeCollection(value, %S, %S)}",
+                                        ObfuscationUtil::class,
+                                        "set",
+                                        elementName)
+                            }
+                            is MapType -> {
+                                val keyName = type.keyType.name
+                                val valName = type.valueType.name
+                                add("\${%T.summarizeMap(value, %S, %S)}",
+                                        ObfuscationUtil::class,
+                                        keyName,
+                                        valName)
+                            }
+                            else -> {
+                                add("\${%T.hash(value)}", ObfuscationUtil::class)
+                            }
+                        }
+                    }
+                }
+                add(")\"")
+            }
+
+            dataPropBuilder.addFunction(FunSpec.builder("toString")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .returns(String::class)
+                    .addCode(toStringBody)
+                    .build())
+
+            typeBuilder.addType(dataPropBuilder.build())
 
             if (field.defaultValue != null) {
                 check(defaultValueTypeName == null) { "Error in thrifty-schema; unions may not have > 1 default value" }
@@ -567,7 +607,7 @@ class KotlinCodeGenerator(
         if (!builderlessDataClasses) {
             builderTypeName = ClassName(struct.kotlinNamespace, struct.name, "Builder")
 
-            typeBuilder.addType(generateBuilderForSealed(schema, struct))
+            typeBuilder.addType(generateBuilderForSealed(struct))
             adapterInterfaceTypeName = Adapter::class.asTypeName().parameterizedBy(
                     struct.typeName, builderTypeName)
         }
@@ -766,7 +806,7 @@ class KotlinCodeGenerator(
     }
 
 
-    internal fun generateBuilderForSealed(schema: Schema, struct: StructType): TypeSpec {
+    internal fun generateBuilderForSealed(struct: StructType): TypeSpec {
         if (struct.fields.isEmpty()) {
             error("Cannot create an empty sealed class builder (type=${struct.name})")
         }
@@ -2183,6 +2223,7 @@ class KotlinCodeGenerator(
                 .build()
     }
 
+    @Suppress("SameParameterValue")
     private fun suppressLint(toSuppress: String): AnnotationSpec {
         return AnnotationSpec.builder(ClassName("android.annotation", "SuppressLint"))
                 .addMember("%S", toSuppress)
