@@ -1,3 +1,12 @@
+2.0.0-RC1 (released 8 May 2019)
+------------------
+- #307: Support AndroidX nullability annotations (thanks, @DSteve595)
+- #305: Show location of including file when included file is not found (thanks, @hzsweers)
+- #300: Fail parsing when the parser terminates without reading the entire input
+- #253: Use sealed types for unions in generated Kotlin code (thanks, @Zomzog)
+- General: Represent Thrift unions with sealed types in Kotlin
+- #273: Fix circular-include error messages
+
 1.0.0 (released 2 November 2018)
 ------------------
 - #259: Enable configurable `@Generated` annotation type
