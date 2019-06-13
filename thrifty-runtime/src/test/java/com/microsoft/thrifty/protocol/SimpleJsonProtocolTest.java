@@ -24,22 +24,14 @@ import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.transport.BufferTransport;
 import okio.Buffer;
 import okio.ByteString;
-import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
 
 public class SimpleJsonProtocolTest {
-    private Buffer buffer;
-    private BufferTransport transport;
-    private SimpleJsonProtocol protocol;
-
-    @Before
-    public void setup() {
-        buffer = new Buffer();
-        transport = new BufferTransport(buffer);
-        protocol = new SimpleJsonProtocol(transport);
-    }
+    private Buffer buffer = new Buffer();
+    private BufferTransport transport = new BufferTransport(buffer);
+    private SimpleJsonProtocol protocol = new SimpleJsonProtocol(transport);
 
     @Test
     public void emptyJsonString() throws Exception {
@@ -176,5 +168,11 @@ public class SimpleJsonProtocolTest {
                 .writeBinary(ByteString.encodeUtf8("foobar"));
 
         assertThat(buffer.readUtf8()).isEqualTo("\"Zm9vYmFy\"");
+    }
+
+    @Test
+    public void nonAsciiCharacters() throws Exception {
+        protocol.writeString("测试");
+        assertThat(buffer.readUtf8()).isEqualTo("\"测试\"");
     }
 }
