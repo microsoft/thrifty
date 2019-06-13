@@ -25,6 +25,7 @@ import com.microsoft.thrifty.util.UnsafeByteArrayOutputStream;
 import okio.ByteString;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.ProtocolException;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
@@ -117,7 +118,7 @@ public class SimpleJsonProtocol extends Protocol {
         }
     }
 
-    private static final byte[][] ESCAPES;
+    private static final char[][] ESCAPES;
     private static final Charset UTF8;
 
     private static final byte[] TRUE = { 't', 'r', 'u', 'e' };
@@ -131,21 +132,21 @@ public class SimpleJsonProtocol extends Protocol {
     private static final byte[] RBRACE = { '}' };
 
     static {
-        ESCAPES = new byte[128][];
+        ESCAPES = new char[128][];
 
         UTF8 = Charset.forName("UTF-8");
         for (int i = 0; i < 32; ++i) {
             // Control chars must be escaped
-            ESCAPES[i] = String.format("\\u%04x", i).getBytes(UTF8);
+            ESCAPES[i] = String.format("\\u%04x", i).toCharArray();
         }
 
-        ESCAPES['\\'] = new byte[] { '\\', '\\' };
-        ESCAPES['\"'] = new byte[] { '\\', '"' };
-        ESCAPES['\b'] = new byte[] { '\\', 'b' };
-        ESCAPES['\f'] = new byte[] { '\\', 'f' };
-        ESCAPES['\r'] = new byte[] { '\\', 'r' };
-        ESCAPES['\n'] = new byte[] { '\\', 'n' };
-        ESCAPES['\t'] = new byte[] { '\\', 't' };
+        ESCAPES['\\'] = new char[] { '\\', '\\' };
+        ESCAPES['\"'] = new char[] { '\\', '"' };
+        ESCAPES['\b'] = new char[] { '\\', 'b' };
+        ESCAPES['\f'] = new char[] { '\\', 'f' };
+        ESCAPES['\r'] = new char[] { '\\', 'r' };
+        ESCAPES['\n'] = new char[] { '\\', 'n' };
+        ESCAPES['\t'] = new char[] { '\\', 't' };
     }
 
     private final WriteContext defaultWriteContext = new WriteContext() {
@@ -296,22 +297,24 @@ public class SimpleJsonProtocol extends Protocol {
 
         int len = str.length();
         UnsafeByteArrayOutputStream baos = new UnsafeByteArrayOutputStream(len);
+        OutputStreamWriter writer = new OutputStreamWriter(baos, UTF8);
 
-        baos.write('"');
+        writer.write('"');
         for (int i = 0; i < len; ++i) {
             char c = str.charAt(i);
             if (c < 128) {
-                byte[] maybeEscape = ESCAPES[c];
+                char[] maybeEscape = ESCAPES[c];
                 if (maybeEscape != null) {
-                    baos.write(maybeEscape);
+                    writer.write(maybeEscape);
                 } else {
-                    baos.write(c);
+                    writer.write(c);
                 }
             } else {
-                baos.write(c);
+                writer.write(c);
             }
         }
-        baos.write('"');
+        writer.write('"');
+        writer.flush();
 
         transport.write(baos.getBuffer(), 0, baos.size());
     }
