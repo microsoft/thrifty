@@ -96,9 +96,6 @@ subprojects { sp ->
     apply plugin: 'checkstyle'
     apply plugin: 'jacoco'
 
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
-
     checkstyle {
         configFile = rootProject.file("config/checkstyle/checkstyle.xml")
         configProperties = ["checkstyle.cache.file": file('build/checkstyle.cache')]
