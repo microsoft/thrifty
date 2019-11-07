@@ -100,7 +100,7 @@ interface UserElement {
         for (s in scopes) {
             namespaces[s]?.let { return it }
         }
-        return null
+        return namespaces[NamespaceScope.ALL] 
     }
 }
 
