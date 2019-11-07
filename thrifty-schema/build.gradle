@@ -55,7 +55,7 @@ dependencies {
 }
 
 compileTestJava {
-    options.compilerArgs += [ '-Xep:ImmutableModification:OFF', '-Xlint:deprecation,unchecked' ]
+    options.compilerArgs += [ '-Xlint:deprecation,unchecked' ]
 }
 
 // For some reason, Kotlin compilation is being run prior to antlr by default.
