@@ -20,6 +20,10 @@
  */
 package com.microsoft.thrifty.gen
 
+import com.google.common.truth.Truth.assertAbout
+import com.google.common.truth.Truth.assertThat
+import com.google.testing.compile.JavaSourceSubjectFactory.javaSource
+import com.google.testing.compile.JavaSourcesSubjectFactory.javaSources
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
 import com.squareup.javapoet.JavaFile
@@ -27,15 +31,9 @@ import okio.Okio
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-
-import javax.tools.JavaFileObject
 import java.io.File
-import java.util.ArrayList
-
-import com.google.common.truth.Truth.assertAbout
-import com.google.common.truth.Truth.assertThat
-import com.google.testing.compile.JavaSourceSubjectFactory.javaSource
-import com.google.testing.compile.JavaSourcesSubjectFactory.javaSources
+import java.util.*
+import javax.tools.JavaFileObject
 
 /**
  * These tests ensure that various constructs produce valid Java code.
@@ -609,6 +607,27 @@ class ThriftyCodeGeneratorTest {
         val java = file.toString()
 
         assertThat(java).contains("public Builder(@NonNull Foo struct)")
+    }
+
+    @Test
+    fun generationWithWildcardNamespace() {
+        val thrift = """
+            namespace * namespace.catchall
+
+            struct Foo {
+              1: required string bar
+            }
+        """
+
+        val schema = parse("namespace.thrift", thrift)
+        val gen = ThriftyCodeGenerator(schema)
+        val java = gen.generateTypes()
+
+        assertThat(java).hasSize(1)
+
+        assertAbout(javaSource())
+                .that(java[0].toJavaFileObject())
+                .compilesWithoutError()
     }
 
     private fun compile(filename: String, text: String): List<JavaFile> {

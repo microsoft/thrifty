@@ -92,15 +92,17 @@ interface UserElement {
      * Iterates over the scopes in the order provided, returning the first
      * non-null namespace found for this element.
      *
+     * Defaults to the catch-all namespace (*)
+     *
      * @param scopes The list of scopes to search.
      * @return the first namespace found corresponding to one of the given
-     *         [scopes], or null.
+     *         [scopes], the * namespace, or null.
      */
     fun getNamespaceFor(vararg scopes: NamespaceScope): String? {
         for (s in scopes) {
             namespaces[s]?.let { return it }
         }
-        return null
+        return namespaces[NamespaceScope.ALL]
     }
 }
 
