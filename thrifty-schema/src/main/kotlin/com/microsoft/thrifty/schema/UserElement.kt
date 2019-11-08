@@ -20,7 +20,7 @@
  */
 package com.microsoft.thrifty.schema
 
-import java.util.*
+import java.util.UUID
 
 /**
  * Represents data common to user-defined elements of a Thrift program.
