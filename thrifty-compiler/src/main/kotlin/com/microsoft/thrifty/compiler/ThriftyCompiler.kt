@@ -271,6 +271,9 @@ class ThriftyCompiler {
             try {
                 schema = loader.load()
             } catch (e: LoadFailedException) {
+                if (!e.errorReporter.hasError && e.cause != null) {
+                    println(e.cause)
+                }
                 for (report in e.errorReporter.formattedReports()) {
                     println(report)
                 }
