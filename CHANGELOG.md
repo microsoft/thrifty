@@ -1,3 +1,9 @@
+2.0.0 (released 28 April 2020, Quarantine Edition)
+------------------
+- #328: Fix: Print LoadFailedException cause on load failure (thanks @jparise)
+- #326: Fix: Fix Java compilation with catch-all thrift namespaces (thanks @timvlaer)
+- #317: Fix: Use UTF-8 for strings in SimpleJsonProtocol
+
 2.0.0-RC1 (released 8 May 2019)
 ------------------
 - #307: Support AndroidX nullability annotations (thanks, @DSteve595)
