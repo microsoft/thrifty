@@ -1,3 +1,7 @@
+2.0.1 (released 4 May 2020)
+------------------
+Rebuild with JDK8, not JDK11
+
 2.0.0 (released 28 April 2020, Quarantine Edition)
 ------------------
 - #328: Fix: Print LoadFailedException cause on load failure (thanks @jparise)
