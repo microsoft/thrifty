@@ -350,6 +350,20 @@ class KotlinCodeGeneratorTest {
         """.trimMargin())
     }
 
+    @Test
+    fun `omit service clients`() {
+        val thrift = """
+            |namespace kt test.omit_service_clients
+            |
+            |service Svc {
+            |  i32 doSomething(1: i32 foo);
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift) { omitServiceClients() }
+
+        file shouldBe emptyList()
+    }
 
     @Test
     fun `union generate sealed`() {

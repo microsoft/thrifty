@@ -60,6 +60,7 @@ import java.util.ArrayList
  * [--parcelable]
  * [--use-android-annotations]
  * [--nullability-annotation-type=[none|android-support|androidx]]
+ * [--omit-service-clients]
  * [--omit-file-comments]
  * [--omit-generated-annotations]
  * [--generated-annotation-type=[jdk8|jdk9|native]]
@@ -109,6 +110,8 @@ import java.util.ArrayList
  * the `android-support` option for projects that are using the Android Support Library and have
  * not migrated to AndroidX.  Use the `androidx` option for projects that have migrated to AndroidX.
  * Has no effect on Kotlin code.
+ *
+ * `--omit-service-clients` is optional.  When specified, no service clients are generated.
  *
  * `--omit-file-comments` is optional.  When specified, no file-header comment is generated.
  * The default behavior is to prefix generated files with a comment indicating that they
@@ -212,6 +215,10 @@ class ThriftyCompiler {
 
         val emitParcelable: Boolean by option("--parcelable",
                     help = "When set, generates Parcelable implementations for structs")
+                .flag(default = false)
+
+        val omitServiceClients: Boolean by option("--omit-service-clients",
+                    help = "When set, don't generate service clients")
                 .flag(default = false)
 
         val omitFileComments: Boolean by option("--omit-file-comments",
@@ -336,6 +343,10 @@ class ThriftyCompiler {
 
             if (emitParcelable) {
                 gen.parcelize()
+            }
+
+            if (omitServiceClients) {
+                gen.omitServiceClients()
             }
 
             if (kotlinFilePerType) {
