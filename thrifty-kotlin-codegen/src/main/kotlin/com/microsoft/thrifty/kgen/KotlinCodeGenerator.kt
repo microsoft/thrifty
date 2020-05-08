@@ -120,6 +120,7 @@ class KotlinCodeGenerator(
 
     private var parcelize: Boolean = false
     private var builderlessDataClasses: Boolean = false
+    private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
 
     private var listClassName: ClassName? = null
@@ -213,6 +214,10 @@ class KotlinCodeGenerator(
         this.builderlessDataClasses = true
     }
 
+    fun omitServiceClients(): KotlinCodeGenerator = apply {
+        this.omitServiceClients = true
+    }
+
     fun coroutineServiceClients(): KotlinCodeGenerator = apply {
         this.coroutineServiceClients = true
     }
@@ -256,18 +261,20 @@ class KotlinCodeGenerator(
             constantsByNamespace.put(ns, property)
         }
 
-        schema.services.forEach {
-            val iface: TypeSpec
-            val impl: TypeSpec
-            if (coroutineServiceClients) {
-                iface = generateCoroServiceInterface(it)
-                impl = generateCoroServiceImplementation(schema, it, iface)
-            } else {
-                iface = generateServiceInterface(it)
-                impl = generateServiceImplementation(schema, it, iface)
+        if (!omitServiceClients) {
+            schema.services.forEach {
+                val iface: TypeSpec
+                val impl: TypeSpec
+                if (coroutineServiceClients) {
+                    iface = generateCoroServiceInterface(it)
+                    impl = generateCoroServiceImplementation(schema, it, iface)
+                } else {
+                    iface = generateServiceInterface(it)
+                    impl = generateServiceImplementation(schema, it, iface)
+                }
+                specsByNamespace.put(it.kotlinNamespace, iface)
+                specsByNamespace.put(it.kotlinNamespace, impl)
             }
-            specsByNamespace.put(it.kotlinNamespace, iface)
-            specsByNamespace.put(it.kotlinNamespace, impl)
         }
 
         return when (outputStyle) {
