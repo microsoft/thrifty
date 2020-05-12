@@ -238,6 +238,10 @@ class ThriftyCompiler {
                         "native" to nativeGeneratedAnnotation)
                 .default("javax.annotation.Generated")
 
+        val kotlinEmitJvmName: Boolean by option("--kt-emit-jvmname",
+                    help = "When set, emit @JvmName annotations")
+                .flag(default = false)
+
         val kotlinFilePerType: Boolean by option(
                     "--kt-file-per-type", help = "Generate one .kt file per type; default is one per namespace.")
                 .flag(default = false)
@@ -347,6 +351,10 @@ class ThriftyCompiler {
 
             if (omitServiceClients) {
                 gen.omitServiceClients()
+            }
+
+            if (kotlinEmitJvmName) {
+                gen.emitJvmName()
             }
 
             if (kotlinFilePerType) {

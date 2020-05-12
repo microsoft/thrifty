@@ -65,6 +65,7 @@ import com.microsoft.thrifty.service.TMessageType
 import com.microsoft.thrifty.util.ObfuscationUtil
 import com.microsoft.thrifty.util.ProtocolUtil
 import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.AnnotationSpec.UseSiteTarget.FILE
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -122,6 +123,7 @@ class KotlinCodeGenerator(
     private var builderlessDataClasses: Boolean = false
     private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
+    private var emitJvmName: Boolean = false
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -226,6 +228,10 @@ class KotlinCodeGenerator(
         this.generatedAnnotationType = type?.let { ClassName.bestGuess(type) }
     }
 
+    fun emitJvmName(): KotlinCodeGenerator = apply {
+        this.emitJvmName = true
+    }
+
     private object NoTypeProcessor : KotlinTypeProcessor {
         override fun process(typeSpec: TypeSpec) = typeSpec
     }
@@ -285,7 +291,7 @@ class KotlinCodeGenerator(
                 }
 
                 val fileSpecsByNamespace = namespaces
-                        .map { it to FileSpec.builder(it,"ThriftTypes") }
+                        .map { it to makeFileSpecBuilder(it, "ThriftTypes") }
                         .toMap()
 
                 fileSpecsByNamespace.map { (ns, fileSpec) ->
@@ -305,20 +311,20 @@ class KotlinCodeGenerator(
                     for ((ns, type) in types) {
                         val processedType = processor.process(type) ?: continue
                         val name = processedType.name ?: throw AssertionError("Top-level TypeSpecs must have names")
-                        val spec = FileSpec.builder(ns, name)
+                        val spec = makeFileSpecBuilder(ns, name)
                                 .addType(processedType)
                                 .build()
                         yield(spec)
                     }
 
                     for ((ns, aliases) in typedefsByNamespace.asMap().entries) {
-                        val spec = FileSpec.builder(ns, "Typedefs")
+                        val spec = makeFileSpecBuilder(ns, "Typedefs")
                         aliases.forEach { spec.addTypeAlias(it) }
                         yield(spec.build())
                     }
 
                     for ((ns, props) in constantsByNamespace.asMap().entries) {
-                        val spec = FileSpec.builder(ns, "Constants")
+                        val spec = makeFileSpecBuilder(ns, "Constants")
                         props.forEach { spec.addProperty(it) }
                         yield(spec.build())
                     }
@@ -2217,6 +2223,17 @@ class KotlinCodeGenerator(
         val block = CodeBlock.builder()
         block.fn()
         return block.build()
+    }
+
+    private fun makeFileSpecBuilder(packageName: String, fileName: String): FileSpec.Builder {
+        return FileSpec.builder(packageName, fileName).apply {
+            if (emitJvmName) {
+                addAnnotation(AnnotationSpec.builder(JvmName::class)
+                        .useSiteTarget(FILE)
+                        .addMember("%S", fileName)
+                        .build())
+            }
+        }
     }
 
     private fun makeDeprecated(): AnnotationSpec {

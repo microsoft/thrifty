@@ -366,6 +366,62 @@ class KotlinCodeGeneratorTest {
     }
 
     @Test
+    fun `Emit @JvmName file-per-namespace annotations`() {
+        val thrift = """
+            |namespace kt test.consts
+            |
+            |const i32 FooNum = 42
+        """.trimMargin()
+
+        val text = generate(thrift) {
+                    emitJvmName()
+                    filePerNamespace()
+                }
+                .single()
+                .toString()
+
+        text shouldBe """
+            |@file:JvmName("ThriftTypes")
+            |
+            |package test.consts
+            |
+            |import kotlin.Int
+            |import kotlin.jvm.JvmName
+            |
+            |const val FooNum: Int = 42
+            |
+            """.trimMargin()
+    }
+
+    @Test
+    fun `Emit @JvmName file-per-type annotations`() {
+        val thrift = """
+            |namespace kt test.consts
+            |
+            |const i32 FooNum = 42
+        """.trimMargin()
+
+        val text = generate(thrift) {
+                    emitJvmName()
+                    filePerType()
+                }
+                .single()
+                .toString()
+
+        text shouldBe """
+            |@file:JvmName("Constants")
+            |
+            |package test.consts
+            |
+            |import kotlin.Int
+            |import kotlin.jvm.JvmName
+            |
+            |const val FooNum: Int = 42
+            |
+            """.trimMargin()
+    }
+
+    @Test
     fun `union generate sealed`() {
         val thrift = """
             |namespace kt test.coro
