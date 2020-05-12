@@ -233,9 +233,6 @@ class KotlinCodeGenerator(
     // endregion Configuration
 
     fun generate(schema: Schema): List<FileSpec> {
-        TypeSpec.classBuilder("foo")
-                .addModifiers(KModifier.DATA)
-
         val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
         val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
         val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
