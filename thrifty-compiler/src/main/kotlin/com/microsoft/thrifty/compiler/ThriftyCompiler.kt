@@ -172,12 +172,12 @@ class ThriftyCompiler {
         }
 
         val outputDirectory: Path by option("-o", "--out", help = "the output directory for generated files")
-                .path(fileOkay = false, folderOkay = true)
+                .path(canBeFile = false, canBeDir = true)
                 .required()
                 .validate { Files.isDirectory(it) || !Files.exists(it) }
 
         val searchPath: List<Path> by option("-p", "--path", help = "the search path for .thrift includes")
-                .path(exists = true, folderOkay = true, fileOkay = false)
+                .path(mustExist = true, canBeDir = true, canBeFile = false)
                 .multiple()
 
         val language: Language? by option(
@@ -253,7 +253,7 @@ class ThriftyCompiler {
                 .flag(default = false)
 
         val thriftFiles: List<Path> by argument(help = "All .thrift files to compile")
-                .path(exists = true, fileOkay = true, folderOkay = false, readable = true)
+                .path(mustExist = true, canBeFile = true, canBeDir = false, mustBeReadable = true)
                 .multiple()
 
         private val generatedAnnotationClassName: String? by lazy {
