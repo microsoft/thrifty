@@ -83,7 +83,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.0"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.72"
         classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.9.17'
         classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
     }
@@ -139,7 +139,7 @@ task codeCoverageReport(type: JacocoReport) {
     }
 
     afterEvaluate {
-        classDirectories = files(classDirectories.files.collect {
+        classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it,
             exclude: [
                     // leave out auto-generated code in thrifty-schema
@@ -149,7 +149,7 @@ task codeCoverageReport(type: JacocoReport) {
                     // ditto for Apache-compiler-generated test classes
                     'com/microsoft/thrifty/test/gen/*',
             ])
-        })
+        }))
     }
 }
 
