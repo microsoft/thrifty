@@ -282,9 +282,9 @@ class KotlinCodeGeneratorTest {
 
         val parcelize = ClassName("kotlinx.android.parcel", "Parcelize")
 
-        struct.annotations.any { it.type == parcelize } shouldBe true
-        anEnum.annotations.any { it.type == parcelize } shouldBe true
-        svc.annotations.any { it.type == parcelize } shouldBe false
+        struct.annotationSpecs.any { it.className == parcelize } shouldBe true
+        anEnum.annotationSpecs.any { it.className == parcelize } shouldBe true
+        svc.annotationSpecs.any { it.className == parcelize } shouldBe false
     }
 
     @Test
@@ -309,9 +309,9 @@ class KotlinCodeGeneratorTest {
             |import kotlin.collections.Map
             |
             |val Maps: Map<Int, List<String>> = ArrayMap<Int, List<String>>(2).apply {
-            |            put(1, emptyList())
-            |            put(2, listOf("foo"))
-            |        }
+            |      put(1, emptyList())
+            |      put(2, listOf("foo"))
+            |    }
             |
             """.trimMargin()
     }
@@ -330,22 +330,24 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |interface Svc {
-            |    suspend fun doSomething(foo: Int): Int
+            |  suspend fun doSomething(foo: Int): Int
             |}
             |
-            |class SvcClient(protocol: Protocol, listener: AsyncClientBase.Listener) : AsyncClientBase(protocol, listener),
-            |        Svc {
-            |    override suspend fun doSomething(foo: Int): Int = suspendCoroutine { cont ->
-            |        this.enqueue(DoSomethingCall(foo, object : ServiceMethodCallback<Int> {
-            |            override fun onSuccess(result: Int) {
-            |                cont.resumeWith(Result.success(result))
-            |            }
+            |class SvcClient(
+            |  protocol: Protocol,
+            |  listener: AsyncClientBase.Listener
+            |) : AsyncClientBase(protocol, listener), Svc {
+            |  override suspend fun doSomething(foo: Int): Int = suspendCoroutine { cont ->
+            |    this.enqueue(DoSomethingCall(foo, object : ServiceMethodCallback<Int> {
+            |      override fun onSuccess(result: Int) {
+            |        cont.resumeWith(Result.success(result))
+            |      }
             |
-            |            override fun onError(error: Throwable) {
-            |                cont.resumeWith(Result.failure(error))
-            |            }
-            |        }))
-            |    }
+            |      override fun onError(error: Throwable) {
+            |        cont.resumeWith(Result.failure(error))
+            |      }
+            |    }))
+            |  }
             |
         """.trimMargin())
     }
@@ -458,17 +460,25 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |
-            |    data class Foo(val value: Int) : Union() {
-            |        override fun toString(): String = "Union(Foo=${'$'}value)"}
+            |  data class Foo(
+            |    val value: Int
+            |  ) : Union() {
+            |    override fun toString(): String = "Union(Foo=${'$'}value)"}
             |
-            |    data class Bar(val value: Long) : Union() {
-            |        override fun toString(): String = "Union(Bar=${'$'}value)"}
+            |  data class Bar(
+            |    val value: Long
+            |  ) : Union() {
+            |    override fun toString(): String = "Union(Bar=${'$'}value)"}
             |
-            |    data class Baz(val value: String) : Union() {
-            |        override fun toString(): String = "Union(Baz=${'$'}value)"}
+            |  data class Baz(
+            |    val value: String
+            |  ) : Union() {
+            |    override fun toString(): String = "Union(Baz=${'$'}value)"}
             |
-            |    data class NotFoo(val value: Int) : Union() {
-            |        override fun toString(): String = "Union(NotFoo=${'$'}value)"}
+            |  data class NotFoo(
+            |    val value: Int
+            |  ) : Union() {
+            |    override fun toString(): String = "Union(NotFoo=${'$'}value)"}
             |
         """.trimMargin())
     }
@@ -489,29 +499,29 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |    class Builder : StructBuilder<Union> {
-            |        private var value: Union? = null
+            |  class Builder : StructBuilder<Union> {
+            |    private var value: Union? = null
             |
-            |        constructor()
+            |    constructor()
             |
-            |        constructor(source: Union) : this() {
-            |            this.value = source
-            |        }
-            |
-            |        override fun build(): Union = value ?: error("Invalid union; at least one value is required")
-            |
-            |        override fun reset() {
-            |            value = null
-            |        }
-            |
-            |        fun Foo(value: Int) = apply { this.value = Union.Foo(value) }
-            |
-            |        fun Bar(value: Long) = apply { this.value = Union.Bar(value) }
-            |
-            |        fun Baz(value: String) = apply { this.value = Union.Baz(value) }
-            |
-            |        fun NotFoo(value: Int) = apply { this.value = Union.NotFoo(value) }
+            |    constructor(source: Union) : this() {
+            |      this.value = source
             |    }
+            |
+            |    override fun build(): Union = value ?: error("Invalid union; at least one value is required")
+            |
+            |    override fun reset() {
+            |      value = null
+            |    }
+            |
+            |    fun Foo(value: Int) = apply { this.value = Union.Foo(value) }
+            |
+            |    fun Bar(value: Long) = apply { this.value = Union.Bar(value) }
+            |
+            |    fun Baz(value: String) = apply { this.value = Union.Baz(value) }
+            |
+            |    fun NotFoo(value: Int) = apply { this.value = Union.NotFoo(value) }
+            |  }
         """.trimMargin())
     }
 
@@ -552,11 +562,11 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) //{ shouldImplementStruct() }
 
         file.single().toString() shouldNot contain("""
-            |    : Struct
+            |  : Struct
         """.trimMargin())
 
         file.single().toString() shouldNot contain("""
-            |    write
+            |  write
         """.trimMargin())
     }
 
@@ -576,55 +586,55 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) //{ shouldImplementStruct() }
 
         file.single().toString() should contain("""
-            |        override fun read(protocol: Protocol) = read(protocol, Builder())
+            |    override fun read(protocol: Protocol) = read(protocol, Builder())
             |
-            |        override fun read(protocol: Protocol, builder: Builder): Union {
-            |            protocol.readStructBegin()
-            |            while (true) {
-            |                val fieldMeta = protocol.readFieldBegin()
-            |                if (fieldMeta.typeId == TType.STOP) {
-            |                    break
-            |                }
-            |                when (fieldMeta.fieldId.toInt()) {
-            |                    1 -> {
-            |                        if (fieldMeta.typeId == TType.I32) {
-            |                            val Foo = protocol.readI32()
-            |                            builder.Foo(Foo)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    2 -> {
-            |                        if (fieldMeta.typeId == TType.I64) {
-            |                            val Bar = protocol.readI64()
-            |                            builder.Bar(Bar)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    3 -> {
-            |                        if (fieldMeta.typeId == TType.STRING) {
-            |                            val Baz = protocol.readString()
-            |                            builder.Baz(Baz)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    4 -> {
-            |                        if (fieldMeta.typeId == TType.I32) {
-            |                            val NotFoo = protocol.readI32()
-            |                            builder.NotFoo(NotFoo)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                }
-            |                protocol.readFieldEnd()
-            |            }
-            |            protocol.readStructEnd()
-            |            return builder.build()
+            |    override fun read(protocol: Protocol, builder: Builder): Union {
+            |      protocol.readStructBegin()
+            |      while (true) {
+            |        val fieldMeta = protocol.readFieldBegin()
+            |        if (fieldMeta.typeId == TType.STOP) {
+            |          break
             |        }
+            |        when (fieldMeta.fieldId.toInt()) {
+            |          1 -> {
+            |            if (fieldMeta.typeId == TType.I32) {
+            |              val Foo = protocol.readI32()
+            |              builder.Foo(Foo)
+            |            } else {
+            |              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |            }
+            |          }
+            |          2 -> {
+            |            if (fieldMeta.typeId == TType.I64) {
+            |              val Bar = protocol.readI64()
+            |              builder.Bar(Bar)
+            |            } else {
+            |              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |            }
+            |          }
+            |          3 -> {
+            |            if (fieldMeta.typeId == TType.STRING) {
+            |              val Baz = protocol.readString()
+            |              builder.Baz(Baz)
+            |            } else {
+            |              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |            }
+            |          }
+            |          4 -> {
+            |            if (fieldMeta.typeId == TType.I32) {
+            |              val NotFoo = protocol.readI32()
+            |              builder.NotFoo(NotFoo)
+            |            } else {
+            |              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |            }
+            |          }
+            |          else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |        }
+            |        protocol.readFieldEnd()
+            |      }
+            |      protocol.readStructEnd()
+            |      return builder.build()
+            |    }
         """.trimMargin())
     }
 
@@ -645,54 +655,54 @@ class KotlinCodeGeneratorTest {
 
 
         file.single().toString() should contain("""
-            |        override fun read(protocol: Protocol): Union {
-            |            protocol.readStructBegin()
-            |            var result : Union? = null
-            |            while (true) {
-            |                val fieldMeta = protocol.readFieldBegin()
-            |                if (fieldMeta.typeId == TType.STOP) {
-            |                    break
-            |                }
-            |                when (fieldMeta.fieldId.toInt()) {
-            |                    1 -> {
-            |                        if (fieldMeta.typeId == TType.I32) {
-            |                            val Foo = protocol.readI32()
-            |                            result = Foo(Foo)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    2 -> {
-            |                        if (fieldMeta.typeId == TType.I64) {
-            |                            val Bar = protocol.readI64()
-            |                            result = Bar(Bar)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    3 -> {
-            |                        if (fieldMeta.typeId == TType.STRING) {
-            |                            val Baz = protocol.readString()
-            |                            result = Baz(Baz)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    4 -> {
-            |                        if (fieldMeta.typeId == TType.I32) {
-            |                            val NotFoo = protocol.readI32()
-            |                            result = NotFoo(NotFoo)
-            |                        } else {
-            |                            ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                        }
-            |                    }
-            |                    else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
-            |                }
-            |                protocol.readFieldEnd()
-            |            }
-            |            protocol.readStructEnd()
-            |            return result ?: error("unreadable")
+            |    override fun read(protocol: Protocol): Union {
+            |      protocol.readStructBegin()
+            |      var result : Union? = null
+            |      while (true) {
+            |        val fieldMeta = protocol.readFieldBegin()
+            |        if (fieldMeta.typeId == TType.STOP) {
+            |          break
             |        }
+            |        when (fieldMeta.fieldId.toInt()) {
+            |          1 -> {
+            |            if (fieldMeta.typeId == TType.I32) {
+            |              val Foo = protocol.readI32()
+            |              result = Foo(Foo)
+            |            } else {
+            |              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |            }
+            |          }
+            |          2 -> {
+            |            if (fieldMeta.typeId == TType.I64) {
+            |              val Bar = protocol.readI64()
+            |              result = Bar(Bar)
+            |            } else {
+            |              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |            }
+            |          }
+            |          3 -> {
+            |            if (fieldMeta.typeId == TType.STRING) {
+            |              val Baz = protocol.readString()
+            |              result = Baz(Baz)
+            |            } else {
+            |              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |            }
+            |          }
+            |          4 -> {
+            |            if (fieldMeta.typeId == TType.I32) {
+            |              val NotFoo = protocol.readI32()
+            |              result = NotFoo(NotFoo)
+            |            } else {
+            |              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |            }
+            |          }
+            |          else -> ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            |        }
+            |        protocol.readFieldEnd()
+            |      }
+            |      protocol.readStructEnd()
+            |      return result ?: error("unreadable")
+            |    }
         """.trimMargin())
     }
 
@@ -712,7 +722,7 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift)
 
         file.single().toString() should contain("""
-            |    private class UnionAdapter : Adapter<Union, Builder> {
+            |  private class UnionAdapter : Adapter<Union, Builder> {
         """.trimMargin())
     }
 
@@ -732,7 +742,7 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { builderlessDataClasses() }
 
         file.single().toString() should contain("""
-            |    private class UnionAdapter : Adapter<Union> {
+            |  private class UnionAdapter : Adapter<Union> {
         """.trimMargin())
     }
 
@@ -748,7 +758,7 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |class Union() : Struct {
+            |class Union : Struct {
         """.trimMargin())
     }
 
@@ -771,14 +781,16 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |sealed class UnionStruct : Struct {
-            |    override fun write(protocol: Protocol) {
-            |        ADAPTER.write(protocol, this)
-            |    }
+            |  override fun write(protocol: Protocol) {
+            |    ADAPTER.write(protocol, this)
+            |  }
             |
-            |    data class Struct(val value: Bonk) : UnionStruct() {
-            |        override fun toString(): String = "UnionStruct(Struct=${'$'}value)"}
+            |  data class Struct(
+            |    val value: Bonk
+            |  ) : UnionStruct() {
+            |    override fun toString(): String = "UnionStruct(Struct=${'$'}value)"}
             |
-            |    class Builder : StructBuilder<UnionStruct> {
+            |  class Builder : StructBuilder<UnionStruct> {
         """.trimMargin())
     }
 
@@ -798,8 +810,26 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift)
 
         file.single().toString() should contain("""
-            |        @JvmStatic
-            |        val DEFAULT: HasDefault = Int(16)
+            |    @JvmStatic
+            |    val DEFAULT: HasDefault = Int(16)
+        """.trimMargin())
+    }
+
+    @Test
+    fun `builder has correct syntax`() {
+        val thrift = """
+            |namespace kt test.builder
+            |
+            |struct Bonk {
+            |  1: string message;
+            |  2: i32 type;
+            |}
+        """.trimMargin()
+
+        val file = generate(thrift)
+
+        file.single().toString() should contain("""
+            |    override fun build(): Bonk = Bonk(message = this.message, type = this.type)
         """.trimMargin())
     }
 

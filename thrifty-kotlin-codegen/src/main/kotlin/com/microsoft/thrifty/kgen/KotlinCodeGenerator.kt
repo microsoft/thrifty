@@ -73,6 +73,7 @@ import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.NameAllocator
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -367,7 +368,7 @@ class KotlinCodeGenerator(
 
         val findByValue = FunSpec.builder("findByValue")
                 .addParameter("value", INT)
-                .returns(enumType.typeName.asNullable())
+                .returns(enumType.typeName.copy(nullable = true))
                 .jvmStatic()
                 .beginControlFlow("return when (value)")
 
@@ -428,7 +429,7 @@ class KotlinCodeGenerator(
         for (field in struct.fields) {
             val fieldName = nameAllocator.get(field)
             val typeName = field.type.typeName.let {
-                if (!field.required) it.asNullable() else it
+                if (!field.required) it.copy(nullable = true) else it
             }
 
             val thriftField = AnnotationSpec.builder(ThriftField::class).let { anno ->
@@ -500,7 +501,7 @@ class KotlinCodeGenerator(
 
             typeBuilder.addFunction(FunSpec.builder("equals")
                     .addModifiers(KModifier.OVERRIDE)
-                    .addParameter("other", Any::class.asTypeName().asNullable())
+                    .addParameter("other", Any::class.asTypeName().copy(nullable = true))
                     .returns(BOOLEAN)
                     .addStatement("return other is %T", structClassName)
                     .build())
@@ -673,7 +674,7 @@ class KotlinCodeGenerator(
             val nameAllocator = nameAllocators[struct]
             for ((ix, field) in struct.fields.withIndex()) {
                 if (ix != 0) {
-                    add(", ")
+                    add(",·")
                 }
                 val fieldName = nameAllocator.get(field)
                 add("$fieldName=")
@@ -734,7 +735,7 @@ class KotlinCodeGenerator(
         val buildFunSpec = FunSpec.builder("build")
                 .addModifiers(KModifier.OVERRIDE)
                 .returns(structTypeName)
-                .addCode("%[return ${struct.name}(")
+                .addCode("«return ${struct.name}(")
 
         val resetFunSpec = FunSpec.builder("reset")
                 .addModifiers(KModifier.OVERRIDE)
@@ -762,11 +763,12 @@ class KotlinCodeGenerator(
                 renderConstValue(schema, field.type, it)
             } ?: CodeBlock.of("null")
 
-            val propertySpec = PropertySpec.varBuilder(name, type.asNullable(), KModifier.PRIVATE)
+            val propertySpec = PropertySpec.builder(name, type.copy(nullable = true), KModifier.PRIVATE)
+                    .mutable()
                     .initializer(defaultValueBlock)
 
             // Add a builder fun
-            val buildFunParamType = if (!field.required) type.asNullable() else type
+            val buildFunParamType = if (!field.required) type.copy(nullable = true) else type
             val builderFunSpec = FunSpec.builder(name)
                     .addParameter(name, buildFunParamType)
                     .addStatement("return apply { this.$name = $name }")
@@ -785,12 +787,12 @@ class KotlinCodeGenerator(
             // TODO: Add newlines and indents if numFields > 1
             buildParamStringBuilder.append("$name = ")
             if (field.required) {
-                buildParamStringBuilder.append("checkNotNull($name) { \"Required field '$name' is missing\" }")
+                buildParamStringBuilder.append("checkNotNull($name) { \"Required·field·'$name'·is·missing\" }")
             } else {
                 buildParamStringBuilder.append("this.$name")
             }
 
-            buildParamStringBuilder.append(",%W")
+            buildParamStringBuilder.append(", ")
 
             // Finish off the property and builder fun
             spec.addProperty(propertySpec.build())
@@ -800,12 +802,12 @@ class KotlinCodeGenerator(
         // If there are any fields, the string builder will have a trailing comma-separator.
         // We need to trim that off.
         if (struct.fields.isNotEmpty()) {
-            buildParamStringBuilder.setLength(buildParamStringBuilder.length - 3)
+            buildParamStringBuilder.setLength(buildParamStringBuilder.length - 2)
         }
 
         buildFunSpec
                 .addCode(buildParamStringBuilder.toString())
-                .addCode(")%]")
+                .addCode(")»")
 
         return spec
                 .addFunction(defaultCtor.build())
@@ -832,7 +834,8 @@ class KotlinCodeGenerator(
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
         val spec = TypeSpec.classBuilder("Builder")
                 .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
-                .addProperty(PropertySpec.varBuilder(builderVarName, structTypeName.asNullable(), KModifier.PRIVATE)
+                .addProperty(PropertySpec.builder(builderVarName, structTypeName.copy(nullable = true), KModifier.PRIVATE)
+                        .mutable()
                         .initializer(defaultValue)
                         .build())
                 .addFunction(FunSpec.constructorBuilder().build())
@@ -965,7 +968,7 @@ class KotlinCodeGenerator(
                 val fieldType = field.type
 
                 reader.addCode {
-                    addStatement("${field.id} -> {%>")
+                    addStatement("${field.id}·->·{⇥")
                     beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
 
                     generateReadCall(this, name, fieldType)
@@ -979,11 +982,11 @@ class KotlinCodeGenerator(
                     nextControlFlow("else")
                     addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
                     endControlFlow()
-                    addStatement("%<}")
+                    addStatement("⇤}")
                 }
             }
 
-            reader.addStatement("else -> %T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+            reader.addStatement("else·-> %T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
             reader.endControlFlow() // when (fieldMeta.fieldId.toInt())
         } else {
             reader.addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
@@ -997,11 +1000,11 @@ class KotlinCodeGenerator(
             reader.addStatement("return builder.build()")
         } else {
             val block = CodeBlock.builder()
-            block.add("%[return %T(", struct.typeName)
+            block.add("«return %T(", struct.typeName)
 
             val hasRequiredField = struct.fields.any { it.required }
             val newlinePerParam = (hasRequiredField && struct.fields.size > 1) || struct.fields.size > 2
-            val separator = if (newlinePerParam) System.lineSeparator() else "%W"
+            val separator = if (newlinePerParam) System.lineSeparator() else "·"
 
             if (newlinePerParam) {
                 block.add(System.lineSeparator())
@@ -1014,7 +1017,7 @@ class KotlinCodeGenerator(
 
                 block.add("%N = ", nameAllocator.get(field))
                 if (field.required) {
-                    block.add("checkNotNull(%N) { %S }",
+                    block.add("checkNotNull(%N)·{·%S·}",
                             localFieldName(field),
                             "Required field '${nameAllocator.get(field)}' is missing")
                 } else {
@@ -1022,7 +1025,7 @@ class KotlinCodeGenerator(
                 }
             }
 
-            block.add(")%]%L", System.lineSeparator())
+            block.add(")»%L", System.lineSeparator())
 
             reader.addCode(block.build())
         }
@@ -1134,7 +1137,7 @@ class KotlinCodeGenerator(
                 val typeName = FieldNamingPolicy.PASCAL.apply(name)
 
                 reader.addCode {
-                    addStatement("${field.id} -> {%>")
+                    addStatement("${field.id}·->·{⇥")
                     beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
 
                     generateReadCall(this, name, fieldType)
@@ -1148,11 +1151,11 @@ class KotlinCodeGenerator(
                     nextControlFlow("else")
                     addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
                     endControlFlow()
-                    addStatement("%<}")
+                    addStatement("⇤}")
                 }
             }
 
-            reader.addStatement("else -> %T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
+            reader.addStatement("else·->·%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
             reader.endControlFlow() // when (fieldMeta.fieldId.toInt())
         } else {
             reader.addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
@@ -1194,39 +1197,39 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitBool(boolType: BuiltinType) {
-                    writer.addStatement("%N.writeBool(%N)", "protocol", source)
+                    writer.addStatement("%N.writeBool(%L)", "protocol", source)
                 }
 
                 override fun visitByte(byteType: BuiltinType) {
-                    writer.addStatement("%N.writeByte(%N)", "protocol", source)
+                    writer.addStatement("%N.writeByte(%L)", "protocol", source)
                 }
 
                 override fun visitI16(i16Type: BuiltinType) {
-                    writer.addStatement("%N.writeI16(%N)", "protocol", source)
+                    writer.addStatement("%N.writeI16(%L)", "protocol", source)
                 }
 
                 override fun visitI32(i32Type: BuiltinType) {
-                    writer.addStatement("%N.writeI32(%N)", "protocol", source)
+                    writer.addStatement("%N.writeI32(%L)", "protocol", source)
                 }
 
                 override fun visitI64(i64Type: BuiltinType) {
-                    writer.addStatement("%N.writeI64(%N)", "protocol", source)
+                    writer.addStatement("%N.writeI64(%L)", "protocol", source)
                 }
 
                 override fun visitDouble(doubleType: BuiltinType) {
-                    writer.addStatement("%N.writeDouble(%N)", "protocol", source)
+                    writer.addStatement("%N.writeDouble(%L)", "protocol", source)
                 }
 
                 override fun visitString(stringType: BuiltinType) {
-                    writer.addStatement("%N.writeString(%N)", "protocol", source)
+                    writer.addStatement("%N.writeString(%L)", "protocol", source)
                 }
 
                 override fun visitBinary(binaryType: BuiltinType) {
-                    writer.addStatement("%N.writeBinary(%N)", "protocol", source)
+                    writer.addStatement("%N.writeBinary(%L)", "protocol", source)
                 }
 
                 override fun visitEnum(enumType: EnumType) {
-                    writer.addStatement("%N.writeI32(%N.value)", "protocol", source)
+                    writer.addStatement("%N.writeI32(%L.value)", "protocol", source)
                 }
 
                 override fun visitList(listType: ListType) {
@@ -1239,7 +1242,7 @@ class KotlinCodeGenerator(
                             source)
 
                     val iterator = "item$scope"
-                    writer.beginControlFlow("for ($iterator in %N)", source)
+                    writer.beginControlFlow("for ($iterator in %L)", source)
 
                     generateRecursiveWrite(iterator, elementType, scope + 1)
 
@@ -1258,7 +1261,7 @@ class KotlinCodeGenerator(
                             source)
 
                     val iterator = "item$scope"
-                    writer.beginControlFlow("for ($iterator in %N)", source)
+                    writer.beginControlFlow("for ($iterator in %L)", source)
 
                     generateRecursiveWrite(iterator, elementType, scope + 1)
 
@@ -1281,7 +1284,7 @@ class KotlinCodeGenerator(
 
                     val keyIter = "key$scope"
                     val valIter = "val$scope"
-                    writer.beginControlFlow("for (($keyIter, $valIter) in %N)", source)
+                    writer.beginControlFlow("for (($keyIter, $valIter) in %L)", source)
 
                     generateRecursiveWrite(keyIter, keyType, scope + 1)
                     generateRecursiveWrite(valIter, valType, scope + 1)
@@ -1292,7 +1295,7 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitStruct(structType: StructType) {
-                    writer.addStatement("%T.ADAPTER.write(%N, %N)", structType.typeName, "protocol", source)
+                    writer.addStatement("%T.ADAPTER.write(%N, %L)", structType.typeName, "protocol", source)
                 }
 
                 override fun visitTypedef(typedefType: TypedefType) {
@@ -1355,7 +1358,7 @@ class KotlinCodeGenerator(
             override fun visitEnum(enumType: EnumType) {
                 block.beginControlFlow("val $name = protocol.readI32().let")
                 block.addStatement(
-                        "%1T.findByValue(it) ?: throw %2T(%3T.PROTOCOL_ERROR, \"Unexpected value for enum type %1T: \$it\")",
+                        "%1T.findByValue(it) ?: throw %2T(%3T.PROTOCOL_ERROR, \"Unexpected·value·for·enum·type·%1T:·\$it\")",
                         enumType.typeName,
                         ThriftException::class,
                         ThriftException.Kind::class)
@@ -1649,7 +1652,7 @@ class KotlinCodeGenerator(
                 }
 
                 private fun emitCustomCollection(elementType: ThriftType, value: ListValueElement, collectionType: TypeName) {
-                    block.add("%T(%L).apply {%>\n", collectionType, value.value.size)
+                    block.add("%T(%L).apply·{⇥\n", collectionType, value.value.size)
 
                     for (element in value.value) {
                         block.add("add(")
@@ -1657,20 +1660,20 @@ class KotlinCodeGenerator(
                         block.add(")\n")
                     }
 
-                    block.add("%<}")
+                    block.add("⇤}")
                 }
 
                 private fun emitDefaultCollection(elementType: ThriftType, value: ListValueElement, factoryMethod: String) {
-                    block.add("$factoryMethod(%>")
+                    block.add("$factoryMethod(⇥")
 
                     for ((n, elementValue) in value.value.withIndex()) {
                         if (n > 0) {
-                            block.add(",%W")
+                            block.add(", ")
                         }
                         recursivelyRenderConstValue(block, elementType, elementValue)
                     }
 
-                    block.add("%<)")
+                    block.add("⇤)")
                 }
 
                 override fun visitMap(mapType: MapType) {
@@ -1699,26 +1702,26 @@ class KotlinCodeGenerator(
                     val keyType = mapType.keyType
                     val valueType = mapType.valueType
 
-                    block.add("mapOf(%>")
+                    block.add("mapOf(⇥")
 
                     var n = 0
                     for ((k, v) in value.value) {
                         if (n++ > 0) {
-                            block.add(",%W")
+                            block.add(",·")
                         }
                         recursivelyRenderConstValue(block, keyType, k)
-                        block.add(" to ")
+                        block.add("·to·")
                         recursivelyRenderConstValue(block, valueType, v)
                     }
 
-                    block.add("%<)")
+                    block.add("⇤)")
                 }
 
                 private fun emitCustomMap(mapType: MapType, value: MapValueElement, mapTypeName: TypeName) {
                     val keyType = mapType.keyType
                     val valueType = mapType.valueType
 
-                    block.add("%T(%L).apply {\n%>", mapTypeName, value.value.size)
+                    block.add("%T(%L).apply·{\n⇥", mapTypeName, value.value.size)
 
                     for ((k, v) in value.value) {
                         block.add("put(")
@@ -1728,7 +1731,7 @@ class KotlinCodeGenerator(
                         block.add(")\n")
                     }
 
-                    block.add("%<}")
+                    block.add("⇤}")
                 }
 
                 override fun visitStruct(structType: StructType) {
@@ -1955,14 +1958,14 @@ class KotlinCodeGenerator(
 
         // suspendCoroutine is obviously not a class, but until kotlinpoet supports
         // importing fully-qualified fun names, we can pun and use a ClassName.
-        val suspendCoroFn = ClassName("kotlin.coroutines", "suspendCoroutine")
+        val suspendCoroFn = MemberName("kotlin.coroutines", "suspendCoroutine")
         val coroResultClass = ClassName("kotlin", "Result")
 
         for ((index, interfaceFun) in serviceInterface.funSpecs.withIndex()) {
             val method = serviceType.methods[index]
             val call = buildCallType(schema, method)
             val resultType = interfaceFun.returnType ?: UNIT
-            val callbackResultType = if (method.oneWay) UNIT.asNullable() else resultType
+            val callbackResultType = if (method.oneWay) UNIT.copy(nullable = true) else resultType
             val callbackType = ServiceMethodCallback::class.asTypeName().parameterizedBy(resultType)
             val callback = TypeSpec.anonymousClassBuilder()
                     .addSuperinterface(callbackType)
@@ -1997,17 +2000,16 @@ class KotlinCodeGenerator(
                     addParameter(param)
                 }
 
-                // HACK: suspendCoroFn isn't a type
-                addCode("return %T { cont ->%>\n", suspendCoroFn)
+                addCode("return %M·{·cont·->⇥\n", suspendCoroFn)
 
-                addCode("%[this.enqueue(%N(", call)
+                addCode("«this.enqueue(%N(", call)
                 for (param in interfaceFun.parameters) {
                     addCode("%N, ", param.name)
                 }
 
-                addCode("%L))%]\n", callback)
+                addCode("%L))»\n", callback)
 
-                addCode("%<}\n")
+                addCode("⇤}\n")
             }
             type.addType(call)
             type.addFunction(spec.build())
@@ -2052,13 +2054,13 @@ class KotlinCodeGenerator(
                 val propertyType = when {
                     param.required -> typeName
                     hasDefaultValue -> typeName
-                    else -> typeName.asNullable()
+                    else -> typeName.copy(nullable = true)
                 }
 
                 val ctorParam = ParameterSpec.builder(name, propertyType)
                 if (defaultValue != null) {
                     ctorParam.defaultValue(renderConstValue(schema, type, defaultValue))
-                } else if (typeName.nullable) {
+                } else if (typeName.isNullable) {
                     ctorParam.defaultValue("null")
                 }
 
@@ -2120,15 +2122,15 @@ class KotlinCodeGenerator(
                             .addMember("%T::class", Exception::class)
                             .build())
 
-            val maybeResultType = resultType.asNullable()
+            val maybeResultType = resultType.copy(nullable = true)
             val resultName = nameAllocator.get(Tags.RESULT)
             if (hasResult) {
-                recv.returns(resultType.asNonNullable())
+                recv.returns(resultType.copy(nullable = false))
                 recv.addStatement("var %N: %T = null", resultName, maybeResultType)
             }
 
             for (ex in method.exceptions) {
-                recv.addStatement("var %N: %T = null", nameAllocator.get(ex), ex.type.typeName.asNullable())
+                recv.addStatement("var %N: %T = null", nameAllocator.get(ex), ex.type.typeName.copy(nullable = true))
             }
 
             val fieldMeta = nameAllocator.get(Tags.FIELD)
@@ -2146,7 +2148,7 @@ class KotlinCodeGenerator(
 
             if (hasResult) {
                 recv.addCode {
-                    addStatement("0 -> {%>")
+                    addStatement("0 -> {⇥")
                     beginControlFlow("if (%N.typeId == %T.%L)", fieldMeta, TType::class, returnType.typeCodeName)
 
                     generateReadCall(this, "value", returnType)
@@ -2155,7 +2157,7 @@ class KotlinCodeGenerator(
                     nextControlFlow("else")
                     addStatement("%T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
                     endControlFlow()
-                    addStatement("%<}")
+                    addStatement("⇤}")
                 }
             }
 
@@ -2163,7 +2165,7 @@ class KotlinCodeGenerator(
                 val name = nameAllocator.get(exn)
                 val type = exn.type
                 recv.addCode {
-                    addStatement("${exn.id} -> {%>")
+                    addStatement("${exn.id}·->·{⇥")
                     beginControlFlow("if (%N.typeId == %T.%L)", fieldMeta, TType::class, type.typeCodeName)
 
                     generateReadCall(this, "value", type)
@@ -2172,12 +2174,12 @@ class KotlinCodeGenerator(
                     nextControlFlow("else")
                     addStatement("%T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
                     endControlFlow()
-                    addStatement("%<}")
+                    addStatement("⇤}")
                 }
             }
 
             if (readsSomething) {
-                recv.addStatement("else -> %T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
+                recv.addStatement("else·-> %T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
                 recv.endControlFlow()
             } else {
                 recv.addStatement("%T.skip(protocol, %N.typeId)", ProtocolUtil::class, fieldMeta)
