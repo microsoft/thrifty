@@ -53,37 +53,26 @@ shadowJar {
 
 mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
 
-task compileTestThrift(type: Exec) {
-    def jarTask = project.tasks['shadowJar'] as Jar
+def compileTestThrift = tasks.register("compileTestThrift", JavaExec) { t ->
+    t.inputs.file("$projectDir/ClientThriftTest.thrift")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty/java")
 
-    inputs.file("$projectDir/ClientThriftTest.thrift")
-    outputs.dir("$projectDir/build/generated-src/thrifty/java")
+    t.classpath shadowJar.archiveFile
 
-    dependsOn jarTask
-
-    executable 'java'
     args = [
-            '-jar',
-            jarTask.archivePath.absolutePath,
             "--out=$projectDir/build/generated-src/thrifty/java",
             "--generated-annotation-type=native",
             "$projectDir/ClientThriftTest.thrift"]
 }
 
 
-task kompileTestThrift(type: Exec) {
-    def jarTask = project.tasks['shadowJar'] as Jar
+def kompileTestThrift = tasks.register("kompileTestThrift", JavaExec) { t ->
+    t.inputs.file("$projectDir/ClientThriftTest.thrift")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
 
-    inputs.file("$projectDir/ClientThriftTest.thrift")
-    inputs.files(jarTask.outputs)
-    outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
+    t.classpath shadowJar.archiveFile
 
-    dependsOn jarTask
-
-    executable 'java'
     args = [
-            '-jar',
-            jarTask.archivePath.absolutePath,
             "--out=$projectDir/build/generated-src/thrifty/kotlin",
             "--lang=kotlin",
             "--map-type=java.util.LinkedHashMap",
@@ -94,19 +83,13 @@ task kompileTestThrift(type: Exec) {
     ]
 }
 
-task kompileCoroutineTestThrift(type: Exec) {
-    def jarTask = project.tasks['shadowJar'] as Jar
+def kompileCoroutineTestThrift = tasks.register("kompileCoroutineTestThrift", JavaExec) { t ->
+    t.inputs.file("$projectDir/CoroutineClientTest.thrift")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
 
-    inputs.file("$projectDir/CoroutineClientTest.thrift")
-    inputs.files(jarTask.outputs)
-    outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
+    t.classpath shadowJar.archiveFile
 
-    dependsOn jarTask
-
-    executable 'java'
     args = [
-            '-jar',
-            jarTask.archivePath.absolutePath,
             "--out=$projectDir/build/generated-src/thrifty/kotlin",
             "--lang=kotlin",
             "--generated-annotation-type=native",

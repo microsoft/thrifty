@@ -53,13 +53,9 @@ shadowJar {
     }
 }
 
-task compileTestCase(type: Exec) {
-    def jarTask = project.tasks['shadowJar'] as Jar
-
-    dependsOn jarTask
-
-    executable 'java'
-    args = ['-jar', jarTask.archivePath.absolutePath, "--name-style=java", "--out=$projectDir/build/generated-src/gen/java", "$projectDir/TestThrift.thrift"]
+tasks.register('compileTestCase', JavaExec) { t ->
+    t.classpath(shadowJar.archiveFile)
+    t.args = ["--name-style=java", "--out=$projectDir/build/generated-src/gen/java", "$projectDir/TestThrift.thrift"]
 }
 
 afterEvaluate {
