@@ -21,19 +21,19 @@
 apply plugin: 'kotlin'
 
 dependencies {
-    compile project(':thrifty-compiler-plugins')
-    compile libraries.javaPoet
+    implementation project(':thrifty-compiler-plugins')
+    implementation libraries.javaPoet
 
-    compile libraries.kotlin
-    compile libraries.kotlinPoet
+    implementation libraries.kotlin
+    implementation libraries.kotlinPoet
 
-    testCompile group: 'junit', name: 'junit', version: '4.11'
+    testImplementation group: 'junit', name: 'junit', version: '4.11'
 }
 
 uploadArchives.enabled = false
 
 jar {
-    archiveName 'compiler.jar'
+    archiveFileName.set('compiler.jar')
 
     // Include dependencies in the final JAR
     from {
