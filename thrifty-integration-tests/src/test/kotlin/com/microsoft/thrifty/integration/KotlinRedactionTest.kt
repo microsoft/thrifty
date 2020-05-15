@@ -24,9 +24,10 @@ import com.microsoft.thrifty.integration.gen.HasCommentBasedRedaction
 import com.microsoft.thrifty.integration.gen.HasObfuscation
 import com.microsoft.thrifty.integration.gen.HasRedaction
 import com.microsoft.thrifty.integration.gen.ObfuscatedCollections
-import io.kotlintest.matchers.string.shouldContain
-import io.kotlintest.matchers.string.shouldNotContain
-import io.kotlintest.shouldBe
+import io.kotest.matchers.should
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNot
+import io.kotest.matchers.string.contain
 import org.junit.Test
 import java.util.Arrays
 import java.util.Collections
@@ -39,8 +40,8 @@ class KotlinRedactionTest {
                 .three("value-three")  // expe
                 .build()
 
-        "$hr".shouldContain("one=value-one")
-        "$hr".shouldNotContain("should-not-appear")
+        "$hr" should contain("one=value-one")
+        "$hr" shouldNot contain("should-not-appear")
         hr.two shouldBe "should-not-appear"
     }
 
@@ -52,7 +53,7 @@ class KotlinRedactionTest {
                 .three("value-three")
                 .build()
 
-        "$hr".shouldContain("three=6A39B242")
+        "$hr" should contain("three=6A39B242")
         hr.three shouldBe "value-three"
     }
 
@@ -71,7 +72,7 @@ class KotlinRedactionTest {
                 .numz(Arrays.asList(1, 2, 3))
                 .build()
 
-        "$oc".shouldContain("numz=list<i32>(size=3)")
+        "$oc" should contain("numz=list<i32>(size=3)")
     }
 
     @Test
@@ -80,7 +81,7 @@ class KotlinRedactionTest {
                 .stringz(Collections.singletonMap("foo", "bar"))
                 .build()
 
-        "$oc".shouldContain("stringz=map<string, string>(size=1)")
+        "$oc" should contain("stringz=map<string, string>(size=1)")
     }
 
     @Test

@@ -20,7 +20,7 @@
  */
 package com.microsoft.thrifty.schema
 
-import io.kotlintest.shouldBe
+import io.kotest.matchers.shouldBe
 import org.junit.Test
 
 class FieldNamingPolicyTest {

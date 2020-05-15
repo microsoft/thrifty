@@ -24,11 +24,11 @@ import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.NamespaceScope
 import com.microsoft.thrifty.schema.Requiredness
-import io.kotlintest.matchers.startWith
-import io.kotlintest.matchers.string.shouldContain
-import io.kotlintest.should
-import io.kotlintest.shouldBe
-import io.kotlintest.shouldThrowExactly
+import io.kotest.assertions.throwables.shouldThrowExactly
+import io.kotest.matchers.should
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.startWith
 import okio.Okio
 
 import org.junit.After
@@ -40,7 +40,10 @@ import java.util.UUID
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.isEmptyString
-import org.junit.Assert.*
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThat
+import org.junit.Assert.fail
 
 class ThriftParserTest {
 
@@ -780,7 +783,7 @@ class ThriftParserTest {
     fun canParseOfficialTestCase() {
         val classLoader = javaClass.classLoader
         val stream = classLoader.getResourceAsStream("cases/TestThrift.thrift")
-        val thrift = Okio.buffer(Okio.source(stream)).readUtf8()
+        val thrift = Okio.buffer(Okio.source(stream!!)).readUtf8()
         val location = Location.get("cases", "TestThrift.thrift")
 
         // Not crashing is good enough here.  We'll be more strict with this file in the loader test.

@@ -65,7 +65,11 @@ allprojects {
                         'com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0',
                         'com.google.truth:truth:0.28',
                         'org.hamcrest:hamcrest-all:1.3',
-                        dependencies.create('io.kotlintest:kotlintest-assertions:3.1.8') {
+                        dependencies.create('io.kotest:kotest-assertions-jvm:4.0.5') {
+                            exclude module: 'kotlin-stdlib'
+                            exclude module: 'kotlin-reflect'
+                        },
+                        dependencies.create('io.kotest:kotest-assertions-core:4.0.5') {
                             exclude module: 'kotlin-stdlib'
                             exclude module: 'kotlin-reflect'
                         },

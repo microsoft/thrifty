@@ -43,8 +43,8 @@ import com.microsoft.thrifty.testing.TestServer
 import com.microsoft.thrifty.transport.FramedTransport
 import com.microsoft.thrifty.transport.SocketTransport
 import com.microsoft.thrifty.transport.Transport
-import io.kotlintest.fail
-import io.kotlintest.shouldBe
+import io.kotest.assertions.fail
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking

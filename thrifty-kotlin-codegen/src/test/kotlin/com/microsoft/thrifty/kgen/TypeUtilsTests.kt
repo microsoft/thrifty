@@ -23,7 +23,7 @@ package com.microsoft.thrifty.kgen
 import com.microsoft.thrifty.TType
 import com.microsoft.thrifty.schema.BuiltinType
 import com.squareup.kotlinpoet.*
-import io.kotlintest.shouldBe
+import io.kotest.matchers.shouldBe
 import okio.ByteString
 import org.junit.Test
 
