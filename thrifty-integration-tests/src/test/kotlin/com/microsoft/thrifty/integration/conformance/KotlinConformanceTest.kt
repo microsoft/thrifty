@@ -43,8 +43,9 @@ import com.microsoft.thrifty.testing.TestServer
 import com.microsoft.thrifty.transport.FramedTransport
 import com.microsoft.thrifty.transport.SocketTransport
 import com.microsoft.thrifty.transport.Transport
-import io.kotlintest.matchers.types.shouldBeInstanceOf
-import io.kotlintest.shouldBe
+import io.kotest.matchers.beInstanceOf
+import io.kotest.matchers.should
+import io.kotest.matchers.shouldBe
 import okio.ByteString
 import org.junit.After
 import org.junit.Before
@@ -353,7 +354,7 @@ class KotlinConformanceTest(
         client.testException("Xception", callback)
 
         val error = callback.error
-        error.shouldBeInstanceOf<Xception>()
+        error should beInstanceOf(Xception::class)
 
         val (errorCode, message) = error as Xception
         errorCode shouldBe 1001
@@ -365,7 +366,7 @@ class KotlinConformanceTest(
         client.testException("TException", callback)
 
         val error = callback.error
-        error.shouldBeInstanceOf<ThriftException>()
+        error should beInstanceOf(ThriftException::class)
 
         val e = error as ThriftException
         e.kind shouldBe ThriftException.Kind.INTERNAL_ERROR

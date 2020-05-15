@@ -20,8 +20,8 @@
  */
 package com.microsoft.thrifty.schema
 
-import io.kotlintest.shouldBe
-import io.kotlintest.shouldNotBe
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.junit.Test
 import java.io.File
 

@@ -30,10 +30,10 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import io.kotlintest.shouldNot
-import io.kotlintest.matchers.string.contain
-import io.kotlintest.should
-import io.kotlintest.shouldBe
+import io.kotest.matchers.should
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNot
+import io.kotest.matchers.string.contain
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
