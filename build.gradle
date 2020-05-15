@@ -37,7 +37,7 @@ allprojects {
                 ],
 
                 guava: [
-                        'com.google.guava:guava:23.0'
+                        'com.google.guava:guava:29.0-jre'
                 ],
 
                 javaPoet: [
