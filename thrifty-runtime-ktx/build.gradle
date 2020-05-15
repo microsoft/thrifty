@@ -21,6 +21,7 @@
 description = 'Provides Kotlin support and compatibility with thrifty-runtime.'
 
 apply plugin: 'kotlin'
+apply plugin: 'com.vanniktech.maven.publish'
 
 dependencies {
     api project(':thrifty-runtime')
