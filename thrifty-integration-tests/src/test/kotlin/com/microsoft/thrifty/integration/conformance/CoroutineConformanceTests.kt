@@ -48,7 +48,7 @@ import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
-import okio.ByteString
+import okio.ByteString.Companion.encodeUtf8
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -174,7 +174,7 @@ class CoroutineConformanceTests(
     }
 
     @Test fun testBinary() = runBlocking {
-        val binary = ByteString.encodeUtf8("Peace on Earth and Thrift for all mankind")
+        val binary = "Peace on Earth and Thrift for all mankind".encodeUtf8()
 
         client.testBinary(binary) shouldBe binary
     }

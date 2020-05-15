@@ -28,7 +28,8 @@ import com.google.testing.compile.JavaSourcesSubjectFactory.javaSources
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
 import com.squareup.javapoet.JavaFile
-import okio.Okio
+import okio.buffer
+import okio.sink
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -651,7 +652,7 @@ class ThriftyCodeGeneratorTest {
 
         val trimmed = text.trimStart('\n').trimIndent()
 
-        Okio.buffer(Okio.sink(file)).use { sink ->
+        file.sink().buffer().use { sink ->
             sink.writeUtf8(trimmed)
             sink.flush()
         }

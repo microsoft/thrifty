@@ -47,6 +47,7 @@ import io.kotest.matchers.beInstanceOf
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import okio.ByteString
+import okio.ByteString.Companion.encodeUtf8
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -190,7 +191,7 @@ class KotlinConformanceTest(
     }
 
     @Test fun testBinary() {
-        val binary = ByteString.encodeUtf8("Peace on Earth and Thrift for all mankind")
+        val binary = "Peace on Earth and Thrift for all mankind".encodeUtf8()
 
         val callback = AssertingCallback<ByteString>()
         client.testBinary(binary, callback)
