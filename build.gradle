@@ -62,7 +62,7 @@ allprojects {
 
                 testing: [
                         'junit:junit:4.12',
-                        'com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0',
+                        'com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0',
                         'com.google.truth:truth:0.28',
                         'org.hamcrest:hamcrest-all:1.3',
                         dependencies.create('io.kotlintest:kotlintest-assertions:3.1.8') {
