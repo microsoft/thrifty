@@ -54,17 +54,25 @@ shadowJar {
     }
 }
 
-tasks.register('compileTestCase', JavaExec) { t ->
+def compileTestCase = tasks.register('compileTestCase', JavaExec) { t ->
     t.classpath(shadowJar.archiveFile)
     t.args = ["--name-style=java", "--out=$projectDir/build/generated-src/gen/java", "$projectDir/TestThrift.thrift"]
+
+    t.outputs.dir("$projectDir/build/generated-src/gen")
+}
+
+task deleteTestCase(type: Delete) {
+    delete compileTestCase
+}
+
+compileJava {
+    dependsOn deleteTestCase
+}
+
+compileKotlin {
+    dependsOn deleteTestCase
 }
 
 afterEvaluate {
     project.publishing.publications.first().artifact(shadowJar)
-
-    if (project.tasks.getByName('compileTestCase') != null) {
-        project.tasks['compileJava'].dependsOn project.tasks.create('deleteTestCaseJava', Delete) {
-            delete "$projectDir/build/generated-src/gen"
-        }
-    }
 }
