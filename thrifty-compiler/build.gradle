@@ -21,6 +21,7 @@
 
 apply plugin: 'kotlin'
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.vanniktech.maven.publish'
 
 dependencies {
     implementation project(':thrifty-schema')
@@ -59,6 +60,8 @@ tasks.register('compileTestCase', JavaExec) { t ->
 }
 
 afterEvaluate {
+    project.publishing.publications.first().artifact(shadowJar)
+
     if (project.tasks.getByName('compileTestCase') != null) {
         project.tasks['compileJava'].dependsOn project.tasks.create('deleteTestCaseJava', Delete) {
             delete "$projectDir/build/generated-src/gen"

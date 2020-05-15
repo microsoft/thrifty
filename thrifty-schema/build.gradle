@@ -21,6 +21,7 @@
 plugins {
     id 'kotlin'
     id 'antlr'
+    id 'com.vanniktech.maven.publish'
 }
 
 description = 'A simple Thrift IDL parser and validator'
