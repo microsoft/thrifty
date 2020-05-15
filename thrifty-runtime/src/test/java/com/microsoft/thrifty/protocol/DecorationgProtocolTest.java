@@ -53,7 +53,7 @@ public final class DecorationgProtocolTest {
     public void testCtor() {
         Protocol binaryProtocol = new BinaryProtocol(new BufferTransport());
         Protocol decoratingProtocol = new DecoratingProtocol(binaryProtocol) {};
-        assertThat(decoratingProtocol.transport).isSameAs(binaryProtocol.transport);
+        assertThat(decoratingProtocol.transport).isSameInstanceAs(binaryProtocol.transport);
     }
 
     @Test
