@@ -35,6 +35,4 @@ dependencies {
     implementation project(':thrifty-runtime-ktx')
 
     testImplementation libraries.testing
-
-    testImplementation 'com.google.testing.compile:compile-testing:0.9'
 }
