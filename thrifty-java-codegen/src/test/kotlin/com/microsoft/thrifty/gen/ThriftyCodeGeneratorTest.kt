@@ -22,6 +22,7 @@ package com.microsoft.thrifty.gen
 
 import com.google.common.truth.Truth.assertAbout
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.google.testing.compile.JavaSourceSubjectFactory.javaSource
 import com.google.testing.compile.JavaSourcesSubjectFactory.javaSources
 import com.microsoft.thrifty.schema.Loader
@@ -113,7 +114,7 @@ class ThriftyCodeGeneratorTest {
             }
         }
 
-        assertThat(found).named("Const reference was found in field assignment").isTrue()
+        assertWithMessage("Const reference was not found in field assignment").that(found).isTrue()
 
         assertThat(java).hasSize(2)
         for (javaFile in java) {
