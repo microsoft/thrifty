@@ -52,5 +52,11 @@ then
   exit 1
 fi
 
+if ! [[ $(javac -version 2>&1) =~ 1.8 ]]
+then
+  echo "Wrong JDK"
+  exit 1
+fi
+
 ./gradlew uploadArchives
 
