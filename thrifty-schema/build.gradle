@@ -42,8 +42,8 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 }
 
 dependencies {
-    antlr "org.antlr:antlr4:4.7.1"
-    implementation "org.antlr:antlr4:4.7.1"
+    antlr libraries.antlr
+    implementation libraries.antlr
 
     api libraries.guava
     api libraries.kotlin
