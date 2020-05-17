@@ -33,11 +33,7 @@ dependencies {
 
     testImplementation libraries.kotlin
     testImplementation libraries.testing
-
-    testImplementation 'junit:junit:4.11'
 }
-
-uploadArchives.enabled = false
 
 sourceSets {
     test {
@@ -99,14 +95,16 @@ def kompileCoroutineTestThrift = tasks.register("kompileCoroutineTestThrift", Ja
     ]
 }
 
+def cleanTestCode = tasks.register("cleanTestCode", Delete) { t ->
+    t.delete compileTestThrift
+    t.delete kompileTestThrift
+    t.delete kompileCoroutineTestThrift
+}
+
 compileTestKotlin {
     dependsOn compileTestThrift
     dependsOn kompileTestThrift
     dependsOn kompileCoroutineTestThrift
-}
-
-task cleanTestCode(type: Delete) {
-    delete "$projectDir/build/generated-src/thrifty"
 }
 
 clean {
@@ -116,8 +114,4 @@ clean {
 compileTestJava {
     dependsOn compileTestThrift
     dependsOn kompileTestThrift
-}
-
-tasks['javadoc'].configure {
-    exclude '**/generated-src/**'
 }

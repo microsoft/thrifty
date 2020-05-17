@@ -30,10 +30,6 @@ generateGrammarSource {
     arguments += ["-package", "com.microsoft.thrifty.schema.antlr"]
 }
 
-tasks.withType(JavaCompile) {
-    options.annotationProcessorPath = configurations.annotationProcessor
-}
-
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
         jvmTarget = "1.8"
@@ -51,10 +47,6 @@ dependencies {
     implementation libraries.okio
 
     testImplementation libraries.testing
-}
-
-compileTestJava {
-    options.compilerArgs += [ '-Xlint:deprecation,unchecked' ]
 }
 
 // For some reason, Kotlin compilation is being run prior to antlr by default.
