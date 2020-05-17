@@ -29,6 +29,3 @@ uploadArchives.enabled = false
 tasks['javadoc'].configure {
     exclude '**/test/gen/**'
 }
-
-// Ditto for checkstyle violations - though I think Thrifty does a little better here ;)
-tasks['checkstyleMain'].enabled = false
