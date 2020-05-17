@@ -45,12 +45,10 @@ dependencies {
     antlr "org.antlr:antlr4:4.7.1"
     implementation "org.antlr:antlr4:4.7.1"
 
-    implementation libraries.okio
-
+    api libraries.guava
     api libraries.kotlin
 
-    api 'com.google.code.findbugs:jsr305:3.0.1'
-    api libraries.guava
+    implementation libraries.okio
 
     testImplementation libraries.testing
 }
