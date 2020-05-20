@@ -29,7 +29,8 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.startWith
-import okio.Okio
+import okio.buffer
+import okio.source
 
 import org.junit.After
 import org.junit.Before
@@ -783,7 +784,7 @@ class ThriftParserTest {
     fun canParseOfficialTestCase() {
         val classLoader = javaClass.classLoader
         val stream = classLoader.getResourceAsStream("cases/TestThrift.thrift")
-        val thrift = Okio.buffer(Okio.source(stream!!)).readUtf8()
+        val thrift = stream!!.source().buffer().readUtf8()
         val location = Location.get("cases", "TestThrift.thrift")
 
         // Not crashing is good enough here.  We'll be more strict with this file in the loader test.

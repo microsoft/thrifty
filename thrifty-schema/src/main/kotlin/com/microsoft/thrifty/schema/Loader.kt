@@ -24,7 +24,8 @@ import com.google.common.base.Preconditions
 import com.microsoft.thrifty.schema.parser.ThriftFileElement
 import com.microsoft.thrifty.schema.parser.ThriftParser
 import com.microsoft.thrifty.schema.render.filepath
-import okio.Okio
+import okio.buffer
+import okio.source
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.file.FileSystems
@@ -232,10 +233,10 @@ class Loader {
             return null
         }
 
-        Okio.source(file).use { source ->
+        file.source().use { source ->
             try {
                 val location = Location.get("$base", "$fileName")
-                val data = Okio.buffer(source).readUtf8()
+                val data = source.buffer().readUtf8()
                 return ThriftParser.parse(location, data, errorReporter)
             } catch (e: IOException) {
                 throw IOException("Failed to load $fileName from $base", e)
