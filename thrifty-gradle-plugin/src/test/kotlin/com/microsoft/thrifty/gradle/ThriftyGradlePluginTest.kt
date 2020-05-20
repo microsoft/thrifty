@@ -22,10 +22,40 @@ package com.microsoft.thrifty.gradle
 
 import io.kotest.matchers.nulls.beNull
 import io.kotest.matchers.shouldNot
+import org.gradle.testkit.runner.BuildResult
+import org.gradle.testkit.runner.GradleRunner
+import org.junit.After
 import org.junit.Test
+import java.io.File
 
 class ThriftyGradlePluginTest {
+    private val runner = GradleRunner.create().withPluginClasspath()
+
+    @After fun cleanup() {
+
+    }
+
     @Test fun `it does nothing`() {
         ThriftyGradlePlugin() shouldNot beNull()
+    }
+
+    @Test fun `build kotlin project`() {
+        val result = runner.buildFixture(File("src/test/projects/kotlin_project_kotlin_thrifts"))
+
+        println("result: $result")
+    }
+
+    private fun GradleRunner.buildFixture(fixture: File): BuildResult {
+        var didCreateSettings = false
+        val settings = File(fixture, "settings.gradle")
+        if (!settings.exists()) {
+            didCreateSettings = settings.createNewFile()
+        }
+
+        try {
+            return withProjectDir(fixture).build()
+        } finally {
+            if (didCreateSettings) settings.delete()
+        }
     }
 }

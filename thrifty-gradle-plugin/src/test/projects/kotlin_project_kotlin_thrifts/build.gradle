@@ -1,0 +1,14 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'com.microsoft.thrifty'
+}
+
+thrifty {
+    kotlin {
+
+    }
+}
+
+repositories {
+    mavenCentral()
+}

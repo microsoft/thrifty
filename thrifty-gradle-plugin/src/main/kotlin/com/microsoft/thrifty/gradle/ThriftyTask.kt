@@ -20,23 +20,13 @@
  */
 package com.microsoft.thrifty.gradle
 
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import java.io.File
+import org.gradle.api.tasks.SourceTask
+import org.gradle.api.tasks.TaskAction
 
-class ThriftyGradlePlugin : Plugin<Project> {
-    override fun apply(project: Project) {
-        var ext = project.extensions.create("thrifty", ThriftyExtension::class.java, project)
+open class ThriftyTask : SourceTask() {
 
-        project.configurations.create("thriftSource")
-        project.configurations.create("thriftPath")
+    @TaskAction
+    fun run() {
 
-        project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
-            t.group = "thrifty"
-            t.description = "Generate Thrifty thrift implementations for .thrift files"
-        }
-
-        val outputDir = listOf("${project.buildDir}", "generated", "source", "thrifty").joinToString(File.pathSeparator)
     }
-
 }

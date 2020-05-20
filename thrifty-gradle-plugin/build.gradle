@@ -40,5 +40,8 @@ dependencies {
     implementation project(':thrifty-kotlin-codegen')
     implementation project(':thrifty-schema')
 
+    // Required for test fixtures to apply the kotlin plugin
+    implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.72"
+
     testImplementation libraries.testing
 }

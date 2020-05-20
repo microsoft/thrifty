@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.gradle
 
+import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
@@ -27,16 +28,19 @@ import org.gradle.api.tasks.Optional
 open class ThriftyExtension(project: Project) {
     private val objectFactory = project.objects
 
-    private val includePaths = mutableSetOf<String>()
+    private val includeDirs = mutableSetOf<String>()
     private val thriftFiles = mutableSetOf<String>()
+
+    private var kotlinOptions: KotlinOptions? = null
+    private var javaOptions: JavaOptions? = null
 
     // TODO: wildcard globs
     fun thriftFile(vararg files: String) {
         thriftFiles.addAll(files)
     }
 
-    fun includePath(vararg paths: String) {
-        includePaths.addAll(paths)
+    fun includeDir(vararg paths: String) {
+        includeDirs.addAll(paths)
     }
 
     @Input
@@ -48,6 +52,26 @@ open class ThriftyExtension(project: Project) {
     @Input
     @Optional
     fun includePaths(): Set<String> {
-        return includePaths.toSet()
+        return includeDirs.toSet()
+    }
+
+    fun kotlin(action: Action<KotlinOptions>) {
+        val options = objectFactory.newInstance(KotlinOptions::class.java)
+        action.execute(options)
+        kotlinOptions = options
+    }
+
+    fun java(action: Action<JavaOptions>) {
+        val options = objectFactory.newInstance(JavaOptions::class.java)
+        action.execute(options)
+        javaOptions = options
+    }
+
+    open class KotlinOptions {
+
+    }
+
+    open class JavaOptions {
+
     }
 }
