@@ -69,10 +69,11 @@ class Location private constructor(
         }
         sb.append(path)
         if (line != -1) {
-            sb.append(" at ").append(line)
+            sb.append(": (").append(line)
             if (column != -1) {
-                sb.append(":").append(column)
+                sb.append(", ").append(column)
             }
+            sb.append(")")
         }
         return sb.toString()
     }

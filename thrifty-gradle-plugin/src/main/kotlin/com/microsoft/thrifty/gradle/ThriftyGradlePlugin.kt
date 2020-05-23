@@ -20,23 +20,121 @@
  */
 package com.microsoft.thrifty.gradle
 
+import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.SourceDirectorySet
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.compile.JavaCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
+import java.nio.file.Path
 
 class ThriftyGradlePlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        var ext = project.extensions.create("thrifty", ThriftyExtension::class.java, project)
+        val ext = project.extensions.create("thrifty", ThriftyExtension::class.java, project)
 
-        project.configurations.create("thriftSource")
-        project.configurations.create("thriftPath")
+        val outputDirName = listOf("${project.buildDir}", "generated", "sources", "thrifty").joinToString(File.separator)
+        val outputDir = project.file(outputDirName).toPath()
 
-        project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
-            t.group = "thrifty"
-            t.description = "Generate Thrifty thrift implementations for .thrift files"
+        val defaultSourceDirName = listOf("src", "main", "thrift").joinToString(File.separator)
+        val defaultSourceDir = project.file(defaultSourceDirName).toPath()
+
+        val includePath = assembleIncludePath(project, ext, defaultSourceDir)
+        val thriftFiles = assembleThriftSources(project, ext, defaultSourceDirName)
+
+        val sourceCompatibilityVersion = detectSourceCompatibilityVersion(project)
+        if (sourceCompatibilityVersion <= JavaVersion.VERSION_1_8) {
+            // If we're targeting Java 8 or below, we're tagging generated classes
+            // with @javax.annotation.Generated, which is _not_ included in the JDK
+            // by default.  So to make sure our code can be compiled, we'll force a
+            // dependency on javax.annotation-api.
+            //
+            // TODO: This is disgusting.  Find a better way, if at all possible.
+            project.dependencies.add("compileClasspath", "javax.annotation:javax.annotation-api:+")
         }
 
-        val outputDir = listOf("${project.buildDir}", "generated", "source", "thrifty").joinToString(File.pathSeparator)
+        val provider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
+            t.group = "thrifty"
+            t.description = "Generate Thrifty thrift implementations for .thrift files"
+            t.outputDirectory.set(outputDir.toFile())
+            t.sourceCompatibility = sourceCompatibilityVersion
+            t.source(thriftFiles)
+            t.includePath.set(includePath)
+            t.options.set(ext.thriftOptions)
+        }
+
+        project.afterEvaluate {
+            // We're doing an afterEvaluate because
+            // a) compile tasks appear not to be available for configuration beforehand
+            // b) our own extension isn't fully configured, apparently, until later
+
+            val options = ext.thriftOptions.get()
+            project.tasks.withType(KotlinCompile::class.java).configureEach {
+                if (options is KotlinThriftOptions) {
+                    it.source(outputDir)
+                }
+                it.dependsOn(provider)
+            }
+
+            project.tasks.withType(JavaCompile::class.java).configureEach {
+                if (options is JavaThriftOptions) {
+                    it.source(outputDir)
+                }
+                it.dependsOn(provider)
+            }
+        }
     }
 
+    private fun assembleIncludePath(project: Project, ext: ThriftyExtension, defaultSourceDir: Path): Provider<List<Path>> {
+        val pathConfiguration = project.configurations.create("thriftPath")
+        return ext.includeDirs.map { dirs ->
+            dirs.mapNotNull { path ->
+                val file = File(path).let { f ->
+                    if (f.isAbsolute) f else project.file(f)
+                }
+
+                if (!file.isDirectory) {
+                    // TODO: fail
+                    return@mapNotNull null
+                }
+
+                val dep = project.dependencies.create(file)
+                pathConfiguration.dependencies.add(dep)
+
+                file.toPath()
+            }
+        }.map { listOf(defaultSourceDir) + it }
+    }
+
+    @Suppress("UnstableApiUsage")
+    private fun assembleThriftSources(project: Project, ext: ThriftyExtension, defaultSourceDir: String): SourceDirectorySet {
+        val sourceDirs = ext.sourceDirs.map { it.toSet().plus(defaultSourceDir) }
+        val sourceSet = project.objects.sourceDirectorySet("thrifty-sources", "Thrift sources for compilation")
+        sourceSet.srcDirs(sourceDirs)
+        sourceSet.filter.include("**/*.thrift")
+
+        val sourceDependency = project.dependencies.create(sourceSet)
+        val sourceConfiguration = project.configurations.create("thriftSource")
+        sourceConfiguration.dependencies.add(sourceDependency)
+
+        return sourceSet
+    }
+
+    private fun detectSourceCompatibilityVersion(project: Project): JavaVersion {
+        val kotlinTasks = project.tasks.withType(KotlinCompile::class.java)
+        val kotlinJvmTarget = kotlinTasks.map { JavaVersion.toVersion(it.kotlinOptions.jvmTarget) }.max()
+        if (kotlinJvmTarget != null) {
+            project.logger.debug("Found a Kotlin JVM target of {}", kotlinJvmTarget)
+            return kotlinJvmTarget
+        }
+
+        val javaPlugin = project.extensions.findByType(JavaPluginExtension::class.java)
+        if (javaPlugin != null) {
+            return javaPlugin.sourceCompatibility
+        }
+
+        error("Please apply either Java or Kotlin plugins to use Thrifty in this module.")
+    }
 }

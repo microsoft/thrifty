@@ -38,6 +38,6 @@ class LocationTest {
 
     @Test fun `toString is human-readable`() {
         val location = Location.get("/var/log", "syslog").at(10, 5)
-        "$location" shouldBe "/var/log${File.separator}syslog at 10:5"
+        "$location" shouldBe "/var/log${File.separator}syslog: (10, 5)"
     }
 }
