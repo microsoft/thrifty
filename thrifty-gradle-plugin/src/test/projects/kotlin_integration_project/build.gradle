@@ -1,11 +1,11 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm'
     id 'com.microsoft.thrifty'
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm'
 }
 
 thrifty {
-    kotlin {
-    }
+    kotlin {}
 }
 
 repositories {

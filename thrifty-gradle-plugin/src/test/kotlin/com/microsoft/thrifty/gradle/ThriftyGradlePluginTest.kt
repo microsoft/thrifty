@@ -20,34 +20,42 @@
  */
 package com.microsoft.thrifty.gradle
 
-import io.kotest.matchers.nulls.beNull
-import io.kotest.matchers.shouldNot
+import io.kotest.matchers.shouldBe
+import org.gradle.api.internal.project.ProjectInternal
+import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.junit.Test
 import java.io.File
 
 class ThriftyGradlePluginTest {
+    private val fixturesDir = File(listOf("src", "test", "projects").joinToString(File.separator))
     private val runner = GradleRunner.create().withPluginClasspath()
 
-    @Test fun `it does nothing`() {
-        ThriftyGradlePlugin() shouldNot beNull()
+    @Test fun `it does not fail when applied prior to any kotlin or java plugins`() {
+        val project = ProjectBuilder.builder()
+                .withName("foo")
+                .build()
+        project.plugins.apply(ThriftyGradlePlugin::class.java)
+        project.plugins.apply("org.jetbrains.kotlin.jvm")
     }
 
-    @Test fun `build kotlin project`() {
-        val result = runner.buildFixture(File("src/test/projects/kotlin_project_kotlin_thrifts"))
-
-
+    @Test fun `build kotlin integration project`() {
+        val result = runner.buildFixture("kotlin_integration_project") { build() }
+        result.task(":generateThriftFiles")!!.outcome shouldBe TaskOutcome.SUCCESS
     }
 
-    private fun GradleRunner.buildFixture(fixture: File): BuildResult {
+    private fun GradleRunner.buildFixture(fixtureName: String, buildAndAssert: GradleRunner.() -> BuildResult): BuildResult {
+        val fixture = File(fixturesDir, fixtureName)
         val settings = File(fixture, "settings.gradle")
         val didCreateSettings = settings.createNewFile()
 
         val buildDirectory = File(fixture, "build")
 
         try {
-            return withProjectDir(fixture).withArguments("compileKotlin", "--stacktrace", "--info").build()
+            return withProjectDir(fixture).withArguments(":build", "--stacktrace", "--info").buildAndAssert()
         } finally {
             if (didCreateSettings) settings.delete()
             if (buildDirectory.exists()) buildDirectory.deleteRecursively()

@@ -21,22 +21,23 @@
 package com.microsoft.thrifty.gradle
 
 import org.gradle.api.Action
-import org.gradle.api.Project
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import java.util.TreeMap
+import javax.inject.Inject
 
-open class ThriftyExtension(project: Project) {
-    private val objectFactory = project.objects
+@Suppress("UnstableApiUsage")
+open class ThriftyExtension @Inject constructor(
+        private val objects: ObjectFactory
+) {
+    val includeDirs: ListProperty<String> = objects.listProperty(String::class.java)
+    val sourceDirs: ListProperty<String> = objects.listProperty(String::class.java)
 
-    val includeDirs: ListProperty<String> = project.objects.listProperty(String::class.java)
-    val sourceDirs: ListProperty<String> = project.objects.listProperty(String::class.java)
-
-    private val sourceThriftOptions: Property<ThriftOptions> = project.objects.property(ThriftOptions::class.java)
-    val thriftOptions: Provider<ThriftOptions> = sourceThriftOptions.map { it ?: JavaThriftOptions() }
+    val thriftOptions: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
+            .convention(JavaThriftOptions())
 
     fun sourceDir(path: String) {
         sourceDirs.add(path)
@@ -55,32 +56,21 @@ open class ThriftyExtension(project: Project) {
     }
 
     fun kotlin(action: Action<KotlinThriftOptions>) {
-        val opts = objectFactory.newInstance(KotlinThriftOptions::class.java).apply {
+        val opts = objects.newInstance(KotlinThriftOptions::class.java).apply {
             action.execute(this)
         }
-        sourceThriftOptions.set(opts)
+        thriftOptions.set(opts)
     }
 
     fun java(action: Action<JavaThriftOptions>) {
-        val opts = objectFactory.newInstance(JavaThriftOptions::class.java).apply {
+        val opts = objects.newInstance(JavaThriftOptions::class.java).apply {
             action.execute(this)
         }
-        sourceThriftOptions.set(opts)
+        thriftOptions.set(opts)
     }
 }
 
 sealed class ThriftOptions {
-    // Language-independent compiler options we *aren't* exposing here:
-    //
-    // - generatedAnnotationType:
-    //   We have perfect information here in the form of sourceCompatibility
-    //   or Kotlin compiler arguments; no need to specify what the proper
-    //   annotation is, we can figure that out ourselves.
-    //
-    // - omitGeneratedAnnotations:
-    //   It seems even more important in _transient_ generated code to include
-    //   this annotation than it does in tool-generated code.
-
     enum class FieldNameStyle {
         DEFAULT,
         JAVA,
@@ -109,6 +99,11 @@ sealed class ThriftOptions {
     @Input
     @Optional
     var mapType: String? = null
+        private set
+
+    @Input
+    @Optional
+    var generatedAnnotationType: String? = null
         private set
 
     @Input
@@ -160,6 +155,14 @@ sealed class ThriftOptions {
 
     fun mapType(clazz: Class<*>) {
         this.mapType = clazz.canonicalName!!
+    }
+
+    fun generatedAnnotationType(clazz: Class<*>) {
+        generatedAnnotationType(clazz.canonicalName)
+    }
+
+    fun generatedAnnotationType(type: String?) {
+        this.generatedAnnotationType = type
     }
 }
 
@@ -246,9 +249,3 @@ fun <T> caseInsensitiveMapOf(vararg pairs: Pair<String, T>): Map<String, T> {
         acc
     }
 }
-
-val ThriftOptions.isJava: Boolean
-    get() = JavaThriftOptions::class.java.isAssignableFrom(javaClass)
-
-val ThriftOptions.isKotlin: Boolean
-    get() = KotlinThriftOptions::class.java.isAssignableFrom(javaClass)

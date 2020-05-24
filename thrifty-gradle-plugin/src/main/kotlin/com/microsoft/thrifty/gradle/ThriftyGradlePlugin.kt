@@ -20,70 +20,50 @@
  */
 package com.microsoft.thrifty.gradle
 
-import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.SourceDirectorySet
-import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.compile.JavaCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.Paths
 
 class ThriftyGradlePlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val ext = project.extensions.create("thrifty", ThriftyExtension::class.java, project)
+        val ext = project.extensions.create("thrifty", ThriftyExtension::class.java)
 
-        val outputDirName = listOf("${project.buildDir}", "generated", "sources", "thrifty").joinToString(File.separator)
-        val outputDir = project.file(outputDirName).toPath()
+        val outputDir = Paths.get(project.buildDir.canonicalPath, "generated", "sources", "thrifty")
 
         val defaultSourceDirName = listOf("src", "main", "thrift").joinToString(File.separator)
         val defaultSourceDir = project.file(defaultSourceDirName).toPath()
 
-        val includePath = assembleIncludePath(project, ext, defaultSourceDir)
-        val thriftFiles = assembleThriftSources(project, ext, defaultSourceDirName)
-
-        val sourceCompatibilityVersion = detectSourceCompatibilityVersion(project)
-        if (sourceCompatibilityVersion <= JavaVersion.VERSION_1_8) {
-            // If we're targeting Java 8 or below, we're tagging generated classes
-            // with @javax.annotation.Generated, which is _not_ included in the JDK
-            // by default.  So to make sure our code can be compiled, we'll force a
-            // dependency on javax.annotation-api.
-            //
-            // TODO: This is disgusting.  Find a better way, if at all possible.
-            project.dependencies.add("compileClasspath", "javax.annotation:javax.annotation-api:+")
-        }
-
-        val provider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
+        val thriftTaskProvider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
             t.group = "thrifty"
             t.description = "Generate Thrifty thrift implementations for .thrift files"
             t.outputDirectory.set(outputDir.toFile())
-            t.sourceCompatibility = sourceCompatibilityVersion
-            t.source(thriftFiles)
-            t.includePath.set(includePath)
+            t.source(assembleThriftSources(project, ext, defaultSourceDirName))
+            t.includePath.set(assembleIncludePath(project, ext, defaultSourceDir))
             t.options.set(ext.thriftOptions)
         }
 
-        project.afterEvaluate {
-            // We're doing an afterEvaluate because
-            // a) compile tasks appear not to be available for configuration beforehand
-            // b) our own extension isn't fully configured, apparently, until later
+        val kotlinSources = project.fileTree(outputDir) {
+            it.patterns.include("**/*.kt")
+        }
 
-            val options = ext.thriftOptions.get()
-            project.tasks.withType(KotlinCompile::class.java).configureEach {
-                if (options is KotlinThriftOptions) {
-                    it.source(outputDir)
-                }
-                it.dependsOn(provider)
-            }
+        val javaSources = project.fileTree(outputDir) {
+            it.patterns.include("**/*.java")
+        }
 
-            project.tasks.withType(JavaCompile::class.java).configureEach {
-                if (options is JavaThriftOptions) {
-                    it.source(outputDir)
-                }
-                it.dependsOn(provider)
-            }
+        project.tasks.withType(KotlinCompile::class.java).all {
+            it.source(kotlinSources)
+            it.dependsOn(thriftTaskProvider)
+        }
+
+        project.tasks.withType(JavaCompile::class.java).all {
+            it.source(javaSources)
+            it.dependsOn(thriftTaskProvider)
         }
     }
 
@@ -120,21 +100,5 @@ class ThriftyGradlePlugin : Plugin<Project> {
         sourceConfiguration.dependencies.add(sourceDependency)
 
         return sourceSet
-    }
-
-    private fun detectSourceCompatibilityVersion(project: Project): JavaVersion {
-        val kotlinTasks = project.tasks.withType(KotlinCompile::class.java)
-        val kotlinJvmTarget = kotlinTasks.map { JavaVersion.toVersion(it.kotlinOptions.jvmTarget) }.max()
-        if (kotlinJvmTarget != null) {
-            project.logger.debug("Found a Kotlin JVM target of {}", kotlinJvmTarget)
-            return kotlinJvmTarget
-        }
-
-        val javaPlugin = project.extensions.findByType(JavaPluginExtension::class.java)
-        if (javaPlugin != null) {
-            return javaPlugin.sourceCompatibility
-        }
-
-        error("Please apply either Java or Kotlin plugins to use Thrifty in this module.")
     }
 }

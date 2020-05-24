@@ -29,13 +29,11 @@ import com.microsoft.thrifty.schema.LoadFailedException
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
 import org.gradle.api.GradleException
-import org.gradle.api.JavaVersion
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.configuration.ShowStacktrace
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputDirectory
@@ -54,16 +52,6 @@ open class ThriftyTask : SourceTask() {
     @Nested
     val options: Property<ThriftOptions> = project.objects.property(ThriftOptions::class.java)
 
-    /**
-     * For Java codegen, this should exactly match the Java plugin's sourceCompatibility
-     * value.  For Kotlin projects, we'll assume VERSION_1_8 unless we find a jvmTarget
-     * property of "9" or greater.
-     *
-     * Used primarily to determine which kind of @Generated annotation to use.
-     */
-    @Input
-    var sourceCompatibility: JavaVersion = JavaVersion.VERSION_1_8
-
     @TaskAction
     fun run() {
         val schema = try {
@@ -80,33 +68,6 @@ open class ThriftyTask : SourceTask() {
             is KotlinThriftOptions -> generateKotlinThrifts(schema, opt)
             is JavaThriftOptions -> generateJavaThrifts(schema, opt)
         }
-    }
-
-    private fun generateJavaThrifts(schema: Schema, options: JavaThriftOptions) {
-        val gen = ThriftyCodeGenerator(schema, options.namePolicy).apply {
-            emitFileComment(true)
-            emitGeneratedAnnotations(generatedAnnotationTypeName)
-            emitParcelable(options.parcelable)
-
-            options.listType?.let { withListType(it) }
-            options.setType?.let { withSetType(it) }
-            options.mapType?.let { withMapType(it) }
-
-            val annoType = when (options.nullabilityAnnotationKind) {
-                JavaThriftOptions.NullabilityAnnotations.ANDROID_SUPPORT ->
-                    NullabilityAnnotationType.ANDROID_SUPPORT
-
-                JavaThriftOptions.NullabilityAnnotations.ANDROIDX ->
-                    NullabilityAnnotationType.ANDROIDX
-
-                JavaThriftOptions.NullabilityAnnotations.NONE ->
-                    NullabilityAnnotationType.NONE
-            }
-
-            nullabilityAnnotationType(annoType)
-        }
-
-        gen.generate(outputDirectory.asFile.get())
     }
 
     private fun reportThriftParseError(exception: LoadFailedException) {
@@ -131,6 +92,33 @@ open class ThriftyTask : SourceTask() {
         }
     }
 
+    private fun generateJavaThrifts(schema: Schema, options: JavaThriftOptions) {
+        val gen = ThriftyCodeGenerator(schema, options.namePolicy).apply {
+            emitFileComment(true)
+            emitGeneratedAnnotations(options.generatedAnnotationType)
+            emitParcelable(options.parcelable)
+
+            options.listType?.let { withListType(it) }
+            options.setType?.let { withSetType(it) }
+            options.mapType?.let { withMapType(it) }
+
+            val annoType = when (options.nullabilityAnnotationKind) {
+                JavaThriftOptions.NullabilityAnnotations.ANDROID_SUPPORT ->
+                    NullabilityAnnotationType.ANDROID_SUPPORT
+
+                JavaThriftOptions.NullabilityAnnotations.ANDROIDX ->
+                    NullabilityAnnotationType.ANDROIDX
+
+                JavaThriftOptions.NullabilityAnnotations.NONE ->
+                    NullabilityAnnotationType.NONE
+            }
+
+            nullabilityAnnotationType(annoType)
+        }
+
+        gen.generate(outputDirectory.asFile.get())
+    }
+
     private fun generateKotlinThrifts(schema: Schema, options: KotlinThriftOptions) {
         val gen = KotlinCodeGenerator(options.namePolicy).apply {
             emitJvmName()
@@ -153,7 +141,7 @@ open class ThriftyTask : SourceTask() {
                 }
             }
 
-            emitGeneratedAnnotations(generatedAnnotationTypeName)
+            emitGeneratedAnnotations(options.generatedAnnotationType)
 
 
             options.listType?.let { listClassName(it) }
@@ -171,14 +159,5 @@ open class ThriftyTask : SourceTask() {
             ThriftOptions.FieldNameStyle.DEFAULT -> FieldNamingPolicy.DEFAULT
             ThriftOptions.FieldNameStyle.JAVA -> FieldNamingPolicy.JAVA
             ThriftOptions.FieldNameStyle.PASCAL -> FieldNamingPolicy.PASCAL
-        }
-
-    private val generatedAnnotationTypeName: String
-        get() = when {
-            sourceCompatibility <= JavaVersion.VERSION_1_8 ->
-                "javax.annotation.Generated"
-
-            else ->
-                "javax.annotation.processing.Generated"
         }
 }
