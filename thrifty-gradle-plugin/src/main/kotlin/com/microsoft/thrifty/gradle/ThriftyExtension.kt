@@ -244,8 +244,5 @@ open class JavaThriftOptions : ThriftOptions() {
 fun <T> caseInsensitiveMapOf(vararg pairs: Pair<String, T>): Map<String, T> {
     if (pairs.isEmpty()) return emptyMap()
 
-    return pairs.fold(TreeMap<String,T>(java.lang.String.CASE_INSENSITIVE_ORDER)) { acc, (name, value) ->
-        acc[name] = value
-        acc
-    }
+    return pairs.toMap().toSortedMap(java.lang.String.CASE_INSENSITIVE_ORDER)
 }
