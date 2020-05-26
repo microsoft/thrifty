@@ -26,6 +26,7 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
+import java.util.SortedMap
 import java.util.TreeMap
 import javax.inject.Inject
 
@@ -71,10 +72,10 @@ open class ThriftyExtension @Inject constructor(
 }
 
 sealed class ThriftOptions {
-    enum class FieldNameStyle {
-        DEFAULT,
-        JAVA,
-        PASCAL
+    enum class FieldNameStyle(val optionName: String) {
+        DEFAULT("default"),
+        JAVA("java"),
+        PASCAL("pascal")
     }
 
     @Input
@@ -114,11 +115,9 @@ sealed class ThriftOptions {
     }
 
     fun nameStyle(styleName: String) {
-        val stylesByName = caseInsensitiveMapOf(
-                "default" to FieldNameStyle.DEFAULT,
-                "java" to FieldNameStyle.JAVA,
-                "pascal" to FieldNameStyle.PASCAL
-        )
+        val stylesByName = FieldNameStyle.values()
+                .map { it.optionName to it }
+                .toCaseInsensitiveMap()
 
         val style = requireNotNull(stylesByName[styleName]) {
             stylesByName.keys.joinToString(
@@ -167,10 +166,10 @@ sealed class ThriftOptions {
 }
 
 open class KotlinThriftOptions : ThriftOptions() {
-    enum class ClientStyle {
-        NONE,
-        DEFAULT,
-        COROUTINE,
+    enum class ClientStyle(val optionName: String) {
+        NONE("none"),
+        DEFAULT("default"),
+        COROUTINE("coroutine"),
     }
 
     // Compiler options we intentionally are not exposing:
@@ -188,11 +187,9 @@ open class KotlinThriftOptions : ThriftOptions() {
     var builderlessDataClasses = false
 
     fun serviceClientStyle(name: String) {
-        val stylesByName = caseInsensitiveMapOf(
-                "name" to ClientStyle.NONE,
-                "default" to ClientStyle.DEFAULT,
-                "coroutine" to ClientStyle.COROUTINE
-        )
+        val stylesByName = ClientStyle.values()
+                .map { it.optionName to it }
+                .toCaseInsensitiveMap()
 
         val style = requireNotNull(stylesByName[name]) {
             stylesByName.keys.joinToString(
@@ -210,10 +207,10 @@ open class KotlinThriftOptions : ThriftOptions() {
 }
 
 open class JavaThriftOptions : ThriftOptions() {
-    enum class NullabilityAnnotations {
-        NONE,
-        ANDROID_SUPPORT,
-        ANDROIDX,
+    enum class NullabilityAnnotations(val optionName: String) {
+        NONE("none"),
+        ANDROID_SUPPORT("android-support"),
+        ANDROIDX("androidx"),
     }
 
     @Input
@@ -221,11 +218,9 @@ open class JavaThriftOptions : ThriftOptions() {
         private set
 
     fun nullabilityAnnotations(name: String) {
-        val kindsByName = caseInsensitiveMapOf(
-                "none" to NullabilityAnnotations.NONE,
-                "android-support" to NullabilityAnnotations.ANDROID_SUPPORT,
-                "androidx" to NullabilityAnnotations.ANDROIDX
-        )
+        val kindsByName = NullabilityAnnotations.values()
+                .map { it.optionName to it }
+                .toCaseInsensitiveMap()
 
         val kind = requireNotNull(kindsByName[name]) {
             kindsByName.keys.joinToString(
@@ -241,8 +236,6 @@ open class JavaThriftOptions : ThriftOptions() {
     }
 }
 
-fun <T> caseInsensitiveMapOf(vararg pairs: Pair<String, T>): Map<String, T> {
-    if (pairs.isEmpty()) return emptyMap()
-
-    return pairs.toMap().toSortedMap(java.lang.String.CASE_INSENSITIVE_ORDER)
+private fun <C : Iterable<P>, P : Pair<String, V>, V> C.toCaseInsensitiveMap(): SortedMap<String, V> {
+    return toMap(TreeMap(java.lang.String.CASE_INSENSITIVE_ORDER))
 }
