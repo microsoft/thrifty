@@ -39,11 +39,12 @@ class ThriftyGradlePlugin : Plugin<Project> {
         val defaultSourceDirName = listOf("src", "main", "thrift").joinToString(File.separator)
         val defaultSourceDir = project.file(defaultSourceDirName).toPath()
 
+        val thriftSourceSet = assembleThriftSources(project, ext, defaultSourceDirName)
         val thriftTaskProvider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
             t.group = "thrifty"
             t.description = "Generate Thrifty thrift implementations for .thrift files"
             t.outputDirectory.set(outputDir.toFile())
-            t.source(assembleThriftSources(project, ext, defaultSourceDirName))
+            t.source(thriftSourceSet)
             t.includePath.set(assembleIncludePath(project, ext, defaultSourceDir))
             t.options.set(ext.thriftOptions)
         }
@@ -56,14 +57,16 @@ class ThriftyGradlePlugin : Plugin<Project> {
             it.patterns.include("**/*.java")
         }
 
-        project.tasks.withType(KotlinCompile::class.java).all {
-            it.source(kotlinSources)
-            it.dependsOn(thriftTaskProvider)
-        }
+        project.afterEvaluate {
+            project.tasks.withType(KotlinCompile::class.java).all {
+                it.source(kotlinSources)
+                it.dependsOn(thriftTaskProvider)
+            }
 
-        project.tasks.withType(JavaCompile::class.java).all {
-            it.source(javaSources)
-            it.dependsOn(thriftTaskProvider)
+            project.tasks.withType(JavaCompile::class.java).all {
+                it.source(javaSources)
+                it.dependsOn(thriftTaskProvider)
+            }
         }
     }
 

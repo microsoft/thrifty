@@ -39,12 +39,20 @@ class ThriftyGradlePluginTest {
                 .withName("foo")
                 .build()
         project.plugins.apply(ThriftyGradlePlugin::class.java)
-        project.plugins.apply("org.jetbrains.kotlin.jvm")
+        project.plugins.apply("java-library")
     }
 
     @Test fun `build kotlin integration project`() {
         val result = runner.buildFixture("kotlin_integration_project") { build() }
         result.task(":generateThriftFiles")!!.outcome shouldBe TaskOutcome.SUCCESS
+    }
+
+    @Test fun `java project with kotlin thrifts`() {
+        runner.buildFixture("java_project_kotlin_thrifts") { build() }
+    }
+
+    @Test fun `java project with java thrifts`() {
+        runner.buildFixture("java_project_java_thrifts") { build() }
     }
 
     private fun GradleRunner.buildFixture(fixtureName: String, buildAndAssert: GradleRunner.() -> BuildResult): BuildResult {
