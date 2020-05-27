@@ -628,9 +628,10 @@ class ThriftyCodeGenerator {
 
             // Read
             read.beginControlFlow("case \$L:", field.id)
-            object : GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType, acceptUnknownEnumValues) {
+            val useDefaultEnumValue = tt.isEnum && acceptUnknownEnumValues && !field.required
+            object : GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType, useDefaultEnumValue) {
                 override fun useReadValue(localName: String) {
-                    if (tt.isEnum && acceptUnknownEnumValues) {
+                    if (useDefaultEnumValue) {
                         read.beginControlFlow("if (\$N != null)", localName)
                         super.useReadValue(localName)
                         read.endControlFlow()
