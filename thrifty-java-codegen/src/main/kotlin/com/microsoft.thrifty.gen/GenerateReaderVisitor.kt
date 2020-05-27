@@ -51,7 +51,8 @@ internal open class GenerateReaderVisitor(
         private val resolver: TypeResolver,
         private val read: MethodSpec.Builder,
         private val fieldName: String,
-        private val fieldType: ThriftType
+        private val fieldType: ThriftType,
+        private val acceptUnknownEnumValues: Boolean = false
 ) : ThriftType.Visitor<Unit> {
 
     private val nameStack: Deque<String> = ArrayDeque<String>()
@@ -122,14 +123,16 @@ internal open class GenerateReaderVisitor(
 
         read.addStatement("int \$L = protocol.readI32()", intName)
         read.addStatement("$1L $2N = $1L.findByValue($3L)", qualifiedJavaName, target, intName)
-        read.beginControlFlow("if (\$N == null)", target!!)
-        read.addStatement(
-                "throw new $1T($2T.PROTOCOL_ERROR, $3S + $4L)",
-                TypeNames.THRIFT_EXCEPTION,
-                TypeNames.THRIFT_EXCEPTION_KIND,
-                "Unexpected value for enum-type " + enumType.name + ": ",
-                intName)
-        read.endControlFlow()
+        if (!acceptUnknownEnumValues) {
+            read.beginControlFlow("if (\$N == null)", target!!)
+            read.addStatement(
+                    "throw new $1T($2T.PROTOCOL_ERROR, $3S + $4L)",
+                    TypeNames.THRIFT_EXCEPTION,
+                    TypeNames.THRIFT_EXCEPTION_KIND,
+                    "Unexpected value for enum-type " + enumType.name + ": ",
+                    intName)
+            read.endControlFlow()
+        }
     }
 
     override fun visitList(listType: ListType) {
