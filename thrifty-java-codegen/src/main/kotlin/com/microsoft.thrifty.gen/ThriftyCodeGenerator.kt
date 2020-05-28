@@ -71,7 +71,7 @@ class ThriftyCodeGenerator {
     private var nullabilityAnnotationType: NullabilityAnnotationType = NullabilityAnnotationType.NONE
     private var emitParcelable: Boolean = false
     private var emitFileComment = true
-    private var acceptUnknownEnumValues = false
+    private var failOnUnknownEnumValues = true
     private var generatedAnnotationType: ClassName? = null
     private val emitGeneratedAnnotations: Boolean
         get() = generatedAnnotationType != null
@@ -128,8 +128,8 @@ class ThriftyCodeGenerator {
         return this
     }
 
-    fun acceptUnknownEnumValues(acceptUnknownEnumValues: Boolean): ThriftyCodeGenerator {
-        this.acceptUnknownEnumValues = acceptUnknownEnumValues
+    fun failOnUnknownEnumValues(failOnUnknownEnumValues: Boolean): ThriftyCodeGenerator {
+        this.failOnUnknownEnumValues = failOnUnknownEnumValues
         return this
     }
 
@@ -626,20 +626,11 @@ class ThriftyCodeGenerator {
                 write.endControlFlow()
             }
 
+            val useDefaultEnumValue = tt.isEnum && !failOnUnknownEnumValues && !field.required
+
             // Read
             read.beginControlFlow("case \$L:", field.id)
-            val useDefaultEnumValue = tt.isEnum && acceptUnknownEnumValues && !field.required
-            object : GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType, useDefaultEnumValue) {
-                override fun useReadValue(localName: String) {
-                    if (useDefaultEnumValue) {
-                        read.beginControlFlow("if (\$N != null)", localName)
-                        super.useReadValue(localName)
-                        read.endControlFlow()
-                    } else {
-                        super.useReadValue(localName)
-                    }
-                }
-            }.generate()
+            GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType, useDefaultEnumValue).generate()
             read.endControlFlow() // end case block
             read.addStatement("break")
         }
