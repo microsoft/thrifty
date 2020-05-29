@@ -626,11 +626,15 @@ class ThriftyCodeGenerator {
                 write.endControlFlow()
             }
 
-            val useDefaultEnumValue = tt.isEnum && !failOnUnknownEnumValues && !field.required
+            val effectiveFailOnUnknownValues = if (tt.isEnum) {
+                failOnUnknownEnumValues || field.required
+            } else {
+                failOnUnknownEnumValues
+            }
 
-            // Read
             read.beginControlFlow("case \$L:", field.id)
-            GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType, useDefaultEnumValue).generate()
+            GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType, effectiveFailOnUnknownValues, tt.isEnum)
+                    .generate()
             read.endControlFlow() // end case block
             read.addStatement("break")
         }

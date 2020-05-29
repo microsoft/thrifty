@@ -125,6 +125,7 @@ class KotlinCodeGenerator(
     private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
     private var emitJvmName: Boolean = false
+    private var failOnUnknownEnumValues: Boolean = false
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -231,6 +232,10 @@ class KotlinCodeGenerator(
 
     fun emitJvmName(): KotlinCodeGenerator = apply {
         this.emitJvmName = true
+    }
+
+    fun failOnUnknownEnumValues(): KotlinCodeGenerator = apply {
+        this.failOnUnknownEnumValues = true
     }
 
     private object NoTypeProcessor : KotlinTypeProcessor {
@@ -971,12 +976,23 @@ class KotlinCodeGenerator(
                     addStatement("${field.id}·->·{⇥")
                     beginControlFlow("if (fieldMeta.typeId == %T.%L)", TType::class, fieldType.typeCodeName)
 
-                    generateReadCall(this, name, fieldType)
+                    val effectiveFailOnUnknownValues = if (fieldType.isEnum) {
+                        failOnUnknownEnumValues || field.required
+                    } else {
+                        failOnUnknownEnumValues
+                    }
+                    generateReadCall(this, name, fieldType, failOnUnknownEnumValues = effectiveFailOnUnknownValues)
 
+                    if (fieldType.isEnum && !effectiveFailOnUnknownValues) {
+                        beginControlFlow("if ($name != null)")
+                    }
                     if (builderType != null) {
                         addStatement("builder.$name($name)")
                     } else {
                         addStatement("%N = $name", localFieldName(field))
+                    }
+                    if (fieldType.isEnum && !effectiveFailOnUnknownValues) {
+                        endControlFlow()
                     }
 
                     nextControlFlow("else")
@@ -1316,7 +1332,8 @@ class KotlinCodeGenerator(
             name: String,
             type: ThriftType,
             scope: Int = 0,
-            localNamePrefix: String = ""
+            localNamePrefix: String = "",
+            failOnUnknownEnumValues: Boolean = true
     ): CodeBlock.Builder {
         type.accept(object : ThriftType.Visitor<Unit> {
             override fun visitVoid(voidType: BuiltinType) {
@@ -1357,11 +1374,16 @@ class KotlinCodeGenerator(
 
             override fun visitEnum(enumType: EnumType) {
                 block.beginControlFlow("val $name = protocol.readI32().let")
-                block.addStatement(
-                        "%1T.findByValue(it) ?: throw %2T(%3T.PROTOCOL_ERROR, \"Unexpected·value·for·enum·type·%1T:·\$it\")",
-                        enumType.typeName,
-                        ThriftException::class,
-                        ThriftException.Kind::class)
+                if (failOnUnknownEnumValues) {
+                    block.addStatement(
+                            "%1T.findByValue(it) ?: " +
+                                    "throw %2T(%3T.PROTOCOL_ERROR, \"Unexpected·value·for·enum·type·%1T:·\$it\")",
+                            enumType.typeName,
+                            ThriftException::class,
+                            ThriftException.Kind::class)
+                } else {
+                    block.addStatement("%1T.findByValue(it)", enumType.typeName)
+                }
                 block.endControlFlow()
             }
 

@@ -52,7 +52,9 @@ internal open class GenerateReaderVisitor(
         private val read: MethodSpec.Builder,
         private val fieldName: String,
         private val fieldType: ThriftType,
-        private val failOnUnknownEnumValues: Boolean = true
+        private val failOnUnknownEnumValues: Boolean = true,
+        /** Required only if `failOnUnknownEnumValues` is set to false. */
+        private val isEnum: Boolean? = null
 ) : ThriftType.Visitor<Unit> {
 
     private val nameStack: Deque<String> = ArrayDeque<String>()
@@ -77,7 +79,7 @@ internal open class GenerateReaderVisitor(
     }
 
     protected open fun useReadValue(localName: String) {
-        if (failOnUnknownEnumValues) {
+        if (failOnUnknownEnumValues || isEnum != true) {
             read.addStatement("builder.\$N(\$N)", fieldName, localName)
         } else {
             read.beginControlFlow("if (\$N != null)", localName)
@@ -129,7 +131,7 @@ internal open class GenerateReaderVisitor(
 
         read.addStatement("int \$L = protocol.readI32()", intName)
         read.addStatement("$1L $2N = $1L.findByValue($3L)", qualifiedJavaName, target, intName)
-        if (!failOnUnknownEnumValues) {
+        if (failOnUnknownEnumValues) {
             read.beginControlFlow("if (\$N == null)", target!!)
             read.addStatement(
                     "throw new $1T($2T.PROTOCOL_ERROR, $3S + $4L)",

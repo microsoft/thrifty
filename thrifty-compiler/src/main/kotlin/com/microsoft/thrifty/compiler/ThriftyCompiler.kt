@@ -258,7 +258,7 @@ class ThriftyCompiler {
 
         val failOnUnknownEnumValues by option("--fail-on-unknown-enum-values",
                     help = "When set, unknown values found when decoding will throw an exception. Otherwise, it uses null/default values.")
-                .flag(default = false)
+                .flag("--no-fail-on-unknown-enum-values", default = true)
 
         private val generatedAnnotationClassName: String? by lazy {
             when {
@@ -366,6 +366,10 @@ class ThriftyCompiler {
                 gen.filePerType()
             } else {
                 gen.filePerNamespace()
+            }
+
+            if (failOnUnknownEnumValues) {
+                gen.failOnUnknownEnumValues()
             }
 
             listTypeName?.let { gen.listClassName(it) }
