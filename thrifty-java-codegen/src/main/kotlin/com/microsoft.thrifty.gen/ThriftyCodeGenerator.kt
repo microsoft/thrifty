@@ -633,8 +633,7 @@ class ThriftyCodeGenerator {
             }
 
             read.beginControlFlow("case \$L:", field.id)
-            GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType, effectiveFailOnUnknownValues, tt.isEnum)
-                    .generate()
+            GenerateReaderVisitor(typeResolver, read, fieldName, tt, effectiveFailOnUnknownValues).generate()
             read.endControlFlow() // end case block
             read.addStatement("break")
         }

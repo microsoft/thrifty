@@ -596,7 +596,7 @@ class ThriftyCodeGeneratorTest {
         val thriftFile = tmp.newFile("structs_enums.thrift")
         val schema = parse(thriftFile, thrift)
         val gen = ThriftyCodeGenerator(schema).emitFileComment(false).failOnUnknownEnumValues(false)
-        val javaFile = gen.generateTypes()
+        val javaFile = gen.generateTypes()[1]
 
         assertThat(javaFile.toString()).contains(expected)
     }

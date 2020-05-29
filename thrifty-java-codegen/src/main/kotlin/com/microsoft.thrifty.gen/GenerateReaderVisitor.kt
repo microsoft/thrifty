@@ -52,9 +52,7 @@ internal open class GenerateReaderVisitor(
         private val read: MethodSpec.Builder,
         private val fieldName: String,
         private val fieldType: ThriftType,
-        private val failOnUnknownEnumValues: Boolean = true,
-        /** Required only if `failOnUnknownEnumValues` is set to false. */
-        private val isEnum: Boolean? = null
+        private val failOnUnknownEnumValues: Boolean = true
 ) : ThriftType.Visitor<Unit> {
 
     private val nameStack: Deque<String> = ArrayDeque<String>()
@@ -79,7 +77,7 @@ internal open class GenerateReaderVisitor(
     }
 
     protected open fun useReadValue(localName: String) {
-        if (failOnUnknownEnumValues || isEnum != true) {
+        if (failOnUnknownEnumValues || !fieldType.isEnum) {
             read.addStatement("builder.\$N(\$N)", fieldName, localName)
         } else {
             read.beginControlFlow("if (\$N != null)", localName)
