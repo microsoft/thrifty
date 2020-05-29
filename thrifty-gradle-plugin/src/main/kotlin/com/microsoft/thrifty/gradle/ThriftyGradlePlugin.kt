@@ -24,6 +24,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.compile.JavaCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
@@ -35,11 +37,9 @@ class ThriftyGradlePlugin : Plugin<Project> {
         val ext = project.extensions.create("thrifty", ThriftyExtension::class.java)
 
         val outputDir = Paths.get(project.buildDir.canonicalPath, "generated", "sources", "thrifty")
+        val defaultSourceDir = project.file(DEFAULT_SOURCE_DIR).toPath()
 
-        val defaultSourceDirName = listOf("src", "main", "thrift").joinToString(File.separator)
-        val defaultSourceDir = project.file(defaultSourceDirName).toPath()
-
-        val thriftSourceSet = assembleThriftSources(project, ext, defaultSourceDirName)
+        val thriftSourceSet = assembleThriftSources(project, ext)
         val thriftTaskProvider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
             t.group = "thrifty"
             t.description = "Generate Thrifty thrift implementations for .thrift files"
@@ -58,20 +58,30 @@ class ThriftyGradlePlugin : Plugin<Project> {
         }
 
         project.afterEvaluate {
-            project.tasks.withType(KotlinCompile::class.java).all {
-                it.source(kotlinSources)
+            val thriftOptions = ext.thriftOptions.get()
+            val javaTasks = project.tasks.withType(JavaCompile::class.java)
+            val kotlinTasks = project.tasks.withType(KotlinCompile::class.java)
+
+            javaTasks.configureEach {
                 it.dependsOn(thriftTaskProvider)
+                it.source(javaSources)
             }
 
-            project.tasks.withType(JavaCompile::class.java).all {
-                it.source(javaSources)
+            kotlinTasks.configureEach {
                 it.dependsOn(thriftTaskProvider)
+                it.source(kotlinSources)
+            }
+
+            if (thriftOptions is JavaThriftOptions && kotlinTasks.isNotEmpty()) {
+                val sourceSetContainer = project.properties["sourceSets"] as SourceSetContainer
+                val main = sourceSetContainer.getByName("main") as SourceSet
+                main.java.srcDirs(outputDir)
             }
         }
     }
 
     private fun assembleIncludePath(project: Project, ext: ThriftyExtension, defaultSourceDir: Path): Provider<List<Path>> {
-        val pathConfiguration = project.configurations.create("thriftPath")
+        val pathConfiguration = project.configurations.create(PATH_CONFIGURATION_NAME)
         return ext.includeDirs.map { dirs ->
             dirs.mapNotNull { path ->
                 val file = File(path).let { f ->
@@ -92,16 +102,23 @@ class ThriftyGradlePlugin : Plugin<Project> {
     }
 
     @Suppress("UnstableApiUsage")
-    private fun assembleThriftSources(project: Project, ext: ThriftyExtension, defaultSourceDir: String): SourceDirectorySet {
-        val sourceDirs = ext.sourceDirs.map { it.toSet().plus(defaultSourceDir) }
+    private fun assembleThriftSources(project: Project, ext: ThriftyExtension): SourceDirectorySet {
+        val sourceDirs = ext.sourceDirs.map { it.toSet() }
         val sourceSet = project.objects.sourceDirectorySet("thrifty-sources", "Thrift sources for compilation")
         sourceSet.srcDirs(sourceDirs)
         sourceSet.filter.include("**/*.thrift")
 
         val sourceDependency = project.dependencies.create(sourceSet)
-        val sourceConfiguration = project.configurations.create("thriftSource")
+        val sourceConfiguration = project.configurations.create(SOURCE_CONFIGURATION_NAME)
         sourceConfiguration.dependencies.add(sourceDependency)
 
         return sourceSet
+    }
+
+    companion object {
+        private const val SOURCE_CONFIGURATION_NAME = "thriftSources"
+        private const val PATH_CONFIGURATION_NAME = "thriftIncludePath"
+
+        internal val DEFAULT_SOURCE_DIR = listOf("src", "main", "thrift").joinToString(File.separator)
     }
 }

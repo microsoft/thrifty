@@ -143,11 +143,9 @@ open class ThriftyTask : SourceTask() {
 
             emitGeneratedAnnotations(options.generatedAnnotationType)
 
-
             options.listType?.let { listClassName(it) }
             options.setType?.let { setClassName(it) }
             options.mapType?.let { mapClassName(it) }
-
         }
 
         val dir = outputDirectory.asFile.get()

@@ -36,6 +36,7 @@ open class ThriftyExtension @Inject constructor(
 ) {
     val includeDirs: ListProperty<String> = objects.listProperty(String::class.java)
     val sourceDirs: ListProperty<String> = objects.listProperty(String::class.java)
+            .convention(listOf(ThriftyGradlePlugin.DEFAULT_SOURCE_DIR))
 
     val thriftOptions: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
             .convention(JavaThriftOptions())

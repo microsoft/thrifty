@@ -26,7 +26,6 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.junit.Test
 import java.io.File
 
@@ -39,7 +38,9 @@ class ThriftyGradlePluginTest {
                 .withName("foo")
                 .build()
         project.plugins.apply(ThriftyGradlePlugin::class.java)
-        project.plugins.apply("java-library")
+        project.plugins.apply("org.jetbrains.kotlin.jvm")
+
+        (project as ProjectInternal).evaluate()
     }
 
     @Test fun `build kotlin integration project`() {
@@ -53,6 +54,14 @@ class ThriftyGradlePluginTest {
 
     @Test fun `java project with java thrifts`() {
         runner.buildFixture("java_project_java_thrifts") { build() }
+    }
+
+    @Test fun `kotlin project with kotlin thrifts`() {
+        runner.buildFixture("kotlin_project_kotlin_thrifts") { build() }
+    }
+
+    @Test fun `kotlin project with java thrifts`() {
+        runner.buildFixture("kotlin_project_java_thrifts") { build() }
     }
 
     private fun GradleRunner.buildFixture(fixtureName: String, buildAndAssert: GradleRunner.() -> BuildResult): BuildResult {
