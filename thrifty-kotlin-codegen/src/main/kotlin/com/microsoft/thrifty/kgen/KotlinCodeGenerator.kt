@@ -125,7 +125,7 @@ class KotlinCodeGenerator(
     private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
     private var emitJvmName: Boolean = false
-    private var failOnUnknownEnumValues: Boolean = false
+    private var failOnUnknownEnumValues: Boolean = true
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -234,8 +234,8 @@ class KotlinCodeGenerator(
         this.emitJvmName = true
     }
 
-    fun failOnUnknownEnumValues(): KotlinCodeGenerator = apply {
-        this.failOnUnknownEnumValues = true
+    fun failOnUnknownEnumValues(value: Boolean = true): KotlinCodeGenerator = apply {
+        this.failOnUnknownEnumValues = value
     }
 
     private object NoTypeProcessor : KotlinTypeProcessor {
@@ -983,18 +983,21 @@ class KotlinCodeGenerator(
                     }
                     generateReadCall(this, name, fieldType, failOnUnknownEnumValues = effectiveFailOnUnknownValues)
 
-                    if (fieldType.isEnum && !effectiveFailOnUnknownValues) {
-                        beginControlFlow("if ($name != null)")
-                    }
-                    if (builderType != null) {
-                        addStatement("builder.$name($name)")
+                    if (effectiveFailOnUnknownValues || !fieldType.isEnum) {
+                        if (builderType != null) {
+                            addStatement("builder.$name($name)")
+                        } else {
+                            addStatement("%N = $name", localFieldName(field))
+                        }
+                    } else if (builderType != null) {
+                        beginControlFlow("$name.let")
+                        addStatement("builder.$name(it)")
+                        endControlFlow()
                     } else {
-                        addStatement("%N = $name", localFieldName(field))
-                    }
-                    if (fieldType.isEnum && !effectiveFailOnUnknownValues) {
+                        beginControlFlow("$name.let")
+                        addStatement("%N = it", localFieldName(field))
                         endControlFlow()
                     }
-
                     nextControlFlow("else")
                     addStatement("%T.skip(protocol, fieldMeta.typeId)", ProtocolUtil::class)
                     endControlFlow()

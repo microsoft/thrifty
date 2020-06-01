@@ -368,9 +368,7 @@ class ThriftyCompiler {
                 gen.filePerNamespace()
             }
 
-            if (failOnUnknownEnumValues) {
-                gen.failOnUnknownEnumValues()
-            }
+            gen.failOnUnknownEnumValues(failOnUnknownEnumValues)
 
             listTypeName?.let { gen.listClassName(it) }
             setTypeName?.let { gen.setClassName(it) }

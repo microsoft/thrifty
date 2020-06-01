@@ -34,6 +34,7 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
 import io.kotest.matchers.string.contain
+import io.kotest.matchers.string.shouldContain
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -831,6 +832,122 @@ class KotlinCodeGeneratorTest {
         file.single().toString() should contain("""
             |    override fun build(): Bonk = Bonk(message = this.message, type = this.type)
         """.trimMargin())
+    }
+
+    @Test
+    fun `enum fail on unknown value`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |enum TestEnum { FOO }
+            |
+            |struct HasEnum {
+            |  1: optional TestEnum field = TestEnum.FOO;
+            |}
+        """.trimMargin()
+
+        val expected = """
+          1 -> {
+            if (fieldMeta.typeId == TType.I32) {
+              val field = protocol.readI32().let {
+                TestEnum.findByValue(it) ?: throw
+                    ThriftException(ThriftException.Kind.PROTOCOL_ERROR,
+                    "Unexpected value for enum type TestEnum: ${'$'}it")
+              }
+              builder.field(field)
+            } else {
+              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            }
+          }"""
+
+        val file = generate(thrift)
+        file.single().toString() shouldContain expected
+    }
+
+    @Test
+    fun `enum don't fail on unknown value`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |enum TestEnum { FOO }
+            |
+            |struct HasEnum {
+            |  1: optional TestEnum field1 = TestEnum.FOO;
+            |  2: required TestEnum field2 = TestEnum.FOO;
+            |}
+        """.trimMargin()
+
+        val expected = """
+          1 -> {
+            if (fieldMeta.typeId == TType.I32) {
+              val field1 = protocol.readI32().let {
+                TestEnum.findByValue(it)
+              }
+              field1.let {
+                builder.field1(it)
+              }
+            } else {
+              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            }
+          }
+          2 -> {
+            if (fieldMeta.typeId == TType.I32) {
+              val field2 = protocol.readI32().let {
+                TestEnum.findByValue(it) ?: throw
+                    ThriftException(ThriftException.Kind.PROTOCOL_ERROR,
+                    "Unexpected value for enum type TestEnum: ${'$'}it")
+              }
+              builder.field2(field2)
+            } else {
+              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            }
+          }"""
+
+        val file = generate(thrift) { failOnUnknownEnumValues(false) }
+        file.single().toString() shouldContain expected
+    }
+
+    @Test
+    fun `enum don't fail on unknown value without builder`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |enum TestEnum { FOO }
+            |
+            |struct HasEnum {
+            |  1: optional TestEnum field1 = TestEnum.FOO;
+            |  2: required TestEnum field2 = TestEnum.FOO;
+            |}
+        """.trimMargin()
+
+        val expected = """
+          1 -> {
+            if (fieldMeta.typeId == TType.I32) {
+              val field1 = protocol.readI32().let {
+                TestEnum.findByValue(it)
+              }
+              field1.let {
+                _local_field1 = it
+              }
+            } else {
+              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            }
+          }
+          2 -> {
+            if (fieldMeta.typeId == TType.I32) {
+              val field2 = protocol.readI32().let {
+                TestEnum.findByValue(it) ?: throw
+                    ThriftException(ThriftException.Kind.PROTOCOL_ERROR,
+                    "Unexpected value for enum type TestEnum: ${'$'}it")
+              }
+              _local_field2 = field2
+            } else {
+              ProtocolUtil.skip(protocol, fieldMeta.typeId)
+            }
+          }"""
+
+        val file = generate(thrift) { failOnUnknownEnumValues(false); builderlessDataClasses() }
+        file.single().toString() shouldContain expected
     }
 
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
