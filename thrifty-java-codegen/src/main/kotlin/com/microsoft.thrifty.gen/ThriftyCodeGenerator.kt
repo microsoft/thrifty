@@ -71,6 +71,7 @@ class ThriftyCodeGenerator {
     private var nullabilityAnnotationType: NullabilityAnnotationType = NullabilityAnnotationType.NONE
     private var emitParcelable: Boolean = false
     private var emitFileComment = true
+    private var failOnUnknownEnumValues = true
     private var generatedAnnotationType: ClassName? = null
     private val emitGeneratedAnnotations: Boolean
         get() = generatedAnnotationType != null
@@ -124,6 +125,11 @@ class ThriftyCodeGenerator {
 
     fun usingTypeProcessor(typeProcessor: TypeProcessor): ThriftyCodeGenerator {
         this.typeProcessor = typeProcessor
+        return this
+    }
+
+    fun failOnUnknownEnumValues(failOnUnknownEnumValues: Boolean): ThriftyCodeGenerator {
+        this.failOnUnknownEnumValues = failOnUnknownEnumValues
         return this
     }
 
@@ -620,9 +626,14 @@ class ThriftyCodeGenerator {
                 write.endControlFlow()
             }
 
-            // Read
+            val effectiveFailOnUnknownValues = if (tt.isEnum) {
+                failOnUnknownEnumValues || field.required
+            } else {
+                failOnUnknownEnumValues
+            }
+
             read.beginControlFlow("case \$L:", field.id)
-            GenerateReaderVisitor(typeResolver, read, fieldName, field.type.trueType).generate()
+            GenerateReaderVisitor(typeResolver, read, fieldName, tt, effectiveFailOnUnknownValues).generate()
             read.endControlFlow() // end case block
             read.addStatement("break")
         }

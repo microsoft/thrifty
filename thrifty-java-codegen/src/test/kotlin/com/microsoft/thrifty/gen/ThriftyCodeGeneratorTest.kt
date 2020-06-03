@@ -521,6 +521,87 @@ class ThriftyCodeGeneratorTest {
     }
 
     @Test
+    fun structWithEnum() {
+        val thrift = """
+            namespace java structs.enums
+
+            enum TestEnum { FOO }
+
+            struct HasEnum {
+                1: optional TestEnum field = TestEnum.FOO;
+            }
+        """
+        val expected = """
+          case 1: {
+            if (field.typeId == TType.I32) {
+              int i32_0 = protocol.readI32();
+              structs.enums.TestEnum value = structs.enums.TestEnum.findByValue(i32_0);
+              if (value == null) {
+                throw new ThriftException(ThriftException.Kind.PROTOCOL_ERROR, "Unexpected value for enum-type TestEnum: " + i32_0);
+              }
+              builder.field(value);
+            } else {
+              ProtocolUtil.skip(protocol, field.typeId);
+            }
+          }
+          break;
+        """
+
+        val thriftFile = tmp.newFile("structs_enums.thrift")
+        val javaFile = compile(thriftFile, thrift)[1]
+
+        assertThat(javaFile.toString()).contains(expected)
+    }
+
+    @Test
+    fun structWithEnumAcceptUnknownValues() {
+        val thrift = """
+            namespace java structs.enums
+
+            enum TestEnum { FOO }
+
+            struct HasEnum {
+                1: optional TestEnum field1 = TestEnum.FOO;
+                2: required TestEnum field2 = TestEnum.FOO;
+            }
+        """
+        val expected = """
+          case 1: {
+            if (field.typeId == TType.I32) {
+              int i32_0 = protocol.readI32();
+              structs.enums.TestEnum value = structs.enums.TestEnum.findByValue(i32_0);
+              if (value != null) {
+                builder.field1(value);
+              }
+            } else {
+              ProtocolUtil.skip(protocol, field.typeId);
+            }
+          }
+          break;
+          case 2: {
+            if (field.typeId == TType.I32) {
+              int i32_0 = protocol.readI32();
+              structs.enums.TestEnum value = structs.enums.TestEnum.findByValue(i32_0);
+              if (value == null) {
+                throw new ThriftException(ThriftException.Kind.PROTOCOL_ERROR, "Unexpected value for enum-type TestEnum: " + i32_0);
+              }
+              builder.field2(value);
+            } else {
+              ProtocolUtil.skip(protocol, field.typeId);
+            }
+          }
+          break;
+        """
+
+        val thriftFile = tmp.newFile("structs_enums.thrift")
+        val schema = parse(thriftFile, thrift)
+        val gen = ThriftyCodeGenerator(schema).emitFileComment(false).failOnUnknownEnumValues(false)
+        val javaFile = gen.generateTypes()[1]
+
+        assertThat(javaFile.toString()).contains(expected)
+    }
+
+    @Test
     fun mapsWithEnumKeysAndValues () {
         val thrift = """
             namespace java maps.enums

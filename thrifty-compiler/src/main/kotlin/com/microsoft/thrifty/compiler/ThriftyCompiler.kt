@@ -256,6 +256,10 @@ class ThriftyCompiler {
                 .path(mustExist = true, canBeFile = true, canBeDir = false, mustBeReadable = true)
                 .multiple()
 
+        val failOnUnknownEnumValues by option("--fail-on-unknown-enum-values",
+                    help = "When set, unknown values found when decoding will throw an exception. Otherwise, it uses null/default values.")
+                .flag("--no-fail-on-unknown-enum-values", default = true)
+
         private val generatedAnnotationClassName: String? by lazy {
             when {
                 omitGeneratedAnnotations -> null
@@ -333,6 +337,7 @@ class ThriftyCompiler {
             gen.emitFileComment(!omitFileComments)
             gen.emitParcelable(emitParcelable)
             gen.emitGeneratedAnnotations(generatedAnnotationClassName)
+            gen.failOnUnknownEnumValues(failOnUnknownEnumValues)
 
             gen.generate(outputDirectory)
         }
@@ -362,6 +367,8 @@ class ThriftyCompiler {
             } else {
                 gen.filePerNamespace()
             }
+
+            gen.failOnUnknownEnumValues(failOnUnknownEnumValues)
 
             listTypeName?.let { gen.listClassName(it) }
             setTypeName?.let { gen.setClassName(it) }
