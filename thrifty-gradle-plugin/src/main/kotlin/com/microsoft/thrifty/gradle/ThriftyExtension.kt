@@ -46,7 +46,7 @@ open class ThriftyExtension @Inject constructor(
     }
 
     fun sourceDirs(vararg paths: String) {
-        sourceDirs.addAll(*paths)
+        paths.forEach(sourceDirs::add)
     }
 
     fun includeDir(path: String) {
@@ -54,7 +54,7 @@ open class ThriftyExtension @Inject constructor(
     }
 
     fun includeDirs(vararg paths: String) {
-        includeDirs.addAll(*paths)
+        paths.forEach(includeDirs::add)
     }
 
     fun kotlin(action: Action<KotlinThriftOptions>) {
@@ -172,12 +172,6 @@ open class KotlinThriftOptions : ThriftOptions() {
         DEFAULT("default"),
         COROUTINE("coroutine"),
     }
-
-    // Compiler options we intentionally are not exposing:
-    // - file-per-type vs file-per-namespace:
-    //   nobody is checking in code generated via this plugin,
-    //   and there's a notable perf gain in compilation from
-    //   file-per-type.  Ergo, we'll just use that.
 
     @Input
     @Optional

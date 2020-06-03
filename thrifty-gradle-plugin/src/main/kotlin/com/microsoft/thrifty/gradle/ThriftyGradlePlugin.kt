@@ -37,16 +37,17 @@ class ThriftyGradlePlugin : Plugin<Project> {
         val ext = project.extensions.create("thrifty", ThriftyExtension::class.java)
 
         val outputDir = Paths.get(project.buildDir.canonicalPath, "generated", "sources", "thrifty")
-        val defaultSourceDir = project.file(DEFAULT_SOURCE_DIR).toPath()
-
         val thriftSourceSet = assembleThriftSources(project, ext)
+        val thriftIncludePath = assembleIncludePath(project, ext)
+
         val thriftTaskProvider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
             t.group = "thrifty"
             t.description = "Generate Thrifty thrift implementations for .thrift files"
             t.outputDirectory.set(outputDir.toFile())
             t.source(thriftSourceSet)
-            t.includePath.set(assembleIncludePath(project, ext, defaultSourceDir))
+            t.includePath.set(thriftIncludePath)
             t.options.set(ext.thriftOptions)
+            t.showStacktrace.set(project.gradle.startParameter.showStacktrace)
         }
 
         val kotlinSources = project.fileTree(outputDir) {
@@ -80,32 +81,30 @@ class ThriftyGradlePlugin : Plugin<Project> {
         }
     }
 
-    private fun assembleIncludePath(project: Project, ext: ThriftyExtension, defaultSourceDir: Path): Provider<List<Path>> {
+    private fun assembleIncludePath(project: Project, ext: ThriftyExtension): Provider<List<Path>> {
+        val defaultSourceDir = project.file(DEFAULT_SOURCE_DIR).toPath()
         val pathConfiguration = project.configurations.create(PATH_CONFIGURATION_NAME)
         return ext.includeDirs.map { dirs ->
-            dirs.mapNotNull { path ->
-                val file = File(path).let { f ->
+            dirs.map { pathString ->
+                File(pathString).let { f ->
                     if (f.isAbsolute) f else project.file(f)
                 }
+            }.onEach {
+                require(it.exists()) { "Thrift include-path entry $it does not exist" }
+                require(it.isDirectory) { "Thrift include-path entry $it must be a directory, but is a file" }
 
-                if (!file.isDirectory) {
-                    // TODO: fail
-                    return@mapNotNull null
-                }
-
-                val dep = project.dependencies.create(file)
+                val dep = project.dependencies.create(it)
                 pathConfiguration.dependencies.add(dep)
-
-                file.toPath()
+            }.map {
+                it.toPath()
             }
         }.map { listOf(defaultSourceDir) + it }
     }
 
-    @Suppress("UnstableApiUsage")
     private fun assembleThriftSources(project: Project, ext: ThriftyExtension): SourceDirectorySet {
-        val sourceDirs = ext.sourceDirs.map { it.toSet() }
+        @Suppress("UnstableApiUsage")
         val sourceSet = project.objects.sourceDirectorySet("thrifty-sources", "Thrift sources for compilation")
-        sourceSet.srcDirs(sourceDirs)
+        sourceSet.srcDirs(ext.sourceDirs.map { it.toSet() })
         sourceSet.filter.include("**/*.thrift")
 
         val sourceDependency = project.dependencies.create(sourceSet)

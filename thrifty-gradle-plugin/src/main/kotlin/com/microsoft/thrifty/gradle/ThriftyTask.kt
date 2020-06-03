@@ -32,25 +32,35 @@ import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.configuration.ShowStacktrace
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.SourceTask
 import org.gradle.api.tasks.TaskAction
 import java.nio.file.Path
+import javax.inject.Inject
 
-@Suppress("UnstableApiUsage")
-open class ThriftyTask : SourceTask() {
+open class ThriftyTask @Inject constructor(
+        objects: ObjectFactory
+) : SourceTask() {
     @OutputDirectory
-    val outputDirectory: DirectoryProperty = project.objects.directoryProperty()
+    @Suppress("UnstableApiUsage")
+    val outputDirectory: DirectoryProperty = objects.directoryProperty()
 
     @InputFiles
-    val includePath: ListProperty<Path> = project.objects.listProperty(Path::class.java)
+    val includePath: ListProperty<Path> = objects.listProperty(Path::class.java)
 
     @Nested
-    val options: Property<ThriftOptions> = project.objects.property(ThriftOptions::class.java)
+    val options: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
+
+    @Internal
+    @Suppress("UnstableApiUsage")
+    val showStacktrace: Property<ShowStacktrace> = objects.property(ShowStacktrace::class.java)
+            .convention(ShowStacktrace.INTERNAL_EXCEPTIONS)
 
     @TaskAction
     fun run() {
@@ -78,13 +88,13 @@ open class ThriftyTask : SourceTask() {
             }
 
             val message = "${logLevel.name[0]}: ${report.location}: ${report.message}"
-            project.logger.log(logLevel, message)
+            logger.log(logLevel, message)
         }
 
-        when (project.gradle.startParameter.showStacktrace) {
+        when (showStacktrace.get()) {
             ShowStacktrace.ALWAYS,
             ShowStacktrace.ALWAYS_FULL -> {
-                project.logger.error("Thrift compilation failed", exception)
+                logger.error("Thrift compilation failed", exception)
             }
 
             null,
