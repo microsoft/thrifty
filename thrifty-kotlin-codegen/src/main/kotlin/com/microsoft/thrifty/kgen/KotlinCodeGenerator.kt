@@ -776,7 +776,7 @@ class KotlinCodeGenerator(
             val buildFunParamType = if (!field.required) type.copy(nullable = true) else type
             val builderFunSpec = FunSpec.builder(name)
                     .addParameter(name, buildFunParamType)
-                    .addStatement("return apply { this.$name = $name }")
+                    .addStatement("return apply·{ this.$name·= $name }")
 
             // Add initialization in default ctor
             defaultCtor.addStatement("this.$name = %L", defaultValueBlock)
