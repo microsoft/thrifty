@@ -990,11 +990,11 @@ class KotlinCodeGenerator(
                             addStatement("%N = $name", localFieldName(field))
                         }
                     } else if (builderType != null) {
-                        beginControlFlow("$name.let")
+                        beginControlFlow("$name?.let")
                         addStatement("builder.$name(it)")
                         endControlFlow()
                     } else {
-                        beginControlFlow("$name.let")
+                        beginControlFlow("$name?.let")
                         addStatement("%N = it", localFieldName(field))
                         endControlFlow()
                     }

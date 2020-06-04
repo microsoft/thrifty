@@ -883,7 +883,7 @@ class KotlinCodeGeneratorTest {
               val field1 = protocol.readI32().let {
                 TestEnum.findByValue(it)
               }
-              field1.let {
+              field1?.let {
                 builder.field1(it)
               }
             } else {
@@ -926,7 +926,7 @@ class KotlinCodeGeneratorTest {
               val field1 = protocol.readI32().let {
                 TestEnum.findByValue(it)
               }
-              field1.let {
+              field1?.let {
                 _local_field1 = it
               }
             } else {
