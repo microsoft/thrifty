@@ -869,7 +869,7 @@ class KotlinCodeGenerator(
             // Add a builder fun
             spec.addFunction(FunSpec.builder(name)
                     .addParameter("value", type)
-                    .addStatement("return apply { this.$builderVarName = ${struct.name}.$typeName(value) }")
+                    .addStatement("return apply·{ this.$builderVarName·= ${struct.name}.$typeName(value) }")
                     .build())
         }
 
