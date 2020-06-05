@@ -107,6 +107,7 @@ open class ThriftyTask @Inject constructor(
             emitFileComment(true)
             emitGeneratedAnnotations(options.generatedAnnotationType)
             emitParcelable(options.parcelable)
+            failOnUnknownEnumValues(!options.allowUnknownEnumValues)
 
             options.listType?.let { withListType(it) }
             options.setType?.let { withSetType(it) }
@@ -136,6 +137,8 @@ open class ThriftyTask @Inject constructor(
             if (options.parcelable) {
                 parcelize()
             }
+
+            failOnUnknownEnumValues(!options.allowUnknownEnumValues)
 
             if (options.builderlessDataClasses) {
                 builderlessDataClasses()

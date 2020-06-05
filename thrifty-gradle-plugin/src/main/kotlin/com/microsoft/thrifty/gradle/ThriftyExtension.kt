@@ -111,6 +111,10 @@ sealed class ThriftOptions {
     @Input
     var parcelable: Boolean = false
 
+    @Input
+    var allowUnknownEnumValues: Boolean = false
+        private set
+
     fun generateServiceClients(shouldGenerate: Boolean) {
         this.emitServiceClients = shouldGenerate
     }
@@ -163,6 +167,10 @@ sealed class ThriftOptions {
 
     fun generatedAnnotationType(type: String?) {
         this.generatedAnnotationType = type
+    }
+
+    fun allowUnknownEnumValues(allow: Boolean) {
+        this.allowUnknownEnumValues = allow
     }
 }
 
