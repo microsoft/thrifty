@@ -1,0 +1,12 @@
+plugins {
+    id 'com.microsoft.thrifty'
+    id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api "com.microsoft.thrifty:thrifty-runtime:2.0.1"
+}

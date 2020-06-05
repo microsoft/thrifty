@@ -1,0 +1,17 @@
+plugins {
+    id 'com.microsoft.thrifty'
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+thrifty {
+    kotlin {}
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.72"
+    api "com.microsoft.thrifty:thrifty-runtime-ktx:2.0.1"
+}
