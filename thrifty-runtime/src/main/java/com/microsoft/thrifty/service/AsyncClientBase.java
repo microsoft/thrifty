@@ -203,6 +203,7 @@ public class AsyncClientBase extends ClientBase implements Closeable {
             try {
                 result = AsyncClientBase.this.invokeRequest(call);
             } catch (IOException | RuntimeException e) {
+                fail(call, e);
                 throw e;
             } catch (ServerException e) {
                 error = e.thriftException;
