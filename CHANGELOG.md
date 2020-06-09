@@ -1,3 +1,12 @@
+2.1.0 (released 9 June 2020)
+------------------
+- #362: Fix: Explicitly fail service calls on IOException or RuntimeException (thanks @amorozov)
+- #357: Add --no-fail-on-default-enum-values (thanks @guptadeepanshu)
+- #356: Add thrifty-gradle-plugin to compile thrifts in Gradle JVM projects
+- #348: Change: Update okio from 1.14.1 to 2.6.0
+- #332: Add --kt-emit-jvmname option (thanks @jparise)
+- #330: Add --omit-service-clients option (thanks @jparise)
+
 2.0.1 (released 4 May 2020)
 ------------------
 Rebuild with JDK8, not JDK11
