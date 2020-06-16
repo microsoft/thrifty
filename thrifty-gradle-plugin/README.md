@@ -17,9 +17,24 @@ thrifty {
     // By default, thrifty will use all thrift files in 'src/main/thrift'.
     // You can override this in the following ways:
 
-    // Specify one or more directories containing thrift tiles.
+    // Specify a directory containing thrift files.
     // Note that if you do, 'src/main/thrift' is ignored.
+    // By default, all .thrift files in this directory and its subdirectores
+    // will be compiled.
     sourceDir 'path/to/thrift/files', 'path/to/other/thrift/files'
+
+    // Specify several directories containing thrift files, as above.
+    // Note the plural name 'sourceDirs'.
+    sourceDirs 'path/to/thrift/files', 'path/to/other/thrift/files'
+
+    // Specify a directory containing thrift files along with glob patterns
+    // identifying the exact files to include or exclude.
+    sourceDir('path/to/thrift/files') {
+        // Include and exclude patterns as per:
+        // https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/util/PatternFilterable.html
+        include '**/*.thrift'
+        exclude '**/*.analytics.thrift'
+    }
 
     // Augment the thrift include path with one or more directories:
     includeDir 'path/to/include/dir', 'path/to/other/dir'

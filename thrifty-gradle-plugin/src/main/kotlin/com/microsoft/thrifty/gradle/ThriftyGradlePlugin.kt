@@ -29,6 +29,7 @@ import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.compile.JavaCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -37,14 +38,13 @@ class ThriftyGradlePlugin : Plugin<Project> {
         val ext = project.extensions.create("thrifty", ThriftyExtension::class.java)
 
         val outputDir = Paths.get(project.buildDir.canonicalPath, "generated", "sources", "thrifty")
-        val thriftSourceSet = assembleThriftSources(project, ext)
+        val sourceConfiguration = project.configurations.create(SOURCE_CONFIGURATION_NAME)
         val thriftIncludePath = assembleIncludePath(project, ext)
 
         val thriftTaskProvider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
             t.group = "thrifty"
             t.description = "Generate Thrifty thrift implementations for .thrift files"
             t.outputDirectory.set(outputDir.toFile())
-            t.source(thriftSourceSet)
             t.includePath.set(thriftIncludePath)
             t.options.set(ext.thriftOptions)
             t.showStacktrace.set(project.gradle.startParameter.showStacktrace)
@@ -59,6 +59,17 @@ class ThriftyGradlePlugin : Plugin<Project> {
         }
 
         project.afterEvaluate {
+            val sourceSets = mutableListOf<SourceDirectorySet>()
+            for (sd in ext.sources.get()) {
+                val dependency = project.dependencies.create(sd.sourceDirectorySet)
+                sourceConfiguration.dependencies.add(dependency)
+                sourceSets += sd.sourceDirectorySet
+            }
+
+            thriftTaskProvider.configure { t ->
+                sourceSets.forEach { t.source(it) }
+            }
+
             val thriftOptions = ext.thriftOptions.get()
             val javaTasks = project.tasks.withType(JavaCompile::class.java)
             val kotlinTasks = project.tasks.withType(KotlinCompile::class.java)
@@ -98,20 +109,7 @@ class ThriftyGradlePlugin : Plugin<Project> {
             }.map {
                 it.toPath()
             }
-        }.map { listOf(defaultSourceDir) + it }
-    }
-
-    private fun assembleThriftSources(project: Project, ext: ThriftyExtension): SourceDirectorySet {
-        @Suppress("UnstableApiUsage")
-        val sourceSet = project.objects.sourceDirectorySet("thrifty-sources", "Thrift sources for compilation")
-        sourceSet.srcDirs(ext.sourceDirs.map { it.toSet() })
-        sourceSet.filter.include("**/*.thrift")
-
-        val sourceDependency = project.dependencies.create(sourceSet)
-        val sourceConfiguration = project.configurations.create(SOURCE_CONFIGURATION_NAME)
-        sourceConfiguration.dependencies.add(sourceDependency)
-
-        return sourceSet
+        }.map { if (Files.exists(defaultSourceDir)) listOf(defaultSourceDir) + it else it }
     }
 
     companion object {

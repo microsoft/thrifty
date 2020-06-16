@@ -64,6 +64,14 @@ class ThriftyGradlePluginTest {
         runner.buildFixture("kotlin_project_java_thrifts") { build() }
     }
 
+    @Test fun `kotlin project with filtered thrift inputs`() {
+        runner.buildFixture("kotlin_project_filtered_thrifts") { build() }
+    }
+
+    @Test fun `kotlin project with multiple thrift dirs`() {
+        runner.buildFixture("kotlin_multiple_source_dirs") { build() }
+    }
+
     private fun GradleRunner.buildFixture(fixtureName: String, buildAndAssert: GradleRunner.() -> BuildResult): BuildResult {
         val fixture = File(fixturesDir, fixtureName)
         val settings = File(fixture, "settings.gradle")
