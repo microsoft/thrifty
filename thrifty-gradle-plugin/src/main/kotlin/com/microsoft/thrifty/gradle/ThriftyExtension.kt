@@ -26,7 +26,6 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
 import java.util.SortedMap
 import java.util.TreeMap
@@ -38,27 +37,27 @@ open class ThriftyExtension @Inject constructor(
 ) {
     val includeDirs: ListProperty<String> = objects.listProperty(String::class.java)
 
-    val sources: ListProperty<FilteredSourceDirectory> = objects.listProperty(FilteredSourceDirectory::class.java)
-            .convention(listOf(FilteredSourceDirectory(objects.sourceDirectorySet("thrift-sources", "Thrift sources")
+    val sources: ListProperty<DefaultThriftSourceDirectory> = objects.listProperty(DefaultThriftSourceDirectory::class.java)
+            .convention(listOf(DefaultThriftSourceDirectory(objects.sourceDirectorySet("thrift-sources", "Thrift sources")
                     .srcDir(ThriftyGradlePlugin.DEFAULT_SOURCE_DIR)
                     .include("**/*.thrift") as SourceDirectorySet)))
 
     val thriftOptions: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
             .convention(JavaThriftOptions())
 
-    fun sourceDir(path: String): FilteredSourceDirectory {
+    fun sourceDir(path: String): DefaultThriftSourceDirectory {
         val sd = objects.sourceDirectorySet("thrift-sources", "Thrift sources").apply {
             srcDir(path)
         }
 
-        return objects.newInstance(FilteredSourceDirectory::class.java, sd).also { sources.add(it) }
+        return objects.newInstance(DefaultThriftSourceDirectory::class.java, sd).also { sources.add(it) }
     }
 
-    fun sourceDir(path: String, action: Action<FilteredSourceDirectory>): FilteredSourceDirectory {
+    fun sourceDir(path: String, action: Action<ThriftSourceDirectory>): DefaultThriftSourceDirectory {
         return sourceDir(path).also { action.execute(it) }
     }
 
-    fun sourceDirs(vararg paths: String): List<FilteredSourceDirectory> {
+    fun sourceDirs(vararg paths: String): List<DefaultThriftSourceDirectory> {
         return paths.map { sourceDir(it) }
     }
 
@@ -252,22 +251,26 @@ open class JavaThriftOptions : ThriftOptions() {
     }
 }
 
-open class FilteredSourceDirectory @Inject constructor(
-        @InputFiles
+interface ThriftSourceDirectory {
+    fun include(pattern: String)
+    fun exclude(pattern: String)
+}
+
+open class DefaultThriftSourceDirectory @Inject constructor(
         internal val sourceDirectorySet: SourceDirectorySet
-) {
+) : ThriftSourceDirectory {
     private var didClearDefaults: Boolean = false
 
     init {
         sourceDirectorySet.include("**/*.thrift")
     }
 
-    open fun include(pattern: String) {
+    override fun include(pattern: String) {
         clearDefaults()
         sourceDirectorySet.include(pattern)
     }
 
-    open fun exclude(pattern: String) {
+    override fun exclude(pattern: String) {
         clearDefaults()
         sourceDirectorySet.exclude(pattern)
     }
