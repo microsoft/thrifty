@@ -19,14 +19,25 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
-apply plugin: 'kotlin'
-apply plugin: 'java-gradle-plugin'
-apply plugin: 'com.vanniktech.maven.publish'
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'java-gradle-plugin'
+    id 'com.vanniktech.maven.publish'
+    id 'com.gradle.plugin-publish' version '0.12.0'
+}
+
+pluginBundle {
+    website = 'https://github.com/microsoft/thrifty'
+    vcsUrl = 'https://github.com/microsoft/thrifty.git'
+    tags = ['thrift', 'code-generation', 'thrifty']
+}
 
 gradlePlugin {
     plugins {
         thriftyPlugin {
             id = 'com.microsoft.thrifty'
+            displayName = 'Thrifty Gradle Plugin'
+            description = 'Generates Java and/or Kotlin sources from .thrift files'
             implementationClass = 'com.microsoft.thrifty.gradle.ThriftyGradlePlugin'
         }
     }
