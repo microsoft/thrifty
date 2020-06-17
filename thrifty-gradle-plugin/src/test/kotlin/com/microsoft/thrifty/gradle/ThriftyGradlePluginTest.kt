@@ -72,6 +72,10 @@ class ThriftyGradlePluginTest {
         runner.buildFixture("kotlin_multiple_source_dirs") { build() }
     }
 
+    @Test fun `kotlin project with incude path`() {
+        runner.buildFixture("kotlin_project_with_include_path") { build() }
+    }
+
     private fun GradleRunner.buildFixture(fixtureName: String, buildAndAssert: GradleRunner.() -> BuildResult): BuildResult {
         val fixture = File(fixturesDir, fixtureName)
         val settings = File(fixture, "settings.gradle")
