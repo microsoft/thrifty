@@ -104,7 +104,7 @@ class ThriftyGradlePlugin : Plugin<Project> {
                 require(it.exists()) { "Thrift include-path entry $it does not exist" }
                 require(it.isDirectory) { "Thrift include-path entry $it must be a directory, but is a file" }
 
-                val dep = project.dependencies.create(it)
+                val dep = project.dependencies.create(project.files(it))
                 pathConfiguration.dependencies.add(dep)
             }.map {
                 it.toPath()
