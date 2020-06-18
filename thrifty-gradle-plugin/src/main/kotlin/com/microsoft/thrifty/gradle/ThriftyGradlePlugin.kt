@@ -39,13 +39,11 @@ class ThriftyGradlePlugin : Plugin<Project> {
 
         val outputDir = Paths.get(project.buildDir.canonicalPath, "generated", "sources", "thrifty")
         val sourceConfiguration = project.configurations.create(SOURCE_CONFIGURATION_NAME)
-        val thriftIncludePath = assembleIncludePath(project, ext)
 
         val thriftTaskProvider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
             t.group = "thrifty"
             t.description = "Generate Thrifty thrift implementations for .thrift files"
             t.outputDirectory.set(outputDir.toFile())
-            t.includePath.set(thriftIncludePath)
             t.options.set(ext.thriftOptions)
             t.showStacktrace.set(project.gradle.startParameter.showStacktrace)
         }
@@ -68,6 +66,7 @@ class ThriftyGradlePlugin : Plugin<Project> {
 
             thriftTaskProvider.configure { t ->
                 sourceSets.forEach { t.source(it) }
+                t.includePath.set(assembleIncludePath(project, ext))
             }
 
             val thriftOptions = ext.thriftOptions.get()
@@ -92,24 +91,22 @@ class ThriftyGradlePlugin : Plugin<Project> {
         }
     }
 
-    private fun assembleIncludePath(project: Project, ext: ThriftyExtension): Provider<List<Path>> {
-        val defaultSourceDir = project.file(DEFAULT_SOURCE_DIR).toPath()
+    private fun assembleIncludePath(project: Project, ext: ThriftyExtension): List<Path> {
+        //val defaultSourceDir = project.file(DEFAULT_SOURCE_DIR).toPath()
         val pathConfiguration = project.configurations.create(PATH_CONFIGURATION_NAME)
-        return ext.includeDirs.map { dirs ->
-            dirs.map { pathString ->
-                File(pathString).let { f ->
-                    if (f.isAbsolute) f else project.file(f)
-                }
-            }.onEach {
-                require(it.exists()) { "Thrift include-path entry $it does not exist" }
-                require(it.isDirectory) { "Thrift include-path entry $it must be a directory, but is a file" }
-
-                val dep = project.dependencies.create(project.files(it))
-                pathConfiguration.dependencies.add(dep)
-            }.map {
-                it.toPath()
+        return ext.includeDirs.get().map { pathString ->
+            val f = File(pathString).let {
+                if (it.isAbsolute) it else project.file(pathString)
             }
-        }.map { if (Files.exists(defaultSourceDir)) listOf(defaultSourceDir) + it else it }
+
+            require(f.exists()) { "Thrift include-path entry $f does not exist" }
+            require(f.isDirectory) { "Thrift include-path entry $f must be a directory, but is a file" }
+
+            val dep = project.dependencies.create(project.files(f))
+            pathConfiguration.dependencies.add(dep)
+
+            f.toPath()
+        }
     }
 
     companion object {

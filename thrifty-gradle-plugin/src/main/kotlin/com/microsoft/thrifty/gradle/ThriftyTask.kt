@@ -41,6 +41,7 @@ import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.SourceTask
 import org.gradle.api.tasks.TaskAction
+import java.io.IOException
 import java.nio.file.Path
 import javax.inject.Inject
 
@@ -72,6 +73,13 @@ open class ThriftyTask @Inject constructor(
         } catch (e: LoadFailedException) {
             reportThriftParseError(e)
             throw GradleException("Thrift compilation failed")
+        }
+
+        try {
+            outputDirectory.asFile.get().deleteRecursively()
+        } catch (e: IOException) {
+            // eh
+            logger.warn("Error clearing stale output", e)
         }
 
         when (val opt = options.get()) {
