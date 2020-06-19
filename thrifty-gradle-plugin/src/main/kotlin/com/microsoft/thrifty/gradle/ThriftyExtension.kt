@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.gradle
 
 import org.gradle.api.Action
+import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -35,18 +36,29 @@ open class ThriftyExtension @Inject constructor(
         private val objects: ObjectFactory
 ) {
     val includeDirs: ListProperty<String> = objects.listProperty(String::class.java)
-    val sourceDirs: ListProperty<String> = objects.listProperty(String::class.java)
-            .convention(listOf(ThriftyGradlePlugin.DEFAULT_SOURCE_DIR))
+
+    val sources: ListProperty<DefaultThriftSourceDirectory> = objects.listProperty(DefaultThriftSourceDirectory::class.java)
+            .convention(listOf(DefaultThriftSourceDirectory(objects.sourceDirectorySet("thrift-sources", "Thrift sources")
+                    .srcDir(ThriftyGradlePlugin.DEFAULT_SOURCE_DIR)
+                    .include("**/*.thrift") as SourceDirectorySet)))
 
     val thriftOptions: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
             .convention(JavaThriftOptions())
 
-    fun sourceDir(path: String) {
-        sourceDirs.add(path)
+    fun sourceDir(path: String): DefaultThriftSourceDirectory {
+        val sd = objects.sourceDirectorySet("thrift-sources", "Thrift sources").apply {
+            srcDir(path)
+        }
+
+        return objects.newInstance(DefaultThriftSourceDirectory::class.java, sd).also { sources.add(it) }
     }
 
-    fun sourceDirs(vararg paths: String) {
-        paths.forEach(sourceDirs::add)
+    fun sourceDir(path: String, action: Action<ThriftSourceDirectory>): DefaultThriftSourceDirectory {
+        return sourceDir(path).also { action.execute(it) }
+    }
+
+    fun sourceDirs(vararg paths: String): List<DefaultThriftSourceDirectory> {
+        return paths.map { sourceDir(it) }
     }
 
     fun includeDir(path: String) {
@@ -236,6 +248,41 @@ open class JavaThriftOptions : ThriftOptions() {
 
     fun nullabilityAnnotations(kind: NullabilityAnnotations) {
         this.nullabilityAnnotationKind = kind
+    }
+}
+
+interface ThriftSourceDirectory {
+    fun include(pattern: String)
+    fun exclude(pattern: String)
+}
+
+open class DefaultThriftSourceDirectory @Inject constructor(
+        internal val sourceDirectorySet: SourceDirectorySet
+) : ThriftSourceDirectory {
+    private var didClearDefaults: Boolean = false
+
+    init {
+        sourceDirectorySet.include("**/*.thrift")
+    }
+
+    override fun include(pattern: String) {
+        clearDefaults()
+        sourceDirectorySet.include(pattern)
+    }
+
+    override fun exclude(pattern: String) {
+        clearDefaults()
+        sourceDirectorySet.exclude(pattern)
+    }
+
+    private fun clearDefaults() {
+        if (didClearDefaults) {
+            return
+        }
+
+        didClearDefaults = true
+        sourceDirectorySet.includes.clear()
+        sourceDirectorySet.excludes.clear()
     }
 }
 
