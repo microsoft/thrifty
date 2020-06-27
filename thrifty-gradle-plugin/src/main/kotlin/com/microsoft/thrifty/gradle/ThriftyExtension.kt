@@ -35,7 +35,7 @@ import javax.inject.Inject
 open class ThriftyExtension @Inject constructor(
         private val objects: ObjectFactory
 ) {
-    val includeDirs: ListProperty<String> = objects.listProperty(String::class.java)
+    val includePathEntries: ListProperty<String> = objects.listProperty(String::class.java)
 
     val sources: ListProperty<DefaultThriftSourceDirectory> = objects.listProperty(DefaultThriftSourceDirectory::class.java)
             .convention(listOf(DefaultThriftSourceDirectory(objects.sourceDirectorySet("thrift-sources", "Thrift sources")
@@ -44,6 +44,8 @@ open class ThriftyExtension @Inject constructor(
 
     val thriftOptions: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
             .convention(JavaThriftOptions())
+
+    val outputDirectory: Property<String> = objects.property(String::class.java)
 
     fun sourceDir(path: String): DefaultThriftSourceDirectory {
         val sd = objects.sourceDirectorySet("thrift-sources", "Thrift sources").apply {
@@ -61,12 +63,12 @@ open class ThriftyExtension @Inject constructor(
         return paths.map { sourceDir(it) }
     }
 
-    fun includeDir(path: String) {
-        includeDirs.add(path)
+    fun includePath(vararg path: String) {
+        includePathEntries.addAll(*path)
     }
 
-    fun includeDirs(vararg paths: String) {
-        paths.forEach(includeDirs::add)
+    fun outputDir(path: String) {
+        outputDirectory.value(path)
     }
 
     fun kotlin(action: Action<KotlinThriftOptions>) {

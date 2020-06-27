@@ -29,27 +29,27 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
 import java.nio.file.Path
-import java.nio.file.Paths
 
 class ThriftyGradlePlugin : Plugin<Project> {
+    @Suppress("UnstableApiUsage")
     override fun apply(project: Project) {
         val ext = project.extensions.create("thrifty", ThriftyExtension::class.java)
 
-        val outputDir = Paths.get(project.buildDir.canonicalPath, "generated", "sources", "thrifty")
+        val outputDirProvider = ext.outputDirectory.orElse(DEFAULT_OUTPUT_DIR).map { project.file(it) }
 
         val thriftTaskProvider = project.tasks.register("generateThriftFiles", ThriftyTask::class.java) { t ->
             t.group = "thrifty"
             t.description = "Generate Thrifty thrift implementations for .thrift files"
-            t.outputDirectory.set(outputDir.toFile())
+            t.outputDirectory.fileProvider(outputDirProvider)
             t.options.set(ext.thriftOptions)
             t.showStacktrace.set(project.gradle.startParameter.showStacktrace)
         }
 
-        val kotlinSources = project.fileTree(outputDir) {
+        val kotlinSources = project.fileTree(outputDirProvider) {
             it.patterns.include("**/*.kt")
         }
 
-        val javaSources = project.fileTree(outputDir) {
+        val javaSources = project.fileTree(outputDirProvider) {
             it.patterns.include("**/*.java")
         }
 
@@ -76,7 +76,7 @@ class ThriftyGradlePlugin : Plugin<Project> {
             if (thriftOptions is JavaThriftOptions && kotlinTasks.isNotEmpty()) {
                 val sourceSetContainer = project.properties["sourceSets"] as SourceSetContainer
                 val main = sourceSetContainer.getByName("main") as SourceSet
-                main.java.srcDirs(outputDir)
+                main.java.srcDirs(outputDirProvider)
             }
         }
     }
@@ -95,7 +95,7 @@ class ThriftyGradlePlugin : Plugin<Project> {
 
     private fun assembleIncludePath(project: Project, ext: ThriftyExtension): List<Path> {
         val pathConfiguration = project.configurations.create(PATH_CONFIGURATION_NAME)
-        val includeDirsAsFiles = ext.includeDirs.get().map(project::file)
+        val includeDirsAsFiles = ext.includePathEntries.get().map(project::file)
 
         for (dir in includeDirsAsFiles) {
             require(dir.exists()) { "Thrift include-path entry '$dir' does not exist" }
@@ -113,5 +113,6 @@ class ThriftyGradlePlugin : Plugin<Project> {
         private const val PATH_CONFIGURATION_NAME = "thriftIncludePath"
 
         internal val DEFAULT_SOURCE_DIR = listOf("src", "main", "thrift").joinToString(File.separator)
+        private val DEFAULT_OUTPUT_DIR = listOf("build", "generated", "sources", "thrifty").joinToString(File.separator)
     }
 }
