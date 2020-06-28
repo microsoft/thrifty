@@ -23,6 +23,7 @@ package com.microsoft.thrifty.transport;
 import com.microsoft.thrifty.util.UnsafeByteArrayOutputStream;
 
 import java.io.IOException;
+import java.io.EOFException;
 
 /**
  * A transport decorator that reads from and writes to the underlying transport
@@ -62,7 +63,14 @@ public class FramedTransport extends Transport {
 
     private void readHeader() throws IOException {
         byte[] headerBytes = new byte[4];
-        inner.read(headerBytes, 0, headerBytes.length);
+        int numRead = 0;
+        while (numRead < headerBytes.length) {
+            int n = inner.read(headerBytes, numRead, headerBytes.length - numRead);
+            if (n == -1) {
+                throw new EOFException();
+            }
+            numRead += n;
+        }
 
         remainingBytes = ((headerBytes[0] & 0xFF) << 24)
                        | ((headerBytes[1] & 0xFF) << 16)

@@ -24,6 +24,8 @@ import com.google.common.base.Charsets;
 import okio.Buffer;
 import org.junit.Test;
 
+import java.io.EOFException;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -86,5 +88,15 @@ public class FramedTransportTest {
         assertThat(transport.read(readBuffer, 0, 10), is(6));
         assertThat(transport.read(readBuffer, 6, 4), is(4));
         assertThat(new String(readBuffer, Charsets.UTF_8), is("abcdefghij"));
+    }
+
+    @Test(expected = EOFException.class)
+    public void readHeaderWhenEOFReached() throws Exception {
+        Buffer buffer = new Buffer();
+
+        FramedTransport transport = new FramedTransport(new BufferTransport(buffer));
+
+        byte[] readBuffer = new byte[10];
+        transport.read(readBuffer, 0, 10);
     }
 }
