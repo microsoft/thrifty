@@ -21,29 +21,37 @@
 package com.microsoft.thrifty.gradle
 
 import org.gradle.api.Action
+import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
+import java.io.File
 import java.util.SortedMap
 import java.util.TreeMap
 import javax.inject.Inject
 
 @Suppress("UnstableApiUsage")
-open class ThriftyExtension @Inject constructor(
-        private val objects: ObjectFactory
+abstract class ThriftyExtension @Inject constructor(
+        private val objects: ObjectFactory,
+        private val layout: ProjectLayout
 ) {
-    val includeDirs: ListProperty<String> = objects.listProperty(String::class.java)
+    val includePathEntries: ListProperty<Directory> = objects.listProperty(Directory::class.java)
 
     val sources: ListProperty<DefaultThriftSourceDirectory> = objects.listProperty(DefaultThriftSourceDirectory::class.java)
             .convention(listOf(DefaultThriftSourceDirectory(objects.sourceDirectorySet("thrift-sources", "Thrift sources")
-                    .srcDir(ThriftyGradlePlugin.DEFAULT_SOURCE_DIR)
+                    .srcDir(DEFAULT_SOURCE_DIR)
                     .include("**/*.thrift") as SourceDirectorySet)))
 
     val thriftOptions: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
             .convention(JavaThriftOptions())
+
+    val outputDirectory: DirectoryProperty = objects.directoryProperty()
+            .convention(layout.buildDirectory.dir(DEFAULT_OUTPUT_DIR))
 
     fun sourceDir(path: String): DefaultThriftSourceDirectory {
         val sd = objects.sourceDirectorySet("thrift-sources", "Thrift sources").apply {
@@ -61,12 +69,21 @@ open class ThriftyExtension @Inject constructor(
         return paths.map { sourceDir(it) }
     }
 
-    fun includeDir(path: String) {
-        includeDirs.add(path)
+    fun includePath(vararg path: String) {
+        for (p in path) {
+            val d = layout.projectDirectory.dir(p)
+            require(d.asFile.isDirectory) { "Include-path entries must be directories" }
+            includePathEntries.add(d)
+        }
     }
 
-    fun includeDirs(vararg paths: String) {
-        paths.forEach(includeDirs::add)
+    fun outputDir(path: String) {
+        val f = File(path)
+        if (f.isAbsolute) {
+            outputDirectory.fileValue(f)
+        } else {
+            outputDirectory.value(layout.projectDirectory.dir(path))
+        }
     }
 
     fun kotlin(action: Action<KotlinThriftOptions>) {
@@ -81,6 +98,14 @@ open class ThriftyExtension @Inject constructor(
             action.execute(this)
         }
         thriftOptions.set(opts)
+    }
+
+    companion object {
+        @JvmStatic
+        private val DEFAULT_SOURCE_DIR = listOf("src", "main", "thrift").joinToString(File.separator)
+
+        @JvmStatic
+        private val DEFAULT_OUTPUT_DIR = listOf("generated", "sources", "thrifty").joinToString(File.separator)
     }
 }
 

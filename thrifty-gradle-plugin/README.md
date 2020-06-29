@@ -37,7 +37,12 @@ thrifty {
     }
 
     // Augment the thrift include path with one or more directories:
-    includeDir 'path/to/include/dir', 'path/to/other/dir'
+    includePath 'path/to/include/dir', 'path/to/other/dir'
+
+    // Ordinarily, generated sources go to 'build/generated/sources/thrifty', and this is
+    // probably fine for 99.9% of use cases.  If you need the generated sources elsewhere,
+    // you can specify a different location:
+    outputDir 'some/other/location'
 
     // By default, Java sources will be generated.  You can provide a few options to the Java
     // code generator (all options shown with their default values):

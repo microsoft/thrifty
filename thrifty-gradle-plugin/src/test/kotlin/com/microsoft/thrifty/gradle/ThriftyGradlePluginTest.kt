@@ -72,6 +72,10 @@ class ThriftyGradlePluginTest {
         runner.buildFixture("kotlin_multiple_source_dirs") { build() }
     }
 
+    @Test fun `kotlin project with custom output dir`() {
+        runner.buildFixture("kotlin_project_with_custom_output_dir") { build() }
+    }
+
     @Test fun `kotlin project with include path`() {
         runner.buildFixture("kotlin_project_with_include_path") { build() }
     }
