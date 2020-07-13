@@ -1,3 +1,9 @@
+2.1.1 (released 13 July 2020)
+------------------
+- #369: Gradle plugin: Rename includeDir to includePath, customize outputDirectory
+- #368: Fix infinite loop in FramedTransport#read on EOF (thanks @denisov-mikhail)
+- #367: Gradle plugin: Add API to configure which specific thrift files are compiled
+
 2.1.0 (released 9 June 2020)
 ------------------
 - #362: Fix: Explicitly fail service calls on IOException or RuntimeException (thanks @amorozov)
