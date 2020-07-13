@@ -33,7 +33,7 @@ repositories {
 }
 
 dependencies {
-  implementation 'com.microsoft.thrifty:thrifty-runtime:1.0.0'
+  implementation 'com.microsoft.thrifty:thrifty-runtime:2.1.1'
 }
 ```
 
@@ -440,7 +440,7 @@ Also note that redacted and obfuscated fields are still supported, and _will_ re
 
 ### How To Enable Kotlin
 
-Add `--lang=kotlin` to your thrifty-compiler.jar invocation, and add the new `com.microsoft.thrifty:thrifty-runtime-ktx:1.0.0-RC1` dependency.
+Add `--lang=kotlin` to your thrifty-compiler.jar invocation, and add the `com.microsoft.thrifty:thrifty-runtime-ktx:2.1.1` dependency.
 
 ### Kotlin-specific command-line options
 
