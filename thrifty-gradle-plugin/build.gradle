@@ -46,6 +46,7 @@ gradlePlugin {
 dependencies {
     compileOnly gradleApi()
 
+    api libraries.antlr
     api libraries.kotlin
 
     implementation project(':thrifty-java-codegen')
