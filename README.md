@@ -292,6 +292,7 @@ public final class SearchResult implements Struct {
   private static final class SearchResultAdapter implements Adapter<SearchResult, Builder> {
     // Uninteresting but important serialization code
   }
+}
 ```
 
 The struct itself is immutable and has a minimal number of methods.  It can be constructed only
@@ -313,14 +314,24 @@ Given the example above, the code to invoke `Google.search()` might be:
 ```java
 
 // Transports define how bytes move to and from their destination
-SocketTransport transport = new SocketTransport("thrift.google.com", 80);
+SocketTransport transport = new SocketTransport.Builder("thrift.google.com", 80).build();
 transport.connect();
 
 // Protocols define the mapping between structs and bytes
 Protocol protocol = new BinaryProtocol(transport);
 
 // Generated clients do the plumbing
-Google client = new GoogleClient(protocol);
+Google client = new GoogleClient(protocol, new AsyncClientBase.Listener() {
+    @Override
+    public void onTransportClosed() {
+
+    }
+
+    @Override
+    public void onError(Throwable error) {
+        throw new AssertionError(error);
+    }
+});
 
 Query query = new Query.Builder()
     .text("thrift vs protocol buffers")
