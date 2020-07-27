@@ -91,6 +91,6 @@ thrifty {
         // The Kotlin code generator supports several different service-client API styles.
         // Vaid values are 'default' (the default), 'coroutine', and 'none'.
         serviceClientStyle 'default'
-    {
+    }
 }
 ```
