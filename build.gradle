@@ -163,3 +163,41 @@ wrapper {
     gradleVersion = "6.6"
     distributionType = Wrapper.DistributionType.ALL
 }
+
+def ci = providers.environmentVariable("CI").forUseAtConfigurationTime()
+def travisRepoSlug = providers.environmentVariable("TRAVIS_REPO_SLUG").forUseAtConfigurationTime()
+def travisBranch = providers.environmentVariable("TRAVIS_BRANCH").forUseAtConfigurationTime()
+def travisPullRequest = providers.environmentVariable("TRAVIS_PULL_REQUEST").forUseAtConfigurationTime()
+def versionName = providers.gradleProperty("VERSION_NAME").forUseAtConfigurationTime()
+def currentJavaVersion = providers.systemProperty("java.version").forUseAtConfigurationTime()
+
+tasks.register("uploadSnapshot") {
+    def isCi = ci.getOrElse("") == "true"
+    def isMainRepo = travisRepoSlug.getOrElse("").matches("[Mm]icrosoft/thrifty")
+    def isMainBranch = travisBranch.getOrElse("") == "master"
+    def isNotPR = travisPullRequest.getOrElse("") == "false"
+    def isSnapshot = versionName.get().endsWith("-SNAPSHOT")
+    def isJava8 = currentJavaVersion.map { JavaVersion.toVersion(it) }.get().isJava8()
+
+    // We only want to upload snapshots if we're a CI build,
+    // for the main repo, on the main branch (and not due to a
+    // new/updated PR), and our current version is a snapshot version,
+    // _and_ we're being built using JDK 8.
+
+    if (!isCi) {
+        doFirst { logger.lifecycle("Not a CI build") }
+    } else if (!isMainRepo) {
+        doFirst { logger.lifecycle("Wrong repo") }
+    } else if (!isMainBranch) {
+        doFirst { logger.lifecycle("Wrong branch") }
+    } else if (!isNotPR) {
+        doFirst { logger.lifecycle("Pull request") }
+    } else if (!isSnapshot) {
+        doFirst { logger.lifecycle("Not a snapshot") }
+    } else if (!isJava8) {
+        doFirst { logger.lifecycle("Wrong JDK version") }
+    } else {
+        // whew
+        dependsOn subprojects*.tasks*.named("uploadArchives")
+    }
+}

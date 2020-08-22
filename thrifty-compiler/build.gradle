@@ -72,7 +72,3 @@ compileJava {
 compileKotlin {
     dependsOn deleteTestCase
 }
-
-afterEvaluate {
-    project.publishing.publications.first().artifact(shadowJar)
-}
