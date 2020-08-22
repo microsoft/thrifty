@@ -6,7 +6,7 @@ install: echo './gradlew check will install dependencies'
 script:
   - "./gradlew --parallel check codeCoverageReport"
 after_success:
-  - ".ci/deploy-snapshots.sh"
+  - "./gradlew uploadSnapshot"
   - SONATYPE_NEXUS_USERNAME= SONATYPE_NEXUS_PASSWORD= bash <(curl -s https://codecov.io/bash)
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
