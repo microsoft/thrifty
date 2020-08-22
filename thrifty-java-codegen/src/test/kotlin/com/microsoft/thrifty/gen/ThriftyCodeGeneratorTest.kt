@@ -20,22 +20,20 @@
  */
 package com.microsoft.thrifty.gen
 
-import com.google.common.truth.Truth.assertAbout
-import com.google.common.truth.Truth.assertThat
-import com.google.common.truth.Truth.assertWithMessage
-import com.google.testing.compile.JavaSourceSubjectFactory.javaSource
-import com.google.testing.compile.JavaSourcesSubjectFactory.javaSources
 import com.microsoft.thrifty.schema.Loader
 import com.microsoft.thrifty.schema.Schema
 import com.squareup.javapoet.JavaFile
+import io.kotest.assertions.fail
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import okio.buffer
 import okio.sink
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
-import java.util.*
-import javax.tools.JavaFileObject
 
 /**
  * These tests ensure that various constructs produce valid Java code.
@@ -45,51 +43,6 @@ import javax.tools.JavaFileObject
  */
 class ThriftyCodeGeneratorTest {
     @get:Rule val tmp = TemporaryFolder()
-
-    @Test
-    fun redactedToStringCompiles() {
-        val thrift = """
-            namespace java test
-
-            struct foo {
-                1: required list<string> (python.immutable) ssn (redacted)
-            }
-        """
-
-        val schema = parse("foo.thrift", thrift)
-
-        val gen = ThriftyCodeGenerator(schema)
-        val javaFiles = gen.generateTypes()
-
-        assertThat(javaFiles).hasSize(1)
-
-        assertAbout(javaSource())
-                .that(javaFiles[0].toJavaFileObject())
-                .compilesWithoutError()
-    }
-
-    @Test
-    fun enumGeneration() {
-        val thrift = """
-            namespace java enums
-
-            // a generated enum
-            enum BuildStatus {
-                OK = 0,
-                FAIL = 1
-            }
-        """
-
-        val schema = parse("enum.thrift", thrift)
-        val gen = ThriftyCodeGenerator(schema)
-        val java = gen.generateTypes()
-
-        assertThat(java).hasSize(1)
-
-        assertAbout(javaSource())
-                .that(java[0].toJavaFileObject())
-                .compilesWithoutError()
-    }
 
     @Test
     fun fieldWithConstInitializer() {
@@ -106,25 +59,12 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("fields.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema)
         val java = gen.generateTypes()
-        val jfos = ArrayList<JavaFileObject>()
 
-        var found = false
-        for (javaFile in java) {
-            if (javaFile.toString().contains("foo = fields.Constants.TEST_CONST;")) {
-                found = true
-            }
+        if (java.none { it.toString().contains("foo = fields.Constants.TEST_CONST;") }) {
+            fail("Const reference was not found in field assignment")
         }
 
-        assertWithMessage("Const reference was not found in field assignment").that(found).isTrue()
-
-        assertThat(java).hasSize(2)
-        for (javaFile in java) {
-            jfos.add(javaFile.toJavaFileObject())
-        }
-
-        assertAbout(javaSources())
-                .that(jfos)
-                .compilesWithoutError()
+        java shouldHaveSize 2
     }
 
     @Test
@@ -139,17 +79,9 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("dep.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema)
         val java = gen.generateTypes()
-        val jfos = ArrayList<JavaFileObject>(java.size)
-
-        for (javaFile in java) {
-            jfos.add(javaFile.toJavaFileObject())
-        }
-
-        assertAbout(javaSources()).that(jfos).compilesWithoutError()
-
         val file = java[0].toString()
 
-        assertThat(file).contains("@Deprecated")  // note the change in case
+        file shouldContain "@Deprecated"  // note the change in case
     }
 
     @Test
@@ -163,17 +95,9 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("dep.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema)
         val java = gen.generateTypes()
-        val jfos = ArrayList<JavaFileObject>(java.size)
-
-        for (javaFile in java) {
-            jfos.add(javaFile.toJavaFileObject())
-        }
-
-        assertAbout(javaSources()).that(jfos).compilesWithoutError()
-
         val file = java[0].toString()
 
-        assertThat(file).contains("@Deprecated")
+        file shouldContain "@Deprecated"
     }
 
     @Test
@@ -187,11 +111,9 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("enum.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema)
         val javaFiles = gen.generateTypes()
-        val file = javaFiles[0]
+        val file = javaFiles[0].toString()
 
-        val java = file.toString()
-
-        assertThat(java).contains("@Deprecated")
+        file shouldContain "@Deprecated"
     }
 
     @Test
@@ -207,11 +129,9 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("enum.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema)
         val javaFiles = gen.generateTypes()
-        val file = javaFiles[0]
+        val file = javaFiles[0].toString()
 
-        val java = file.toString()
-
-        assertThat(java).contains("@Deprecated\n  ONE(1)")
+        file shouldContain "@Deprecated\n  ONE(1)"
     }
 
     @Test
@@ -229,11 +149,9 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("enum_nullable.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.ANDROID_SUPPORT)
         val javaFiles = gen.generateTypes()
-        val file = javaFiles[0]
+        val file = javaFiles[0].toString()
 
-        val java = file.toString()
-
-        assertThat(java).contains("@Nullable\n  public static BuildStatus findByValue")
+        file shouldContain "@Nullable\n  public static BuildStatus findByValue"
     }
 
     @Test
@@ -249,13 +167,11 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("no_nullability.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.NONE)
         val javaFiles = gen.generateTypes()
-        val file = javaFiles[0]
+        val file = javaFiles[0].toString()
 
-        val java = file.toString()
-
-        assertThat(java).doesNotContain("@Nullable")
-        assertThat(java).doesNotContain("import android.support.annotation")
-        assertThat(java).doesNotContain("import androidx.annotation")
+        file shouldNotContain "@Nullable"
+        file shouldNotContain "import android.support.annotation"
+        file shouldNotContain "import androidx.annotation"
     }
 
     @Test
@@ -271,13 +187,11 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("nullable_android_support.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.ANDROID_SUPPORT)
         val javaFiles = gen.generateTypes()
-        val file = javaFiles[0]
+        val file = javaFiles[0].toString()
 
-        val java = file.toString()
-
-        assertThat(java).contains("@Nullable\n  public final String bar")
-        assertThat(java).contains("import android.support.annotation")
-        assertThat(java).doesNotContain("import androidx.annotation")
+        file shouldContain "@Nullable\n  public final String bar"
+        file shouldContain "import android.support.annotation"
+        file shouldNotContain "import androidx.annotation"
     }
 
     @Test
@@ -293,13 +207,11 @@ class ThriftyCodeGeneratorTest {
         val schema = parse("nullable_androidx.thrift", thrift)
         val gen = ThriftyCodeGenerator(schema).nullabilityAnnotationType(NullabilityAnnotationType.ANDROIDX)
         val javaFiles = gen.generateTypes()
-        val file = javaFiles[0]
+        val file = javaFiles[0].toString()
 
-        val java = file.toString()
-
-        assertThat(java).contains("@Nullable\n  public final String bar")
-        assertThat(java).contains("import androidx.annotation")
-        assertThat(java).doesNotContain("import android.support.annotation")
+        file shouldContain "@Nullable\n  public final String bar"
+        file shouldNotContain "import android.support.annotation"
+        file shouldContain "import androidx.annotation"
     }
 
     @Test
@@ -327,7 +239,7 @@ class ThriftyCodeGeneratorTest {
         """
 
         val file = compile("bytes.thrift", thrift)[0]
-        assertThat(file.toString()).isEqualTo("""
+        file.toString() shouldBe """
             package byte_consts;
 
             public final class Constants {
@@ -338,7 +250,7 @@ class ThriftyCodeGeneratorTest {
               }
             }
 
-            """.trimRawString())
+            """.trimRawString()
     }
 
     @Test
@@ -350,7 +262,7 @@ class ThriftyCodeGeneratorTest {
         """
 
         val file = compile("shorts.thrift", thrift)[0]
-        assertThat(file.toString()).isEqualTo("""
+        file.toString() shouldBe """
             package short_consts;
 
             public final class Constants {
@@ -361,7 +273,7 @@ class ThriftyCodeGeneratorTest {
               }
             }
 
-            """.trimRawString())
+            """.trimRawString()
     }
 
     @Test
@@ -373,7 +285,7 @@ class ThriftyCodeGeneratorTest {
         """
 
         val file = compile("ints.thrift", thrift)[0]
-        assertThat(file.toString()).isEqualTo("""
+        file.toString() shouldBe """
             package int_consts;
 
             public final class Constants {
@@ -384,7 +296,7 @@ class ThriftyCodeGeneratorTest {
               }
             }
 
-            """.trimRawString())
+            """.trimRawString()
     }
 
     @Test
@@ -396,7 +308,7 @@ class ThriftyCodeGeneratorTest {
         """
 
         val file = compile("longs.thrift", thrift)[0]
-        assertThat(file.toString()).isEqualTo("""
+        file.toString() shouldBe """
             package long_consts;
 
             public final class Constants {
@@ -407,7 +319,7 @@ class ThriftyCodeGeneratorTest {
               }
             }
 
-        """.trimRawString())
+        """.trimRawString()
     }
 
     @Test
@@ -434,7 +346,7 @@ class ThriftyCodeGeneratorTest {
 
         val file = compile("numberEquality.thrift", thrift)[0]
 
-        assertThat(file.toString()).contains(expectedEqualsMethod)
+        file.toString() shouldContain expectedEqualsMethod
     }
 
     @Test
@@ -471,7 +383,7 @@ class ThriftyCodeGeneratorTest {
         val javaText = javaFile.toString()
         val expected = String.format(expectedFormat, thriftFile.name)
 
-        assertThat(javaText).isEqualTo(expected)
+        javaText shouldBe expected
     }
 
     @Test
@@ -515,9 +427,9 @@ class ThriftyCodeGeneratorTest {
             """.trimRawString()
 
         val thriftFile = tmp.newFile("sigil_enums.thrift")
-        val javaFile = compile(thriftFile, thrift)[0]
+        val javaFile = compile(thriftFile, thrift)[0].toString()
 
-        assertThat(javaFile.toString()).isEqualTo(expected)
+        javaFile shouldBe expected
     }
 
     @Test
@@ -548,9 +460,9 @@ class ThriftyCodeGeneratorTest {
         """
 
         val thriftFile = tmp.newFile("structs_enums.thrift")
-        val javaFile = compile(thriftFile, thrift)[1]
+        val javaFile = compile(thriftFile, thrift)[1].toString()
 
-        assertThat(javaFile.toString()).contains(expected)
+        javaFile shouldContain expected
     }
 
     @Test
@@ -598,7 +510,7 @@ class ThriftyCodeGeneratorTest {
         val gen = ThriftyCodeGenerator(schema).emitFileComment(false).failOnUnknownEnumValues(false)
         val javaFile = gen.generateTypes()[1]
 
-        assertThat(javaFile.toString()).contains(expected)
+        javaFile.toString() shouldContain expected
     }
 
     @Test
@@ -633,7 +545,7 @@ class ThriftyCodeGeneratorTest {
         val thriftFile = tmp.newFile("maps_enums.thrift")
         val javaFile = compile(thriftFile, thrift)[2]
 
-        assertThat(javaFile.toString()).contains(expected)
+        javaFile.toString() shouldContain expected
     }
 
     @Test
@@ -668,8 +580,10 @@ class ThriftyCodeGeneratorTest {
 
         val thriftFile = tmp.newFile("sigil_enums.thrift")
         val javaFile = compile(thriftFile, thrift)[0]
-        assertThat(javaFile.toString()).contains(expectedClassJavadoc)
-        assertThat(javaFile.toString()).contains(expectedFieldJavadoc)
+        val javaText = javaFile.toString()
+
+        javaText shouldContain expectedClassJavadoc
+        javaText shouldContain expectedFieldJavadoc
     }
 
     @Test
@@ -689,28 +603,7 @@ class ThriftyCodeGeneratorTest {
 
         val java = file.toString()
 
-        assertThat(java).contains("public Builder(@NonNull Foo struct)")
-    }
-
-    @Test
-    fun generationWithWildcardNamespace() {
-        val thrift = """
-            namespace * namespace.catchall
-
-            struct Foo {
-              1: required string bar
-            }
-        """
-
-        val schema = parse("namespace.thrift", thrift)
-        val gen = ThriftyCodeGenerator(schema)
-        val java = gen.generateTypes()
-
-        assertThat(java).hasSize(1)
-
-        assertAbout(javaSource())
-                .that(java[0].toJavaFileObject())
-                .compilesWithoutError()
+        java shouldContain "public Builder(@NonNull Foo struct)"
     }
 
     private fun compile(filename: String, text: String): List<JavaFile> {
