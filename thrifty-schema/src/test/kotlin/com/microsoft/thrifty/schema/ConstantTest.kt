@@ -32,8 +32,6 @@ import com.microsoft.thrifty.schema.parser.LiteralValueElement
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement
 import com.microsoft.thrifty.schema.parser.TypeElement
 import com.microsoft.thrifty.schema.parser.TypedefElement
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
 import org.junit.Test
 
 import org.hamcrest.CoreMatchers.containsString
@@ -42,8 +40,24 @@ import org.junit.Assert.assertThat
 import org.junit.Assert.fail
 
 class ConstantTest {
-    private val symbolTable: SymbolTable = mock()
+    private val symbolTable = TestSymbolTable()
     private val loc = Location.get("", "")
+
+    private class TestSymbolTable : SymbolTable {
+        private val symbols = mutableMapOf<String, Constant>()
+
+        operator fun get(name: String): Constant? {
+            return symbols[name]
+        }
+
+        operator fun set(name: String, constant: Constant) {
+            symbols[name] = constant
+        }
+
+        override fun lookupConst(symbol: String): Constant? {
+            return get(symbol)
+        }
+    }
 
     @Test
     fun boolLiteral() {
@@ -67,7 +81,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aBool", "aBool"),
                 BuiltinType.BOOL)
 
-        whenever(symbolTable.lookupConst("aBool")).thenReturn(c)
+        symbolTable["aBool"] = c
 
         Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
     }
@@ -80,7 +94,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aBool", "abool"),
                 BuiltinType.STRING)
 
-        whenever(symbolTable.lookupConst("aBool")).thenReturn(c)
+        symbolTable["aBool"] = c
 
         try {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
@@ -113,7 +127,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aBool", "aBool"),
                 td)
 
-        whenever(symbolTable.lookupConst("aBool")).thenReturn(c)
+        symbolTable["aBool"] = c
 
         Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
     }
@@ -187,7 +201,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aDouble", "aDouble"),
                 BuiltinType.DOUBLE)
 
-        whenever(symbolTable.lookupConst("aDouble")).thenReturn(c)
+        symbolTable["aDouble"] = c
 
         Constant.validate(symbolTable, IdentifierValueElement(loc, "aDouble", "aDouble"), BuiltinType.DOUBLE)
     }
@@ -200,7 +214,7 @@ class ConstantTest {
                 IdentifierValueElement(loc, "aString", "aString"),
                 BuiltinType.STRING)
 
-        whenever(symbolTable.lookupConst("aString")).thenReturn(c)
+        symbolTable["aString"] = c
 
         try {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "aString", "aString"), BuiltinType.DOUBLE)

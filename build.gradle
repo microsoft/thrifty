@@ -67,7 +67,6 @@ allprojects {
 
                 testing: [
                         'junit:junit:4.12',
-                        'com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0',
                         'com.google.truth:truth:1.0.1',
                         'org.hamcrest:hamcrest-all:1.3',
                         dependencies.create('io.kotest:kotest-assertions-jvm:4.0.5') {

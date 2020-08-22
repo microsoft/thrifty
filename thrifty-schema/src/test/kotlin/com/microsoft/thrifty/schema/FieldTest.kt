@@ -25,7 +25,6 @@ import com.microsoft.thrifty.schema.parser.AnnotationElement
 import com.microsoft.thrifty.schema.parser.FieldElement
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement
 import com.microsoft.thrifty.schema.parser.TypeElement
-import com.nhaarman.mockitokotlin2.mock
 import org.junit.Test
 
 import java.util.Collections
@@ -138,7 +137,7 @@ class FieldTest {
         val field = Field(fieldElement, emptyMap())
 
         val annotations = ImmutableMap.of<String, String>()
-        val thriftType = mock<ThriftType>()
+        val thriftType = BuiltinType.DOUBLE
 
         val builderField = field.toBuilder()
                 .annotations(annotations)
