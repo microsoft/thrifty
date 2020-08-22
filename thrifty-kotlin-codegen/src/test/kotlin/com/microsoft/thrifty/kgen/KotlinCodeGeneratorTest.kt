@@ -283,9 +283,9 @@ class KotlinCodeGeneratorTest {
 
         val parcelize = ClassName("kotlinx.android.parcel", "Parcelize")
 
-        struct.annotationSpecs.any { it.className == parcelize } shouldBe true
-        anEnum.annotationSpecs.any { it.className == parcelize } shouldBe true
-        svc.annotationSpecs.any { it.className == parcelize } shouldBe false
+        struct.annotationSpecs.any { it.typeName == parcelize } shouldBe true
+        anEnum.annotationSpecs.any { it.typeName == parcelize } shouldBe true
+        svc.annotationSpecs.any { it.typeName == parcelize } shouldBe false
     }
 
     @Test
