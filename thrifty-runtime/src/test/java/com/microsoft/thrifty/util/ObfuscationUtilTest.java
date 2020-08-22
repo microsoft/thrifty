@@ -20,12 +20,11 @@
  */
 package com.microsoft.thrifty.util;
 
-import com.google.common.collect.Sets;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +42,9 @@ public class ObfuscationUtilTest {
 
     @Test
     public void summarizeObjectSet() {
-        Set<Long> set = Sets.newHashSet(3L, 4L);
+        Set<Long> set = new HashSet<>();
+        set.add(3L);
+        set.add(4L);
         String summary = ObfuscationUtil.summarizeCollection(set, "set", "i64");
         assertThat(summary, is("set<i64>(size=2)"));
     }

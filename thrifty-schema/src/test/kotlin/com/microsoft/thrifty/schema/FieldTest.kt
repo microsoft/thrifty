@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.schema
 
-import com.google.common.collect.ImmutableMap
 import com.microsoft.thrifty.schema.parser.AnnotationElement
 import com.microsoft.thrifty.schema.parser.FieldElement
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement
@@ -136,7 +135,7 @@ class FieldTest {
         val fieldElement = field()
         val field = Field(fieldElement, emptyMap())
 
-        val annotations = ImmutableMap.of<String, String>()
+        val annotations = emptyMap<String, String>()
         val thriftType = BuiltinType.DOUBLE
 
         val builderField = field.toBuilder()
