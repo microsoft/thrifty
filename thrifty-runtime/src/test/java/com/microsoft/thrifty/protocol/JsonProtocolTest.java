@@ -24,12 +24,12 @@ import com.microsoft.thrifty.TType;
 import com.microsoft.thrifty.transport.BufferTransport;
 import okio.Buffer;
 import okio.ByteString;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static com.google.common.truth.Truth.assertThat;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class JsonProtocolTest {
     private Buffer buffer;
@@ -45,25 +45,25 @@ public class JsonProtocolTest {
     @Test
     public void emptyJsonString() throws Exception {
         protocol.writeString("");
-        assertThat(buffer.readUtf8()).isEqualTo("\"\"");
+        assertThat(buffer.readUtf8(), is("\"\""));
     }
 
     @Test
     public void escapesNamedControlChars() throws Exception {
         protocol.writeString("\b\f\r\n\t");
-        assertThat(buffer.readUtf8()).isEqualTo("\"\\b\\f\\r\\n\\t\"");
+        assertThat(buffer.readUtf8(), is("\"\\b\\f\\r\\n\\t\""));
     }
 
     @Test
     public void escapesQuotes() throws Exception {
         protocol.writeString("\"");
-        assertThat(buffer.readUtf8()).isEqualTo("\"\\\"\""); // or, in other words, "\""
+        assertThat(buffer.readUtf8(), is("\"\\\"\"")); // or, in other words, "\""
     }
 
     @Test
     public void normalStringIsQuoted() throws Exception {
         protocol.writeString("y u no quote me?");
-        assertThat(buffer.readUtf8()).isEqualTo("\"y u no quote me?\"");
+        assertThat(buffer.readUtf8(), is("\"y u no quote me?\""));
     }
 
     @Test
@@ -71,7 +71,7 @@ public class JsonProtocolTest {
         protocol.writeListBegin(TType.STRING, 0);
         protocol.writeListEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"str\",0]");
+        assertThat(buffer.readUtf8(), is("[\"str\",0]"));
     }
 
     @Test
@@ -80,7 +80,7 @@ public class JsonProtocolTest {
         protocol.writeString("foo");
         protocol.writeListEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"str\",1,\"foo\"]");
+        assertThat(buffer.readUtf8(), is("[\"str\",1,\"foo\"]"));
     }
 
     @Test
@@ -90,7 +90,7 @@ public class JsonProtocolTest {
         protocol.writeString("bar");
         protocol.writeListEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"str\",2,\"foo\",\"bar\"]");
+        assertThat(buffer.readUtf8(), is("[\"str\",2,\"foo\",\"bar\"]"));
     }
 
     @Test
@@ -98,7 +98,7 @@ public class JsonProtocolTest {
         protocol.writeMapBegin(TType.STRING, TType.I32, 0);
         protocol.writeMapEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"str\",\"i32\",0,{}]");
+        assertThat(buffer.readUtf8(), is("[\"str\",\"i32\",0,{}]"));
     }
 
     @Test
@@ -108,7 +108,7 @@ public class JsonProtocolTest {
         protocol.writeI32(1);
         protocol.writeMapEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"str\",\"i32\",1,{\"key1\":1}]");
+        assertThat(buffer.readUtf8(), is("[\"str\",\"i32\",1,{\"key1\":1}]"));
     }
 
     @Test
@@ -120,7 +120,7 @@ public class JsonProtocolTest {
         protocol.writeI32(2);
         protocol.writeMapEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"str\",\"i32\",2,{\"key1\":1,\"key2\":2}]");
+        assertThat(buffer.readUtf8(), is("[\"str\",\"i32\",2,{\"key1\":1,\"key2\":2}]"));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class JsonProtocolTest {
 
         protocol.writeListEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"map\",2,[\"str\",\"i32\",1,{\"1\":10}],[\"str\",\"i32\",1,{\"2\":20}]]");
+        assertThat(buffer.readUtf8(), is("[\"map\",2,[\"str\",\"i32\",1,{\"1\":10}],[\"str\",\"i32\",1,{\"2\":20}]]"));
     }
 
     @Test
@@ -154,21 +154,21 @@ public class JsonProtocolTest {
 
         Xtruct.ADAPTER.write(protocol, xtruct);
 
-        assertThat(buffer.readUtf8()).isEqualTo("" +
+        assertThat(buffer.readUtf8(), is("" +
                 "{" +
                 "\"1\":{\"str\":\"five\"}," +
                 "\"4\":{\"i8\":1}," +
                 "\"9\":{\"i32\":3}," +
                 "\"11\":{\"i64\":4}," +
                 "\"13\":{\"dbl\":2.0}" +
-                "}");
+                "}"));
     }
 
     @Test
     public void binary() throws Exception {
         protocol.writeBinary(ByteString.encodeUtf8("foobar"));
 
-        assertThat(buffer.readUtf8()).isEqualTo("\"Zm9vYmFy\"");
+        assertThat(buffer.readUtf8(), is("\"Zm9vYmFy\""));
     }
 
     @Test
@@ -190,6 +190,6 @@ public class JsonProtocolTest {
 
         Xtruct read = Xtruct.ADAPTER.read(new JsonProtocol(transport));
 
-        Assert.assertThat(read, equalTo(xtruct));
+        assertThat(read, is(xtruct));
     }
 }

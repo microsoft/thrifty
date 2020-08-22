@@ -26,11 +26,12 @@ import org.junit.Before;
 import org.junit.Test;
 import java.io.IOException;
 
-import static com.google.common.truth.Truth.assertThat;
 import static com.microsoft.thrifty.TType.I32;
 import static com.microsoft.thrifty.TType.STRING;
 import static com.microsoft.thrifty.service.TMessageType.CALL;
 import static okio.ByteString.encodeUtf8;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -53,7 +54,7 @@ public final class DecorationgProtocolTest {
     public void testCtor() {
         Protocol binaryProtocol = new BinaryProtocol(new BufferTransport());
         Protocol decoratingProtocol = new DecoratingProtocol(binaryProtocol) {};
-        assertThat(decoratingProtocol.transport).isSameInstanceAs(binaryProtocol.transport);
+        assertThat(decoratingProtocol.transport, sameInstance(binaryProtocol.transport));
     }
 
     @Test

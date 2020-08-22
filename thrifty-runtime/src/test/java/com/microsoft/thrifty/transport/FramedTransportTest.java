@@ -20,11 +20,11 @@
  */
 package com.microsoft.thrifty.transport;
 
-import com.google.common.base.Charsets;
 import okio.Buffer;
 import org.junit.Test;
 
 import java.io.EOFException;
+import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -36,7 +36,7 @@ public class FramedTransportTest {
         BufferTransport bufferTranport = new BufferTransport(buffer);
         FramedTransport transport = new FramedTransport(bufferTranport);
 
-        transport.write("abcde".getBytes(Charsets.UTF_8));
+        transport.write("abcde".getBytes(StandardCharsets.UTF_8));
         transport.flush();
 
         assertThat(buffer.readInt(), is(5));
@@ -55,7 +55,7 @@ public class FramedTransportTest {
         assertThat(transport.read(readBuffer, 0, 5), is(5));
         assertThat(buffer.size(), is(5L)); // 4 bytes of header plus 5 bytes of frame data were read
 
-        assertThat(new String(readBuffer, Charsets.US_ASCII), is("abcde"));
+        assertThat(new String(readBuffer, StandardCharsets.US_ASCII), is("abcde"));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class FramedTransportTest {
         byte[] readBuffer = new byte[10];
         assertThat(transport.read(readBuffer, 0, 10), is(6));
         assertThat(transport.read(readBuffer, 6, 4), is(4));
-        assertThat(new String(readBuffer, Charsets.UTF_8), is("abcdefghij"));
+        assertThat(new String(readBuffer, StandardCharsets.UTF_8), is("abcdefghij"));
     }
 
     @Test(expected = EOFException.class)

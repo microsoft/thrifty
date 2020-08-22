@@ -26,7 +26,8 @@ import okio.Buffer;
 import okio.ByteString;
 import org.junit.Test;
 
-import static com.google.common.truth.Truth.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class SimpleJsonProtocolTest {
     private Buffer buffer = new Buffer();
@@ -36,25 +37,25 @@ public class SimpleJsonProtocolTest {
     @Test
     public void emptyJsonString() throws Exception {
         protocol.writeString("");
-        assertThat(buffer.readUtf8()).isEqualTo("\"\"");
+        assertThat(buffer.readUtf8(), is("\"\""));
     }
 
     @Test
     public void escapesNamedControlChars() throws Exception {
         protocol.writeString("\b\f\r\n\t");
-        assertThat(buffer.readUtf8()).isEqualTo("\"\\b\\f\\r\\n\\t\"");
+        assertThat(buffer.readUtf8(), is("\"\\b\\f\\r\\n\\t\""));
     }
 
     @Test
     public void escapesQuotes() throws Exception {
         protocol.writeString("\"");
-        assertThat(buffer.readUtf8()).isEqualTo("\"\\\"\""); // or, in other words, "\""
+        assertThat(buffer.readUtf8(), is("\"\\\"\"")); // or, in other words, "\""
     }
 
     @Test
     public void normalStringIsQuoted() throws Exception {
         protocol.writeString("y u no quote me?");
-        assertThat(buffer.readUtf8()).isEqualTo("\"y u no quote me?\"");
+        assertThat(buffer.readUtf8(), is("\"y u no quote me?\""));
     }
 
     @Test
@@ -62,7 +63,7 @@ public class SimpleJsonProtocolTest {
         protocol.writeListBegin(TType.STRING, 0);
         protocol.writeListEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[]");
+        assertThat(buffer.readUtf8(), is("[]"));
     }
 
     @Test
@@ -71,7 +72,7 @@ public class SimpleJsonProtocolTest {
         protocol.writeString("foo");
         protocol.writeListEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"foo\"]");
+        assertThat(buffer.readUtf8(), is("[\"foo\"]"));
     }
 
     @Test
@@ -81,7 +82,7 @@ public class SimpleJsonProtocolTest {
         protocol.writeString("bar");
         protocol.writeListEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[\"foo\",\"bar\"]");
+        assertThat(buffer.readUtf8(), is("[\"foo\",\"bar\"]"));
     }
 
     @Test
@@ -89,7 +90,7 @@ public class SimpleJsonProtocolTest {
         protocol.writeMapBegin(TType.STRING, TType.I32, 0);
         protocol.writeMapEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("{}");
+        assertThat(buffer.readUtf8(), is("{}"));
     }
 
     @Test
@@ -99,7 +100,7 @@ public class SimpleJsonProtocolTest {
         protocol.writeI32(1);
         protocol.writeMapEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("{\"key1\":1}");
+        assertThat(buffer.readUtf8(), is("{\"key1\":1}"));
     }
 
     @Test
@@ -111,7 +112,7 @@ public class SimpleJsonProtocolTest {
         protocol.writeI32(2);
         protocol.writeMapEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("{\"key1\":1,\"key2\":2}");
+        assertThat(buffer.readUtf8(), is("{\"key1\":1,\"key2\":2}"));
     }
 
     @Test
@@ -130,7 +131,7 @@ public class SimpleJsonProtocolTest {
 
         protocol.writeListEnd();
 
-        assertThat(buffer.readUtf8()).isEqualTo("[{\"1\":10},{\"2\":20}]");
+        assertThat(buffer.readUtf8(), is("[{\"1\":10},{\"2\":20}]"));
     }
 
     @Test
@@ -145,13 +146,13 @@ public class SimpleJsonProtocolTest {
 
         Xtruct.ADAPTER.write(protocol, xtruct);
 
-        assertThat(buffer.readUtf8()).isEqualTo("" +
+        assertThat(buffer.readUtf8(), is("" +
                 "{\"__thriftStruct\":\"Xtruct\"," +
                 "\"string_thing\":\"five\"," +
                 "\"byte_thing\":1," +
                 "\"i32_thing\":3," +
                 "\"i64_thing\":4," +
-                "\"double_thing\":2.0}");
+                "\"double_thing\":2.0}"));
     }
 
     @Test
@@ -159,7 +160,7 @@ public class SimpleJsonProtocolTest {
         protocol.withBinaryOutputMode(SimpleJsonProtocol.BinaryOutputMode.HEX)
                 .writeBinary(ByteString.of(new byte[] { 0, 127, -1 }));
 
-        assertThat(buffer.readUtf8()).isEqualTo("\"007fff\"");
+        assertThat(buffer.readUtf8(), is("\"007fff\""));
     }
 
     @Test
@@ -167,12 +168,12 @@ public class SimpleJsonProtocolTest {
         protocol.withBinaryOutputMode(SimpleJsonProtocol.BinaryOutputMode.BASE_64)
                 .writeBinary(ByteString.encodeUtf8("foobar"));
 
-        assertThat(buffer.readUtf8()).isEqualTo("\"Zm9vYmFy\"");
+        assertThat(buffer.readUtf8(), is("\"Zm9vYmFy\""));
     }
 
     @Test
     public void nonAsciiCharacters() throws Exception {
         protocol.writeString("测试");
-        assertThat(buffer.readUtf8()).isEqualTo("\"测试\"");
+        assertThat(buffer.readUtf8(), is("\"测试\""));
     }
 }

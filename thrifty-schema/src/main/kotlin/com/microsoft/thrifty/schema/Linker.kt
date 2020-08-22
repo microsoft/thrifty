@@ -21,7 +21,6 @@
 package com.microsoft.thrifty.schema
 
 import com.google.common.collect.HashMultimap
-import com.google.common.collect.ImmutableMap
 import com.microsoft.thrifty.schema.parser.ListTypeElement
 import com.microsoft.thrifty.schema.parser.MapTypeElement
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement
@@ -379,7 +378,7 @@ internal class Linker(
 
     fun resolveType(type: TypeElement): ThriftType {
         val annotationElement = type.annotations
-        val annotations = annotationElement?.values ?: ImmutableMap.of()
+        val annotations = annotationElement?.values ?: emptyMap()
 
         typesByName[type.name]?.let {
             // If we are resolving e.g. the type of a field element, the type
