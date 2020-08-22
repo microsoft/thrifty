@@ -45,7 +45,7 @@ allprojects {
                 ],
 
                 javaPoet: [
-                        'com.squareup:javapoet:1.11.1'
+                        'com.squareup:javapoet:1.13.0'
                 ],
 
                 kotlin: [
