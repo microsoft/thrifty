@@ -59,8 +59,8 @@ data class ThriftSpec internal constructor(
     fun <A : Appendable> renderTo(buffer: A, fileComment: String? = null) = buffer.apply {
         fileComment?.let {
             append("// ", it)
-            appendln()
-            appendln()
+            appendLine()
+            appendLine()
         }
         if (namespaces.isNotEmpty()) {
             namespaces.entries.joinEachTo(

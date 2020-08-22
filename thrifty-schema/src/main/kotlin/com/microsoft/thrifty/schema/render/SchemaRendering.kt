@@ -308,12 +308,12 @@ private fun <A : Appendable> StructType.renderTo(buffer: A) = buffer.apply {
         else -> "struct"
     }
     append(type, " ", name, " {")
-    appendln()
+    appendLine()
     fields
         .joinEachTo(buffer, NEWLINE) { _, field ->
             field.renderElementTo(buffer)
         }
-    appendln()
+    appendLine()
     append("}")
     renderAnnotationsTo(buffer)
 }
@@ -321,11 +321,11 @@ private fun <A : Appendable> StructType.renderTo(buffer: A) = buffer.apply {
 private fun <A : Appendable> EnumType.renderTo(buffer: A) = buffer.apply {
     renderJavadocTo(buffer)
     append("enum ", name, " {")
-    appendln()
+    appendLine()
     members.joinEachTo(buffer, ",$NEWLINE") { _, member ->
         member.renderElementTo(buffer)
     }
-    appendln()
+    appendLine()
     append("")
     append("}")
     renderAnnotationsTo(buffer)
@@ -334,11 +334,11 @@ private fun <A : Appendable> EnumType.renderTo(buffer: A) = buffer.apply {
 private fun <A : Appendable> ServiceType.renderTo(buffer: A) = buffer.apply {
     renderJavadocTo(buffer)
     append("service ", name, " {")
-    appendln()
+    appendLine()
     methods.joinEachTo(buffer = buffer, separator = DOUBLE_NEWLINE) { _, method ->
         method.renderElementTo(buffer)
     }
-    appendln()
+    appendLine()
     append("}")
     renderAnnotationsTo(buffer)
 }
@@ -373,12 +373,12 @@ private fun <A : Appendable> ServiceMethod.renderTo(buffer: A, indent: String = 
                 }
         }
         if (exceptions.isNotEmpty()) {
-            appendln(" throws (")
+            appendLine(" throws (")
             exceptions
                 .joinEachTo(buffer = buffer, separator = ",$NEWLINE") { _, param ->
                     param.renderTo(buffer, "$indent  ")
                 }
-            appendln()
+            appendLine()
             append(indent, ")")
         }
         renderAnnotationsTo(buffer, indent)
@@ -459,7 +459,7 @@ private fun <A : Appendable> UserElement.renderJavadocTo(buffer: A, indent: Stri
                 append(indent)
                 append("/* ")
                 append(docLines[0])
-                appendln(" */")
+                appendLine(" */")
             } else {
                 docLines.joinTo(
                     buffer = buffer,
@@ -501,13 +501,13 @@ private fun <A : Appendable> Map<String, String>.renderTo(
         }
         size > 1 -> {
             append(prefix)
-            appendln("(")
+            appendLine("(")
             entries
                 .sortedBy(Map.Entry<String, String>::key)
                 .joinTo(buffer = buffer, separator = ",$NEWLINE") { (key, value) ->
                     "$indent  $key = \"${value.replace("\"", "\\\"")}\""
                 }
-            appendln()
+            appendLine()
             append(indent, ")")
         }
     }
