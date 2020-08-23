@@ -40,10 +40,11 @@ import java.util.UUID
 
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
-import org.hamcrest.Matchers.isEmptyString
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers.`is`
+import org.hamcrest.Matchers.emptyString
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThat
 import org.junit.Assert.fail
 
 class ThriftParserTest {
@@ -1166,7 +1167,7 @@ class ThriftParserTest {
                 "const i32 foo = 2")
         val constants = file.constants
         val documentation = constants[0].documentation
-        assertThat(documentation, isEmptyString())
+        assertThat(documentation, `is`(emptyString()))
     }
 
     @Test

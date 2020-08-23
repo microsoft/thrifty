@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.hasEntry
 import org.hamcrest.Matchers.`is`
-import org.junit.Assert.assertThat
+import org.hamcrest.MatcherAssert.assertThat
 
 class ThriftTypeTest {
     @Test
