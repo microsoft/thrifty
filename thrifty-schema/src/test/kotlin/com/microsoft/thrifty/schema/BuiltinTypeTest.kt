@@ -23,7 +23,7 @@ package com.microsoft.thrifty.schema
 import org.junit.Test
 
 import org.hamcrest.Matchers.`is`
-import org.junit.Assert.assertThat
+import org.hamcrest.MatcherAssert.assertThat
 
 class BuiltinTypeTest {
     @Test
