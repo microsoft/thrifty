@@ -104,11 +104,11 @@ subprojects { sp ->
     apply plugin: 'idea'
     apply plugin: 'jacoco'
 
-    tasks.withType(Checkstyle) {
+    tasks.withType(Checkstyle).configureEach {
         exclude '**/antlr/**'
     }
 
-    tasks.withType(JavaCompile) {
+    tasks.withType(JavaCompile).configureEach {
         options.fork = true
         options.incremental = true
     }
@@ -126,37 +126,26 @@ subprojects { sp ->
 
 apply plugin: 'jacoco'
 
-task codeCoverageReport(type: JacocoReport) {
-    executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
+tasks.register("codeCoverageReport", JacocoReport) { t ->
+    t.dependsOn subprojects*.test
+
+    t.executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
 
     subprojects.each {
-        sourceSets it.sourceSets.main
+        t.sourceSets it.sourceSets.main
     }
 
-    reports {
+    t.reports {
         xml.enabled = true
-        xml.destination file("$buildDir/reports/jacoco/report.xml")
+        xml.destination layout.buildDirectory.file("reports/jacoco/report.xml").map { it.asFile }
         html.enabled = true
         csv.enabled = false
     }
 
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it,
-            exclude: [
-                    // leave out auto-generated code in thrifty-schema
-                    '**/AutoValue_*',
-                    '**/antlr/*',
-
-                    // ditto for Apache-compiler-generated test classes
-                    'com/microsoft/thrifty/test/gen/*',
-            ])
-        }))
-    }
-}
-
-codeCoverageReport.dependsOn {
-    subprojects*.test
+    def filters = [ "**/AutoValue_*", "**/antlr/*", "com/microsoft/thrifty/test/gen/*"]
+    t.classDirectories.setFrom(files(t.classDirectories.files.collect {
+        fileTree(dir: it, exclude: filters)
+    }))
 }
 
 wrapper {
