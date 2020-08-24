@@ -22,4 +22,5 @@ package com.microsoft.thrifty.protocol
 
 class ListMetadata(
         @JvmField val elementTypeId: Byte,
-        @JvmField val size: Int)
+        @JvmField val size: Int,
+)

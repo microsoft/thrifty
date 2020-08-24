@@ -28,7 +28,9 @@ import java.io.EOFException
  * in length-prefixed frames.  Used when the server is using a non-blocking
  * implementation, which currently requires such framing.
  */
-class FramedTransport(private val inner: Transport) : Transport {
+class FramedTransport(
+        private val inner: Transport
+) : Transport {
     // Read state
     private var remainingBytes = 0
 
@@ -44,7 +46,7 @@ class FramedTransport(private val inner: Transport) : Transport {
         while (remainingBytes <= 0) {
             readHeader()
         }
-        val toRead = Math.min(count, remainingBytes)
+        val toRead = count.coerceAtMost(remainingBytes)
         val numRead = inner.read(buffer, offset, toRead)
         remainingBytes -= numRead
         return numRead
@@ -69,22 +71,25 @@ class FramedTransport(private val inner: Transport) : Transport {
 
     override fun write(buffer: ByteArray, offset: Int, count: Int) {
         if (pendingWrite == null) {
-            pendingWrite = UnsafeByteArrayOutputStream(Math.max(count, 32))
+            pendingWrite = UnsafeByteArrayOutputStream(count.coerceAtLeast(32))
         }
         pendingWrite!!.write(buffer, offset, count)
     }
 
     override fun flush() {
-        val size = if (pendingWrite == null) 0 else pendingWrite!!.size()
+        val write = pendingWrite ?: return
+        val size = write.size()
+        if (size == 0) {
+            return
+        }
+
         val headerBytes = ByteArray(4)
         headerBytes[0] = ((size shr 24) and 0xFF).toByte()
         headerBytes[1] = ((size shr 16) and 0xFF).toByte()
         headerBytes[2] = ((size shr 8)  and 0xFF).toByte()
         headerBytes[3] = ( size         and 0xFF).toByte()
         inner.write(headerBytes)
-        if (size > 0) {
-            inner.write(pendingWrite!!.buffer, 0, size)
-            pendingWrite!!.reset()
-        }
+        inner.write(pendingWrite!!.buffer, 0, size)
+        pendingWrite!!.reset()
     }
 }

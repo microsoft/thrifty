@@ -31,7 +31,8 @@ import java.io.IOException
 abstract class MethodCall<T>(
         @JvmField val name: String,
         @JvmField val callTypeId: Byte,
-        @JvmField val callback: ServiceMethodCallback<T>?) {
+        @JvmField val callback: ServiceMethodCallback<T>?,
+) {
 
     @Throws(IOException::class)
     abstract fun send(protocol: Protocol)

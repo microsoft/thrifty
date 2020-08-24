@@ -20,4 +20,6 @@
  */
 package com.microsoft.thrifty.protocol
 
-class StructMetadata(@JvmField val name: String)
+class StructMetadata(
+        @JvmField val name: String,
+)

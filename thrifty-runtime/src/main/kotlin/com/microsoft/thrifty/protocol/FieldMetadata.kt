@@ -23,4 +23,5 @@ package com.microsoft.thrifty.protocol
 class FieldMetadata(
         @JvmField val name: String,
         @JvmField val typeId: Byte,
-        @JvmField val fieldId: Short)
+        @JvmField val fieldId: Short,
+)

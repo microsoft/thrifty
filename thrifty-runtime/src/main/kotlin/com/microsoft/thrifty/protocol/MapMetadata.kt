@@ -23,4 +23,5 @@ package com.microsoft.thrifty.protocol
 class MapMetadata(
         @JvmField val keyTypeId: Byte,
         @JvmField val valueTypeId: Byte,
-        @JvmField val size: Int)
+        @JvmField val size: Int,
+)

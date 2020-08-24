@@ -42,6 +42,7 @@ import java.util.concurrent.RejectedExecutionException
  * configure your [Protocol] and [com.microsoft.thrifty.transport.Transport]
  * objects appropriately.
  */
+@Suppress("UNCHECKED_CAST")
 open class AsyncClientBase protected constructor(
         protocol: Protocol,
         private val listener: Listener

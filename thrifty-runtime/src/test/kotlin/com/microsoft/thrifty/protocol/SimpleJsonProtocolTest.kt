@@ -21,7 +21,6 @@
 package com.microsoft.thrifty.protocol
 
 import com.microsoft.thrifty.TType
-import com.microsoft.thrifty.protocol.SimpleJsonProtocol
 import com.microsoft.thrifty.transport.BufferTransport
 import io.kotest.matchers.shouldBe
 import okio.Buffer

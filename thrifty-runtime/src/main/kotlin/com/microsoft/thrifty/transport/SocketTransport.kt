@@ -27,12 +27,15 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import javax.net.SocketFactory
 
-class SocketTransport internal constructor(builder: Builder) : Transport {
-    private val host: String
-    private val port: Int
-    private val readTimeout: Int
-    private val connectTimeout: Int
-    private val socketFactory: SocketFactory
+class SocketTransport internal constructor(
+        builder: Builder
+) : Transport {
+    private val host = builder.host
+    private val port = builder.port
+    private val readTimeout = builder.readTimeout
+    private val connectTimeout = builder.connectTimeout
+    private val socketFactory = builder.socketFactory ?: SocketFactory.getDefault()
+
     private var socket: Socket? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
@@ -134,13 +137,5 @@ class SocketTransport internal constructor(builder: Builder) : Transport {
             } catch (ignored: IOException) {
             }
         }
-    }
-
-    init {
-        host = builder.host
-        port = builder.port
-        readTimeout = builder.readTimeout
-        connectTimeout = builder.connectTimeout
-        socketFactory = builder.socketFactory ?: SocketFactory.getDefault()
     }
 }

@@ -148,7 +148,7 @@ class BinaryProtocol @JvmOverloads constructor(
     override fun writeI32(i32: Int) {
         buffer[0] = ((i32 shr 24) and 0xFF).toByte()
         buffer[1] = ((i32 shr 16) and 0xFF).toByte()
-        buffer[2] = ((i32 shr  8) and 0xFF).toByte()
+        buffer[2] = ((i32 shr 8) and 0xFF).toByte()
         buffer[3] = (i32 and 0xFF).toByte()
         transport.write(buffer, 0, 4)
     }
@@ -161,7 +161,7 @@ class BinaryProtocol @JvmOverloads constructor(
         buffer[3] = ((i64 shr 32) and 0xFF).toByte()
         buffer[4] = ((i64 shr 24) and 0xFF).toByte()
         buffer[5] = ((i64 shr 16) and 0xFF).toByte()
-        buffer[6] = ((i64 shr  8) and 0xFF).toByte()
+        buffer[6] = ((i64 shr 8) and 0xFF).toByte()
         buffer[7] = (i64 and 0xFF).toByte()
         transport.write(buffer, 0, 8)
     }
