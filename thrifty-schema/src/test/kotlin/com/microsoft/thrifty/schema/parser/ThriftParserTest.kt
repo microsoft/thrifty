@@ -24,6 +24,7 @@ import com.microsoft.thrifty.schema.ErrorReporter
 import com.microsoft.thrifty.schema.Location
 import com.microsoft.thrifty.schema.NamespaceScope
 import com.microsoft.thrifty.schema.Requiredness
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
@@ -31,21 +32,10 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.startWith
 import okio.buffer
 import okio.source
-
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-
 import java.util.UUID
-
-import org.hamcrest.Matchers.containsString
-import org.hamcrest.Matchers.equalTo
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.`is`
-import org.hamcrest.Matchers.emptyString
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.fail
 
 class ThriftParserTest {
 
@@ -105,7 +95,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(file, equalTo(expected))
+        file shouldBe expected
     }
 
     @Test
@@ -129,7 +119,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -158,7 +148,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -199,7 +189,7 @@ class ThriftParserTest {
                     )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -219,7 +209,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -261,7 +251,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -308,7 +298,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -318,13 +308,8 @@ class ThriftParserTest {
                 "1: string bar;\n" +
                 "}"
 
-        try {
-            parse(thrift, Location.get("", "duplicateIds.thrift"))
-            fail("Structs with duplicate field IDs should fail to parse")
-        } catch (e: IllegalStateException) {
-            assertThat(e.message, containsString("duplicate field ID:"))
-        }
-
+        val e = shouldThrow<IllegalStateException> { parse(thrift, Location.get("", "duplicateIds.thrift")) }
+        e.message shouldContain "duplicate field ID:"
     }
 
     @Test
@@ -335,13 +320,8 @@ class ThriftParserTest {
                 "1: bytes baz\n" +
                 "}"
 
-        try {
-            parse(thrift, Location.get("", "duplicateImplicitIds.thrift"))
-            fail("Structs with duplicate implicit field IDs should fail to parse")
-        } catch (e: IllegalStateException) {
-            assertThat(e.message, containsString("duplicate field ID: 1"))
-        }
-
+        val e = shouldThrow<IllegalStateException> { parse(thrift, Location.get("", "duplicateImplicitIds.thrift")) }
+        e.message shouldContain "duplicate field ID: 1"
     }
 
     @Test
@@ -469,28 +449,21 @@ class ThriftParserTest {
                 structs = listOf(expectedStruct)
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
     fun invalidFieldIds() {
         val negativeIdThrift = "struct NegativeId { -1: required i32 nope }"
-        try {
-            parse(negativeIdThrift)
-            fail("Should not parse a struct with a negative field ID")
-        } catch (e: IllegalStateException) {
-            assertThat<String>(e.message, containsString("field ID must be greater than zero"))
-        }
+        val e1 = shouldThrow<IllegalStateException> { parse(negativeIdThrift) }
+        e1.message shouldContain "field ID must be greater than zero"
 
         val zeroIdThrift = "struct ZeroId {\n" +
                 "  0: optional i64 stillNope\n" +
                 "}"
-        try {
-            parse(zeroIdThrift)
-            fail("Should not parse a struct with a zero field ID")
-        } catch (e: IllegalStateException) {
-            assertThat<String>(e.message, containsString("field ID must be greater than zero"))
-        }
+
+        val e2 = shouldThrow<IllegalStateException> { parse(zeroIdThrift) }
+        e2.message shouldContain "field ID must be greater than zero"
 
     }
 
@@ -554,7 +527,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -590,7 +563,7 @@ class ThriftParserTest {
                                                 returnType = ScalarTypeElement(location.at(4, 3), "i32"))
                                 ))))
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -625,7 +598,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -636,13 +609,8 @@ class ThriftParserTest {
                 "  5: required i32 bar\n" +
                 "}\n"
 
-        try {
-            parse(thrift, Location.get("", "unionWithRequired.thrift"))
-            fail("Union cannot have a required field")
-        } catch (e: IllegalStateException) {
-            assertThat(e.message, containsString("unions cannot have required fields"))
-        }
-
+        val e = shouldThrow<IllegalStateException> { parse(thrift, Location.get("", "unionWithRequired.thrift")) }
+        e.message shouldContain "unions cannot have required fields"
     }
 
     @Test
@@ -662,7 +630,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -686,7 +654,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -714,7 +682,7 @@ class ThriftParserTest {
                 constants = listOf(element)
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -747,7 +715,7 @@ class ThriftParserTest {
                 constants = listOf(mapConst)
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -778,7 +746,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -813,7 +781,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -842,7 +810,7 @@ class ThriftParserTest {
                 )
         )
 
-        assertThat(parse(thrift, location), equalTo(expected))
+        parse(thrift, location) shouldBe expected
     }
 
     @Test
@@ -853,13 +821,8 @@ class ThriftParserTest {
                 "  BAZ\n" +
                 "}"
 
-        try {
-            parse(thrift)
-            fail()
-        } catch (e: IllegalStateException) {
-            assertThat(e.message, containsString("duplicate enum value"))
-        }
-
+        val e = shouldThrow<IllegalStateException> { parse(thrift) }
+        e.message shouldContain "duplicate enum value"
     }
 
     @Test
@@ -868,7 +831,7 @@ class ThriftParserTest {
         val ns = parse(thrift).namespaces.single()
         val ann = ns.annotations!!
 
-        assertThat(ann["foo"], equalTo("bar"))
+        ann["foo"] shouldBe "bar"
     }
 
     @Test
@@ -880,7 +843,7 @@ class ThriftParserTest {
         val typedef = parse(thrift).typedefs.single()
         val ann = typedef.annotations!!
 
-        assertThat(ann["boxed"], equalTo("false"))
+        ann["boxed"] shouldBe "false"
     }
 
     @Test
@@ -889,7 +852,7 @@ class ThriftParserTest {
         val enum = parse(thrift).enums.single()
         val ann = enum.annotations!!
 
-        assertThat(ann["bar"], equalTo("baz"))
+        ann["bar"] shouldBe "baz"
     }
 
     @Test
@@ -905,11 +868,10 @@ class ThriftParserTest {
         val enum = parse(thrift).enums.single()
         val (a1, a2, a3, a4) = enum.members.map { it.annotations }
 
-
-        assertThat(a1!!["bar"], equalTo("abar"))
-        assertThat(a2!!["baz"], equalTo("abaz"))
-        assertThat(a3!!["qux"], equalTo("aqux"))
-        assertNull(a4)
+        a1!!["bar"] shouldBe "abar"
+        a2!!["baz"] shouldBe "abaz"
+        a3!!["qux"] shouldBe "aqux"
+        a4 shouldBe null
     }
 
     @Test
@@ -921,9 +883,9 @@ class ThriftParserTest {
         val services = parse(thrift).services
         val ann = services.single().annotations!!
 
-        assertThat(ann.size, equalTo(2))
-        assertThat(ann["async"], equalTo("true"))
-        assertThat(ann["java.races"], equalTo("false"))
+        ann.size shouldBe 2
+        ann["async"] shouldBe "true"
+        ann["java.races"] shouldBe "false"
     }
 
     @Test
@@ -939,13 +901,9 @@ class ThriftParserTest {
 
         val (a, b, c) = functions.map { it.annotations}
 
-        assertNotNull(a)
-        assertNotNull(b)
-        assertNotNull(c)
-
-        assertThat(a?.get("test"), equalTo("a"))
-        assertThat(b?.get("test"), equalTo("b"))
-        assertThat(c?.get("test"), equalTo("c"))
+        a!!["test"] shouldBe "a"
+        b!!["test"] shouldBe "b"
+        c!!["test"] shouldBe "c"
     }
 
     @Test
@@ -959,8 +917,7 @@ class ThriftParserTest {
         val structs = parse(thrift).structs
         val ann = structs[0].annotations
 
-        assertNotNull(ann)
-        assertThat(ann?.get("layout"), equalTo("sequential"))
+        ann!!["layout"] shouldBe "sequential"
     }
 
     @Test
@@ -974,8 +931,7 @@ class ThriftParserTest {
         val unions = parse(thrift).unions
         val ann = unions[0].annotations
 
-        assertNotNull(ann)
-        assertThat(ann?.get("layout"), equalTo("padded"))
+        ann!!["layout"] shouldBe "padded"
     }
 
     @Test
@@ -988,8 +944,7 @@ class ThriftParserTest {
         val exceptions = parse(thrift).exceptions
         val ann = exceptions[0].annotations
 
-        assertNotNull(ann)
-        assertThat(ann?.get("java.runtime_exception"), equalTo("true"))
+        ann!!["java.runtime_exception"] shouldBe "true"
     }
 
     @Test
@@ -1002,12 +957,11 @@ class ThriftParserTest {
 
         val structs = parse(thrift).structs
         val fields = structs[0].fields
-
-        assertThat(fields[0].annotations?.get("what"), equalTo("what"))
-
-        assertThat(fields[1].annotations?.get("compression"), equalTo("zlib"))
-
-        assertThat(fields[2].annotations?.get("synonym"), equalTo("byte"))
+        val (a1, a2, a3) = fields.map { it.annotations!! }
+        
+        a1["what"] shouldBe "what"
+        a2["compression"] shouldBe "zlib"
+        a3["synonym"] shouldBe "byte"
     }
 
     @Test
@@ -1018,10 +972,9 @@ class ThriftParserTest {
 
         val structs = parse(thrift).structs
         val fields = structs[0].fields
-        val anno = fields[0].type.annotations
+        val anno = fields[0].type.annotations!!
 
-        assertNotNull(anno)
-        assertThat(anno?.get("python.immutable"), equalTo("true"))
+        anno["python.immutable"] shouldBe "true"
     }
 
     @Test
@@ -1049,8 +1002,8 @@ class ThriftParserTest {
         val thrift = "" + "namespace java x (comment = \"what a \\\"mess\\\"\")\n"
 
         val namespaces = parse(thrift).namespaces
-        val annotations = namespaces[0].annotations
-        assertThat(annotations?.get("comment"), equalTo("what a \"mess\""))
+        val annotations = namespaces[0].annotations!!
+        annotations["comment"] shouldBe "what a \"mess\""
     }
 
     @Test
@@ -1081,8 +1034,8 @@ class ThriftParserTest {
         val structs = parse(thrift).structs
         val fields = structs[0].fields
 
-        assertThat(fields[0].documentation, equalTo("Here's a comment.\n"))
-        assertThat(fields[1].documentation, equalTo("Here's a longer comment.\n"))
+        fields[0].documentation shouldBe "Here's a comment.\n"
+        fields[1].documentation shouldBe "Here's a longer comment.\n"
     }
 
     @Test
@@ -1102,8 +1055,8 @@ class ThriftParserTest {
         val structs = parse(thrift).structs
         val fields = structs[0].fields
 
-        assertThat(fields[0].documentation, containsString("this belongs to clientUuid"))
-        assertThat(fields[1].documentation, containsString("Here's a longer comment."))
+        fields[0].documentation shouldContain "this belongs to clientUuid"
+        fields[1].documentation shouldContain "Here's a longer comment."
     }
 
     @Test
@@ -1134,7 +1087,7 @@ class ThriftParserTest {
 
         val enums = parse(thrift, loc).enums
 
-        assertThat(enums[0], equalTo(expected))
+        enums[0] shouldBe expected
     }
 
     @Test
@@ -1150,14 +1103,8 @@ class ThriftParserTest {
                 "}")
 
         val structs = file.structs
-        val fields = structs[0].fields
-
-        assertThat(fields[0].fieldId, equalTo(1))
-        assertThat(fields[1].fieldId, equalTo(2))
-        assertThat(fields[2].fieldId, equalTo(5))
-        assertThat(fields[3].fieldId, equalTo(6))
-        assertThat(fields[4].fieldId, equalTo(4))
-        assertThat(fields[5].fieldId, equalTo(7))
+        val fieldIds = structs[0].fields.map { it.fieldId }
+        fieldIds shouldBe listOf(1, 2, 5, 6, 4, 7)
     }
 
     @Test
@@ -1167,7 +1114,7 @@ class ThriftParserTest {
                 "const i32 foo = 2")
         val constants = file.constants
         val documentation = constants[0].documentation
-        assertThat(documentation, `is`(emptyString()))
+        documentation shouldBe ""
     }
 
     @Test
@@ -1177,7 +1124,7 @@ class ThriftParserTest {
         """.trimIndent()
 
         val constants = parse(thrift).constants
-        assertThat((constants.single().value as IntValueElement).value, equalTo(2L))
+        (constants.single().value as IntValueElement).value shouldBe 2L
     }
 
     @Test
@@ -1187,7 +1134,7 @@ class ThriftParserTest {
         """.trimIndent()
 
         val constants = parse(thrift).constants
-        assertThat((constants.single().value as IntValueElement).value, equalTo(2L))
+        (constants.single().value as IntValueElement).value shouldBe 2L
     }
 
     @Test
@@ -1218,7 +1165,7 @@ class ThriftParserTest {
             )
         )
 
-        assertThat(file, equalTo(expected))
+        file shouldBe expected
     }
 
     @Test
@@ -1249,7 +1196,7 @@ class ThriftParserTest {
             )
         )
 
-        assertThat(file, equalTo(expected))
+        file shouldBe expected
     }
 
     @Test

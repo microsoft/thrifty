@@ -20,15 +20,11 @@
  */
 package com.microsoft.thrifty.schema
 
+import io.kotest.matchers.shouldBe
 import org.junit.Test
 
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
-
-import org.hamcrest.Matchers.equalTo
-import org.hamcrest.Matchers.hasEntry
-import org.hamcrest.Matchers.`is`
-import org.hamcrest.MatcherAssert.assertThat
 
 class ThriftTypeTest {
     @Test
@@ -89,8 +85,8 @@ class ThriftTypeTest {
         BuiltinType.I8.accept(v)
         BuiltinType.BYTE.accept(v)
 
-        assertThat(BuiltinType.I8.isBuiltin, `is`(true))
-        assertThat(ctr.get(), `is`(2))
+        BuiltinType.I8.isBuiltin shouldBe true
+        ctr.get() shouldBe 2
     }
 
     @Test
@@ -98,7 +94,7 @@ class ThriftTypeTest {
         val one = BuiltinType.get("i32")
         val two = BuiltinType.get("i32")
 
-        assertThat<ThriftType>(one, equalTo<ThriftType>(two))
+        one shouldBe two
     }
 
     @Test
@@ -106,7 +102,7 @@ class ThriftTypeTest {
         val one = BuiltinType.get("i32")!!.withAnnotations(Collections.singletonMap("test", "one"))
         val two = BuiltinType.get("i32")!!.withAnnotations(Collections.singletonMap("test", "two"))
 
-        assertThat(one, equalTo(two))
+        one shouldBe two
     }
 
     @Test
@@ -114,7 +110,7 @@ class ThriftTypeTest {
         val one = BuiltinType.get("i32")!!.withAnnotations(Collections.singletonMap("i32", "bar"))
         val two = one.withAnnotations(Collections.singletonMap("baz", "quux"))
 
-        assertThat(two.annotations, hasEntry("i32", "bar"))
-        assertThat(two.annotations, hasEntry("baz", "quux"))
+        two.annotations["i32"] shouldBe "bar"
+        two.annotations["baz"] shouldBe "quux"
     }
 }
