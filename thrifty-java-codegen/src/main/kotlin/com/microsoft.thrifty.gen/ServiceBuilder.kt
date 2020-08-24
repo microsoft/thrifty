@@ -89,7 +89,7 @@ internal class ServiceBuilder(
 
             val returnType = method.returnType
             val returnTypeName = if (returnType == BuiltinType.VOID) {
-                TypeName.VOID.box()
+                ClassName.get("kotlin", "Unit")
             } else {
                 typeResolver.getJavaClass(returnType.trueType)
             }
@@ -166,7 +166,7 @@ internal class ServiceBuilder(
 
         val returnType = method.returnType
         val returnTypeName = if (returnType == BuiltinType.VOID) {
-            TypeName.VOID.box()
+            ClassName.get("kotlin", "Unit")
         } else {
             typeResolver.getJavaClass(returnType.trueType)
         }
@@ -174,7 +174,7 @@ internal class ServiceBuilder(
         val callbackTypeName = ParameterizedTypeName.get(TypeNames.SERVICE_CALLBACK, returnTypeName)
         val superclass = ParameterizedTypeName.get(TypeNames.SERVICE_METHOD_CALL, returnTypeName)
 
-        val hasReturnType = returnTypeName != TypeName.VOID.box()
+        val hasReturnType = returnType != BuiltinType.VOID
 
         val callBuilder = TypeSpec.classBuilder(name)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
@@ -250,7 +250,7 @@ internal class ServiceBuilder(
     private fun buildSendMethod(method: ServiceMethod): MethodSpec {
         val send = MethodSpec.methodBuilder("send")
                 .addAnnotation(Override::class.java)
-                .addModifiers(Modifier.PROTECTED)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addException(TypeNames.IO_EXCEPTION)
 
@@ -290,7 +290,7 @@ internal class ServiceBuilder(
     private fun buildReceiveMethod(method: ServiceMethod, hasReturnType: Boolean): MethodSpec {
         val recv = MethodSpec.methodBuilder("receive")
                 .addAnnotation(Override::class.java)
-                .addModifiers(Modifier.PROTECTED)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameter(TypeNames.PROTOCOL, "protocol")
                 .addParameter(TypeNames.MESSAGE_METADATA, "metadata")
                 .addException(TypeNames.EXCEPTION)
@@ -300,7 +300,7 @@ internal class ServiceBuilder(
             recv.returns(retTypeName)
             recv.addStatement("\$T result = null", retTypeName)
         } else {
-            recv.returns(TypeName.VOID.box())
+            recv.returns(ClassName.get("kotlin", "Unit"))
         }
 
         for (field in method.exceptions) {
@@ -385,7 +385,7 @@ internal class ServiceBuilder(
         } else {
             // No return is expected, and no exceptions were received.
             // Success!
-            recv.addStatement("return null")
+            recv.addStatement("return kotlin.Unit.INSTANCE")
         }
 
         if (isInControlFlow) {

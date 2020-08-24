@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.integration
 
-import com.microsoft.thrifty.protocol.DecoratingProtocol
 import com.microsoft.thrifty.protocol.FieldMetadata
 import com.microsoft.thrifty.protocol.ListMetadata
 import com.microsoft.thrifty.protocol.MapMetadata
@@ -34,209 +33,211 @@ import okio.ByteString
  * A [Protocol] wrapper that prints each method as it is invoked, which is
  * helpful when debugging client-server errors from generated code.
  */
-class DebugProtocolWrapper(protocol: Protocol): DecoratingProtocol(protocol) {
-    override fun writeMessageBegin(name: String?, typeId: Byte, seqId: Int) {
+class DebugProtocolWrapper(
+        private val protocol: Protocol
+) : Protocol by protocol {
+    override fun writeMessageBegin(name: String, typeId: Byte, seqId: Int) {
         println("writeMessageBegin($name, $typeId, $seqId")
-        super.writeMessageBegin(name, typeId, seqId)
+        protocol.writeMessageBegin(name, typeId, seqId)
     }
 
     override fun writeMessageEnd() {
         println("writeMessageEnd")
-        super.writeMessageEnd()
+        protocol.writeMessageEnd()
     }
 
-    override fun writeStructBegin(structName: String?) {
+    override fun writeStructBegin(structName: String) {
         println("writeStructBegin($structName)")
-        super.writeStructBegin(structName)
+        protocol.writeStructBegin(structName)
     }
 
     override fun writeStructEnd() {
         println("writeStructEnd()")
-        super.writeStructEnd()
+        protocol.writeStructEnd()
     }
 
-    override fun writeFieldBegin(fieldName: String?, fieldId: Int, typeId: Byte) {
+    override fun writeFieldBegin(fieldName: String, fieldId: Int, typeId: Byte) {
         println("writeFieldBegin($fieldName, $fieldId, $typeId)")
-        super.writeFieldBegin(fieldName, fieldId, typeId)
+        protocol.writeFieldBegin(fieldName, fieldId, typeId)
     }
 
     override fun writeFieldEnd() {
         println("writeFieldEnd()")
-        super.writeFieldEnd()
+        protocol.writeFieldEnd()
     }
 
     override fun writeFieldStop() {
         println("writeFieldStop()")
-        super.writeFieldStop()
+        protocol.writeFieldStop()
     }
 
     override fun writeMapBegin(keyTypeId: Byte, valueTypeId: Byte, mapSize: Int) {
         println("writeMapBegin($keyTypeId, $valueTypeId, $mapSize)")
-        super.writeMapBegin(keyTypeId, valueTypeId, mapSize)
+        protocol.writeMapBegin(keyTypeId, valueTypeId, mapSize)
     }
 
     override fun writeMapEnd() {
         println("writeMapEnd()")
-        super.writeMapEnd()
+        protocol.writeMapEnd()
     }
 
     override fun writeListBegin(elementTypeId: Byte, listSize: Int) {
         println("writeListBegin($elementTypeId, $listSize)")
-        super.writeListBegin(elementTypeId, listSize)
+        protocol.writeListBegin(elementTypeId, listSize)
     }
 
     override fun writeListEnd() {
         println("writeListEnd()")
-        super.writeListEnd()
+        protocol.writeListEnd()
     }
 
     override fun writeSetBegin(elementTypeId: Byte, setSize: Int) {
         println("writeSetBegin($elementTypeId, $setSize)")
-        super.writeSetBegin(elementTypeId, setSize)
+        protocol.writeSetBegin(elementTypeId, setSize)
     }
 
     override fun writeSetEnd() {
         println("writeSetEnd()")
-        super.writeSetEnd()
+        protocol.writeSetEnd()
     }
 
     override fun writeBool(b: Boolean) {
         println("writeBool($b)")
-        super.writeBool(b)
+        protocol.writeBool(b)
     }
 
     override fun writeByte(b: Byte) {
         println("writeByte($b)")
-        super.writeByte(b)
+        protocol.writeByte(b)
     }
 
     override fun writeI16(i16: Short) {
         println("writeI16($i16)")
-        super.writeI16(i16)
+        protocol.writeI16(i16)
     }
 
     override fun writeI32(i32: Int) {
         println("writeI32($i32)")
-        super.writeI32(i32)
+        protocol.writeI32(i32)
     }
 
     override fun writeI64(i64: Long) {
         println("writeI64($i64)")
-        super.writeI64(i64)
+        protocol.writeI64(i64)
     }
 
     override fun writeDouble(dub: Double) {
         println("writeDouble($dub)")
-        super.writeDouble(dub)
+        protocol.writeDouble(dub)
     }
 
-    override fun writeString(str: String?) {
+    override fun writeString(str: String) {
         println("writeString($str)")
-        super.writeString(str)
+        protocol.writeString(str)
     }
 
-    override fun writeBinary(buf: ByteString?) {
-        println("writeBinary(${buf?.hex()})")
-        super.writeBinary(buf)
+    override fun writeBinary(buf: ByteString) {
+        println("writeBinary(${buf.hex()})")
+        protocol.writeBinary(buf)
     }
 
     override fun readMessageBegin(): MessageMetadata {
         println("readMessageBegin()")
-        return super.readMessageBegin()
+        return protocol.readMessageBegin()
     }
 
     override fun readMessageEnd() {
         println("readMessageEnd()")
-        super.readMessageEnd()
+        protocol.readMessageEnd()
     }
 
     override fun readStructBegin(): StructMetadata {
         println("readStructBegin()")
-        return super.readStructBegin()
+        return protocol.readStructBegin()
     }
 
     override fun readStructEnd() {
         println("readStructEnd()")
-        super.readStructEnd()
+        protocol.readStructEnd()
     }
 
     override fun readFieldBegin(): FieldMetadata {
         println("readFieldBegin()")
-        return super.readFieldBegin()
+        return protocol.readFieldBegin()
     }
 
     override fun readFieldEnd() {
         println("readFieldEnd()")
-        super.readFieldEnd()
+        protocol.readFieldEnd()
     }
 
     override fun readMapBegin(): MapMetadata {
         println("readMapBegin()")
-        return super.readMapBegin()
+        return protocol.readMapBegin()
     }
 
     override fun readMapEnd() {
         println("readMapEnd()")
-        super.readMapEnd()
+        protocol.readMapEnd()
     }
 
     override fun readListBegin(): ListMetadata {
         println("readListBegin()")
-        return super.readListBegin()
+        return protocol.readListBegin()
     }
 
     override fun readListEnd() {
         println("readListEnd()")
-        super.readListEnd()
+        protocol.readListEnd()
     }
 
     override fun readSetBegin(): SetMetadata {
         println("readSetBegin()")
-        return super.readSetBegin()
+        return protocol.readSetBegin()
     }
 
     override fun readSetEnd() {
         println("readSetEnd()")
-        super.readSetEnd()
+        protocol.readSetEnd()
     }
 
     override fun readBool(): Boolean {
         println("readBool()")
-        return super.readBool()
+        return protocol.readBool()
     }
 
     override fun readByte(): Byte {
         println("readByte()")
-        return super.readByte()
+        return protocol.readByte()
     }
 
     override fun readI16(): Short {
         println("readI16()")
-        return super.readI16()
+        return protocol.readI16()
     }
 
     override fun readI32(): Int {
         println("readI32()")
-        return super.readI32()
+        return protocol.readI32()
     }
 
     override fun readI64(): Long {
         println("readI64()")
-        return super.readI64()
+        return protocol.readI64()
     }
 
     override fun readDouble(): Double {
         println("readDouble()")
-        return super.readDouble()
+        return protocol.readDouble()
     }
 
     override fun readString(): String {
         println("readString()")
-        return super.readString()
+        return protocol.readString()
     }
 
     override fun readBinary(): ByteString {
         println("readBinary()")
-        return super.readBinary()
+        return protocol.readBinary()
     }
 }

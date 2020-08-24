@@ -37,7 +37,9 @@ import com.microsoft.thrifty.testing.ServerTransport;
 import com.microsoft.thrifty.testing.TestServer;
 import com.microsoft.thrifty.transport.SocketTransport;
 import com.microsoft.thrifty.transport.Transport;
+import kotlin.Unit;
 import okio.ByteString;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -50,8 +52,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * A test of auto-generated service code for the standard ThriftTest
@@ -101,7 +106,7 @@ public abstract class ConformanceBase {
             }
 
             @Override
-            public void onError(Throwable error) {
+            public void onError(@NotNull Throwable error) {
                 throw new AssertionError(error);
             }
         });
@@ -148,10 +153,10 @@ public abstract class ConformanceBase {
 
     @Test
     public void testVoid() throws Throwable {
-        AssertingCallback<Void> callback = new AssertingCallback<>();
+        AssertingCallback<kotlin.Unit> callback = new AssertingCallback<>();
         client.testVoid(callback);
 
-        assertThat(callback.getResult(), is(nullValue()));
+        assertThat(callback.getResult(), is(Unit.INSTANCE));
     }
 
     @Test
@@ -373,8 +378,8 @@ public abstract class ConformanceBase {
     }
 
     @Test
-    public void testExceptionNormalError() throws Throwable {
-        AssertingCallback<Void> callback = new AssertingCallback<>();
+    public void testExceptionNormalError() {
+        AssertingCallback<kotlin.Unit> callback = new AssertingCallback<>();
         client.testException("Xception", callback);
 
         Throwable error = callback.getError();
@@ -386,8 +391,8 @@ public abstract class ConformanceBase {
     }
 
     @Test
-    public void testExceptionInternalError() throws Throwable {
-        AssertingCallback<Void> callback = new AssertingCallback<>();
+    public void testExceptionInternalError() {
+        AssertingCallback<kotlin.Unit> callback = new AssertingCallback<>();
         client.testException("TException", callback);
 
         Throwable error = callback.getError();
@@ -412,7 +417,7 @@ public abstract class ConformanceBase {
     }
 
     @Test
-    public void testMultiExceptionErrorOne() throws Throwable {
+    public void testMultiExceptionErrorOne() {
         AssertingCallback<Xtruct> callback = new AssertingCallback<>();
         client.testMultiException("Xception", "nope", callback);
 
@@ -425,7 +430,7 @@ public abstract class ConformanceBase {
     }
 
     @Test
-    public void testMultiExceptionErrorTwo() throws Throwable {
+    public void testMultiExceptionErrorTwo() {
         AssertingCallback<Xtruct> callback = new AssertingCallback<>();
         client.testMultiException("Xception2", "nope", callback);
 
@@ -441,9 +446,9 @@ public abstract class ConformanceBase {
 
     @Test
     public void testOneway() throws Throwable {
-        AssertingCallback<Void> callback = new AssertingCallback<>();
+        AssertingCallback<kotlin.Unit> callback = new AssertingCallback<>();
         client.testOneway(0, callback);
-        assertThat(callback.getResult(), is(nullValue()));
+        assertThat(callback.getResult(), is(Unit.INSTANCE));
         assertThat(callback.getError(), is(nullValue()));
     }
 }
