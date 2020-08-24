@@ -27,12 +27,11 @@ description = 'Converts Thrifty Schemas into Kotlin source files'
 dependencies {
     api project(":thrifty-schema")
     api project(":thrifty-compiler-plugins")
-    api libraries.okio
-    implementation libraries.kotlinPoet
-
     api libraries.kotlin
+    api libraries.okio
 
-    implementation project(':thrifty-runtime-ktx')
+    implementation project(':thrifty-runtime')
+    implementation libraries.kotlinPoet
 
     testImplementation libraries.testing
 }

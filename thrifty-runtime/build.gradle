@@ -30,6 +30,7 @@ targetCompatibility = '1.8'
 dependencies {
     platform("org.jetbrains.kotlin:kotlin-bom")
     api "org.jetbrains.kotlin:kotlin-stdlib"
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9'
     api libraries.okio
 
     testImplementation "org.jetbrains.kotlin:kotlin-reflect"

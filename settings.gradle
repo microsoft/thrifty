@@ -1,7 +1,6 @@
 rootProject.name = 'thrifty'
 include 'thrifty-schema'
 include 'thrifty-runtime'
-include 'thrifty-runtime-ktx'
 include 'thrifty-java-codegen'
 include 'thrifty-kotlin-codegen'
 include 'thrifty-compiler'
