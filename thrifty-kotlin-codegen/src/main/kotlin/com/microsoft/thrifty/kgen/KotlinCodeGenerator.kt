@@ -1340,7 +1340,7 @@ class KotlinCodeGenerator(
     ): CodeBlock.Builder {
         type.accept(object : ThriftType.Visitor<Unit> {
             override fun visitVoid(voidType: BuiltinType) {
-                error("Cannot read a void, wat r u doing")
+                block.addStatement("val $name: Unit? = null")
             }
 
             override fun visitBool(boolType: BuiltinType) {
@@ -1990,7 +1990,7 @@ class KotlinCodeGenerator(
             val method = serviceType.methods[index]
             val call = buildCallType(schema, method)
             val resultType = interfaceFun.returnType ?: UNIT
-            val callbackResultType = if (method.oneWay) UNIT.copy(nullable = true) else resultType
+            val callbackResultType = if (method.oneWay) UNIT else resultType
             val callbackType = ServiceMethodCallback::class.asTypeName().parameterizedBy(resultType)
             val callback = TypeSpec.anonymousClassBuilder()
                     .addSuperinterface(callbackType)

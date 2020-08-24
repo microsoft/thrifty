@@ -105,6 +105,11 @@ compileTestKotlin {
     dependsOn compileTestThrift
     dependsOn kompileTestThrift
     dependsOn kompileCoroutineTestThrift
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+        freeCompilerArgs = ['-Xjvm-default=enable']
+    }
 }
 
 clean {
