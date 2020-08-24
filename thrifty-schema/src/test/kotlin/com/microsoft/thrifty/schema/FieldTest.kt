@@ -24,13 +24,8 @@ import com.microsoft.thrifty.schema.parser.AnnotationElement
 import com.microsoft.thrifty.schema.parser.FieldElement
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement
 import com.microsoft.thrifty.schema.parser.TypeElement
-import org.junit.Test
-
-import java.util.Collections
-
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Test
 
 class FieldTest {
     private var location: Location = Location.get("", "")
@@ -47,8 +42,8 @@ class FieldTest {
         val element = field()
 
         val field = Field(element, emptyMap())
-        assertTrue(field.required)
-        assertFalse(field.optional)
+        field.required shouldBe true
+        field.optional shouldBe false
     }
 
     @Test
@@ -56,24 +51,24 @@ class FieldTest {
         requiredness = Requiredness.OPTIONAL
         val element = field()
         val field = Field(element, emptyMap())
-        assertFalse(field.required)
-        assertTrue(field.optional)
+        field.required shouldBe false
+        field.optional shouldBe true
     }
 
     @Test
     fun defaultFields() {
         val element = field()
         val field = Field(element, emptyMap())
-        assertFalse(field.required)
-        assertFalse(field.optional)
+        field.required shouldBe false
+        field.optional shouldBe false
     }
 
     @Test
     fun unredactedAndUnobfuscatedByDefault() {
         val element = field()
         val field = Field(element, emptyMap())
-        assertFalse(field.isRedacted)
-        assertFalse(field.isObfuscated)
+        field.isRedacted shouldBe false
+        field.isObfuscated shouldBe false
     }
 
     @Test
@@ -82,7 +77,7 @@ class FieldTest {
         val element = field()
 
         val field = Field(element, emptyMap())
-        assertTrue(field.isRedacted)
+        field.isRedacted shouldBe true
     }
 
     @Test
@@ -91,7 +86,7 @@ class FieldTest {
         val element = field()
 
         val field = Field(element, emptyMap())
-        assertTrue(field.isRedacted)
+        field.isRedacted shouldBe true
     }
 
     @Test
@@ -100,7 +95,7 @@ class FieldTest {
         val element = field()
 
         val field = Field(element, emptyMap())
-        assertTrue(field.isRedacted)
+        field.isRedacted shouldBe true
     }
 
     @Test
@@ -109,7 +104,7 @@ class FieldTest {
         val element = field()
 
         val field = Field(element, emptyMap())
-        assertTrue(field.isObfuscated)
+        field.isObfuscated shouldBe true
     }
 
     @Test
@@ -118,7 +113,7 @@ class FieldTest {
         val element = field()
 
         val field = Field(element, emptyMap())
-        assertTrue(field.isObfuscated)
+        field.isObfuscated shouldBe true
     }
 
     @Test
@@ -127,7 +122,7 @@ class FieldTest {
         val element = field()
 
         val field = Field(element, emptyMap())
-        assertTrue(field.isObfuscated)
+        field.isObfuscated shouldBe true
     }
 
     @Test
@@ -143,12 +138,12 @@ class FieldTest {
                 .type(thriftType)
                 .build()
 
-        assertEquals(builderField.annotations, annotations)
-        assertEquals(builderField.type, thriftType)
+        builderField.annotations shouldBe annotations
+        builderField.type shouldBe thriftType
     }
 
     private fun annotation(name: String): AnnotationElement {
-        return AnnotationElement(Location.get("", ""), Collections.singletonMap(name, "true"))
+        return AnnotationElement(Location.get("", ""), mapOf(name to "true"))
     }
 
     private fun field(): FieldElement {

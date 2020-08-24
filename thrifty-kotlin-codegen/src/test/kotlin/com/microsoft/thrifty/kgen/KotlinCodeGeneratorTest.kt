@@ -35,14 +35,13 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
 import io.kotest.matchers.string.contain
 import io.kotest.matchers.string.shouldContain
-import org.junit.Ignore
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.io.File
 
 class KotlinCodeGeneratorTest {
-    @get:Rule
-    val tempDir = TemporaryFolder()
+    @TempDir
+    lateinit var tempDir: File
 
     @Test
     fun `struct to data class`() {
@@ -546,7 +545,6 @@ class KotlinCodeGeneratorTest {
         """.trimMargin())
     }
 
-    @Ignore
     @Test
     fun `union wont generate struct when disabled`() {
         val thrift = """
@@ -958,7 +956,7 @@ class KotlinCodeGeneratorTest {
     }
 
     private fun load(thrift: String): Schema {
-        val file = tempDir.newFile("test.thrift").also { it.writeText(thrift) }
+        val file = File(tempDir, "test.thrift").also { it.writeText(thrift) }
         val loader = Loader().apply { addThriftFile(file.toPath()) }
         return loader.load()
     }

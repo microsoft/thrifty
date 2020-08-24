@@ -31,7 +31,7 @@ import okio.Buffer
 import okio.ByteString
 import okio.ByteString.Companion.decodeHex
 import okio.ByteString.Companion.encodeUtf8
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.net.ProtocolException
 

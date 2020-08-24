@@ -28,14 +28,13 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.throwable.shouldHaveMessage
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
 class LoaderTest {
-    @get:Rule
-    val tempDir = TemporaryFolder()
+    @TempDir
+    lateinit var tempDir: File
 
     @Test
     fun basicTest() {
@@ -110,7 +109,7 @@ class LoaderTest {
             }
         """
 
-        val f = tempDir.newFile("toInclude.thrift")
+        val f = File(tempDir, "toInclude.thrift")
         f.writeText(included)
 
         val thrift = """
@@ -124,7 +123,7 @@ class LoaderTest {
             }
         """
 
-        val f1 = tempDir.newFile()
+        val f1 = File.createTempFile("test", ".thrift", tempDir)
         f1.writeText(thrift)
 
         val schema = load(f, f1)
@@ -138,8 +137,8 @@ class LoaderTest {
 
     @Test
     fun includedTypesMustBeScoped() {
-        val f = tempDir.newFile("toInclude.thrift")
-        val f1 = tempDir.newFile()
+        val f = File(tempDir, "toInclude.thrift")
+        val f1 = File.createTempFile("test", ".thrift", tempDir)
 
         val included = """
             namespace java com.microsoft.thrifty.test.scopedInclude
@@ -168,8 +167,8 @@ class LoaderTest {
 
     @Test
     fun includedConstants() {
-        val producer = tempDir.newFile("p.thrift")
-        val consumer = tempDir.newFile("c.thrift")
+        val producer = File(tempDir, "p.thrift")
+        val consumer = File(tempDir, "c.thrift")
 
         val producerThrift = "const i32 foo = 10"
 
@@ -189,8 +188,8 @@ class LoaderTest {
 
     @Test
     fun includedConstantsMustBeScoped() {
-        val producer = tempDir.newFile("p.thrift")
-        val consumer = tempDir.newFile("c.thrift")
+        val producer = File(tempDir, "p.thrift")
+        val consumer = File(tempDir, "c.thrift")
 
         val producerThrift = "const i32 foo = 10"
 
@@ -211,10 +210,10 @@ class LoaderTest {
 
     @Test
     fun crazyIncludes() {
-        val nestedDir = tempDir.newFolder("nested")
+        val nestedDir = File(tempDir, "nested").apply { mkdir() }
         val f1 = File(nestedDir, "a.thrift")
-        val f2 = tempDir.newFile("b.thrift")
-        val f3 = tempDir.newFile("c.thrift")
+        val f2 = File(tempDir, "b.thrift")
+        val f3 = File(tempDir, "c.thrift")
 
         val a = """
             namespace java com.microsoft.thrifty.test.crazyIncludes
@@ -260,10 +259,10 @@ class LoaderTest {
 
     @Test
     fun circularInclude() {
-        val f1 = tempDir.newFile("A")
-        val f2 = tempDir.newFile("B")
-        val f3 = tempDir.newFile("C")
-        val f4 = tempDir.newFile("D")
+        val f1 = File(tempDir, "A")
+        val f2 = File(tempDir, "B")
+        val f3 = File(tempDir, "C")
+        val f4 = File(tempDir, "D")
 
         f1.writeText("include '${f2.name}'")
         f2.writeText("include '${f3.name}'")
@@ -379,9 +378,9 @@ class LoaderTest {
 
     @Test
     fun includesWithRelativePaths() {
-        tempDir.newFolder("b")
-        val f1 = tempDir.newFile("a.thrift")
-        val f2 = tempDir.newFile("b${File.separator}b.thrift")
+        val dir = File(tempDir, "b").apply { mkdir() }
+        val f1 = File(tempDir, "a.thrift")
+        val f2 = File(dir, "b.thrift")
 
         val a = """
             namespace java com.microsoft.thrifty.test.includesWithRelativePaths
@@ -745,8 +744,8 @@ class LoaderTest {
             }
         """
 
-        val src = tempDir.newFile("src.thrift")
-        val dest = tempDir.newFile("dest.thrift")
+        val src = File(tempDir, "src.thrift")
+        val dest = File(tempDir, "dest.thrift")
 
         src.writeText(imported)
         dest.writeText(target)
@@ -772,7 +771,7 @@ class LoaderTest {
 
     @Test
     fun addingNonExistentFileThrows() {
-        val folder = tempDir.newFolder().toPath()
+        val folder = File(tempDir, "testDir").toPath()
         val doesNotExist = folder.resolve("nope.thrift")
         val loader = Loader()
 
@@ -782,7 +781,7 @@ class LoaderTest {
 
     @Test
     fun addingNonExistentIncludeDirectoryThrows() {
-        val doesNotExist = tempDir.root.toPath().resolve("notCreatedYet")
+        val doesNotExist = File(tempDir, "notCreatedYet").toPath()
         val loader = Loader()
         shouldThrowMessage("path must be a directory") { loader.addIncludePath(doesNotExist) }
     }
@@ -894,7 +893,7 @@ class LoaderTest {
 
     @Test
     fun addIncludeFileSmokeTest() {
-        val thriftFile = tempDir.newFile("example.thrift")
+        val thriftFile = File(tempDir, "example.thrift")
         thriftFile.writeText("""
             namespace java example
 
@@ -902,7 +901,7 @@ class LoaderTest {
         """)
 
         val schema = Loader()
-                .addIncludePath(tempDir.root.toPath())
+                .addIncludePath(tempDir.toPath())
                 .load()
 
         schema.typedefs shouldHaveSize 1
@@ -961,7 +960,7 @@ class LoaderTest {
     }
 
     private fun load(thrift: String): Schema {
-        val f = tempDir.newFile()
+        val f = File.createTempFile("test", ".thrift", tempDir)
         f.writeText(thrift)
 
         val loader = Loader()

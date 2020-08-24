@@ -23,7 +23,7 @@ package com.microsoft.thrifty.protocol
 import com.microsoft.thrifty.transport.BufferTransport
 import io.kotest.matchers.shouldBe
 import okio.Buffer
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.io.IOException
 
 class CompactProtocolTest {

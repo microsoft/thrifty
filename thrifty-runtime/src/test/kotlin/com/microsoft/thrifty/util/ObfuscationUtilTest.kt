@@ -21,7 +21,7 @@
 package com.microsoft.thrifty.util
 
 import io.kotest.matchers.shouldBe
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class ObfuscationUtilTest {
     @Test

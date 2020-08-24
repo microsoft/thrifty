@@ -32,14 +32,14 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.startWith
 import okio.buffer
 import okio.source
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class ThriftParserTest {
 
-    @Before
+    @BeforeEach
     fun setup() {
         ThriftyParserPlugins.setUUIDProvider(object : ThriftyParserPlugins.UUIDProvider {
             override fun call(): UUID {
@@ -48,7 +48,7 @@ class ThriftParserTest {
         })
     }
 
-    @After
+    @AfterEach
     fun tearDown() {
         ThriftyParserPlugins.reset()
     }

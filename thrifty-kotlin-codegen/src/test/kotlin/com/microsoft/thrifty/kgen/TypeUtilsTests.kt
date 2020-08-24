@@ -25,7 +25,7 @@ import com.microsoft.thrifty.schema.BuiltinType
 import com.squareup.kotlinpoet.*
 import io.kotest.matchers.shouldBe
 import okio.ByteString
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class TypeUtilsTests {
     @Test fun `typeCode of builtins`() {

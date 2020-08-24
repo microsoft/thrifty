@@ -40,10 +40,10 @@ import com.microsoft.thrifty.transport.Transport;
 import kotlin.Unit;
 import okio.ByteString;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -76,7 +76,8 @@ public abstract class ConformanceBase {
      * on values returned by the abstract methods
      * {@link #getServerProtocol()} and {@link #getServerTransport()}.
      */
-    @Rule public TestServer testServer;
+    @RegisterExtension
+    TestServer testServer;
 
     private Transport transport;
     private Protocol protocol;
@@ -88,7 +89,7 @@ public abstract class ConformanceBase {
         testServer = new TestServer(serverProtocol, serverTransport);
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         int port = testServer.port();
         SocketTransport transport = new SocketTransport.Builder("localhost", port)
@@ -133,7 +134,7 @@ public abstract class ConformanceBase {
 
     protected abstract Protocol createProtocol(Transport transport);
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         if (client != null) {
             client.close();

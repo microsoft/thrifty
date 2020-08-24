@@ -26,7 +26,7 @@ import io.kotest.matchers.shouldBe
 import okio.Buffer
 import okio.ByteString.Companion.encodeUtf8
 import okio.ByteString.Companion.toByteString
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class SimpleJsonProtocolTest {
     private val buffer = Buffer()

@@ -30,7 +30,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.throwable.shouldHaveMessage
 import okio.Buffer
 import okio.ByteString.Companion.encodeUtf8
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.net.ProtocolException
 
 class ProtocolUtilTest {

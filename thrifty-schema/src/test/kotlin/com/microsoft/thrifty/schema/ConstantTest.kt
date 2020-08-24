@@ -35,7 +35,7 @@ import com.microsoft.thrifty.schema.parser.TypedefElement
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class ConstantTest {
     private val symbolTable = TestSymbolTable()
