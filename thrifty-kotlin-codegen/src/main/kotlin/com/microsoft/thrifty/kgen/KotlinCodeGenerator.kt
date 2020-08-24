@@ -1340,7 +1340,7 @@ class KotlinCodeGenerator(
     ): CodeBlock.Builder {
         type.accept(object : ThriftType.Visitor<Unit> {
             override fun visitVoid(voidType: BuiltinType) {
-                block.addStatement("val $name: Unit? = null")
+                error("Cannot read a void, wat r u doing")
             }
 
             override fun visitBool(boolType: BuiltinType) {
@@ -1998,11 +1998,9 @@ class KotlinCodeGenerator(
                             .addModifiers(KModifier.OVERRIDE)
                             .addParameter("result", callbackResultType)
                             .apply {
-                                // oneway calls don't have results, which the Java code represents as a null instance
-                                // of type Void.  We deal with this by making the callback accept a Unit? for oneway
-                                // functions; they are they only ones to accept a nullable result.
-                                //
-                                // It's a bit ungainly, but as an implementation detail it's acceptable.
+                                // oneway calls don't have results.  We deal with this by making
+                                // the callback accept a Unit for oneway functions; it's odd but
+                                // acceptable as an implementation detail.
                                 if (method.oneWay) {
                                     addStatement("cont.resumeWith(%T.success(Unit))", coroResultClass)
                                 } else {
