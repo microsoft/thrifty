@@ -21,13 +21,8 @@
 package com.microsoft.thrifty.util
 
 import com.microsoft.thrifty.TType
-import java.io.IOException
-import com.microsoft.thrifty.protocol.FieldMetadata
-import com.microsoft.thrifty.util.ProtocolUtil
-import com.microsoft.thrifty.protocol.ListMetadata
-import com.microsoft.thrifty.protocol.SetMetadata
-import com.microsoft.thrifty.protocol.MapMetadata
 import com.microsoft.thrifty.protocol.Protocol
+import java.io.IOException
 import java.net.ProtocolException
 
 object ProtocolUtil {

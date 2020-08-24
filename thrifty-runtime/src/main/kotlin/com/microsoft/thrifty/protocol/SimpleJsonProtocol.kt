@@ -26,19 +26,16 @@ import okio.ByteString
 import java.io.IOException
 import java.io.OutputStreamWriter
 import java.net.ProtocolException
-import java.nio.charset.Charset
 import java.util.ArrayDeque
 import java.util.Deque
 
 /**
  * A protocol that maps Thrift data to idiomatic JSON.
  *
- *
  * "Idiomatic" here means that structs map to JSON maps, with field names
  * for keys.  Field tags are not included, and precise type information is not
  * preserved.  For this reason, SimpleJsonProtocol *does not support round-
  * tripping* - it is write-only.
- *
  *
  * Note that, as of the initial release, this Protocol does not guarantee
  * that all emitted data is strictly valid JSON.  In particular, map keys are
@@ -118,19 +115,17 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
         private const val MODE_KEY = false
         private const val MODE_VALUE = true
         
-        private val ESCAPES: Array<CharArray?>
+        private val ESCAPES: Array<CharArray?> = arrayOfNulls(128)
         private val TRUE = byteArrayOf('t'.toByte(), 'r'.toByte(), 'u'.toByte(), 'e'.toByte())
         private val FALSE = byteArrayOf('f'.toByte(), 'a'.toByte(), 'l'.toByte(), 's'.toByte(), 'e'.toByte())
         private val COMMA = byteArrayOf(','.toByte())
-        private val COMMA_SPACE = byteArrayOf(','.toByte(), ' '.toByte())
-        private val COLON = byteArrayOf(':'.toByte())
+        private val COLON: ByteArray = byteArrayOf(':'.toByte())
         private val LBRACKET = byteArrayOf('['.toByte())
         private val RBRACKET = byteArrayOf(']'.toByte())
         private val LBRACE = byteArrayOf('{'.toByte())
         private val RBRACE = byteArrayOf('}'.toByte())
 
         init {
-            ESCAPES = arrayOfNulls(128)
             for (i in 0..31) {
                 // Control chars must be escaped
                 ESCAPES[i] = String.format("\\u%04x", i).toCharArray()
@@ -303,12 +298,10 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
 
     @Throws(IOException::class)
     override fun writeBinary(buf: ByteString) {
-        val out: String
-        out = when (binaryOutputMode) {
+        val out = when (binaryOutputMode) {
             BinaryOutputMode.HEX -> buf.hex()
             BinaryOutputMode.BASE_64 -> buf.base64()
             BinaryOutputMode.UNICODE -> buf.utf8()
-            else -> throw AssertionError("Unexpected BinaryOutputMode value: $binaryOutputMode")
         }
         writeString(out)
     }

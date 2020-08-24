@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Implements a basic service client that executes methods synchronously.
  *
- *
  * Unlike the Apache implementation, there is no presumption made here about framed encoding
  * at the transport level.  If your backend requires framing, be sure to
  * configure your [Protocol] and [com.microsoft.thrifty.transport.Transport]

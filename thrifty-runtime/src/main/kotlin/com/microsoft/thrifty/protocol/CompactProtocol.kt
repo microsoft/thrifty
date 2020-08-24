@@ -55,7 +55,6 @@ import java.net.ProtocolException
 /**
  * An implementation of the Thrift compact binary protocol.
  *
- *
  * Instances of this class are *not* threadsafe.
  */
 class CompactProtocol(transport: Transport) : BaseProtocol(transport) {
@@ -254,8 +253,8 @@ class CompactProtocol(transport: Transport) : BaseProtocol(transport) {
     }
 
     @Throws(IOException::class)
-    private fun writeVarint32(n: Int) {
-        var n = n
+    private fun writeVarint32(num: Int) {
+        var n = num
         for (i in buffer.indices) {
             if (n and 0x7F.inv() == 0x00) {
                 buffer[i] = n.toByte()
@@ -270,8 +269,8 @@ class CompactProtocol(transport: Transport) : BaseProtocol(transport) {
     }
 
     @Throws(IOException::class)
-    private fun writeVarint64(n: Long) {
-        var n = n
+    private fun writeVarint64(num: Long) {
+        var n = num
         for (i in buffer.indices) {
             if (n and 0x7FL.inv() == 0x00L) {
                 buffer[i] = n.toByte()
@@ -365,14 +364,7 @@ class CompactProtocol(transport: Transport) : BaseProtocol(transport) {
 
     @Throws(IOException::class)
     override fun readListBegin(): ListMetadata {
-        val sizeAndType = readByte()
-        var size: Int = (sizeAndType.toInt() shr 4) and 0x0F
-        if (size == 0x0F) {
-            size = readVarint32()
-        }
-        val compactType = (sizeAndType.toInt() and 0x0F).toByte()
-        val ttype = CompactTypes.compactToTtype(compactType)
-        return ListMetadata(ttype, size)
+        return readCollectionBegin(::ListMetadata)
     }
 
     @Throws(IOException::class)
@@ -382,6 +374,10 @@ class CompactProtocol(transport: Transport) : BaseProtocol(transport) {
 
     @Throws(IOException::class)
     override fun readSetBegin(): SetMetadata {
+        return readCollectionBegin(::SetMetadata)
+    }
+
+    private inline fun <T> readCollectionBegin(buildMetadata: (Byte, Int) -> T): T {
         val sizeAndType = readByte()
         var size: Int = (sizeAndType.toInt() shr 4) and 0x0F
         if (size == 0x0F) {
@@ -389,7 +385,7 @@ class CompactProtocol(transport: Transport) : BaseProtocol(transport) {
         }
         val compactType = (sizeAndType.toInt() and 0x0F).toByte()
         val ttype = CompactTypes.compactToTtype(compactType)
-        return SetMetadata(ttype, size)
+        return buildMetadata(ttype, size)
     }
 
     @Throws(IOException::class)
@@ -568,7 +564,7 @@ class CompactProtocol(transport: Transport) : BaseProtocol(transport) {
         }
     }
 
-    private class ShortStack internal constructor() {
+    private class ShortStack {
         private var stack: ShortArray
         private var top: Int
         fun push(value: Short) {

@@ -53,15 +53,18 @@ import java.io.UnsupportedEncodingException
 import java.net.ProtocolException
 import java.util.ArrayDeque
 import java.util.ArrayList
-import java.util.Arrays
 
 /**
  * Json protocol implementation for thrift.
  *
- *
  * This is a full-featured protocol supporting write and read.
+ *
+ * @property fieldNamesAsString Write out the TField names as a string instead of the default integer value
  */
-class JsonProtocol : BaseProtocol {
+class JsonProtocol @JvmOverloads constructor(
+        transport: Transport,
+        private val fieldNamesAsString: Boolean = false
+) : BaseProtocol(transport) {
     // Stack of nested contexts that we may be in
     private val contextStack = ArrayDeque<JsonBaseContext>()
 
@@ -70,9 +73,6 @@ class JsonProtocol : BaseProtocol {
 
     // Reader that manages a 1-byte buffer
     private var reader: LookaheadReader = LookaheadReader()
-
-    // Write out the TField names as a string instead of the default integer value
-    private var fieldNamesAsString = false
 
     // Push a new Json context onto the stack.
     private fun pushContext(c: JsonBaseContext) {
@@ -92,11 +92,6 @@ class JsonProtocol : BaseProtocol {
         }
     }
 
-    constructor(transport: Transport?) : super(transport!!) {}
-    constructor(transport: Transport?, fieldNamesAsString: Boolean) : super(transport!!) {
-        this.fieldNamesAsString = fieldNamesAsString
-    }
-
     override fun reset() {
         contextStack.clear()
         context = JsonBaseContext()
@@ -110,7 +105,7 @@ class JsonProtocol : BaseProtocol {
     // Marked protected to avoid synthetic accessor in JsonListContext.read
     // and JsonPairContext.read
     @Throws(IOException::class)
-    protected fun readJsonSyntaxChar(b: ByteArray) {
+    private fun readJsonSyntaxChar(b: ByteArray) {
         val ch = reader.read()
         if (ch != b[0]) {
             throw ProtocolException("Unexpected character:" + ch.toChar())
@@ -133,16 +128,20 @@ class JsonProtocol : BaseProtocol {
                 }
             } else {
                 tmpbuf[0] = JSON_CHAR_TABLE[b[i].toInt()]
-                if (tmpbuf[0] == 1.toByte()) {
-                    transport.write(b, i, 1)
-                } else if (tmpbuf[0] > 1) {
-                    transport.write(BACKSLASH)
-                    transport.write(tmpbuf, 0, 1)
-                } else {
-                    transport.write(ESCSEQ)
-                    tmpbuf[0] = hexChar((b[i].toInt() shr 4).toByte())
-                    tmpbuf[1] = hexChar(b[i])
-                    transport.write(tmpbuf, 0, 2)
+                when {
+                    tmpbuf[0] == 1.toByte() -> {
+                        transport.write(b, i, 1)
+                    }
+                    tmpbuf[0] > 1 -> {
+                        transport.write(BACKSLASH)
+                        transport.write(tmpbuf, 0, 1)
+                    }
+                    else -> {
+                        transport.write(ESCSEQ)
+                        tmpbuf[0] = hexChar((b[i].toInt() shr 4).toByte())
+                        tmpbuf[1] = hexChar(b[i])
+                        transport.write(tmpbuf, 0, 2)
+                    }
                 }
             }
         }
@@ -154,7 +153,7 @@ class JsonProtocol : BaseProtocol {
     @Throws(IOException::class)
     private fun writeJsonInteger(num: Long) {
         context.write()
-        val str = java.lang.Long.toString(num)
+        val str = num.toString()
         val escapeNum = context.escapeNum()
         if (escapeNum) {
             transport.write(QUOTE)
@@ -175,7 +174,7 @@ class JsonProtocol : BaseProtocol {
     @Throws(IOException::class)
     private fun writeJsonDouble(num: Double) {
         context.write()
-        val str = java.lang.Double.toString(num)
+        val str = num.toString()
         var special = false
         when (str[0]) {
             'N', 'I' -> special = true
@@ -384,21 +383,25 @@ class JsonProtocol : BaseProtocol {
                             + (hexVal(tmpbuf[2]).toInt() shl 4)
                             + hexVal(tmpbuf[3]).toInt()).toShort()
                     try {
-                        if (Character.isHighSurrogate(cu.toChar())) {
-                            if (codeunits.size > 0) {
-                                throw ProtocolException("Expected low surrogate char")
+                        when {
+                            Character.isHighSurrogate(cu.toChar()) -> {
+                                if (codeunits.size > 0) {
+                                    throw ProtocolException("Expected low surrogate char")
+                                }
+                                codeunits.add(cu.toChar())
                             }
-                            codeunits.add(cu.toChar())
-                        } else if (Character.isLowSurrogate(cu.toChar())) {
-                            if (codeunits.size == 0) {
-                                throw ProtocolException("Expected high surrogate char")
+                            Character.isLowSurrogate(cu.toChar()) -> {
+                                if (codeunits.size == 0) {
+                                    throw ProtocolException("Expected high surrogate char")
+                                }
+                                codeunits.add(cu.toChar())
+                                buffer.write(String(intArrayOf(codeunits[0].toInt(), codeunits[1].toInt()), 0, 2)
+                                        .toByteArray(charset("UTF-8")))
+                                codeunits.clear()
                             }
-                            codeunits.add(cu.toChar())
-                            buffer.write(String(intArrayOf(codeunits[0].toInt(), codeunits[1].toInt()), 0, 2)
-                                    .toByteArray(charset("UTF-8")))
-                            codeunits.clear()
-                        } else {
-                            buffer.write(String(intArrayOf(cu.toInt()), 0, 1).toByteArray(charset("UTF-8")))
+                            else -> {
+                                buffer.write(String(intArrayOf(cu.toInt()), 0, 1).toByteArray(charset("UTF-8")))
+                            }
                         }
                         continue
                     } catch (e: UnsupportedEncodingException) {
@@ -618,7 +621,7 @@ class JsonProtocol : BaseProtocol {
 
     @Throws(IOException::class)
     override fun readBool(): Boolean {
-        return if (readJsonInteger() == 0L) false else true
+        return readJsonInteger() != 0L
     }
 
     @Throws(IOException::class)
@@ -657,7 +660,7 @@ class JsonProtocol : BaseProtocol {
     }
 
     // Holds up to one byte from the transport
-    protected inner class LookaheadReader {
+    private inner class LookaheadReader {
         private var hasData = false
         private val data = ByteArray(1)
 
@@ -685,68 +688,65 @@ class JsonProtocol : BaseProtocol {
         }
     }
 
-    private class JsonTypes private constructor() {
-        companion object {
-            val BOOLEAN = byteArrayOf('t'.toByte(), 'f'.toByte())
-            val BYTE = byteArrayOf('i'.toByte(), '8'.toByte())
-            val I16 = byteArrayOf('i'.toByte(), '1'.toByte(), '6'.toByte())
-            val I32 = byteArrayOf('i'.toByte(), '3'.toByte(), '2'.toByte())
-            val I64 = byteArrayOf('i'.toByte(), '6'.toByte(), '4'.toByte())
-            val DOUBLE = byteArrayOf('d'.toByte(), 'b'.toByte(), 'l'.toByte())
-            val STRUCT = byteArrayOf('r'.toByte(), 'e'.toByte(), 'c'.toByte())
-            val STRING = byteArrayOf('s'.toByte(), 't'.toByte(), 'r'.toByte())
-            val MAP = byteArrayOf('m'.toByte(), 'a'.toByte(), 'p'.toByte())
-            val LIST = byteArrayOf('l'.toByte(), 's'.toByte(), 't'.toByte())
-            val SET = byteArrayOf('s'.toByte(), 'e'.toByte(), 't'.toByte())
-            fun ttypeToJson(typeId: Byte): ByteArray {
-                return when (typeId) {
-                    TType.STOP -> throw IllegalArgumentException("Unexpected STOP type")
-                    TType.VOID -> throw IllegalArgumentException("Unexpected VOID type")
-                    TType.BOOL -> BOOLEAN
-                    TType.BYTE -> BYTE
-                    TType.DOUBLE -> DOUBLE
-                    TType.I16 -> I16
-                    TType.I32 -> I32
-                    TType.I64 -> I64
-                    TType.STRING -> STRING
-                    TType.STRUCT -> STRUCT
-                    TType.MAP -> MAP
-                    TType.SET -> SET
-                    TType.LIST -> LIST
-                    else -> throw IllegalArgumentException(
-                            "Unknown TType ID: $typeId")
-                }
-            }
+    private object JsonTypes {
+        @JvmField val BOOLEAN = byteArrayOf('t'.toByte(), 'f'.toByte())
+        @JvmField val BYTE = byteArrayOf('i'.toByte(), '8'.toByte())
+        @JvmField val I16 = byteArrayOf('i'.toByte(), '1'.toByte(), '6'.toByte())
+        @JvmField val I32 = byteArrayOf('i'.toByte(), '3'.toByte(), '2'.toByte())
+        @JvmField val I64 = byteArrayOf('i'.toByte(), '6'.toByte(), '4'.toByte())
+        @JvmField val DOUBLE = byteArrayOf('d'.toByte(), 'b'.toByte(), 'l'.toByte())
+        @JvmField val STRUCT = byteArrayOf('r'.toByte(), 'e'.toByte(), 'c'.toByte())
+        @JvmField val STRING = byteArrayOf('s'.toByte(), 't'.toByte(), 'r'.toByte())
+        @JvmField val MAP = byteArrayOf('m'.toByte(), 'a'.toByte(), 'p'.toByte())
+        @JvmField val LIST = byteArrayOf('l'.toByte(), 's'.toByte(), 't'.toByte())
+        @JvmField val SET = byteArrayOf('s'.toByte(), 'e'.toByte(), 't'.toByte())
 
-            fun jsonToTtype(jsonId: ByteArray): Byte {
-                var result = TType.STOP
-                if (jsonId.size > 1) {
-                    when (jsonId[0].toChar()) {
-                        'd' -> result = TType.DOUBLE
-                        'i' -> when (jsonId[1].toChar()) {
-                            '8' -> result = TType.BYTE
-                            '1' -> result = TType.I16
-                            '3' -> result = TType.I32
-                            '6' -> result = TType.I64
-                        }
-                        'l' -> result = TType.LIST
-                        'm' -> result = TType.MAP
-                        'r' -> result = TType.STRUCT
-                        's' -> result = if (jsonId[1] == 't'.toByte()) {
-                            TType.STRING
-                        } else {
-                            TType.SET
-                        }
-                        't' -> result = TType.BOOL
-                    }
-                }
-                require(result != TType.STOP) { "Unknown json type ID: " + Arrays.toString(jsonId) }
-                return result
+        @JvmStatic
+        fun ttypeToJson(typeId: Byte): ByteArray {
+            return when (typeId) {
+                TType.STOP -> throw IllegalArgumentException("Unexpected STOP type")
+                TType.VOID -> throw IllegalArgumentException("Unexpected VOID type")
+                TType.BOOL -> BOOLEAN
+                TType.BYTE -> BYTE
+                TType.DOUBLE -> DOUBLE
+                TType.I16 -> I16
+                TType.I32 -> I32
+                TType.I64 -> I64
+                TType.STRING -> STRING
+                TType.STRUCT -> STRUCT
+                TType.MAP -> MAP
+                TType.SET -> SET
+                TType.LIST -> LIST
+                else -> throw IllegalArgumentException(
+                        "Unknown TType ID: $typeId")
             }
         }
 
-        init {
-            throw AssertionError("no instances")
+        @JvmStatic
+        fun jsonToTtype(jsonId: ByteArray): Byte {
+            var result = TType.STOP
+            if (jsonId.size > 1) {
+                when (jsonId[0].toChar()) {
+                    'd' -> result = TType.DOUBLE
+                    'i' -> when (jsonId[1].toChar()) {
+                        '8' -> result = TType.BYTE
+                        '1' -> result = TType.I16
+                        '3' -> result = TType.I32
+                        '6' -> result = TType.I64
+                    }
+                    'l' -> result = TType.LIST
+                    'm' -> result = TType.MAP
+                    'r' -> result = TType.STRUCT
+                    's' -> result = if (jsonId[1] == 't'.toByte()) {
+                        TType.STRING
+                    } else {
+                        TType.SET
+                    }
+                    't' -> result = TType.BOOL
+                }
+            }
+            require(result != TType.STOP) { "Unknown json type ID: " + jsonId.contentToString() }
+            return result
         }
     }
 

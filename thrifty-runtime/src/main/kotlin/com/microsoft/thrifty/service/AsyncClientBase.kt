@@ -34,7 +34,6 @@ import java.util.concurrent.RejectedExecutionException
 /**
  * Implements a basic service client that executes methods asynchronously.
  *
- *
  * Note that, while the client-facing API of this class is callback-based,
  * the implementation itself is **blocking**.  Unlike the Apache
  * implementation, there is no presumption made here about framed encoding

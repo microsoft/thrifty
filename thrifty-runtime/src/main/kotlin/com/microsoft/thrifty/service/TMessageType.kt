@@ -22,7 +22,6 @@ package com.microsoft.thrifty.service
 
 /**
  * Message type constants in the Thrift protocol.
- *
  */
 object TMessageType {
     const val CALL: Byte = 1
