@@ -20,59 +20,57 @@
  */
 package com.microsoft.thrifty.schema
 
+import io.kotest.matchers.shouldBe
 import org.junit.Test
-
-import org.hamcrest.Matchers.`is`
-import org.hamcrest.MatcherAssert.assertThat
 
 class BuiltinTypeTest {
     @Test
     fun boolIsNotNumeric() {
-        assertThat((BuiltinType.BOOL as BuiltinType).isNumeric, `is`(false))
+        (BuiltinType.BOOL as BuiltinType).isNumeric shouldBe false
     }
 
     @Test
     fun byteIsNumeric() {
-        assertThat((BuiltinType.BYTE as BuiltinType).isNumeric, `is`(true))
+        (BuiltinType.BYTE as BuiltinType).isNumeric shouldBe true
     }
 
     @Test
     fun i8IsNumeric() {
-        assertThat((BuiltinType.I8 as BuiltinType).isNumeric, `is`(true))
+        (BuiltinType.I8 as BuiltinType).isNumeric shouldBe true
     }
 
     @Test
     fun i16IsNumeric() {
-        assertThat((BuiltinType.I16 as BuiltinType).isNumeric, `is`(true))
+        (BuiltinType.I16 as BuiltinType).isNumeric shouldBe true
     }
 
     @Test
     fun i32IsNumeric() {
-        assertThat((BuiltinType.I32 as BuiltinType).isNumeric, `is`(true))
+        (BuiltinType.I32 as BuiltinType).isNumeric shouldBe true
     }
 
     @Test
     fun i64IsNumeric() {
-        assertThat((BuiltinType.I64 as BuiltinType).isNumeric, `is`(true))
+        (BuiltinType.I64 as BuiltinType).isNumeric shouldBe true
     }
 
     @Test
     fun doubleIsNumeric() {
-        assertThat((BuiltinType.DOUBLE as BuiltinType).isNumeric, `is`(true))
+        (BuiltinType.DOUBLE as BuiltinType).isNumeric shouldBe true
     }
 
     @Test
     fun stringIsNotNumeric() {
-        assertThat((BuiltinType.STRING as BuiltinType).isNumeric, `is`(false))
+        (BuiltinType.STRING as BuiltinType).isNumeric shouldBe false
     }
 
     @Test
     fun binaryIsNotNumeric() {
-        assertThat((BuiltinType.BINARY as BuiltinType).isNumeric, `is`(false))
+        (BuiltinType.BINARY as BuiltinType).isNumeric shouldBe false
     }
 
     @Test
     fun voidIsNotNumeric() {
-        assertThat((BuiltinType.VOID as BuiltinType).isNumeric, `is`(false))
+        (BuiltinType.VOID as BuiltinType).isNumeric shouldBe false
     }
 }

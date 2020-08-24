@@ -32,12 +32,10 @@ import com.microsoft.thrifty.schema.parser.LiteralValueElement
 import com.microsoft.thrifty.schema.parser.ScalarTypeElement
 import com.microsoft.thrifty.schema.parser.TypeElement
 import com.microsoft.thrifty.schema.parser.TypedefElement
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import org.junit.Test
-
-import org.hamcrest.CoreMatchers.containsString
-import org.hamcrest.Matchers.`is`
-import org.hamcrest.MatcherAssert.assertThat
-import org.junit.Assert.fail
 
 class ConstantTest {
     private val symbolTable = TestSymbolTable()
@@ -63,14 +61,11 @@ class ConstantTest {
     fun boolLiteral() {
         Constant.validate(symbolTable, IdentifierValueElement(loc, "true", "true"), BuiltinType.BOOL)
         Constant.validate(symbolTable, IdentifierValueElement(loc, "false", "false"), BuiltinType.BOOL)
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, LiteralValueElement(loc, "nope", "nope"), BuiltinType.BOOL)
-            fail("Invalid identifier should not validate as a bool")
-        } catch (expected: IllegalStateException) {
-            assertThat<String>(
-                    expected.message,
-                    containsString("Expected 'true', 'false', '1', '0', or a bool constant"))
         }
+
+        e.message shouldContain "Expected 'true', 'false', '1', '0', or a bool constant"
     }
 
     @Test
@@ -96,25 +91,18 @@ class ConstantTest {
 
         symbolTable["aBool"] = c
 
-        try {
+        shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "aBool", "aBool"), BuiltinType.BOOL)
-            fail("Wrongly-typed constant should not validate")
-        } catch (ignored: IllegalStateException) {
         }
-
     }
 
     @Test
     fun boolWithNonConstantIdentifier() {
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "someStruct", "someStruct"), BuiltinType.BOOL)
-            fail("Non-constant identifier should not validate")
-        } catch (expected: IllegalStateException) {
-            assertThat<String>(
-                    expected.message,
-                    containsString("Expected 'true', 'false', '1', '0', or a bool constant; got: someStruct"))
         }
 
+        e.message shouldContain "Expected 'true', 'false', '1', '0', or a bool constant; got: someStruct"
     }
 
     @Test
@@ -155,13 +143,11 @@ class ConstantTest {
                 "${Integer.MAX_VALUE.toLong() + 1}", Integer.MAX_VALUE.toLong() + 1)
         val type = BuiltinType.I32
 
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, value, type)
-            fail("out-of-range i32 should fail")
-        } catch (e: IllegalStateException) {
-            assertThat<String>(e.message, containsString("out of range for type i32"))
         }
 
+        e.message shouldContain "out of range for type i32"
     }
 
     @Test
@@ -170,27 +156,22 @@ class ConstantTest {
                 "${Integer.MIN_VALUE.toLong() - 1}", Integer.MIN_VALUE.toLong() - 1)
         val type = BuiltinType.I32
 
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, value, type)
-            fail("out-of-range i32 should fail")
-        } catch (e: IllegalStateException) {
-            assertThat<String>(e.message, containsString("out of range for type i32"))
         }
 
+        e.message shouldContain "out of range for type i32"
     }
 
     @Test
     fun doubleLiteral() {
         Constant.validate(symbolTable, IntValueElement(loc, "10", 10), BuiltinType.DOUBLE)
         Constant.validate(symbolTable, DoubleValueElement(loc, "3.14", 3.14), BuiltinType.DOUBLE)
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, LiteralValueElement(loc, "aString", "aString"), BuiltinType.DOUBLE)
-            fail("String literal should not validate as a double")
-        } catch (expected: IllegalStateException) {
-            assertThat<String>(
-                    expected.message,
-                    containsString("Expected a value of type DOUBLE but got aString"))
         }
+
+        e.message shouldContain "Expected a value of type DOUBLE but got aString"
     }
 
     @Test
@@ -216,28 +197,18 @@ class ConstantTest {
 
         symbolTable["aString"] = c
 
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "aString", "aString"), BuiltinType.DOUBLE)
-            fail("Wrongly-typed constant should not validate")
-        } catch (expected: IllegalStateException) {
-            assertThat<String>(
-                    expected.message,
-                    containsString("Expected a value of type double, but got string"))
         }
-
+        e.message shouldContain "Expected a value of type double, but got string"
     }
 
     @Test
     fun doubleWithNonConstantIdentifier() {
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "someStruct", "someStruct"), BuiltinType.DOUBLE)
-            fail("Non-constant identifier should not validate")
-        } catch (expected: IllegalStateException) {
-            assertThat<String>(
-                    expected.message,
-                    containsString("Unrecognized const identifier: someStruct"))
         }
-
+        e.message shouldContain "Unrecognized const identifier: someStruct"
     }
 
     @Test
@@ -259,15 +230,10 @@ class ConstantTest {
 
         val et = EnumType(enumElement, emptyMap())
 
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "TestEnum.NON_MEMBER", "TestEnum.NON_MEMBER"), et)
-            fail("Non-member identifier should fail")
-        } catch (expected: IllegalStateException) {
-            assertThat<String>(
-                    expected.message,
-                    containsString("'TestEnum.NON_MEMBER' is not a member of enum type TestEnum: members=[TEST]"))
         }
-
+        e.message shouldContain "'TestEnum.NON_MEMBER' is not a member of enum type TestEnum: members=[TEST]"
     }
 
     @Test
@@ -278,13 +244,10 @@ class ConstantTest {
 
         val et = EnumType(enumElement, emptyMap())
 
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, IdentifierValueElement(loc, "TEST", "TEST"), et)
-            fail("Expected an IllegalStateException")
-        } catch (e: IllegalStateException) {
-            assertThat<String>(e.message, containsString("Unqualified name 'TEST' is not a valid enum constant value"))
         }
-
+        e.message shouldContain "Unqualified name 'TEST' is not a valid enum constant value"
     }
 
     @Test
@@ -308,12 +271,7 @@ class ConstantTest {
                 LiteralValueElement(loc, "\"2\"", "2")
         ))
 
-        try {
-            Constant.validate(symbolTable, listValue, list)
-            fail("Heterogeneous lists should fail validation")
-        } catch (ignored: IllegalStateException) {
-        }
-
+        shouldThrow<IllegalStateException> { Constant.validate(symbolTable, listValue, list) }
     }
 
     @Test
@@ -343,15 +301,10 @@ class ConstantTest {
 
         val value = IdentifierValueElement(loc, "AnEnum.FOO", "AnEnum.FOO")
 
-        try {
+        val e = shouldThrow<IllegalStateException> {
             Constant.validate(symbolTable, value, typedefType)
-            fail("An enum literal of type A cannot be assigned to a typedef of type B")
-        } catch (expected: IllegalStateException) {
-            assertThat<String>(
-                    expected.message,
-                    `is`("'AnEnum.FOO' is not a member of enum type DifferentEnum: members=[BAR]"))
         }
-
+        e.message shouldBe "'AnEnum.FOO' is not a member of enum type DifferentEnum: members=[BAR]"
     }
 
     @Test
