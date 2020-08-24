@@ -33,16 +33,19 @@ import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.Extension;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class TestServer implements TestRule {
+public class TestServer implements Extension,
+        BeforeEachCallback,
+        AfterEachCallback {
     private final ServerProtocol protocol;
     private final ServerTransport transport;
 
@@ -95,18 +98,13 @@ public class TestServer implements TestRule {
     }
 
     @Override
-    public Statement apply(final Statement base, Description description) {
-        return new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                try {
-                    run();
-                    base.evaluate();
-                } finally {
-                    cleanupServer();
-                }
-            }
-        };
+    public void beforeEach(ExtensionContext context) {
+        run();
+    }
+
+    @Override
+    public void afterEach(ExtensionContext context) {
+        cleanupServer();
     }
 
     public void close() {

@@ -21,7 +21,7 @@
 package com.microsoft.thrifty.schema
 
 import io.kotest.matchers.shouldBe
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger

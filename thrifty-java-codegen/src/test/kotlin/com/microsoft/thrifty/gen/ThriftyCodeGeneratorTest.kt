@@ -30,9 +30,8 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import okio.buffer
 import okio.sink
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
 /**
@@ -42,7 +41,8 @@ import java.io.File
  * Semantic tests can be found in `thrifty-integration-tests`.
  */
 class ThriftyCodeGeneratorTest {
-    @get:Rule val tmp = TemporaryFolder()
+    @TempDir
+    lateinit var tmp: File
 
     @Test
     fun fieldWithConstInitializer() {
@@ -377,7 +377,7 @@ class ThriftyCodeGeneratorTest {
 
         """.trimRawString()
 
-        val thriftFile = tmp.newFile("sigils_consts.thrift")
+        val thriftFile = File(tmp, "sigils_consts.thrift")
         val javaFile = compile(thriftFile, thrift)[0]
 
         val javaText = javaFile.toString()
@@ -426,7 +426,7 @@ class ThriftyCodeGeneratorTest {
 
             """.trimRawString()
 
-        val thriftFile = tmp.newFile("sigil_enums.thrift")
+        val thriftFile = File(tmp, "sigil_enums.thrift")
         val javaFile = compile(thriftFile, thrift)[0].toString()
 
         javaFile shouldBe expected
@@ -459,7 +459,7 @@ class ThriftyCodeGeneratorTest {
           break;
         """
 
-        val thriftFile = tmp.newFile("structs_enums.thrift")
+        val thriftFile = File(tmp, "structs_enums.thrift")
         val javaFile = compile(thriftFile, thrift)[1].toString()
 
         javaFile shouldContain expected
@@ -505,7 +505,7 @@ class ThriftyCodeGeneratorTest {
           break;
         """
 
-        val thriftFile = tmp.newFile("structs_enums.thrift")
+        val thriftFile = File(tmp, "structs_enums.thrift")
         val schema = parse(thriftFile, thrift)
         val gen = ThriftyCodeGenerator(schema).emitFileComment(false).failOnUnknownEnumValues(false)
         val javaFile = gen.generateTypes()[1]
@@ -542,7 +542,7 @@ class ThriftyCodeGeneratorTest {
               }
             """
 
-        val thriftFile = tmp.newFile("maps_enums.thrift")
+        val thriftFile = File(tmp, "maps_enums.thrift")
         val javaFile = compile(thriftFile, thrift)[2]
 
         javaFile.toString() shouldContain expected
@@ -578,7 +578,7 @@ class ThriftyCodeGeneratorTest {
   public final String bar;
 """
 
-        val thriftFile = tmp.newFile("sigil_enums.thrift")
+        val thriftFile = File(tmp, "sigil_enums.thrift")
         val javaFile = compile(thriftFile, thrift)[0]
         val javaText = javaFile.toString()
 
@@ -619,7 +619,7 @@ class ThriftyCodeGeneratorTest {
     }
 
     private fun parse(filename: String, text: String): Schema {
-        return parse(tmp.newFile(filename), text)
+        return parse(File(tmp, filename), text)
     }
 
     private fun parse(file: File, text: String): Schema {

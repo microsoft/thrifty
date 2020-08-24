@@ -25,7 +25,7 @@ import com.microsoft.thrifty.transport.BufferTransport
 import io.kotest.matchers.shouldBe
 import okio.Buffer
 import okio.ByteString.Companion.encodeUtf8
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class JsonProtocolTest {
     private val buffer = Buffer()

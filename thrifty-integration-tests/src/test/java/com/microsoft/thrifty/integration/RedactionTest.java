@@ -24,7 +24,7 @@ import com.microsoft.thrifty.integration.gen.HasCommentBasedRedaction;
 import com.microsoft.thrifty.integration.gen.HasObfuscation;
 import com.microsoft.thrifty.integration.gen.HasRedaction;
 import com.microsoft.thrifty.integration.gen.ObfuscatedCollections;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;

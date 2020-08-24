@@ -20,9 +20,10 @@
  */
 package com.microsoft.thrifty.transport
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import okio.Buffer
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.io.EOFException
 import java.nio.charset.StandardCharsets
 
@@ -81,11 +82,11 @@ class FramedTransportTest {
         String(readBuffer, Charsets.UTF_8) shouldBe "abcdefghij"
     }
 
-    @Test(expected = EOFException::class)
+    @Test
     fun readHeaderWhenEOFReached() {
         val buffer = Buffer()
         val transport = FramedTransport(BufferTransport(buffer))
         val readBuffer = ByteArray(10)
-        transport.read(readBuffer, 0, 10)
+        shouldThrow<EOFException> { transport.read(readBuffer, 0, 10) }
     }
 }

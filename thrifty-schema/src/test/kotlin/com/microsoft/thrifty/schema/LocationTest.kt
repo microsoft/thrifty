@@ -22,7 +22,7 @@ package com.microsoft.thrifty.schema
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.io.File
 
 class LocationTest {
