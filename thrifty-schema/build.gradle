@@ -30,13 +30,6 @@ generateGrammarSource {
     arguments += ["-package", "com.microsoft.thrifty.schema.antlr"]
 }
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-    kotlinOptions {
-        jvmTarget = "1.8"
-        freeCompilerArgs = ['-Xjvm-default=enable']
-    }
-}
-
 dependencies {
     antlr libraries.antlr
     implementation libraries.antlr
@@ -50,9 +43,7 @@ dependencies {
 }
 
 // For some reason, Kotlin compilation is being run prior to antlr by default.
-tasks['compileKotlin'].dependsOn('generateGrammarSource')
-tasks['compileTestKotlin'].dependsOn('generateGrammarSource')
-tasks['compileTestKotlin'].dependsOn('generateTestGrammarSource')
-tasks['compileJava'].dependsOn('generateGrammarSource')
-tasks['compileTestJava'].dependsOn('generateGrammarSource')
-tasks['compileTestJava'].dependsOn('generateTestGrammarSource')
+sourceSets {
+    main.java.srcDir tasks.named("generateGrammarSource", AntlrTask).map { it.outputDirectory }
+    test.java.srcDir tasks.named("generateTestGrammarSource", AntlrTask).map { it.outputDirectory }
+}
