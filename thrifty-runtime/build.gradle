@@ -29,6 +29,7 @@ targetCompatibility = '1.8'
 
 dependencies {
     platform("org.jetbrains.kotlin:kotlin-bom")
+    api "org.jetbrains.kotlin:kotlin-stdlib"
     api libraries.okio
 
     testImplementation "org.jetbrains.kotlin:kotlin-reflect"
