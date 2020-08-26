@@ -35,6 +35,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
 import io.kotest.matchers.string.contain
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -946,6 +947,48 @@ class KotlinCodeGeneratorTest {
 
         val file = generate(thrift) { failOnUnknownEnumValues(false); builderlessDataClasses() }
         file.single().toString() shouldContain expected
+    }
+
+    @Test
+    fun `struct built with required constructor`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |
+            |struct TestStruct {
+            |  1: required i64 field1;
+            |  2: optional bool field2;
+            |}
+        """.trimMargin()
+
+        val expected = """
+    constructor(field1: Long) {
+      this.field1 = field1
+      this.field2 = null
+    }"""
+
+        val file = generate(thrift) { builderRequiredConstructor() }
+        file.single().toString() shouldContain expected
+    }
+
+    @Test
+    fun `omit empty builder constructor`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |
+            |struct TestStruct {
+            |  1: required i64 field1;
+            |}
+        """.trimMargin()
+
+        val expectedNotPresent = """
+    constructor() {
+      this.field1 = null
+    }"""
+
+        val file = generate(thrift) { omitBuilderEmptyConstructor() }
+        file.single().toString() shouldNotContain expectedNotPresent
     }
 
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {

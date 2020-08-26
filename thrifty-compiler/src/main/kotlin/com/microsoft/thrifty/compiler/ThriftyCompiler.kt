@@ -246,6 +246,12 @@ class ThriftyCompiler {
                     "--kt-file-per-type", help = "Generate one .kt file per type; default is one per namespace.")
                 .flag(default = false)
 
+        val kotlinBuilderRequiredConstructor: Boolean by option("--experimental-kt-builder-required-ctor")
+                .flag(default = false)
+
+        val kotlinBuilderOmitEmptyConstructor: Boolean by option("--experimental-kt-builder-omit-empty-ctor")
+                .flag(default = false)
+
         val kotlinBuilderlessDataClasses: Boolean by option("--experimental-kt-builderless-structs")
                 .flag(default = false)
 
@@ -299,6 +305,8 @@ class ThriftyCompiler {
 
             val impliedLanguage = when {
                 kotlinBuilderlessDataClasses -> Language.KOTLIN
+                kotlinBuilderRequiredConstructor -> Language.KOTLIN
+                kotlinBuilderOmitEmptyConstructor -> Language.KOTLIN
                 kotlinFilePerType -> Language.KOTLIN
                 nullabilityAnnotationType != NullabilityAnnotationType.NONE -> Language.JAVA
                 else -> null
@@ -376,6 +384,14 @@ class ThriftyCompiler {
 
             if (kotlinBuilderlessDataClasses) {
                 gen.builderlessDataClasses()
+            }
+
+            if (kotlinBuilderRequiredConstructor) {
+                gen.builderRequiredConstructor()
+            }
+
+            if (kotlinBuilderOmitEmptyConstructor) {
+                gen.omitBuilderEmptyConstructor()
             }
 
             if (kotlinCoroutineClients) {

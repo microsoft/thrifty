@@ -122,6 +122,8 @@ class KotlinCodeGenerator(
 
     private var parcelize: Boolean = false
     private var builderlessDataClasses: Boolean = false
+    private var builderRequiredConstructor: Boolean = false
+    private var omitBuilderEmptyConstructor: Boolean = false
     private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
     private var emitJvmName: Boolean = false
@@ -216,6 +218,14 @@ class KotlinCodeGenerator(
 
     fun builderlessDataClasses(): KotlinCodeGenerator = apply {
         this.builderlessDataClasses = true
+    }
+
+    fun builderRequiredConstructor(): KotlinCodeGenerator = apply {
+        this.builderRequiredConstructor = true
+    }
+
+    fun omitBuilderEmptyConstructor(): KotlinCodeGenerator = apply {
+        this.omitBuilderEmptyConstructor = true
     }
 
     fun omitServiceClients(): KotlinCodeGenerator = apply {
@@ -756,6 +766,8 @@ class KotlinCodeGenerator(
 
         val defaultCtor = FunSpec.constructorBuilder()
 
+        val requiredCtor = FunSpec.constructorBuilder()
+
         val nameAllocator = nameAllocators[struct]
         val buildParamStringBuilder = StringBuilder()
         for (field in struct.fields) {
@@ -783,6 +795,15 @@ class KotlinCodeGenerator(
 
             // Add initialization in copy ctor
             copyCtor.addStatement("this.$name = source.$name")
+
+            // Add initialization in required ctor
+            if (field.required && field.defaultValue == null) {
+                requiredCtor.addParameter(name, type)
+                requiredCtor.addStatement("this.$name = $name")
+            }
+            else {
+                requiredCtor.addStatement("this.$name = %L", defaultValueBlock)
+            }
 
             // reset field
 
@@ -814,10 +835,17 @@ class KotlinCodeGenerator(
                 .addCode(buildParamStringBuilder.toString())
                 .addCode(")»")
 
+        if (builderRequiredConstructor) {
+            spec.addFunction(requiredCtor.build())
+        }
+
+        if (!omitBuilderEmptyConstructor) {
+            spec.addFunction(defaultCtor.build())
+        }
+
         return spec
-                .addFunction(defaultCtor.build())
-                .addFunction(copyCtor.build())
                 .addFunction(buildFunSpec.build())
+                .addFunction(copyCtor.build())
                 .addFunction(resetFunSpec.build())
                 .build()
     }
