@@ -122,6 +122,7 @@ class KotlinCodeGenerator(
 
     private var parcelize: Boolean = false
     private var builderlessDataClasses: Boolean = false
+    private var builderRequiredConstructor: Boolean = false
     private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
     private var emitJvmName: Boolean = false
@@ -216,6 +217,10 @@ class KotlinCodeGenerator(
 
     fun builderlessDataClasses(): KotlinCodeGenerator = apply {
         this.builderlessDataClasses = true
+    }
+
+    fun builderRequiredConstructor(): KotlinCodeGenerator = apply {
+        this.builderRequiredConstructor = true
     }
 
     fun omitServiceClients(): KotlinCodeGenerator = apply {
@@ -756,6 +761,8 @@ class KotlinCodeGenerator(
 
         val defaultCtor = FunSpec.constructorBuilder()
 
+        val requiredCtor = FunSpec.constructorBuilder()
+
         val nameAllocator = nameAllocators[struct]
         val buildParamStringBuilder = StringBuilder()
         for (field in struct.fields) {
@@ -783,6 +790,15 @@ class KotlinCodeGenerator(
 
             // Add initialization in copy ctor
             copyCtor.addStatement("this.$name = source.$name")
+
+            // Add initialization in required ctor
+            if (field.required && field.defaultValue == null) {
+                requiredCtor.addParameter(name, type)
+                requiredCtor.addStatement("this.$name = $name")
+            }
+            else {
+                requiredCtor.addStatement("this.$name = %L", defaultValueBlock)
+            }
 
             // reset field
 
@@ -814,10 +830,15 @@ class KotlinCodeGenerator(
                 .addCode(buildParamStringBuilder.toString())
                 .addCode(")»")
 
+        if (builderRequiredConstructor && requiredCtor.parameters.isNotEmpty()) {
+            spec.addFunction(requiredCtor.build())
+            defaultCtor.addAnnotation(makeEmptyConstructorDeprecated(requiredCtor.parameters))
+        }
+
         return spec
                 .addFunction(defaultCtor.build())
-                .addFunction(copyCtor.build())
                 .addFunction(buildFunSpec.build())
+                .addFunction(copyCtor.build())
                 .addFunction(resetFunSpec.build())
                 .build()
     }
@@ -2261,6 +2282,15 @@ class KotlinCodeGenerator(
     private fun makeDeprecated(): AnnotationSpec {
         return AnnotationSpec.builder(Deprecated::class)
                 .addMember("message = %S", "Deprecated in source .thrift")
+                .build()
+    }
+
+    private fun makeEmptyConstructorDeprecated(params: MutableList<ParameterSpec>): AnnotationSpec {
+        var parameterString = params.joinToString(prefix = "Builder(", postfix = ")", separator = ", ") { it.name }
+
+        return AnnotationSpec.builder(Deprecated::class)
+                .addMember("message = %S", "Empty constructor deprectated, use required constructor instead")
+                .addMember("replaceWith = ReplaceWith(%S)", parameterString)
                 .build()
     }
 
