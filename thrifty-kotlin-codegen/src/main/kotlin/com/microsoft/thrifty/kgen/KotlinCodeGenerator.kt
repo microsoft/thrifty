@@ -832,6 +832,7 @@ class KotlinCodeGenerator(
 
         if (builderRequiredConstructor && requiredCtor.parameters.isNotEmpty()) {
             spec.addFunction(requiredCtor.build())
+            defaultCtor.addAnnotation(makeEmptyConstructorDeprecated(requiredCtor.parameters))
         }
 
         return spec
@@ -2281,6 +2282,15 @@ class KotlinCodeGenerator(
     private fun makeDeprecated(): AnnotationSpec {
         return AnnotationSpec.builder(Deprecated::class)
                 .addMember("message = %S", "Deprecated in source .thrift")
+                .build()
+    }
+
+    private fun makeEmptyConstructorDeprecated(params: MutableList<ParameterSpec>): AnnotationSpec {
+        var parameterString = params.joinToString(prefix = "Builder(", postfix = ")", separator = ", ") { it.name }
+
+        return AnnotationSpec.builder(Deprecated::class)
+                .addMember("message = %S", "Empty constructor deprectated, use required constructor instead")
+                .addMember("replaceWith = ReplaceWith(%S)", parameterString)
                 .build()
     }
 
