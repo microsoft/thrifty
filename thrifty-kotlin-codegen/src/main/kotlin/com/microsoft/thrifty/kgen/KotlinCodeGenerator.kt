@@ -123,7 +123,6 @@ class KotlinCodeGenerator(
     private var parcelize: Boolean = false
     private var builderlessDataClasses: Boolean = false
     private var builderRequiredConstructor: Boolean = false
-    private var omitBuilderEmptyConstructor: Boolean = false
     private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
     private var emitJvmName: Boolean = false
@@ -222,10 +221,6 @@ class KotlinCodeGenerator(
 
     fun builderRequiredConstructor(): KotlinCodeGenerator = apply {
         this.builderRequiredConstructor = true
-    }
-
-    fun omitBuilderEmptyConstructor(): KotlinCodeGenerator = apply {
-        this.omitBuilderEmptyConstructor = true
     }
 
     fun omitServiceClients(): KotlinCodeGenerator = apply {
@@ -839,11 +834,8 @@ class KotlinCodeGenerator(
             spec.addFunction(requiredCtor.build())
         }
 
-        if (!omitBuilderEmptyConstructor) {
-            spec.addFunction(defaultCtor.build())
-        }
-
         return spec
+                .addFunction(defaultCtor.build())
                 .addFunction(buildFunSpec.build())
                 .addFunction(copyCtor.build())
                 .addFunction(resetFunSpec.build())

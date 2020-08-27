@@ -970,27 +970,7 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { builderRequiredConstructor() }
         file.single().toString() shouldContain expected
     }
-
-    @Test
-    fun `omit empty builder constructor`() {
-        val thrift = """
-            |namespace kt test.struct
-            |
-            |
-            |struct TestStruct {
-            |  1: required i64 field1;
-            |}
-        """.trimMargin()
-
-        val expectedNotPresent = """
-    constructor() {
-      this.field1 = null
-    }"""
-
-        val file = generate(thrift) { omitBuilderEmptyConstructor() }
-        file.single().toString() shouldNotContain expectedNotPresent
-    }
-
+    
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()
