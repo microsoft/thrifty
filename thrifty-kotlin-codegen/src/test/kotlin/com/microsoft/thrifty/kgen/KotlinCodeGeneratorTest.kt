@@ -35,6 +35,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
 import io.kotest.matchers.string.contain
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -948,6 +949,72 @@ class KotlinCodeGeneratorTest {
 
         val file = generate(thrift) { failOnUnknownEnumValues(false); builderlessDataClasses() }
         file.single().toString() shouldContain expected
+    }
+
+    @Test
+    fun `struct built with required constructor`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |struct TestStruct {
+            |  1: required i64 field1;
+            |  2: optional bool field2;
+            |}
+        """.trimMargin()
+
+        val expected = """
+    constructor(field1: Long) {
+      this.field1 = field1
+      this.field2 = null
+    }"""
+
+        val file = generate(thrift) { builderRequiredConstructor() }
+        file.single().toString() shouldContain expected
+    }
+
+    @Test
+    fun `default constructor marked deprecated when required constructor enabled`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |struct TestStruct {
+            |  1: required i64 field1;
+            |  2: optional bool field2;
+            |}
+        """.trimMargin()
+
+        val expected = """
+    @Deprecated(
+      message = "Empty constructor deprectated, use required constructor instead",
+      replaceWith = ReplaceWith("Builder(field1)")
+    )"""
+
+        val file = generate(thrift) { builderRequiredConstructor() }
+        file.single().toString() shouldContain expected
+    }
+
+    @Test
+    fun `omit required constructor when no required parameters supplied`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |struct TestStruct {
+            |  1: optional i64 field1;
+            |  2: optional bool field2;
+            |}
+        """.trimMargin()
+
+        val notExpected = "@Deprecated("
+
+        val expected = """
+    constructor() {
+      this.field1 = null
+      this.field2 = null
+    }"""
+
+        val file = generate(thrift) { builderRequiredConstructor() }
+        file.single().toString() shouldContain expected
+        file.single().toString() shouldNotContain notExpected
     }
 
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
