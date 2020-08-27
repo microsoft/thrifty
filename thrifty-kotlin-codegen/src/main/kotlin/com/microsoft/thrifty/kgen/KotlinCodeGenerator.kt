@@ -835,7 +835,7 @@ class KotlinCodeGenerator(
                 .addCode(buildParamStringBuilder.toString())
                 .addCode(")»")
 
-        if (builderRequiredConstructor) {
+        if (builderRequiredConstructor && requiredCtor.parameters.isNotEmpty()) {
             spec.addFunction(requiredCtor.build())
         }
 
