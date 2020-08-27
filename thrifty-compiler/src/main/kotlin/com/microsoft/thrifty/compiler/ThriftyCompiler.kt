@@ -130,6 +130,11 @@ import java.util.ArrayList
  * will not compile on Java versions that do not have this annotation.  Because Thrifty is intended
  * for use on Android, we default to jdk8 (Android doesn't support JDK9 and probably never* will).
  *
+ * `--experimental-kt-builder-required-ctor` is optional. When specified, Generate struct Builder
+ * constructor with required parameters, and marks empty Builder constructor as deprecated. Helpful
+ * when needing a compile time check that required parameters are supplied to the struct. This
+ * also marks the empty Builder constructor as deprecated in favor of the required one
+ *
  * If no .thrift files are given, then all .thrift files located on the search path
  * will be implicitly included; otherwise only the given files (and those included by them)
  * will be compiled.
@@ -246,7 +251,8 @@ class ThriftyCompiler {
                     "--kt-file-per-type", help = "Generate one .kt file per type; default is one per namespace.")
                 .flag(default = false)
 
-        val kotlinBuilderRequiredConstructor: Boolean by option("--experimental-kt-builder-required-ctor")
+        val kotlinBuilderRequiredConstructor: Boolean by option("--experimental-kt-builder-required-ctor",
+                    help = "Generate struct Builder constructor with required parameters, and mark empty Builder constructor as deprecated")
                 .flag(default = false)
 
         val kotlinBuilderlessDataClasses: Boolean by option("--experimental-kt-builderless-structs")

@@ -1002,11 +1002,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val notExpected = """
-    @Deprecated(
-      message = "Empty constructor deprectated, use required constructor instead",
-      replaceWith = ReplaceWith("Builder(field1)")
-    )"""
+        val notExpected = "@Deprecated("
 
         val expected = """
     constructor() {
