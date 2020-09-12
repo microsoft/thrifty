@@ -49,6 +49,6 @@ object ObfuscationUtil {
         }
         val hashcode = value.hashCode()
 
-        return hashcode.toString(radix = 16).padStart(length = 8, padChar = '0')
+        return hashcode.toString(radix = 16).toUpperCase().padStart(length = 8, padChar = '0')
     }
 }
