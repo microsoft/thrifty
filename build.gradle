@@ -29,7 +29,7 @@ allprojects {
     version VERSION_NAME
 
     project.ext {
-        kotlin_version = '1.4.0'
+        kotlin_version = '1.4.10'
 
         libraries = [
                 antlr: [
@@ -95,7 +95,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.0"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.10"
         classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.10.1'
         classpath 'com.github.jengelman.gradle.plugins:shadow:6.0.0'
         classpath 'com.vanniktech:gradle-maven-publish-plugin:0.11.1'
