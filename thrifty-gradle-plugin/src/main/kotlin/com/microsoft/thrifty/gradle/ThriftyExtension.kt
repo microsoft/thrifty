@@ -141,11 +141,6 @@ sealed class ThriftOptions {
         private set
 
     @Input
-    @Optional
-    var generatedAnnotationType: String? = null
-        private set
-
-    @Input
     var parcelable: Boolean = false
 
     @Input
@@ -196,14 +191,6 @@ sealed class ThriftOptions {
 
     fun mapType(clazz: Class<*>) {
         this.mapType = clazz.canonicalName!!
-    }
-
-    fun generatedAnnotationType(clazz: Class<*>) {
-        generatedAnnotationType(clazz.canonicalName)
-    }
-
-    fun generatedAnnotationType(type: String?) {
-        this.generatedAnnotationType = type
     }
 
     fun allowUnknownEnumValues(allow: Boolean) {

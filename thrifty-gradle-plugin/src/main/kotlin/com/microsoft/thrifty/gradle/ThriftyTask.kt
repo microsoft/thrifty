@@ -113,7 +113,6 @@ open class ThriftyTask @Inject constructor(
     private fun generateJavaThrifts(schema: Schema, options: JavaThriftOptions) {
         val gen = ThriftyCodeGenerator(schema, options.namePolicy).apply {
             emitFileComment(true)
-            emitGeneratedAnnotations(options.generatedAnnotationType)
             emitParcelable(options.parcelable)
             failOnUnknownEnumValues(!options.allowUnknownEnumValues)
 
@@ -161,8 +160,6 @@ open class ThriftyTask @Inject constructor(
                     KotlinThriftOptions.ClientStyle.COROUTINE -> coroutineServiceClients()
                 }
             }
-
-            emitGeneratedAnnotations(options.generatedAnnotationType)
 
             options.listType?.let { listClassName(it) }
             options.setType?.let { setClassName(it) }

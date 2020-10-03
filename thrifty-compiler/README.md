@@ -24,9 +24,7 @@ Option | Description
 `--nullability-annotation-type=[none,android-support,androidx]` | Optional, defaults to `none`.  Specifies whether or not Android nullability annotations will be added for generated fields (`@NonNull` and `@Nullable`) and, if so, which types - those in `android.support.annotation` or `androidx.annotation`.
 `--parcelable` | Optional.  Structs, unions, and exceptions will have implementations of Parcelable generated.
 `--omit-file-comments` | Optional.  When set, don't add file comments to generated files.
-`--omit-generated-annotations` | Optional.  When set, don't add @Generated annotations to generated types.
 `--list-type=[classname]` | A java.util.List implementation to be used wherever lists are instantiated in generated code.
 `--set-type=[classname]` | A java.util.Set implementation to be used wherever sets are instantiated in generated code.
 `--map-type=[classname]` | A java.util.Map implementation, as above.
 `--kt-file-per-type` | Specifies that one .kt file should be generated per Kotlin type.  The default is for all code to be written to a single file.
-`--generated-annotation-type=[jdk8,jdk9,native]` | Optional, defaults to `jdk8`.  Specifies which `@Generated` annotation type to use - `javax.annotation.Generated`, `javax.annotation.processing.Generated`, or whichever type is present in the Java runtime at compile-time.
