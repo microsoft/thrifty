@@ -72,9 +72,6 @@ class ThriftyCodeGenerator {
     private var emitParcelable: Boolean = false
     private var emitFileComment = true
     private var failOnUnknownEnumValues = true
-    private var generatedAnnotationType: ClassName? = null
-    private val emitGeneratedAnnotations: Boolean
-        get() = generatedAnnotationType != null
 
     constructor(schema: Schema, namingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT) {
 
@@ -117,10 +114,6 @@ class ThriftyCodeGenerator {
     fun emitFileComment(emitFileComment: Boolean): ThriftyCodeGenerator {
         this.emitFileComment = emitFileComment
         return this
-    }
-
-    fun emitGeneratedAnnotations(annotationTypeName: String?) = apply {
-        this.generatedAnnotationType = annotationTypeName?.let { ClassName.bestGuess(it) }
     }
 
     fun usingTypeProcessor(typeProcessor: TypeProcessor): ThriftyCodeGenerator {
@@ -188,17 +181,9 @@ class ThriftyCodeGenerator {
     }
 
     private fun assembleJavaFile(packageName: String, spec: TypeSpec, location: Location? = null): JavaFile? {
-        val annotatedSpec = if (emitGeneratedAnnotations) {
-            spec.toBuilder()
-                    .addAnnotation(generatedAnnotation())
-                    .build()
-        } else {
-            spec
-        }
-
         val processedSpec = typeProcessor?.let { processor ->
-            processor.process(annotatedSpec) ?: return null
-        } ?: annotatedSpec
+            processor.process(spec) ?: return null
+        } ?: spec
 
         val file = JavaFile.builder(packageName, processedSpec)
                 .skipJavaLangImports(true)
@@ -212,13 +197,6 @@ class ThriftyCodeGenerator {
         }
 
         return file.build()
-    }
-
-    private fun generatedAnnotation(): AnnotationSpec {
-        return AnnotationSpec.builder(generatedAnnotationType!!)
-                .addMember("value", "\$S", ThriftyCodeGenerator::class.java.name)
-                .addMember("comments", "\$S", "https://github.com/microsoft/thrifty")
-                .build()
     }
 
     private fun buildStruct(type: StructType): TypeSpec {

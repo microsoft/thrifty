@@ -56,7 +56,6 @@ def compileTestThrift = tasks.register("compileTestThrift", JavaExec) { t ->
 
     args = [
             "--out=$projectDir/build/generated-src/thrifty/java",
-            "--generated-annotation-type=native",
             "$projectDir/ClientThriftTest.thrift"]
 }
 
@@ -73,7 +72,6 @@ def kompileTestThrift = tasks.register("kompileTestThrift", JavaExec) { t ->
             "--map-type=java.util.LinkedHashMap",
             "--set-type=java.util.LinkedHashSet",
             "--list-type=java.util.ArrayList",
-            "--generated-annotation-type=native",
             "$projectDir/ClientThriftTest.thrift"
     ]
 }
@@ -87,7 +85,6 @@ def kompileCoroutineTestThrift = tasks.register("kompileCoroutineTestThrift", Ja
     args = [
             "--out=$projectDir/build/generated-src/thrifty/kotlin",
             "--lang=kotlin",
-            "--generated-annotation-type=native",
             "--kt-coroutine-clients",
             "--experimental-kt-builderless-structs",
             "$projectDir/CoroutineClientTest.thrift"
