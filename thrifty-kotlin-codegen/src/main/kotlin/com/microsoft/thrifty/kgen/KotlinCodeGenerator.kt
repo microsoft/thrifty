@@ -155,6 +155,8 @@ class KotlinCodeGenerator(
                             val conformingName = fieldNamingPolicy.apply(field.name)
                             newName(conformingName, field)
                         }
+
+                        newName("result", Tags.RESULT)
                     }
 
                     is EnumType -> {
@@ -1138,6 +1140,7 @@ class KotlinCodeGenerator(
 
         // Reader
 
+        val localResult = nameAllocator[Tags.RESULT]
         reader.addStatement("protocol.readStructBegin()")
         if (builderType == null) {
             val init = if (struct.fields.any { it.defaultValue != null }) {
@@ -1147,7 +1150,7 @@ class KotlinCodeGenerator(
                 CodeBlock.of("null")
             }
 
-            reader.addStatement("var result : ${struct.name}? = %L", init)
+            reader.addStatement("var %N : ${struct.name}? = %L", localResult, init)
         }
         reader.beginControlFlow("while (true)")
 
@@ -1175,7 +1178,7 @@ class KotlinCodeGenerator(
                     if (builderType != null) {
                         addStatement("builder.$name($name)")
                     } else {
-                        addStatement("result = $typeName($name)")
+                        addStatement("%N = $typeName($name)", localResult)
                     }
 
                     nextControlFlow("else")
@@ -1198,7 +1201,7 @@ class KotlinCodeGenerator(
         if (builderType != null) {
             reader.addStatement("return builder.build()")
         } else {
-            reader.addStatement("return result ?: error(%S)", "unreadable")
+            reader.addStatement("return %N ?: error(%S)", localResult, "unreadable")
         }
 
         if (builderType != null) {

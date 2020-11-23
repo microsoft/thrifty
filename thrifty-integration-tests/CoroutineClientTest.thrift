@@ -307,3 +307,10 @@ service ThriftTest
   UnionWithDefault testUnionWithDefault(1: UnionWithDefault theArg)
 }
 
+// Builderless unions should handle fields named "result".
+// see https://github.com/microsoft/thrifty/issues/404
+union UnionWithResult {
+  1: i32 result;
+  2: i64 bigResult;
+  3: string error;
+}
