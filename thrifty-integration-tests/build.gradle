@@ -87,6 +87,7 @@ def kompileCoroutineTestThrift = tasks.register("kompileCoroutineTestThrift", Ja
             "--out=$projectDir/build/generated-src/thrifty/kotlin",
             "--lang=kotlin",
             "--kt-coroutine-clients",
+            "--experimental-kt-builderless-structs",
             "--kt-file-per-type",
             "$projectDir/CoroutineClientTest.thrift"
     ]

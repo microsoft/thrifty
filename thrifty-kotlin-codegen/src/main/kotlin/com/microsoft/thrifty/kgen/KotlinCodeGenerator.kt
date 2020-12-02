@@ -268,9 +268,16 @@ class KotlinCodeGenerator(
         val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
         val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
         val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
+        val extensionsBySpec = LinkedHashMultimap.create<TypeSpec, PropertySpec>()
 
         schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
-        schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
+        schema.enums.forEach {
+            val spec = generateEnumClass(it)
+            specsByNamespace.put(it.kotlinNamespace, spec)
+            if (makeBiggerEnums) {
+                extensionsBySpec.put(spec, generateEnumValueExtensionProperty(it))
+            }
+        }
         schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
         schema.unions.forEach {
             // NOTE: We can't adequately represent empty unions with sealed classes, because one can't
@@ -320,9 +327,13 @@ class KotlinCodeGenerator(
                 fileSpecsByNamespace.map { (ns, fileSpec) ->
                     typedefsByNamespace[ns]?.forEach { fileSpec.addTypeAlias(it) }
                     constantsByNamespace[ns]?.forEach { fileSpec.addProperty(it) }
-                    specsByNamespace[ns]
-                            ?.mapNotNull { processor.process(it) }
-                            ?.forEach { fileSpec.addType(it) }
+                    specsByNamespace[ns]?.forEach {
+                        val processedSpec = processor.process(it)
+                        if (processedSpec != null) {
+                            fileSpec.addType(processedSpec)
+                            extensionsBySpec[it]?.forEach(fileSpec::addProperty)
+                        }
+                    }
                     fileSpec.build()
                 }
             }
@@ -336,8 +347,8 @@ class KotlinCodeGenerator(
                         val name = processedType.name ?: throw AssertionError("Top-level TypeSpecs must have names")
                         val spec = makeFileSpecBuilder(ns, name)
                                 .addType(processedType)
-                                .build()
-                        yield(spec)
+                        extensionsBySpec[type]?.forEach(spec::addProperty)
+                        yield(spec.build())
                     }
 
                     for ((ns, aliases) in typedefsByNamespace.asMap().entries) {
@@ -371,16 +382,21 @@ class KotlinCodeGenerator(
     // endregion Aliases
 
     // region Enums
+    var makeBiggerEnums: Boolean = true
 
     internal fun generateEnumClass(enumType: EnumType): TypeSpec {
+        ClassName(enumType.kotlinNamespace, enumType.name)
         val typeBuilder = TypeSpec.enumBuilder(enumType.name)
-                .addProperty(PropertySpec.builder("value", INT)
-                        .jvmField()
-                        .initializer("value")
-                        .build())
-                .primaryConstructor(FunSpec.constructorBuilder()
-                        .addParameter("value", INT)
-                        .build())
+
+        if (!makeBiggerEnums) {
+            typeBuilder.addProperty(PropertySpec.builder("value", INT)
+                    .jvmField()
+                    .initializer("value")
+                    .build())
+            typeBuilder.primaryConstructor(FunSpec.constructorBuilder()
+                    .addParameter("value", INT)
+                    .build())
+        }
 
         if (enumType.isDeprecated) typeBuilder.addAnnotation(makeDeprecated())
         if (enumType.hasJavadoc) typeBuilder.addKdoc("%L", enumType.documentation)
@@ -398,8 +414,11 @@ class KotlinCodeGenerator(
 
         val nameAllocator = nameAllocators[enumType]
         for (member in enumType.members) {
-            val enumMemberSpec= TypeSpec.anonymousClassBuilder()
-                    .addSuperclassConstructorParameter("%L", member.value)
+            val enumMemberSpec = TypeSpec.anonymousClassBuilder().apply {
+                if (!makeBiggerEnums) {
+                    addSuperclassConstructorParameter("%L", member.value)
+                }
+            }
 
             if (member.isDeprecated) enumMemberSpec.addAnnotation(makeDeprecated())
             if (member.hasJavadoc) enumMemberSpec.addKdoc("%L", member.documentation)
@@ -419,6 +438,23 @@ class KotlinCodeGenerator(
 
         return typeBuilder
                 .addType(companion)
+                .build()
+    }
+
+    internal fun generateEnumValueExtensionProperty(enumType: EnumType): PropertySpec {
+        val typeClassName = ClassName(enumType.kotlinNamespace, enumType.name)
+        val nameAllocator = nameAllocators[enumType]
+
+        return PropertySpec.builder("value", INT)
+                .receiver(typeClassName)
+                .getter(FunSpec.getterBuilder().apply {
+                    beginControlFlow("return when (this)")
+                    for (member in enumType.members) {
+                        val name = nameAllocator[member]
+                        addStatement("%T.%L -> %L", typeClassName, name, member.value)
+                    }
+                    endControlFlow()
+                }.build())
                 .build()
     }
 
