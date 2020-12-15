@@ -21,6 +21,8 @@
 package com.microsoft.thrifty.integration.conformance
 
 import com.microsoft.thrifty.ThriftException
+import com.microsoft.thrifty.binaryProtocol
+import com.microsoft.thrifty.compactProtocol
 import com.microsoft.thrifty.integration.kgen.coro.Bonk
 import com.microsoft.thrifty.integration.kgen.coro.HasUnion
 import com.microsoft.thrifty.integration.kgen.coro.Insanity
@@ -32,9 +34,7 @@ import com.microsoft.thrifty.integration.kgen.coro.Xception
 import com.microsoft.thrifty.integration.kgen.coro.Xception2
 import com.microsoft.thrifty.integration.kgen.coro.Xtruct
 import com.microsoft.thrifty.integration.kgen.coro.Xtruct2
-import com.microsoft.thrifty.protocol.BinaryProtocol
-import com.microsoft.thrifty.protocol.CompactProtocol
-import com.microsoft.thrifty.protocol.JsonProtocol
+import com.microsoft.thrifty.jsonProtocol
 import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.service.AsyncClientBase
 import com.microsoft.thrifty.testing.ServerProtocol
@@ -103,9 +103,9 @@ abstract class CoroutineConformanceTests(
 
     private fun createProtocol(transport: Transport): Protocol {
         return when (serverProtocol) {
-            ServerProtocol.BINARY -> BinaryProtocol(transport)
-            ServerProtocol.COMPACT -> CompactProtocol(transport)
-            ServerProtocol.JSON -> JsonProtocol(transport)
+            ServerProtocol.BINARY -> transport.binaryProtocol()
+            ServerProtocol.COMPACT -> transport.compactProtocol()
+            ServerProtocol.JSON -> transport.jsonProtocol()
         }
     }
 
