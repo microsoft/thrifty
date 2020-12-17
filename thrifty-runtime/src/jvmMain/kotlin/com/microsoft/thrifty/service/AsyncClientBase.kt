@@ -42,14 +42,14 @@ import java.util.concurrent.RejectedExecutionException
  * objects appropriately.
  */
 @Suppress("UNCHECKED_CAST")
-open class AsyncClientBase protected constructor(
+actual open class AsyncClientBase protected actual constructor(
         protocol: Protocol,
         private val listener: Listener
 ) : ClientBase(protocol), Closeable {
     /**
      * Exposes important events in the client's lifecycle.
      */
-    interface Listener {
+    actual interface Listener {
         /**
          * Invoked when the client connection has been closed.
          *
@@ -58,7 +58,7 @@ open class AsyncClientBase protected constructor(
          * method call attempts will result in an immediate exception on the
          * calling thread.
          */
-        fun onTransportClosed()
+        actual fun onTransportClosed()
 
         /**
          * Invoked when a client-level error has occurred.
@@ -74,7 +74,7 @@ open class AsyncClientBase protected constructor(
          *
          * @param error the throwable instance representing the error.
          */
-        fun onError(error: Throwable)
+        actual fun onError(error: Throwable)
     }
 
     /**
@@ -99,7 +99,7 @@ open class AsyncClientBase protected constructor(
      *
      * @param methodCall the remote method call to be invoked
      */
-    protected fun enqueue(methodCall: MethodCall<*>) {
+    protected actual fun enqueue(methodCall: MethodCall<*>) {
         check(running.get()) { "Cannot write to a closed service client" }
         check(pendingCalls.offer(methodCall)) {
             // This should never happen with an unbounded queue
