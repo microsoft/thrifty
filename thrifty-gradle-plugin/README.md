@@ -84,9 +84,9 @@ thrifty {
 
         // Kotlin-specific options follow.
 
-        // When true, generated structs will be represented as pure data classes, without
-        // associated nested 'Builder' types.  This is experimental.
-        builderlessDataClasses = false
+        // When true, generated structs will be include 'Builder' inner classes.  This is
+        // for legacy compatibiltity only, and leads to larger code.
+        structBuilders = false
 
         // The Kotlin code generator supports several different service-client API styles.
         // Vaid values are 'default' (the default), 'coroutine', and 'none'.

@@ -69,6 +69,7 @@ def kompileTestThrift = tasks.register("kompileTestThrift", JavaExec) { t ->
     args = [
             "--out=$projectDir/build/generated-src/thrifty/kotlin",
             "--lang=kotlin",
+            "--kt-struct-builders",
             "--map-type=java.util.LinkedHashMap",
             "--set-type=java.util.LinkedHashSet",
             "--list-type=java.util.ArrayList",
@@ -86,7 +87,6 @@ def kompileCoroutineTestThrift = tasks.register("kompileCoroutineTestThrift", Ja
             "--out=$projectDir/build/generated-src/thrifty/kotlin",
             "--lang=kotlin",
             "--kt-coroutine-clients",
-            "--experimental-kt-builderless-structs",
             "$projectDir/CoroutineClientTest.thrift"
     ]
 }

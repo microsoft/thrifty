@@ -147,8 +147,8 @@ open class ThriftyTask @Inject constructor(
 
             failOnUnknownEnumValues(!options.allowUnknownEnumValues)
 
-            if (options.builderlessDataClasses) {
-                builderlessDataClasses()
+            if (options.structBuilders) {
+                withDataClassBuilders()
             }
 
             if (!options.emitServiceClients) {

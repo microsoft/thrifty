@@ -412,7 +412,7 @@ and subject to change in future releases*.  It is a legacy from the time before 
 
 ## Kotlin Support
 
-As of version 1.0.0-RC1, Thrifty supports generated Kotlin code that is (almost) as small as its Java counterpart.  Instead of classes with final fields, Thrifty Kotlin structs are represented as `data class` structures whose members are annotated as `@JvmField`.  This produces classes which, when compiled, are nearly as small as their Java counterparts; the `Query` class above looks like this in Kotlin:
+Thrifty supports generated Kotlin code that is (almost) as small as its Java counterpart.  Instead of classes with final fields, Thrifty Kotlin structs are represented as `data class` structures whose members are annotated as `@JvmField`.  This produces classes which, when compiled, are nearly as small as their Java counterparts; the `Query` class above looks like this in Kotlin:
 
 ```kotlin
 data class Query(
@@ -429,7 +429,7 @@ data class Query(
     ADAPTER.write(protocol, this)
   }
 
-  private class QueryAdapter : Adapter<Query, Builder> {
+  private class QueryAdapter : Adapter<Query> {
     override fun read(protocol: Protocol): Query {
       // deserialization code as above
     }
@@ -461,9 +461,9 @@ There are a few new command-line options to control Kotlin code generation:
 java -jar thrifty-compiler.jar \
     --lang=kotlin \
     --kt-coroutine-clients \
-    --experimental-kt-builderless-structs \
     --kt-file-per-type \
     --omit-file-comments \
+    --kt-struct-builders \
     ...
 ```
 
@@ -485,7 +485,7 @@ interface Google {
 }
 ```
 
-Although builders are no longer strictly necessary, for compatibility with existing code, Thrifty will still generate them by default.  You can suppress them with the `--experimental-kt-builderless-structs` flag, which (as its name suggests) is currently considered "experimental".
+Builders are no longer necessary, and are not included by default.  For compatibility with existing code, you can use the `--kt-struct-builders` flag, which will result in Java-style classes with Builders.
 
 The final new flag is `--kt-file-per-type`.  Thrifty's convention is to generate a single Kotlin file per distinct JVM namespace.  For particularly large .thrift inputs, this is suboptimal.  Outlook Mobile's single, large, Kotlin file took up to one minute just to typecheck, using Kotlin 1.2.51!  For these cases, `--kt-file-per-type` will tell Thrifty to generate one single file per top-level class - just like the Java code.
 

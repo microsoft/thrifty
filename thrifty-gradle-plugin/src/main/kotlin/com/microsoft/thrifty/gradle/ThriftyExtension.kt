@@ -211,7 +211,7 @@ open class KotlinThriftOptions : ThriftOptions() {
         private set
 
     @Input
-    var builderlessDataClasses = false
+    var structBuilders = false
 
     fun serviceClientStyle(name: String) {
         val stylesByName = ClientStyle.values()
