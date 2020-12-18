@@ -1089,6 +1089,21 @@ class KotlinCodeGeneratorTest {
         }
     }
 
+    @Test
+    fun `empty structs do not rely on javaClass for hashCode`() {
+        val thrift = """
+            |namespace kt test.empty
+            |
+            |struct Empty {}
+        """.trimMargin()
+
+        val file = generate(thrift).single()
+        val kt = file.toString()
+
+        kt shouldContain "hashCode(): Int = \"test.empty.Empty\".hashCode()"
+        kt shouldNotContain "javaClass"
+    }
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()
