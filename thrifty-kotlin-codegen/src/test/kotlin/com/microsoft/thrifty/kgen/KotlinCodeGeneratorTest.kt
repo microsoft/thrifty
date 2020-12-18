@@ -497,7 +497,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val file = generate(thrift) { coroutineServiceClients() }
+        val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
             |  class Builder : StructBuilder<Union> {
@@ -539,7 +539,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val file = generate(thrift) { builderlessDataClasses() }
+        val file = generate(thrift)
 
         file.single().toString() shouldNot contain("""
             |    class Builder
@@ -583,7 +583,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val file = generate(thrift) //{ shouldImplementStruct() }
+        val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
             |    override fun read(protocol: Protocol) = read(protocol, Builder())
@@ -651,7 +651,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val file = generate(thrift) { builderlessDataClasses() }
+        val file = generate(thrift)
 
 
         file.single().toString() should contain("""
@@ -719,7 +719,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val file = generate(thrift)
+        val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
             |  private class UnionAdapter : Adapter<Union, Builder> {
@@ -739,7 +739,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val file = generate(thrift) { builderlessDataClasses() }
+        val file = generate(thrift)
 
         file.single().toString() should contain("""
             |  private class UnionAdapter : Adapter<Union> {
@@ -777,7 +777,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val file = generate(thrift) { coroutineServiceClients() }
+        val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
             |sealed class UnionStruct : Struct {
@@ -826,7 +826,7 @@ class KotlinCodeGeneratorTest {
             |}
         """.trimMargin()
 
-        val file = generate(thrift)
+        val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
             |    override fun build(): Bonk = Bonk(message = this.message, type = this.type)
@@ -859,7 +859,7 @@ class KotlinCodeGeneratorTest {
             }
           }"""
 
-        val file = generate(thrift)
+        val file = generate(thrift) { withDataClassBuilders() }
         file.single().toString() shouldContain expected
     }
 
@@ -902,7 +902,10 @@ class KotlinCodeGeneratorTest {
             }
           }"""
 
-        val file = generate(thrift) { failOnUnknownEnumValues(false) }
+        val file = generate(thrift) {
+            withDataClassBuilders()
+            failOnUnknownEnumValues(false)
+        }
         file.single().toString() shouldContain expected
     }
 
@@ -945,7 +948,7 @@ class KotlinCodeGeneratorTest {
             }
           }"""
 
-        val file = generate(thrift) { failOnUnknownEnumValues(false); builderlessDataClasses() }
+        val file = generate(thrift) { failOnUnknownEnumValues(false) }
         file.single().toString() shouldContain expected
     }
 
@@ -966,7 +969,10 @@ class KotlinCodeGeneratorTest {
       this.field2 = null
     }"""
 
-        val file = generate(thrift) { builderRequiredConstructor() }
+        val file = generate(thrift) {
+            withDataClassBuilders()
+            builderRequiredConstructor()
+        }
         file.single().toString() shouldContain expected
     }
 
@@ -987,7 +993,10 @@ class KotlinCodeGeneratorTest {
       replaceWith = ReplaceWith("Builder(field1)")
     )"""
 
-        val file = generate(thrift) { builderRequiredConstructor() }
+        val file = generate(thrift) {
+            withDataClassBuilders()
+            builderRequiredConstructor()
+        }
         file.single().toString() shouldContain expected
     }
 
@@ -1010,7 +1019,10 @@ class KotlinCodeGeneratorTest {
       this.field2 = null
     }"""
 
-        val file = generate(thrift) { builderRequiredConstructor() }
+        val file = generate(thrift) {
+            withDataClassBuilders()
+            builderRequiredConstructor()
+        }
         file.single().toString() shouldContain expected
         file.single().toString() shouldNotContain notExpected
     }

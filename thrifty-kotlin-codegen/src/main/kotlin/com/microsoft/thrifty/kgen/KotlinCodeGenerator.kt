@@ -134,7 +134,7 @@ class KotlinCodeGenerator(
     private var shouldImplementStruct: Boolean = true
 
     private var parcelize: Boolean = false
-    private var builderlessDataClasses: Boolean = false
+    private var builderlessDataClasses: Boolean = true
     private var builderRequiredConstructor: Boolean = false
     private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
@@ -229,8 +229,8 @@ class KotlinCodeGenerator(
         this.mapClassName = ClassName.bestGuess(name)
     }
 
-    fun builderlessDataClasses(): KotlinCodeGenerator = apply {
-        this.builderlessDataClasses = true
+    fun withDataClassBuilders(): KotlinCodeGenerator = apply {
+        this.builderlessDataClasses = false
     }
 
     fun builderRequiredConstructor(): KotlinCodeGenerator = apply {

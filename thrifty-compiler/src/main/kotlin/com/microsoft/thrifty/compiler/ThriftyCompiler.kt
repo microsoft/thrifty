@@ -57,13 +57,12 @@ import java.util.ArrayList
  * [--map-type=java.util.HashMap]
  * [--lang=[java|kotlin]]
  * [--kt-file-per-type]
+ * [--kt-struct-builders]
  * [--parcelable]
  * [--use-android-annotations]
  * [--nullability-annotation-type=[none|android-support|androidx]]
  * [--omit-service-clients]
  * [--omit-file-comments]
- * [--omit-generated-annotations]
- * [--generated-annotation-type=[jdk8|jdk9|native]]
  * file1.thrift
  * file2.thrift
  * ...
@@ -93,6 +92,11 @@ import java.util.ArrayList
  * for each top-level generated Thrift type.  When absent (the default), all generated
  * types in a single package will go in one file named `ThriftTypes.kt`.  Implies
  * `--lang=kotlin`.
+ *
+ * `--kt-struct-builders` is optional.  When specified, Kotlin structs will be generated
+ * with inner 'Builder' classes, in the same manner as Java code.  The Kotlin default is
+ * to use pure data classes.  This option is for retaining compatibility in codebases using
+ * older Thrifty versions, and should be avoided in new code.
  *
  * `--parcelable` is optional.  When provided, generated types will contain a
  * `Parcelable` implementation.  Kotlin types will use the `@Parcelize` extension.
@@ -203,8 +207,8 @@ class ThriftyCompiler {
                     help = "Generate struct Builder constructor with required parameters, and mark empty Builder constructor as deprecated")
                 .flag(default = false)
 
-        val kotlinBuilderlessDataClasses: Boolean by option("--experimental-kt-builderless-structs")
-                .flag(default = false)
+        val kotlinStructBuilders: Boolean by option("--kt-struct-builders")
+                .flag("--kt-no-struct-builders", default = false)
 
         val kotlinCoroutineClients: Boolean by option("--kt-coroutine-clients")
                 .flag(default = false)
@@ -244,9 +248,11 @@ class ThriftyCompiler {
             }
 
             val impliedLanguage = when {
-                kotlinBuilderlessDataClasses -> Language.KOTLIN
+                kotlinStructBuilders -> Language.KOTLIN
                 kotlinBuilderRequiredConstructor -> Language.KOTLIN
                 kotlinFilePerType -> Language.KOTLIN
+                kotlinCoroutineClients -> Language.KOTLIN
+                kotlinEmitJvmName -> Language.KOTLIN
                 nullabilityAnnotationType != NullabilityAnnotationType.NONE -> Language.JAVA
                 else -> null
             }
@@ -319,8 +325,8 @@ class ThriftyCompiler {
             setTypeName?.let { gen.setClassName(it) }
             mapTypeName?.let { gen.mapClassName(it) }
 
-            if (kotlinBuilderlessDataClasses) {
-                gen.builderlessDataClasses()
+            if (kotlinStructBuilders) {
+                gen.withDataClassBuilders()
             }
 
             if (kotlinBuilderRequiredConstructor) {
