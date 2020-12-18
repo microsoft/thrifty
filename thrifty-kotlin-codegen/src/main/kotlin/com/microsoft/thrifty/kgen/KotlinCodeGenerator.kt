@@ -512,7 +512,7 @@ class KotlinCodeGenerator(
             typeBuilder.addFunction(FunSpec.builder("hashCode")
                     .addModifiers(KModifier.OVERRIDE)
                     .returns(INT)
-                    .addStatement("return javaClass.hashCode()")
+                    .addStatement("return %S.hashCode()", structClassName.canonicalName)
                     .build())
 
             typeBuilder.addFunction(FunSpec.builder("equals")
