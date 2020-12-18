@@ -1041,6 +1041,42 @@ class KotlinCodeGeneratorTest {
         }
     }
 
+    @Test
+    fun `does not import java Exception or IOException`() {
+        val thrift = """
+            |namespace kt test.exceptions
+            |
+            |exception Foo {
+            |  1: string message;
+            |}
+        """.trimMargin()
+
+        for (file in generate(thrift)) {
+            val kt = file.toString()
+
+            kt shouldNotContain "import java.Exception"
+            kt shouldNotContain "import java.io.IOException"
+        }
+    }
+
+    @Test
+    fun `uses default Throws instead of jvm Throws`() {
+        val thrift = """
+            |namespace kt test.throws
+            |
+            |service Frobbler {
+            |  void frobble(1: string bizzle);
+            |}
+        """.trimMargin()
+
+        for (file in generate(thrift)) {
+            val kt = file.toString()
+
+            kt shouldContain "@Throws"
+            kt shouldNotContain "import kotlin.jvm.Throws"
+        }
+    }
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()
