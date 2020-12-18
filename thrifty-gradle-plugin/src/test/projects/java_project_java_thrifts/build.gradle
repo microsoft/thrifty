@@ -8,5 +8,5 @@ repositories {
 }
 
 dependencies {
-    api "com.microsoft.thrifty:thrifty-runtime:2.0.1"
+    api "com.microsoft.thrifty:thrifty-runtime:2.1.2"
 }

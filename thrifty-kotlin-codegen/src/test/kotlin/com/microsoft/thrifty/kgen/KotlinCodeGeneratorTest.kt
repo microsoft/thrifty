@@ -983,7 +983,7 @@ class KotlinCodeGeneratorTest {
 
         val expected = """
     @Deprecated(
-      message = "Empty constructor deprectated, use required constructor instead",
+      message = "Empty constructor deprecated, use required constructor instead",
       replaceWith = ReplaceWith("Builder(field1)")
     )"""
 
