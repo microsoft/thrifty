@@ -87,7 +87,6 @@ import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.jvm.jvmField
 import com.squareup.kotlinpoet.jvm.jvmStatic
 import okio.ByteString
-import java.io.IOException
 
 private object Tags {
     val ADAPTER = "RESERVED:ADAPTER"
@@ -102,6 +101,20 @@ private object Tags {
     val FIELD = "RESERVED:fieldMeta"
     val BUILDER = "RESERVED:builder"
     val DEFAULT = "RESERVED:default"
+}
+
+// ClassName instances for those "constant" types that we cannot use
+// the Literal::class.asClassName() syntax (i.e. because they are typaliases
+// to JVM types), or because they are just constant and there's no reason
+// to instantiate a bunch of them.
+private object ClassNames {
+    val EXCEPTION = ClassName("kotlin", "Exception")
+    val RESULT = ClassName("kotlin", "Result")
+    val THROWS = ClassName("kotlin", "Throws")
+    val ARRAY_LIST = ClassName("kotlin.collections", "ArrayList")
+    val LINKED_HASH_SET = ClassName("kotlin.collections", "LinkedHashSet")
+    val LINKED_HASH_MAP = ClassName("kotlin.collections", "LinkedHashMap")
+    val IO_EXCEPTION = ClassName("okio", "IOException")
 }
 
 /**
@@ -127,10 +140,6 @@ class KotlinCodeGenerator(
     private var coroutineServiceClients: Boolean = false
     private var emitJvmName: Boolean = false
     private var failOnUnknownEnumValues: Boolean = true
-
-    private val defaultListClassName: ClassName = ClassName("kotlin.collections", "ArrayList")
-    private val defaultSetClassName: ClassName = ClassName("kotlin.collections", "LinkedHashSet")
-    private val defaultMapClassName: ClassName = ClassName("kotlin.collections", "LinkedHashMap")
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -421,9 +430,8 @@ class KotlinCodeGenerator(
 
             if (struct.isDeprecated) addAnnotation(makeDeprecated())
             if (struct.hasJavadoc) addKdoc("%L", struct.documentation)
-            if (struct.isException) superclass(Exception::class)
+            if (struct.isException) superclass(ClassNames.EXCEPTION)
             if (parcelize) {
-
                 addAnnotation(makeParcelable())
                 addAnnotation(suppressLint("ParcelCreator")) // Android Studio bug with Parcelize
             }
@@ -1410,7 +1418,7 @@ class KotlinCodeGenerator(
 
             override fun visitList(listType: ListType) {
                 val elementType = listType.elementType
-                val listImplClassName = listClassName ?: defaultListClassName
+                val listImplClassName = listClassName ?: ClassNames.ARRAY_LIST
                 val listImplType = listImplClassName.parameterizedBy(elementType.typeName)
                 val listMeta = if (localNamePrefix.isNotEmpty()) {
                     "${localNamePrefix}_list$scope"
@@ -1435,7 +1443,7 @@ class KotlinCodeGenerator(
 
             override fun visitSet(setType: SetType) {
                 val elementType = setType.elementType
-                val setImplClassName = setClassName ?: defaultSetClassName
+                val setImplClassName = setClassName ?: ClassNames.LINKED_HASH_SET
                 val setImplType = setImplClassName.parameterizedBy(elementType.typeName)
                 val setMeta = if (localNamePrefix.isNotEmpty()) {
                     "${localNamePrefix}_set$scope"
@@ -1462,7 +1470,7 @@ class KotlinCodeGenerator(
             override fun visitMap(mapType: MapType) {
                 val keyType = mapType.keyType
                 val valType = mapType.valueType
-                val mapImplClassName = mapClassName ?: defaultMapClassName
+                val mapImplClassName = mapClassName ?: ClassNames.LINKED_HASH_MAP
                 val mapImplType = mapImplClassName.parameterizedBy(keyType.typeName, valType.typeName)
                 val mapMeta = if (localNamePrefix.isNotEmpty()) {
                     "${localNamePrefix}_map$scope"
@@ -1993,7 +2001,7 @@ class KotlinCodeGenerator(
         // suspendCoroutine is obviously not a class, but until kotlinpoet supports
         // importing fully-qualified fun names, we can pun and use a ClassName.
         val suspendCoroFn = MemberName("kotlin.coroutines", "suspendCoroutine")
-        val coroResultClass = ClassName("kotlin", "Result")
+        val coroResultClass = ClassNames.RESULT
 
         for ((index, interfaceFun) in serviceInterface.funSpecs.withIndex()) {
             val method = serviceType.methods[index]
@@ -2110,8 +2118,8 @@ class KotlinCodeGenerator(
             // Add send method
             val send = FunSpec.builder(nameAllocator.get(Tags.SEND))
                     .addModifiers(KModifier.OVERRIDE)
-                    .addAnnotation(AnnotationSpec.builder(Throws::class)
-                            .addMember("%T::class", IOException::class)
+                    .addAnnotation(AnnotationSpec.builder(ClassNames.THROWS)
+                            .addMember("%T::class", ClassNames.IO_EXCEPTION)
                             .build())
                     .addParameter("protocol", Protocol::class)
                     .addStatement("protocol.writeStructBegin(%S)", "args")
@@ -2150,8 +2158,8 @@ class KotlinCodeGenerator(
                     .addModifiers(KModifier.OVERRIDE)
                     .addParameter("protocol", Protocol::class)
                     .addParameter("metadata", MessageMetadata::class)
-                    .addAnnotation(AnnotationSpec.builder(Throws::class)
-                            .addMember("%T::class", Exception::class)
+                    .addAnnotation(AnnotationSpec.builder(ClassNames.THROWS)
+                            .addMember("%T::class", ClassNames.EXCEPTION)
                             .build())
 
             val maybeResultType = resultType.copy(nullable = true)
@@ -2277,7 +2285,7 @@ class KotlinCodeGenerator(
         var parameterString = params.joinToString(prefix = "Builder(", postfix = ")", separator = ", ") { it.name }
 
         return AnnotationSpec.builder(Deprecated::class)
-                .addMember("message = %S", "Empty constructor deprectated, use required constructor instead")
+                .addMember("message = %S", "Empty constructor deprecated, use required constructor instead")
                 .addMember("replaceWith = ReplaceWith(%S)", parameterString)
                 .build()
     }
