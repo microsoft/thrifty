@@ -224,7 +224,7 @@ class LoaderTest {
         """
 
         val b = """
-            include '${f1.canonicalPath}'
+            include 'nested/a.thrift'
             namespace java com.microsoft.thrifty.test.crazyIncludes
 
             struct B {
@@ -233,7 +233,7 @@ class LoaderTest {
         """
 
         val c = """
-            include '${f2.canonicalPath}'
+            include 'b.thrift'
 
             namespace java com.microsoft.thrifty.test.crazyIncludes
 
@@ -247,14 +247,15 @@ class LoaderTest {
         f3.writeText(c)
 
         val loader = Loader()
-        loader.addIncludePath(nestedDir.toPath())
-        loader.addThriftFile(f2.toPath())
-        loader.addThriftFile(f3.toPath())
+        loader.addIncludePath(tempDir.toPath())
 
         val schema = loader.load()
 
         schema.structs shouldHaveSize 2
         schema.enums shouldHaveSize 1
+
+        val enum = schema.enums.single()
+        enum.location.path shouldBe "nested/a.thrift"
     }
 
     @Test
