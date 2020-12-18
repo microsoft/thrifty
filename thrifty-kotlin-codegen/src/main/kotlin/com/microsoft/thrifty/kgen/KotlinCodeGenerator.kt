@@ -128,6 +128,10 @@ class KotlinCodeGenerator(
     private var emitJvmName: Boolean = false
     private var failOnUnknownEnumValues: Boolean = true
 
+    private val defaultListClassName: ClassName = ClassName("kotlin.collections", "ArrayList")
+    private val defaultSetClassName: ClassName = ClassName("kotlin.collections", "LinkedHashSet")
+    private val defaultMapClassName: ClassName = ClassName("kotlin.collections", "LinkedHashMap")
+
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
     private var mapClassName: ClassName? = null
@@ -1406,7 +1410,7 @@ class KotlinCodeGenerator(
 
             override fun visitList(listType: ListType) {
                 val elementType = listType.elementType
-                val listImplClassName = listClassName ?: ArrayList::class.asClassName()
+                val listImplClassName = listClassName ?: defaultListClassName
                 val listImplType = listImplClassName.parameterizedBy(elementType.typeName)
                 val listMeta = if (localNamePrefix.isNotEmpty()) {
                     "${localNamePrefix}_list$scope"
@@ -1431,7 +1435,7 @@ class KotlinCodeGenerator(
 
             override fun visitSet(setType: SetType) {
                 val elementType = setType.elementType
-                val setImplClassName = setClassName ?: LinkedHashSet::class.asClassName()
+                val setImplClassName = setClassName ?: defaultSetClassName
                 val setImplType = setImplClassName.parameterizedBy(elementType.typeName)
                 val setMeta = if (localNamePrefix.isNotEmpty()) {
                     "${localNamePrefix}_set$scope"
@@ -1458,7 +1462,7 @@ class KotlinCodeGenerator(
             override fun visitMap(mapType: MapType) {
                 val keyType = mapType.keyType
                 val valType = mapType.valueType
-                val mapImplClassName = mapClassName ?: LinkedHashMap::class.asClassName()
+                val mapImplClassName = mapClassName ?: defaultMapClassName
                 val mapImplType = mapImplClassName.parameterizedBy(keyType.typeName, valType.typeName)
                 val mapMeta = if (localNamePrefix.isNotEmpty()) {
                     "${localNamePrefix}_map$scope"

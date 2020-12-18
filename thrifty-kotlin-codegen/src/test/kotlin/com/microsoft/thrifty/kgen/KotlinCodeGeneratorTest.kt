@@ -1015,6 +1015,32 @@ class KotlinCodeGeneratorTest {
         file.single().toString() shouldNotContain notExpected
     }
 
+    @Test
+    fun `collection types do not use Java collections by default`() {
+        val thrift = """
+            |namespace kt test.lists
+            |
+            |const list<i32> FOO = [1, 2, 3];
+            |const map<i8, i8> BAR = { 1: 2 };
+            |const set<string> BAZ = ["foo", "bar", "baz"];
+            |
+            |struct HasCollections {
+            |  1: list<string> strs;
+            |  2: map<string, string> more_strs;
+            |  3: set<i16> shorts;
+            |}
+            |
+            |service HasListMethodArg {
+            |  list<i8> sendThatList(1: list<i8> byteList);
+            |}
+        """.trimMargin()
+
+        for (file in generate(thrift)) {
+            val kt = file.toString()
+            kt shouldNotContain "java.util"
+        }
+    }
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()
