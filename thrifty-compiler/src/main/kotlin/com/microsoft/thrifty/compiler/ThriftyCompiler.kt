@@ -58,6 +58,7 @@ import java.util.ArrayList
  * [--lang=[java|kotlin]]
  * [--kt-file-per-type]
  * [--kt-struct-builders]
+ * [--kt-jvm-static]
  * [--parcelable]
  * [--use-android-annotations]
  * [--nullability-annotation-type=[none|android-support|androidx]]
@@ -97,6 +98,10 @@ import java.util.ArrayList
  * with inner 'Builder' classes, in the same manner as Java code.  The Kotlin default is
  * to use pure data classes.  This option is for retaining compatibility in codebases using
  * older Thrifty versions, and should be avoided in new code.
+ *
+ * `--kt-jvm-static` is optional.  When specified, certain companion-object functions will
+ * be annotated with [JvmStatic].  This option is for those who want easier Java interop,
+ * and results in slightly larger code.
  *
  * `--parcelable` is optional.  When provided, generated types will contain a
  * `Parcelable` implementation.  Kotlin types will use the `@Parcelize` extension.
@@ -210,6 +215,9 @@ class ThriftyCompiler {
         val kotlinStructBuilders: Boolean by option("--kt-struct-builders")
                 .flag("--kt-no-struct-builders", default = false)
 
+        val kotlinEmitJvmStatic: Boolean by option("--kt-jvm-static")
+                .flag("--kt-no-jvm-static", default = false)
+
         val kotlinCoroutineClients: Boolean by option("--kt-coroutine-clients")
                 .flag(default = false)
 
@@ -253,6 +261,7 @@ class ThriftyCompiler {
                 kotlinFilePerType -> Language.KOTLIN
                 kotlinCoroutineClients -> Language.KOTLIN
                 kotlinEmitJvmName -> Language.KOTLIN
+                kotlinEmitJvmStatic -> Language.KOTLIN
                 nullabilityAnnotationType != NullabilityAnnotationType.NONE -> Language.JAVA
                 else -> null
             }
@@ -311,6 +320,10 @@ class ThriftyCompiler {
 
             if (kotlinEmitJvmName) {
                 gen.emitJvmName()
+            }
+
+            if (kotlinEmitJvmStatic) {
+                gen.emitJvmStatic()
             }
 
             if (kotlinFilePerType) {

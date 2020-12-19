@@ -139,6 +139,7 @@ class KotlinCodeGenerator(
     private var omitServiceClients: Boolean = false
     private var coroutineServiceClients: Boolean = false
     private var emitJvmName: Boolean = false
+    private var emitJvmStatic: Boolean = false
     private var failOnUnknownEnumValues: Boolean = true
 
     private var listClassName: ClassName? = null
@@ -247,6 +248,10 @@ class KotlinCodeGenerator(
 
     fun emitJvmName(): KotlinCodeGenerator = apply {
         this.emitJvmName = true
+    }
+
+    fun emitJvmStatic(): KotlinCodeGenerator = apply {
+        this.emitJvmStatic = true
     }
 
     fun failOnUnknownEnumValues(value: Boolean = true): KotlinCodeGenerator = apply {
@@ -388,7 +393,7 @@ class KotlinCodeGenerator(
         val findByValue = FunSpec.builder("findByValue")
                 .addParameter("value", INT)
                 .returns(enumType.typeName.copy(nullable = true))
-                .jvmStatic()
+                .apply { if (emitJvmStatic) jvmStatic() }
                 .beginControlFlow("return when (value)")
 
         val nameAllocator = nameAllocators[enumType]
@@ -655,7 +660,7 @@ class KotlinCodeGenerator(
             val defaultValue = field.defaultValue!!
             val renderedValue = renderConstValue(schema, field.type, defaultValue)
             val propBuilder = PropertySpec.builder("DEFAULT", structClassName)
-                    .jvmStatic()
+                    .jvmField()
                     .initializer("%T(%L)", defaultValueTypeName, renderedValue)
 
             companionBuilder.addProperty(propBuilder.build())
