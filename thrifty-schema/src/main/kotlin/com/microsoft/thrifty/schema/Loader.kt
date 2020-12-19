@@ -191,8 +191,8 @@ class Loader {
                 return
             }
 
-            dir = file.parent
-            element = loadSingleFile(dir!!, file.fileName) ?: run {
+            dir = findClosestIncludeRoot(file) ?: file.parent!!
+            element = loadSingleFile(dir, dir.relativize(file)) ?: run {
                 val suffix = sourceElement?.let { "\n--> Included from ${it.location.filepath}" } ?: ""
                 throw FileNotFoundException("Failed to locate $path in $includePaths$suffix")
             }
@@ -212,6 +212,25 @@ class Loader {
             }
             includePaths.removeFirst()
         }
+    }
+
+    private fun findClosestIncludeRoot(path: Path): Path? {
+        var minNameCountRoot: Path? = null
+        var minNameCount = Int.MAX_VALUE
+        for (root in includePaths) {
+            val relative = try {
+                root.relativize(path)
+            } catch (e: IllegalArgumentException) {
+                continue
+            }
+
+            if (relative.nameCount < minNameCount) {
+                minNameCountRoot = root
+                minNameCount = relative.nameCount
+            }
+        }
+
+        return minNameCountRoot
     }
 
     private fun linkPrograms() {
