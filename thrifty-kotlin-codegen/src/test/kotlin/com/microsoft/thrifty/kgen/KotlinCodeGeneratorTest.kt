@@ -810,7 +810,7 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift)
 
         file.single().toString() should contain("""
-            |    @JvmStatic
+            |    @JvmField
             |    val DEFAULT: HasDefault = Int(16)
         """.trimMargin())
     }
