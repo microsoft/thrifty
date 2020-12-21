@@ -32,7 +32,6 @@ import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.configuration.ShowStacktrace
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFiles
@@ -43,25 +42,21 @@ import org.gradle.api.tasks.SourceTask
 import org.gradle.api.tasks.TaskAction
 import java.io.IOException
 import java.nio.file.Path
-import javax.inject.Inject
 
-open class ThriftyTask @Inject constructor(
-        objects: ObjectFactory
-) : SourceTask() {
-    @OutputDirectory
+abstract class ThriftyTask : SourceTask() {
+    @get:OutputDirectory
     @Suppress("UnstableApiUsage")
-    val outputDirectory: DirectoryProperty = objects.directoryProperty()
+    abstract val outputDirectory: DirectoryProperty
 
-    @InputFiles
-    val includePath: ListProperty<Path> = objects.listProperty(Path::class.java)
+    @get:InputFiles
+    abstract val includePath: ListProperty<Path>
 
-    @Nested
-    val options: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
+    @get:Nested
+    abstract val options: Property<ThriftOptions>
 
-    @Internal
+    @get:Internal
     @Suppress("UnstableApiUsage")
-    val showStacktrace: Property<ShowStacktrace> = objects.property(ShowStacktrace::class.java)
-            .convention(ShowStacktrace.INTERNAL_EXCEPTIONS)
+    abstract val showStacktrace: Property<ShowStacktrace>
 
     @TaskAction
     fun run() {
@@ -99,13 +94,12 @@ open class ThriftyTask @Inject constructor(
             logger.log(logLevel, message)
         }
 
-        when (showStacktrace.get()) {
+        when (showStacktrace.orNull ?: ShowStacktrace.INTERNAL_EXCEPTIONS) {
             ShowStacktrace.ALWAYS,
             ShowStacktrace.ALWAYS_FULL -> {
                 logger.error("Thrift compilation failed", exception)
             }
 
-            null,
             ShowStacktrace.INTERNAL_EXCEPTIONS -> {}
         }
     }
