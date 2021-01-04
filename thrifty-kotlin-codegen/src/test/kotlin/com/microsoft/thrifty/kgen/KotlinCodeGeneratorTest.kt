@@ -30,6 +30,7 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import io.kotest.matchers.compilation.shouldCompile
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
@@ -1158,5 +1159,16 @@ class KotlinCodeGeneratorTest {
         val file = File(tempDir, "test.thrift").also { it.writeText(thrift) }
         val loader = Loader().apply { addThriftFile(file.toPath()) }
         return loader.load()
+    }
+
+    fun List<FileSpec>.shouldCompile() {
+        forEach {
+            it.shouldCompile()
+        }
+    }
+
+    fun FileSpec.shouldCompile() {
+        toString().lineSequence().forEachIndexed { index, s -> println("${(index+1).toString().padStart(4)}: $s") }
+        toString().shouldCompile()
     }
 }
