@@ -323,6 +323,9 @@ class KotlinCodeGenerator(
                     specsByNamespace[ns]
                             ?.mapNotNull { processor.process(it) }
                             ?.forEach { fileSpec.addType(it) }
+                    if (specsByNamespace[ns].any { it.name == ClassNames.EXCEPTION.simpleName }) {
+                        fileSpec.addAliasedImport(ClassNames.EXCEPTION, "KotlinException")
+                    }
                     fileSpec.build()
                 }
             }
@@ -336,6 +339,11 @@ class KotlinCodeGenerator(
                         val name = processedType.name ?: throw AssertionError("Top-level TypeSpecs must have names")
                         val spec = makeFileSpecBuilder(ns, name)
                                 .addType(processedType)
+                                .apply {
+                                    if (type.name == ClassNames.EXCEPTION.simpleName) {
+                                        addAliasedImport(ClassNames.EXCEPTION, "KotlinException")
+                                    }
+                                }
                                 .build()
                         yield(spec)
                     }
