@@ -192,6 +192,20 @@ class KotlinCodeGeneratorTest {
     }
 
     @Test
+    fun `exception with name 'Exception' compiles`() {
+        val thrift = """
+            namespace java com.test
+
+            exception Exception {
+                1: string message
+            }
+        """.trimIndent()
+
+        val schema = generate(thrift)
+        schema.shouldCompile()
+    }
+
+    @Test
     fun services() {
         val thrift = """
             namespace kt test.services
