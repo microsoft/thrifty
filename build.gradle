@@ -79,6 +79,10 @@ allprojects {
                             exclude module: 'kotlin-stdlib'
                             exclude module: 'kotlin-reflect'
                         },
+                        dependencies.create('io.kotest:kotest-assertions-compiler:4.0.5') {
+                            exclude module: 'kotlin-stdlib'
+                            exclude module: 'kotlin-reflect'
+                        },
                         dependencies.platform("org.jetbrains.kotlin:kotlin-bom:$kotlin_version"),
                 ]
         ]
