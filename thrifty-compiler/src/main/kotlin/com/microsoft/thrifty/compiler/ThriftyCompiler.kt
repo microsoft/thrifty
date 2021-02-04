@@ -59,7 +59,7 @@ import java.util.ArrayList
  * [--kt-file-per-type]
  * [--kt-struct-builders]
  * [--kt-jvm-static]
- * [--kt-big-enum]
+ * [--kt-big-enums]
  * [--parcelable]
  * [--use-android-annotations]
  * [--nullability-annotation-type=[none|android-support|androidx]]
@@ -87,6 +87,7 @@ import java.util.ArrayList
  * class name when instantiating map-typed values.  Defaults to [java.util.HashMap].
  * Android users will likely wish to substitute `android.support.v4.util.ArrayMap`.
  *
+ * `--lang=[java|kotlin]` is optional, defaulting to Java.  When provided, the
  * compiler will generate code in the specified language.
  *
  * `--kt-file-per-type` is optional.  When specified, one Kotlin file will be generated
