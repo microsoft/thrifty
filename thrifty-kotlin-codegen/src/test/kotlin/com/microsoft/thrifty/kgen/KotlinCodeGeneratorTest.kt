@@ -1104,6 +1104,57 @@ class KotlinCodeGeneratorTest {
         kt shouldNotContain "javaClass"
     }
 
+    @Test
+    fun `big enum generation`() {
+        val thrift = """
+            namespace kt test.enum
+            
+            enum Foo {
+              FIRST_VALUE = 0,
+              SECOND_VALUE = 1,
+              THIRD_VALUE = 2
+            }
+        """.trimIndent()
+
+        val expected = """
+            |enum class Foo {
+            |  FIRST_VALUE,
+            |
+            |  SECOND_VALUE,
+            |
+            |  THIRD_VALUE;
+            |
+            |  val value: Int
+            |    get() = value()
+            |
+            |  fun value(): Int = when (this) {
+            |    FIRST_VALUE -> 0
+            |    SECOND_VALUE -> 1
+            |    THIRD_VALUE -> 2
+            |  }
+            |
+            |  companion object {
+            |    fun findByValue(value: Int): Foo? = when (value) {
+            |      0 -> FIRST_VALUE
+            |      1 -> SECOND_VALUE
+            |      2 -> THIRD_VALUE
+            |      else -> null
+            |    }
+            |  }
+            |}
+        """.trimMargin()
+
+        val notExpected = """
+            enum class Foo(value: Int)
+        """.trimIndent()
+
+        val file = generate(thrift) {
+            emitBigEnums()
+        }
+        file.single().toString() shouldContain expected
+        file.single().toString() shouldNotContain notExpected
+    }
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()
