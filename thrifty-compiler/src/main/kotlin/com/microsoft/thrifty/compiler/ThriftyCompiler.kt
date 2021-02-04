@@ -59,6 +59,7 @@ import java.util.ArrayList
  * [--kt-file-per-type]
  * [--kt-struct-builders]
  * [--kt-jvm-static]
+ * [--kt-big-enums]
  * [--parcelable]
  * [--use-android-annotations]
  * [--nullability-annotation-type=[none|android-support|androidx]]
@@ -218,6 +219,9 @@ class ThriftyCompiler {
         val kotlinEmitJvmStatic: Boolean by option("--kt-jvm-static")
                 .flag("--kt-no-jvm-static", default = false)
 
+        val kotlinBigEnums: Boolean by option("--kt-big-enums")
+                .flag("--kt-no-big-enums", default = false)
+
         val kotlinCoroutineClients: Boolean by option("--kt-coroutine-clients")
                 .flag(default = false)
 
@@ -262,6 +266,7 @@ class ThriftyCompiler {
                 kotlinCoroutineClients -> Language.KOTLIN
                 kotlinEmitJvmName -> Language.KOTLIN
                 kotlinEmitJvmStatic -> Language.KOTLIN
+                kotlinBigEnums -> Language.KOTLIN
                 nullabilityAnnotationType != NullabilityAnnotationType.NONE -> Language.JAVA
                 else -> null
             }
@@ -324,6 +329,10 @@ class ThriftyCompiler {
 
             if (kotlinEmitJvmStatic) {
                 gen.emitJvmStatic()
+            }
+
+            if (kotlinBigEnums) {
+                gen.emitBigEnums()
             }
 
             if (kotlinFilePerType) {
