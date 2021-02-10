@@ -20,6 +20,8 @@ jobs:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2 # set to a value > 1 to support codecov.io SHA detection
 
       - name: Clean Gradle caches
         shell: bash
