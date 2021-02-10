@@ -44,6 +44,14 @@ jobs:
 
       - name: Build and test
         shell: bash
-        run: ./gradlew check --parallel
+        run: ./gradlew check codeCoverageReport --parallel
+
+      - name: Upload coverage stats
+        if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '14'
+        env:
+          SONATYPE_NEXUS_USERNAME: ''
+          SONATYPE_NEXUS_PASSWORD: ''
+        shell: bash
+        run: bash <(curl -s https://codecov.io/bash)
 
       # TODO: figure out snapshot uploads
