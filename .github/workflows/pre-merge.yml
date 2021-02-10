@@ -48,10 +48,6 @@ jobs:
 
       - name: Upload coverage stats
         if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '14'
-        env:
-          SONATYPE_NEXUS_USERNAME: ''
-          SONATYPE_NEXUS_PASSWORD: ''
-        shell: bash
-        run: bash <(curl -s https://codecov.io/bash)
+        uses: codecov/codecov-action@v1
 
       # TODO: figure out snapshot uploads
