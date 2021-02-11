@@ -54,6 +54,13 @@ class Loader {
      */
     private val includePaths = ArrayDeque<Path>()
 
+    /**
+     * During include linking, we temporarily modify [includePaths] by prepending
+     * the including file's directory.  We don't want to consider these temporary
+     * modifications when evaluating an included file's Location.
+     */
+    private var numPrependedPaths = 0
+
     private val errorReporter = ErrorReporter()
 
     private val environment = LinkEnvironment(errorReporter)
@@ -204,12 +211,23 @@ class Loader {
         loadedFiles[file] = element
 
         if (element.includes.isNotEmpty()) {
-            includePaths.addFirst(dir)
-            for (include in element.includes) {
-                if (!include.isCpp) {
-                    loadFileRecursively(Paths.get(include.path), loadedFiles, element)
+            withPrependedIncludePath(file.parent) {
+                for (include in element.includes) {
+                    if (!include.isCpp) {
+                        loadFileRecursively(Paths.get(include.path), loadedFiles, element)
+                    }
                 }
             }
+        }
+    }
+
+    private inline fun <T> withPrependedIncludePath(path: Path, fn: () -> T): T {
+        includePaths.addFirst(path)
+        numPrependedPaths++
+        try {
+            return fn()
+        } finally {
+            numPrependedPaths--
             includePaths.removeFirst()
         }
     }
@@ -217,7 +235,7 @@ class Loader {
     private fun findClosestIncludeRoot(path: Path): Path? {
         var minNameCountRoot: Path? = null
         var minNameCount = Int.MAX_VALUE
-        for (root in includePaths) {
+        for (root in includePaths.asSequence().drop(numPrependedPaths)) {
             val relative = try {
                 root.relativize(path)
             } catch (e: IllegalArgumentException) {
@@ -263,9 +281,9 @@ class Loader {
         }
     }
 
-    internal fun resolveIncludedProgram(currentPath: Location, importPath: String): Program {
+    internal fun resolveIncludedProgram(currentLocation: Location, importPath: String): Program {
         val importPathPath = Paths.get(importPath)
-        val resolved = findFirstExisting(importPathPath, currentPath)
+        val resolved = findFirstExisting(importPathPath, currentLocation.asPath.parent)
                 ?: throw AssertionError("Included thrift file not found: $importPath")
         return getProgramForPath(resolved.normalize().toAbsolutePath())
     }
@@ -282,14 +300,14 @@ class Loader {
      * @param currentLocation the current working directory.
      * @return the first matching file on the search path, or `null`.
      */
-    private fun findFirstExisting(path: Path, currentLocation: Location?): Path? {
+    private fun findFirstExisting(path: Path, currentLocation: Path?): Path? {
         if (path.isAbsolute) {
             // absolute path, should be loaded as-is
             return if (Files.exists(path)) path.canonicalPath else null
         }
 
         if (currentLocation != null) {
-            val maybePath = Paths.get(currentLocation.base, path.toString())
+            val maybePath = currentLocation.resolve(path)
             if (Files.exists(maybePath)) {
                 return maybePath.canonicalPath
             }
