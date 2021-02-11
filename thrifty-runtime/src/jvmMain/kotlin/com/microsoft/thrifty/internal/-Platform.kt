@@ -27,6 +27,4 @@ actual typealias DefaultMethod = JvmDefault
 
 actual typealias ProtocolException = java.net.ProtocolException
 
-actual typealias Closeable = java.io.Closeable
-
 actual val DefaultDispatcher: CoroutineDispatcher = Dispatchers.IO

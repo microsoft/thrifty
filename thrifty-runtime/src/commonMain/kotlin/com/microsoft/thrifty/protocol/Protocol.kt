@@ -20,9 +20,9 @@
  */
 package com.microsoft.thrifty.protocol
 
-import com.microsoft.thrifty.internal.Closeable
 import com.microsoft.thrifty.internal.DefaultMethod
 import okio.ByteString
+import okio.Closeable
 import okio.IOException
 
 interface Protocol : Closeable {
