@@ -1,0 +1,55 @@
+name: Pre-merge checks
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build and test (JDK ${{ matrix.jvm-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        jvm-version: [8, 14]
+        os: [ubuntu-latest, macos-latest]
+    env:
+      JDK_VERSION: ${{ matrix.jvm-version }}
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2 # set to a value > 1 to support codecov.io SHA detection
+
+      - name: Clean Gradle caches
+        shell: bash
+        run: |
+          rm -rf ~/.gradle/caches/ && rm -rf ~/.gradle/wrapper/
+
+      - name: Cache Gradle folders
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches/
+            ~/.gradle/wrapper/
+          key: cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}-${{ hashFiles('**/build.gradle') }}
+          restore-keys: |
+            cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}
+            cache-gradle-${{ matrix.os }}k-${{ matrix.jvm-version }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.jvm-version }}
+
+      - name: Build and test
+        shell: bash
+        run: ./gradlew check codeCoverageReport --parallel
+
+      - name: Upload coverage stats
+        if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '14'
+        uses: codecov/codecov-action@v1
+
+      # TODO: figure out snapshot uploads
