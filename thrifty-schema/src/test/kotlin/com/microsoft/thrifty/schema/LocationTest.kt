@@ -24,6 +24,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
 import java.io.File
+import java.nio.file.Paths
 
 class LocationTest {
     @Test fun `equals uses structural-equality semantics`() {
@@ -39,5 +40,10 @@ class LocationTest {
     @Test fun `toString is human-readable`() {
         val location = Location.get("/var/log", "syslog").at(10, 5)
         "$location" shouldBe "/var/log${File.separator}syslog: (10, 5)"
+    }
+
+    @Test fun `asPath is a simple concatenation of base and path`() {
+        val loc = Location.get("/var/log", "thrifty/errors")
+        loc.asPath shouldBe Paths.get("/var/log/thrifty/errors")
     }
 }

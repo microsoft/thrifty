@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 Microsoft Corporation
+ * Copyright (C) 2015-2021 Microsoft Corporation
  * Copyright (C) 2015 Square, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +17,13 @@
 package com.microsoft.thrifty.schema
 
 import java.io.File
+import java.nio.file.Path
 import java.nio.file.Paths
 
 /**
  * Represents a location within a text file on a filesystem.
  *
- * @property base A location on the filesystem, to with [path] is relative.
+ * @property base A location on the filesystem, to which [path] is relative.
  * @property path The path, relative to [base], of the file located by this object.
  * @property line The line number identified by this object, starting with 1.
  * @property column The column identified by this object, starting with 1.
@@ -53,6 +54,9 @@ class Location private constructor(
             }
             return name
         }
+
+    val asPath: Path
+        get() = Paths.get(base, path)
 
     /**
      * Returns a copy of this object pointing to the given line and column.

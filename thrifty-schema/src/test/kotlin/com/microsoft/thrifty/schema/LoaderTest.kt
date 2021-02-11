@@ -259,6 +259,38 @@ class LoaderTest {
     }
 
     @Test
+    fun relativeIncludesConsiderIncludingFileLocation() {
+        val thriftDir = File(tempDir, "thrift").apply { mkdir() }
+        val barDir = File(thriftDir, "bar").apply { mkdir() }
+        val f1 = File(barDir, "foo.thrift")
+        val f2 = File(barDir, "bar.thrift")
+
+        val foo = """
+            namespace jvm test.includes.relative
+
+            enum A {
+              ONE, TWO, THREE
+            }
+        """
+
+        val bar = """
+            include 'foo.thrift'
+            namespace jvm test.includes.relative
+
+            struct B {
+              1: foo.A a = foo.A.ONE
+            }
+        """
+
+        f1.writeText(foo)
+        f2.writeText(bar)
+
+        val schema = load(f2)
+        val enum = schema.enums.single()
+        enum.location.path shouldBe "foo.thrift"
+    }
+
+    @Test
     fun circularInclude() {
         val f1 = File(tempDir, "A")
         val f2 = File(tempDir, "B")
