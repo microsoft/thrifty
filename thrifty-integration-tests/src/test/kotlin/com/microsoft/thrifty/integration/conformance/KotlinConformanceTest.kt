@@ -43,9 +43,9 @@ import com.microsoft.thrifty.testing.TestServer
 import com.microsoft.thrifty.transport.FramedTransport
 import com.microsoft.thrifty.transport.SocketTransport
 import com.microsoft.thrifty.transport.Transport
-import io.kotest.matchers.beInstanceOf
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.beInstanceOf
 import okio.ByteString
 import okio.ByteString.Companion.encodeUtf8
 import org.junit.jupiter.api.AfterEach
