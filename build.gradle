@@ -54,7 +54,7 @@ allprojects {
                 ],
 
                 kotlinPoet: [
-                        dependencies.create('com.squareup:kotlinpoet:1.6.0') {
+                        dependencies.create('com.squareup:kotlinpoet:1.7.2') {
                             exclude module: 'kotlin-stdlib'
                             exclude module: 'kotlin-reflect'
                         },

@@ -1,3 +1,7 @@
+3.0.0 (unreleased)
+------------------
+- ???: BREAK: Fields whose names are "soft" or "modifier" Kotlin keywords now have an underscore suffix
+
 2.1.1 (released 13 July 2020)
 ------------------
 - #369: Gradle plugin: Rename includeDir to includePath, customize outputDirectory
