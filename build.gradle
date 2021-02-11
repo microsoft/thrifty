@@ -71,11 +71,11 @@ allprojects {
                         "org.junit.jupiter:junit-jupiter:5.7.1",
 
                         'org.hamcrest:hamcrest:2.2',
-                        dependencies.create('io.kotest:kotest-assertions-jvm:4.0.5') {
+                        dependencies.create('io.kotest:kotest-assertions-core-jvm:4.4.1') {
                             exclude module: 'kotlin-stdlib'
                             exclude module: 'kotlin-reflect'
                         },
-                        dependencies.create('io.kotest:kotest-assertions-core:4.0.5') {
+                        dependencies.create('io.kotest:kotest-assertions-core:4.4.1') {
                             exclude module: 'kotlin-stdlib'
                             exclude module: 'kotlin-reflect'
                         },
