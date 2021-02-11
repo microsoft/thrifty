@@ -20,8 +20,8 @@
  */
 package com.microsoft.thrifty.transport
 
-import com.microsoft.thrifty.internal.Closeable
 import com.microsoft.thrifty.internal.DefaultMethod
+import okio.Closeable
 import okio.IOException
 
 interface Transport : Closeable {

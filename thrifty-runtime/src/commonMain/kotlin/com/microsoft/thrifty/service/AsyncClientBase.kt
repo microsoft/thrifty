@@ -1,7 +1,7 @@
 package com.microsoft.thrifty.service
 
-import com.microsoft.thrifty.internal.Closeable
 import com.microsoft.thrifty.protocol.Protocol
+import okio.Closeable
 
 /**
  * Implements a basic service client that executes methods asynchronously.

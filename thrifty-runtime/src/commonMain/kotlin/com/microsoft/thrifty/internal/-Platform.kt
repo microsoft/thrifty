@@ -27,8 +27,4 @@ expect annotation class DefaultMethod()
 
 expect class ProtocolException(message: String) : IOException
 
-expect interface Closeable {
-    fun close()
-}
-
 expect val DefaultDispatcher: CoroutineDispatcher

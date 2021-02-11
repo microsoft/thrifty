@@ -25,8 +25,8 @@ import com.microsoft.thrifty.ThriftException
 import com.microsoft.thrifty.ThriftException.Companion.read
 import com.microsoft.thrifty.internal.AtomicBoolean
 import com.microsoft.thrifty.internal.AtomicInteger
-import com.microsoft.thrifty.internal.Closeable
 import com.microsoft.thrifty.protocol.Protocol
+import okio.Closeable
 import okio.IOException
 
 /**
