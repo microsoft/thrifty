@@ -255,9 +255,9 @@ class KotlinCodeGeneratorTest {
             |import kotlin.Int
             |import kotlin.collections.Map
             |
-            |typealias Weights = Map<Int, Int>
+            |public typealias Weights = Map<Int, Int>
             |
-            |val WEIGHTS: Weights = mapOf(1 to 2)
+            |public val WEIGHTS: Weights = mapOf(1 to 2)
             |
         """.trimMargin()
     }
@@ -309,7 +309,7 @@ class KotlinCodeGeneratorTest {
             |import kotlin.collections.List
             |import kotlin.collections.Map
             |
-            |val Maps: Map<Int, List<String>> = ArrayMap<Int, List<String>>(2).apply {
+            |public val Maps: Map<Int, List<String>> = ArrayMap<Int, List<String>>(2).apply {
             |      put(1, emptyList())
             |      put(2, listOf("foo"))
             |    }
@@ -330,21 +330,21 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { coroutineServiceClients() }
 
         file.single().toString() should contain("""
-            |interface Svc {
-            |  suspend fun doSomething(foo: Int): Int
+            |public interface Svc {
+            |  public suspend fun doSomething(foo: Int): Int
             |}
             |
-            |class SvcClient(
+            |public class SvcClient(
             |  protocol: Protocol,
             |  listener: AsyncClientBase.Listener
             |) : AsyncClientBase(protocol, listener), Svc {
-            |  override suspend fun doSomething(foo: Int): Int = suspendCoroutine { cont ->
+            |  public override suspend fun doSomething(foo: Int): Int = suspendCoroutine { cont ->
             |    this.enqueue(DoSomethingCall(foo, object : ServiceMethodCallback<Int> {
-            |      override fun onSuccess(result: Int) {
+            |      public override fun onSuccess(result: Int): Unit {
             |        cont.resumeWith(Result.success(result))
             |      }
             |
-            |      override fun onError(error: Throwable) {
+            |      public override fun onError(error: Throwable): Unit {
             |        cont.resumeWith(Result.failure(error))
             |      }
             |    }))
@@ -391,7 +391,7 @@ class KotlinCodeGeneratorTest {
             |import kotlin.Int
             |import kotlin.jvm.JvmName
             |
-            |const val FooNum: Int = 42
+            |public const val FooNum: Int = 42
             |
             """.trimMargin()
     }
@@ -419,7 +419,7 @@ class KotlinCodeGeneratorTest {
             |import kotlin.Int
             |import kotlin.jvm.JvmName
             |
-            |const val FooNum: Int = 42
+            |public const val FooNum: Int = 42
             |
             """.trimMargin()
     }
@@ -461,25 +461,29 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |
-            |  data class Foo(
-            |    val value: Int
+            |  public data class Foo(
+            |    public val value: Int
             |  ) : Union() {
-            |    override fun toString(): String = "Union(Foo=${'$'}value)"}
+            |    public override fun toString(): String = "Union(Foo=${'$'}value)"
+            |  }
             |
-            |  data class Bar(
-            |    val value: Long
+            |  public data class Bar(
+            |    public val value: Long
             |  ) : Union() {
-            |    override fun toString(): String = "Union(Bar=${'$'}value)"}
+            |    public override fun toString(): String = "Union(Bar=${'$'}value)"
+            |  }
             |
-            |  data class Baz(
-            |    val value: String
+            |  public data class Baz(
+            |    public val value: String
             |  ) : Union() {
-            |    override fun toString(): String = "Union(Baz=${'$'}value)"}
+            |    public override fun toString(): String = "Union(Baz=${'$'}value)"
+            |  }
             |
-            |  data class NotFoo(
-            |    val value: Int
+            |  public data class NotFoo(
+            |    public val value: Int
             |  ) : Union() {
-            |    override fun toString(): String = "Union(NotFoo=${'$'}value)"}
+            |    public override fun toString(): String = "Union(NotFoo=${'$'}value)"
+            |  }
             |
         """.trimMargin())
     }
@@ -500,28 +504,29 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
-            |  class Builder : StructBuilder<Union> {
+            |  public class Builder : StructBuilder<Union> {
             |    private var value: Union? = null
             |
-            |    constructor()
+            |    public constructor()
             |
-            |    constructor(source: Union) : this() {
+            |    public constructor(source: Union) : this() {
             |      this.value = source
             |    }
             |
-            |    override fun build(): Union = value ?: error("Invalid union; at least one value is required")
+            |    public override fun build(): Union = value ?:
+            |        error("Invalid union; at least one value is required")
             |
-            |    override fun reset() {
+            |    public override fun reset(): Unit {
             |      value = null
             |    }
             |
-            |    fun Foo(value: Int) = apply { this.value = Union.Foo(value) }
+            |    public fun Foo(value: Int) = apply { this.value = Union.Foo(value) }
             |
-            |    fun Bar(value: Long) = apply { this.value = Union.Bar(value) }
+            |    public fun Bar(value: Long) = apply { this.value = Union.Bar(value) }
             |
-            |    fun Baz(value: String) = apply { this.value = Union.Baz(value) }
+            |    public fun Baz(value: String) = apply { this.value = Union.Baz(value) }
             |
-            |    fun NotFoo(value: Int) = apply { this.value = Union.NotFoo(value) }
+            |    public fun NotFoo(value: Int) = apply { this.value = Union.NotFoo(value) }
             |  }
         """.trimMargin())
     }
@@ -586,9 +591,9 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
-            |    override fun read(protocol: Protocol) = read(protocol, Builder())
+            |    public override fun read(protocol: Protocol) = read(protocol, Builder())
             |
-            |    override fun read(protocol: Protocol, builder: Builder): Union {
+            |    public override fun read(protocol: Protocol, builder: Builder): Union {
             |      protocol.readStructBegin()
             |      while (true) {
             |        val fieldMeta = protocol.readFieldBegin()
@@ -655,7 +660,7 @@ class KotlinCodeGeneratorTest {
 
 
         file.single().toString() should contain("""
-            |    override fun read(protocol: Protocol): Union {
+            |    public override fun read(protocol: Protocol): Union {
             |      protocol.readStructBegin()
             |      var result : Union? = null
             |      while (true) {
@@ -780,17 +785,18 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
-            |sealed class UnionStruct : Struct {
-            |  override fun write(protocol: Protocol) {
+            |public sealed class UnionStruct : Struct {
+            |  public override fun write(protocol: Protocol): Unit {
             |    ADAPTER.write(protocol, this)
             |  }
             |
-            |  data class Struct(
-            |    val value: Bonk
+            |  public data class Struct(
+            |    public val value: Bonk
             |  ) : UnionStruct() {
-            |    override fun toString(): String = "UnionStruct(Struct=${'$'}value)"}
+            |    public override fun toString(): String = "UnionStruct(Struct=${'$'}value)"
+            |  }
             |
-            |  class Builder : StructBuilder<UnionStruct> {
+            |  public class Builder : StructBuilder<UnionStruct> {
         """.trimMargin())
     }
 
@@ -811,7 +817,7 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |    @JvmField
-            |    val DEFAULT: HasDefault = Int(16)
+            |    public val DEFAULT: HasDefault = Int(16)
         """.trimMargin())
     }
 
@@ -829,7 +835,7 @@ class KotlinCodeGeneratorTest {
         val file = generate(thrift) { withDataClassBuilders() }
 
         file.single().toString() should contain("""
-            |    override fun build(): Bonk = Bonk(message = this.message, type = this.type)
+            |    public override fun build(): Bonk = Bonk(message = this.message, type = this.type)
         """.trimMargin())
     }
 
@@ -848,12 +854,12 @@ class KotlinCodeGeneratorTest {
         val expected = """
           1 -> {
             if (fieldMeta.typeId == TType.I32) {
-              val field = protocol.readI32().let {
+              val field_ = protocol.readI32().let {
                 TestEnum.findByValue(it) ?: throw
                     ThriftException(ThriftException.Kind.PROTOCOL_ERROR,
                     "Unexpected value for enum type TestEnum: ${'$'}it")
               }
-              builder.field(field)
+              builder.field_(field_)
             } else {
               ProtocolUtil.skip(protocol, fieldMeta.typeId)
             }
@@ -964,7 +970,7 @@ class KotlinCodeGeneratorTest {
         """.trimMargin()
 
         val expected = """
-    constructor(field1: Long) {
+    public constructor(field1: Long) {
       this.field1 = field1
       this.field2 = null
     }"""
@@ -1014,7 +1020,7 @@ class KotlinCodeGeneratorTest {
         val notExpected = "@Deprecated("
 
         val expected = """
-    constructor() {
+    public constructor() {
       this.field1 = null
       this.field2 = null
     }"""
@@ -1117,24 +1123,23 @@ class KotlinCodeGeneratorTest {
         """.trimIndent()
 
         val expected = """
-            |enum class Foo {
+            |public enum class Foo {
             |  FIRST_VALUE,
-            |
             |  SECOND_VALUE,
+            |  THIRD_VALUE,
+            |  ;
             |
-            |  THIRD_VALUE;
-            |
-            |  val value: Int
+            |  public val value: Int
             |    get() = value()
             |
-            |  fun value(): Int = when (this) {
+            |  public fun value(): Int = when (this) {
             |    FIRST_VALUE -> 0
             |    SECOND_VALUE -> 1
             |    THIRD_VALUE -> 2
             |  }
             |
-            |  companion object {
-            |    fun findByValue(value: Int): Foo? = when (value) {
+            |  public companion object {
+            |    public fun findByValue(value: Int): Foo? = when (value) {
             |      0 -> FIRST_VALUE
             |      1 -> SECOND_VALUE
             |      2 -> THIRD_VALUE
@@ -1145,7 +1150,7 @@ class KotlinCodeGeneratorTest {
         """.trimMargin()
 
         val notExpected = """
-            enum class Foo(value: Int)
+            public enum class Foo(value: Int)
         """.trimIndent()
 
         val file = generate(thrift) {
