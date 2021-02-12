@@ -44,6 +44,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.ArrayList
+import kotlin.system.exitProcess
 
 /**
  * A program that compiles Thrift IDL files into Java source code for use
@@ -379,7 +380,7 @@ class ThriftyCompiler {
             } catch (e: Exception) {
                 TermUi.echo("Unhandled exception", err = true)
                 e.printStackTrace(System.err)
-                System.exit(1)
+                exitProcess(1)
             }
         }
     }

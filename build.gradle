@@ -37,7 +37,7 @@ allprojects {
                 ],
 
                 clikt: [
-                        'com.github.ajalt:clikt:2.6.0'
+                        'com.github.ajalt.clikt:clikt:3.1.0'
                 ],
 
                 guava: [
