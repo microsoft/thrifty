@@ -96,9 +96,9 @@ buildscript {
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.30"
-        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:0.10.1'
+        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.4.20'
         classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
-        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.11.1'
+        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.13.0'
     }
 }
 
