@@ -33,7 +33,7 @@ allprojects {
 
         libraries = [
                 antlr: [
-                        'org.antlr:antlr4:4.8-1'
+                        'org.antlr:antlr4:4.9.1'
                 ],
 
                 clikt: [
