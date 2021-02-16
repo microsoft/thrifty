@@ -22,6 +22,8 @@ After Thrifty, the thrift method count dropped to 5,000.
 
 ### Usage
 
+#### Add the runtime to your project
+
 In `build.gradle`:
 
 ```groovy
@@ -33,14 +35,35 @@ repositories {
 }
 
 dependencies {
-  implementation 'com.microsoft.thrifty:thrifty-runtime:2.1.1'
+  implementation 'com.microsoft.thrifty:thrifty-runtime:3.0.0-RC01'
 }
 ```
+
+#### Generate code from your thrift files
 
 On the command line:
 
 ```bash
 java -jar thrifty-compiler.jar --out=path/to/output file_one.thrift file_two.thrift file_n.thrift
+```
+
+Or, with the Gradle plugin:
+
+```groovy
+
+buildscript {
+  dependencies {
+    classpath 'com.microsoft.thrifty:thrifty-gradle-plugin:3.0.0-RC1'
+  }
+}
+
+apply plugin: 'com.microsoft.thrifty'
+
+thrifty {
+  // Optionally configure things, see thrifty-gradle-plugin/README.md
+  // for all the details
+}
+
 ```
 
 ### Building
@@ -68,8 +91,8 @@ Thrifty structs and clients are 100% compatible with Apache Thrift services.
 The major differences are:
 
 - Thrifty structs are immutable.
-- Thrifty structs are always valid, once built via a builder.
-- Fields that are neither required nor optional (i.e. "default") are treated as optional; a struct with an unset default field may still be serialized.
+- Thrifty structs are always valid, once built.
+- Fields that are neither required nor optional (i.e., "default") are treated as optional; a struct with an unset default field may still be serialized.
 - TupleProtocol is unsupported at present.
 - Server-specific features from Apache's implementation are not duplicated in Thrifty.
 
@@ -115,7 +138,7 @@ For an authoritative source on Thrift IDL, [Thrift: The Missing Guide](https://d
 Use `thrifty-compiler` to compile IDL into Java classes:
 
 ```bash
-java -jar thrifty-compiler.jar --out=path/to/output example.thrift
+java -jar thrifty-compiler.jar --kt-file-per-type --out=path/to/output example.thrift
 ```
 
 The example file will result in the following files being generated:
@@ -123,182 +146,62 @@ The example file will result in the following files being generated:
 ```
 path/to/output/
   - com/foo/bar/
-    - Google.java
-    - GoogleClient.java
-    - Query.java
-    - SearchResult.java
+    - Google.kt
+    - GoogleClient.kt
+    - Query.kt
+    - SearchResult.kt
 ```
 
 The interesting files here are, of course, our domain objects `Query` and `SearchResult`.
 
 The latter looks like this:
 
-```java
-package com.foo.bar;
+```kotlin
+package com.foo.bar
 
-import android.support.annotation.NonNull;
-import com.microsoft.thrifty.Adapter;
-import com.microsoft.thrifty.Struct;
-import com.microsoft.thrifty.StructBuilder;
-import com.microsoft.thrifty.TType;
-import com.microsoft.thrifty.ThriftField;
-import com.microsoft.thrifty.protocol.FieldMetadata;
-import com.microsoft.thrifty.protocol.ListMetadata;
-import com.microsoft.thrifty.protocol.Protocol;
-import com.microsoft.thrifty.util.ProtocolUtil;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import com.microsoft.thrifty.Struct
+import com.microsoft.thrifty.TType
+import com.microsoft.thrifty.ThriftField
+import com.microsoft.thrifty.kotlin.Adapter
+import com.microsoft.thrifty.protocol.Protocol
+import com.microsoft.thrifty.util.ProtocolUtil
+import kotlin.Long
+import kotlin.String
+import kotlin.Unit
+import kotlin.jvm.JvmField
 
-public final class SearchResult implements Struct {
-  public static final Adapter<SearchResult, Builder> ADAPTER = new SearchResultAdapter();
+public data class SearchResult(
+  @JvmField
+  @ThriftField(fieldId = 1, isRequired = true)
+  public val url: String,
 
-  @ThriftField(
-      fieldId = 1,
-      isRequired = true
-  )
-  @NonNull
-  public final String url;
+  @JvmField
+  @ThriftField(fieldId = 2, isRequired = true)
+  public val keywords: List<String>,
 
-  /**
-   * A list of keywords related to the result
-   */
-  @ThriftField(
-      fieldId = 2,
-      isRequired = true
-  )
-  @NonNull
-  public final List<String> keywords;
-
-  /**
-   * The time at which the result was last checked, in unix millis
-   */
-  @ThriftField(
-      fieldId = 3,
-      isRequired = true
-  )
-  @NonNull
-  public final Long lastUpdatedMillis;
-
-  private SearchResult(Builder builder) {
-    this.url = builder.url;
-    this.keywords = Collections.unmodifiableList(builder.keywords);
-    this.lastUpdatedMillis = builder.lastUpdatedMillis;
+  @JvmField
+  @ThriftField(fieldId = 3, isRequired = true)
+  public val lastUpdatedMillis: Long
+) : Struct {
+  public override fun write(protocol: Protocol): Unit {
+    ADAPTER.write(protocol, this)
   }
 
-  @Override
-  public boolean equals(Object other) {
-    if (this == other) return true;
-    if (other == null) return false;
-    if (!(other instanceof SearchResult)) return false;
-    SearchResult that = (SearchResult) other;
-    return (this.url == that.url || this.url.equals(that.url))
-        && (this.keywords == that.keywords || this.keywords.equals(that.keywords))
-        && (this.lastUpdatedMillis == that.lastUpdatedMillis || this.lastUpdatedMillis.equals(that.lastUpdatedMillis));
-  }
-
-  @Override
-  public int hashCode() {
-    int code = 16777619;
-    code ^= this.url.hashCode();
-    code *= 0x811c9dc5;
-    code ^= this.keywords.hashCode();
-    code *= 0x811c9dc5;
-    code ^= this.lastUpdatedMillis.hashCode();
-    code *= 0x811c9dc5;
-    return code;
-  }
-
-  @Override
-  public String toString() {
-    return "SearchResult{url=" + this.url + ", keywords=" + this.keywords + ", lastUpdatedMillis=" + this.lastUpdatedMillis + "}";
-  }
-
-  @Override
-  public void write(Protocol protocol) {
-    ADAPTER.write(protocol, this);
-  }
-
-  public static final class Builder implements StructBuilder<SearchResult> {
-    private String url;
-
-    /**
-     * A list of keywords related to the result
-     */
-    private List<String> keywords;
-
-    /**
-     * The time at which the result was last checked, in unix millis
-     */
-    private Long lastUpdatedMillis;
-
-    public Builder() {
-      this.keywords = new ArrayList<String>();
-    }
-
-    public Builder(SearchResult struct) {
-      this.url = struct.url;
-      this.keywords = struct.keywords;
-      this.lastUpdatedMillis = struct.lastUpdatedMillis;
-    }
-
-    public Builder url(String url) {
-      if (url == null) {
-        throw new NullPointerException("Required field 'url' cannot be null");
-      }
-      this.url = url;
-      return this;
-    }
-
-    public Builder keywords(List<String> keywords) {
-      if (keywords == null) {
-        throw new NullPointerException("Required field 'keywords' cannot be null");
-      }
-      this.keywords = keywords;
-      return this;
-    }
-
-    public Builder lastUpdatedMillis(Long lastUpdatedMillis) {
-      if (lastUpdatedMillis == null) {
-        throw new NullPointerException("Required field 'lastUpdatedMillis' cannot be null");
-      }
-      this.lastUpdatedMillis = lastUpdatedMillis;
-      return this;
-    }
-
-    @Override
-    public SearchResult build() {
-      if (this.url == null) {
-        throw new IllegalStateException("Required field 'url' is missing");
-      }
-      if (this.keywords == null) {
-        throw new IllegalStateException("Required field 'keywords' is missing");
-      }
-      if (this.lastUpdatedMillis == null) {
-        throw new IllegalStateException("Required field 'lastUpdatedMillis' is missing");
-      }
-      return new SearchResult(this);
-    }
-
-    @Override
-    public void reset() {
-      this.url = null;
-      this.keywords = new ArrayList<String>();
-      this.lastUpdatedMillis = null;
-    }
-  }
-
-  private static final class SearchResultAdapter implements Adapter<SearchResult, Builder> {
+  private class SearchResultAdapter : Adapter<SearchResult> {
     // Uninteresting but important serialization code
+  }
+
+  public companion object {
+    @JvmField
+    public val ADAPTER: Adapter<SearchResult> = SearchResultAdapter()
   }
 }
 ```
 
 The struct itself is immutable and has a minimal number of methods.  It can be constructed only
-with the assistance of a nested `Builder`, which validates that all required fields are set.  Finally, an
-Adapter implementation (whose body is omitted here because it is long and mechanical) that handles reading and
-writing `SearchResult` structs to and from `Protocols`.
+with all required fields (all of them, in this example).  An Adapter implementation (whose body we
+omit here because it is long and mechanical) handles reading and writing `SearchResult` structs to
+and from `Protocols`.
 
 Finally and separately, note `Google` and `GoogleClient` - the former is an interface, and the latter is an autogenerated implementation.
 
@@ -311,44 +214,39 @@ for Android applications.
 
 Given the example above, the code to invoke `Google.search()` might be:
 
-```java
-
+```kotlin
 // Transports define how bytes move to and from their destination
-SocketTransport transport = new SocketTransport.Builder("thrift.google.com", 80).build();
-transport.connect();
+val transport = SocketTransport.Builder("thrift.google.com", 80).build().apply { connect() }
 
 // Protocols define the mapping between structs and bytes
-Protocol protocol = new BinaryProtocol(transport);
+val protocol = BinaryProtocol(transport)
 
 // Generated clients do the plumbing
-Google client = new GoogleClient(protocol, new AsyncClientBase.Listener() {
-    @Override
-    public void onTransportClosed() {
+val client = GoogleClient(protocol, object : AsyncClientBase.Listener {
+    override fun onTransportClosed() {
 
     }
 
-    @Override
-    public void onError(Throwable error) {
-        throw new AssertionError(error);
+    override fun onError(throwable: Throwable) {
+        throw AssertionError(throwable)
     }
-});
+})
 
-Query query = new Query.Builder()
-    .text("thrift vs protocol buffers")
-    .build();
+val query = Query(text = "thrift vs protocol buffers")
 
 // RPC clients are asynchronous and callback-based
-client.search(query, new ServiceMethodCallback<List<SearchResult>>() {
-    @Override
-    public void onSuccess(List<SearchResult> response) {
+client.search(query, object : ServiceMethodCallback<List<SearchResult>> {
+    override fun onSuccess(response: List<SearchResult>) {
         // yay
     }
 
-    @Override
-    public void onError(Throwable error) {
-        Log.e("GoogleClient", "Search error: " + error);
+    override fun onError(throwable: Throwable) {
+        Log.e("GoogleClient", "Search error: $throwable")
     }
-});
+})
+
+// ...unless coroutine clients were generated:
+val results = async { client.search(query) }.await()
 
 ```
 
@@ -380,26 +278,20 @@ The Thrift annotations `(thrifty.redacted)` and `(thrifty.obfuscated)` are also 
 
 The Thrift example above leads to code similar to the following:
 
-```java
-public final class User implements Struct {
-  @ThriftField(
-    fieldId = 1,
-    required = true)
-  @Obfuscated
-  public final String email;
+```kotlin
+public data class User(
+    @JvmField
+    @ThriftField(fieldId = 1, required = true)
+    @Obfuscated
+    public val email: String,
 
-  @ThriftField(
-    fieldId = 2,
-    required = true)
-  @Redacted
-  public final String ssn;
-
-  // more code
-
-  @Override
-  public String toString() {
-    return "User{email=" + ObfuscationUtil.hash(this.email) + ", ssn=<REDACTED>}";
-  }
+    @JvmField
+    @ThriftField(fieldId = 2, required = true)
+    @Redacted
+    public val ssn: String
+) : Struct {
+  public override fun toString() =
+      "User(email=${ObfuscationUtil.hash(email)}, ssn=<REDACTED>)"
 
   // more code
 }
@@ -410,49 +302,16 @@ Obfuscated fields that are collections are not hashed; instead, their type is pr
 Close readers will note that the compiler will also respond to `@redacted` and `@obfuscated` in field documentation; this is currently valid *but not supported
 and subject to change in future releases*.  It is a legacy from the time before Thrifty implemented Thrift annotations.
 
-## Kotlin Support
+## Java Support
 
-Thrifty supports generated Kotlin code that is (almost) as small as its Java counterpart.  Instead of classes with final fields, Thrifty Kotlin structs are represented as `data class` structures whose members are annotated as `@JvmField`.  This produces classes which, when compiled, are nearly as small as their Java counterparts; the `Query` class above looks like this in Kotlin:
+Thrifty generates Kotlin code by default, but if needed it can also produce Java.  Generated Java code has very slightly
+more method references than Kotlin.  Instead of data classes, Java structs are final classes with public final fields,
+and are constructable only with dedicated `Builder` types.
 
-```kotlin
-data class Query(
-  @JvmField
-  @ThriftField(fieldId = 1, required = true)
-  val text: String,
+To generate Java classes, pass `--lang=java` to the compiler (if using the command-line compiler), or provide a `java {}` block
+within the thrifty Gradle plugin configuration.
 
-  @JvmField
-  @ThriftField(fieldId = 2, optional = true)
-  val resultsNewerThan: Long?
-) : Struct {
-
-  override fun write(protocol: Protocol) {
-    ADAPTER.write(protocol, this)
-  }
-
-  private class QueryAdapter : Adapter<Query> {
-    override fun read(protocol: Protocol): Query {
-      // deserialization code as above
-    }
-
-    override fun write(protcol: Protocol, struct: Query) {
-      // serialization code as above
-    }
-  }
-
-  companion object {
-    @JvmField val ADAPTER: Adapter<Query> = QueryAdapter()
-  }
-}
-```
-
-Notice that, thanks to data classes, there are no longer custom `toString`, `equals`, or `hashCode` methods.  Because we can accurately model required/optional in the Kotlin type system, we no longer require builders to enforce struct validity - if you can instantiate a Thrifty Kotlin struct, it is valid by definition.
-
-Also note that redacted and obfuscated fields are still supported, and _will_ result in a custom `toString` implementation.
-
-### How To Enable Kotlin
-
-Add `--lang=kotlin` to your thrifty-compiler.jar invocation, and add the `com.microsoft.thrifty:thrifty-runtime-ktx:2.1.1` dependency.
-
+## Language-specific command-line options
 ### Kotlin-specific command-line options
 
 There are a few new command-line options to control Kotlin code generation:
@@ -467,31 +326,33 @@ java -jar thrifty-compiler.jar \
     ...
 ```
 
-The new option `--lang=kotlin` accepts either `java` or `kotlin`; use the latter to generate Kotlin code.
-
-By default, standard callback-based service clients will be generated:
+By default, generated service clients are callback-based:
 
 ```kotlin
-interface Google {
-  fun search(query: Query, callback: ServiceMethodCallback<List<SearchResult>>)
+public interface Google {
+  public fun search(query: Query, callback: ServiceMethodCallback<List<SearchResult>>)
 }
 ```
 
-If, instead, you wish to have a coroutine-based client, specify `--kt-coroutine-clients`:
+If, instead, you wish to have a coroutine-based client, specify `--service-type=coroutine`:
 
 ```kotlin
-interface Google {
-  suspend fun search(query: Query): List<SearchResult>
+public interface Google {
+  public suspend fun search(query: Query): List<SearchResult>
 }
 ```
 
-Builders are no longer necessary, and are not included by default.  For compatibility with existing code, you can use the `--kt-struct-builders` flag, which will result in Java-style classes with Builders.
+Builders are unnecessary, and are not included by default.  For compatibility with older code, you can use the `--kt-struct-builders` flag, which will result in Java-style classes with Builders.
 
-The final new flag is `--kt-file-per-type`.  Thrifty's convention is to generate a single Kotlin file per distinct JVM namespace.  For particularly large .thrift inputs, this is suboptimal.  Outlook Mobile's single, large, Kotlin file took up to one minute just to typecheck, using Kotlin 1.2.51!  For these cases, `--kt-file-per-type` will tell Thrifty to generate one single file per top-level class - just like the Java code.
+By default, Thrifty generates one Kotlin file per JVM package.  For larger thrift files, this can be a little hard on the Kotlin compiler.  If you find build times or IDE performance suffering, the `--kt-file-per-type` flag can help.  Outlook Mobile's single, large, Kotlin file took up to one minute just to typecheck, using Kotlin 1.2.51!  For these cases, `--kt-file-per-type` will tell Thrifty to generate one single file per top-level class - just like the Java code.
 
-`--omit-file-comments` suppresses the comment that prefixes each autogenerated Java file.
+### Java-specific command-line options
 
-### Thanks
+Thrifty can be made to add various kinds of nullability annotations to Java types with the `--nullability-annotation-type` flag.  Valid options are
+`none` (the default), `android-support`, and `androidx`.  Specifying `android-support` will cause generated code to use `@Nullable` and `@NonNull` from
+the `android.support.annotation` package.  Similarly, specifying `androidx` will use analogous annotations from `androidx.annotation`. 
+
+## Thanks
 
 Thrifty owes an enormous debt to Square and the Wire team; without them, this project would not exist.  Thanks!
 An equal debt is owed to Facebook and Apache for developing and opening Thrift to the world.
