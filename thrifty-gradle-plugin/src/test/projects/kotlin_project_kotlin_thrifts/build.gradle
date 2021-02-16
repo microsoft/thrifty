@@ -3,10 +3,6 @@ plugins {
     id 'org.jetbrains.kotlin.jvm'
 }
 
-thrifty {
-    kotlin {}
-}
-
 repositories {
     mavenCentral()
 }

@@ -4,10 +4,6 @@ plugins {
     id 'com.microsoft.thrifty'
 }
 
-thrifty {
-    kotlin {}
-}
-
 repositories {
     mavenCentral()
 }
