@@ -4,8 +4,6 @@ plugins {
 }
 
 thrifty {
-    kotlin {}
-
     sourceDir("src/main/thrift") {
         include "**/sample.thrift"
     }

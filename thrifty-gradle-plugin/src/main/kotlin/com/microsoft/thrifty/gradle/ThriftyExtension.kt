@@ -48,7 +48,7 @@ abstract class ThriftyExtension @Inject constructor(
                     .include("**/*.thrift") as SourceDirectorySet)))
 
     val thriftOptions: Property<ThriftOptions> = objects.property(ThriftOptions::class.java)
-            .convention(JavaThriftOptions())
+            .convention(KotlinThriftOptions())
 
     val outputDirectory: DirectoryProperty = objects.directoryProperty()
             .convention(layout.buildDirectory.dir(DEFAULT_OUTPUT_DIR))

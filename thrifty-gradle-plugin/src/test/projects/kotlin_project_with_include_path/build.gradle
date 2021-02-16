@@ -5,7 +5,6 @@ plugins {
 
 thrifty {
     includePath 'common'
-    kotlin {}
 }
 
 repositories {

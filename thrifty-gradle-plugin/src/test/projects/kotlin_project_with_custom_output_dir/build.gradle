@@ -6,7 +6,6 @@ plugins {
 thrifty {
     outputDir 'thrifts'
     includePath 'common'
-    kotlin {}
 }
 
 repositories {
