@@ -42,6 +42,10 @@ enum Numberz
   EIGHT = 8
 }
 
+const double ActualDouble = 42
+
+const Numberz myNumberz = Numberz.ONE;
+
 typedef i64 UserId
 
 struct Bonk
