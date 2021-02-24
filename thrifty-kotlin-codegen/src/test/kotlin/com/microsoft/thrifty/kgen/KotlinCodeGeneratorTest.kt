@@ -191,6 +191,21 @@ class KotlinCodeGeneratorTest {
         xception.propertySpecs.single().name shouldBe "message_"
     }
 
+
+    @Test
+    fun `union with error as field name should compile with builder`() {
+        val thrift = """
+            namespace kt com.test
+
+            union Fail { 1: string error }
+        """.trimIndent()
+
+        val specs = generate(thrift) {
+            withDataClassBuilders()
+        }
+        specs.shouldCompile()
+    }
+
     @Test
     fun services() {
         val thrift = """
