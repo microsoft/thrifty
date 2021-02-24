@@ -30,8 +30,8 @@ import kotlin.jvm.JvmStatic
  */
 class ThriftException(
         @JvmField
-        val kind: Kind?,
-        message: String?) : RuntimeException(message) {
+        val kind: Kind,
+        message: String?) : RuntimeException(message), Struct {
     /**
      * Identifies kinds of protocol violation.
      */
@@ -81,6 +81,20 @@ class ThriftException(
                 return values().firstOrNull { it.value == value } ?: UNKNOWN
             }
         }
+    }
+
+    override fun write(protocol: Protocol) {
+        protocol.writeStructBegin("TApplicationException")
+        if (message != null) {
+            protocol.writeFieldBegin("message", 1, TType.STRING)
+            protocol.writeString(message)
+            protocol.writeFieldEnd()
+        }
+        protocol.writeFieldBegin("type", 2, TType.I32)
+        protocol.writeI32(kind.value)
+        protocol.writeFieldEnd()
+        protocol.writeFieldStop()
+        protocol.writeStructEnd()
     }
 
     companion object {
