@@ -1130,7 +1130,7 @@ class KotlinCodeGeneratorTest {
             |  ;
             |
             |  public val `value`: Int
-            |    get() = value()
+            |    get() = `value`()
             |
             |  public fun `value`(): Int = when (this) {
             |    FIRST_VALUE -> 0
@@ -1139,7 +1139,7 @@ class KotlinCodeGeneratorTest {
             |  }
             |
             |  public companion object {
-            |    public fun findByValue(`value`: Int): Foo? = when (value) {
+            |    public fun findByValue(`value`: Int): Foo? = when (`value`) {
             |      0 -> FIRST_VALUE
             |      1 -> SECOND_VALUE
             |      2 -> THIRD_VALUE
