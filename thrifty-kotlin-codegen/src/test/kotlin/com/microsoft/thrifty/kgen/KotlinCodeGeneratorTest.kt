@@ -462,25 +462,25 @@ class KotlinCodeGeneratorTest {
         file.single().toString() should contain("""
             |
             |  public data class Foo(
-            |    public val value: Int
+            |    public val `value`: Int
             |  ) : Union() {
             |    public override fun toString(): String = "Union(Foo=${'$'}value)"
             |  }
             |
             |  public data class Bar(
-            |    public val value: Long
+            |    public val `value`: Long
             |  ) : Union() {
             |    public override fun toString(): String = "Union(Bar=${'$'}value)"
             |  }
             |
             |  public data class Baz(
-            |    public val value: String
+            |    public val `value`: String
             |  ) : Union() {
             |    public override fun toString(): String = "Union(Baz=${'$'}value)"
             |  }
             |
             |  public data class NotFoo(
-            |    public val value: Int
+            |    public val `value`: Int
             |  ) : Union() {
             |    public override fun toString(): String = "Union(NotFoo=${'$'}value)"
             |  }
@@ -505,28 +505,28 @@ class KotlinCodeGeneratorTest {
 
         file.single().toString() should contain("""
             |  public class Builder : StructBuilder<Union> {
-            |    private var value: Union? = null
+            |    private var value_: Union? = null
             |
             |    public constructor()
             |
             |    public constructor(source: Union) : this() {
-            |      this.value = source
+            |      this.value_ = source
             |    }
             |
-            |    public override fun build(): Union = value ?:
+            |    public override fun build(): Union = value_ ?:
             |        error("Invalid union; at least one value is required")
             |
             |    public override fun reset(): Unit {
-            |      value = null
+            |      value_ = null
             |    }
             |
-            |    public fun Foo(value: Int) = apply { this.value = Union.Foo(value) }
+            |    public fun Foo(`value`: Int) = apply { this.value_ = Union.Foo(value) }
             |
-            |    public fun Bar(value: Long) = apply { this.value = Union.Bar(value) }
+            |    public fun Bar(`value`: Long) = apply { this.value_ = Union.Bar(value) }
             |
-            |    public fun Baz(value: String) = apply { this.value = Union.Baz(value) }
+            |    public fun Baz(`value`: String) = apply { this.value_ = Union.Baz(value) }
             |
-            |    public fun NotFoo(value: Int) = apply { this.value = Union.NotFoo(value) }
+            |    public fun NotFoo(`value`: Int) = apply { this.value_ = Union.NotFoo(value) }
             |  }
         """.trimMargin())
     }
@@ -791,7 +791,7 @@ class KotlinCodeGeneratorTest {
             |  }
             |
             |  public data class Struct(
-            |    public val value: Bonk
+            |    public val `value`: Bonk
             |  ) : UnionStruct() {
             |    public override fun toString(): String = "UnionStruct(Struct=${'$'}value)"
             |  }
@@ -1129,17 +1129,17 @@ class KotlinCodeGeneratorTest {
             |  THIRD_VALUE,
             |  ;
             |
-            |  public val value: Int
-            |    get() = value()
+            |  public val `value`: Int
+            |    get() = `value`()
             |
-            |  public fun value(): Int = when (this) {
+            |  public fun `value`(): Int = when (this) {
             |    FIRST_VALUE -> 0
             |    SECOND_VALUE -> 1
             |    THIRD_VALUE -> 2
             |  }
             |
             |  public companion object {
-            |    public fun findByValue(value: Int): Foo? = when (value) {
+            |    public fun findByValue(`value`: Int): Foo? = when (`value`) {
             |      0 -> FIRST_VALUE
             |      1 -> SECOND_VALUE
             |      2 -> THIRD_VALUE

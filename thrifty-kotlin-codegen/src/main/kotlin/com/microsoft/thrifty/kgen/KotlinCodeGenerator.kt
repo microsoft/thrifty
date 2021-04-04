@@ -402,7 +402,7 @@ class KotlinCodeGenerator(
                 .addParameter("value", INT)
                 .returns(enumType.typeName.copy(nullable = true))
                 .apply { if (emitJvmStatic) jvmStatic() }
-                .beginControlFlow("return when (value)")
+                .beginControlFlow("return when (%N)", "value")
 
         val nameAllocator = nameAllocators[enumType]
         for (member in enumType.members) {
@@ -443,7 +443,7 @@ class KotlinCodeGenerator(
             // so that Kotlin call-sites don't need to change when transitioning to big enums.
             val valueProperty = PropertySpec.builder("value", Int::class)
                 .getter(FunSpec.getterBuilder()
-                    .addStatement("return value()")
+                    .addStatement("return %N()", "value")
                     .build()
                 )
                 .build()
@@ -621,28 +621,31 @@ class KotlinCodeGenerator(
                         when (type) {
                             is ListType -> {
                                 val elementName = type.elementType.name
-                                add("\${%T.summarizeCollection(value, %S, %S)}",
+                                add("\${%T.summarizeCollection(%N, %S, %S)}",
                                         ObfuscationUtil::class,
+                                        "value",
                                         "list",
                                         elementName)
                             }
                             is SetType -> {
                                 val elementName = type.elementType.name
-                                add("\${%T.summarizeCollection(value, %S, %S)}",
+                                add("\${%T.summarizeCollection(%N, %S, %S)}",
                                         ObfuscationUtil::class,
+                                        "value",
                                         "set",
                                         elementName)
                             }
                             is MapType -> {
                                 val keyName = type.keyType.name
                                 val valName = type.valueType.name
-                                add("\${%T.summarizeMap(value, %S, %S)}",
+                                add("\${%T.summarizeMap(%N, %S, %S)}",
                                         ObfuscationUtil::class,
+                                        "value",
                                         keyName,
                                         valName)
                             }
                             else -> {
-                                add("\${%T.hash(value)}", ObfuscationUtil::class)
+                                add("\${%T.hash(%N)}", ObfuscationUtil::class, "value")
                             }
                         }
                     }
@@ -807,8 +810,11 @@ class KotlinCodeGenerator(
         val requiredCtor = FunSpec.constructorBuilder()
 
         val nameAllocator = nameAllocators[struct]
-        val buildParamStringBuilder = StringBuilder()
+        val buildParamStringBuilder = CodeBlock.builder()
         for (field in struct.fields) {
+            if (buildParamStringBuilder.isNotEmpty()) {
+                buildParamStringBuilder.add(", ")
+            }
             val name = nameAllocator.get(field)
             val type = field.type.typeName
 
@@ -826,51 +832,43 @@ class KotlinCodeGenerator(
             val buildFunParamType = if (!field.required) type.copy(nullable = true) else type
             val builderFunSpec = FunSpec.builder(name)
                     .addParameter(name, buildFunParamType)
-                    .addStatement("return apply·{ this.$name·= $name }")
+                    .addStatement("return apply·{ this.%N·= %N }", name, name)
 
             // Add initialization in default ctor
-            defaultCtor.addStatement("this.$name = %L", defaultValueBlock)
+            defaultCtor.addStatement("this.%N = %L", name, defaultValueBlock)
 
             // Add initialization in copy ctor
-            copyCtor.addStatement("this.$name = source.$name")
+            copyCtor.addStatement("this.%N = source.%N", name, name)
 
             // Add initialization in required ctor
             if (field.required && field.defaultValue == null) {
                 requiredCtor.addParameter(name, type)
-                requiredCtor.addStatement("this.$name = $name")
+                requiredCtor.addStatement("this.%N = %N", name, name)
             }
             else {
-                requiredCtor.addStatement("this.$name = %L", defaultValueBlock)
+                requiredCtor.addStatement("this.%N = %L", name, defaultValueBlock)
             }
 
             // reset field
 
-            resetFunSpec.addStatement("this.$name = %L", defaultValueBlock)
+            resetFunSpec.addStatement("this.%N = %L", name, defaultValueBlock)
 
             // Add field to build-method ctor-invocation arg builder
             // TODO: Add newlines and indents if numFields > 1
-            buildParamStringBuilder.append("$name = ")
+            buildParamStringBuilder.add("%N = ", name)
             if (field.required) {
-                buildParamStringBuilder.append("checkNotNull($name) { \"Required·field·'$name'·is·missing\" }")
+                buildParamStringBuilder.add("checkNotNull(%N) { \"Required·field·'$name'·is·missing\" }", name)
             } else {
-                buildParamStringBuilder.append("this.$name")
+                buildParamStringBuilder.add("this.%N", name)
             }
-
-            buildParamStringBuilder.append(", ")
 
             // Finish off the property and builder fun
             spec.addProperty(propertySpec.build())
             spec.addFunction(builderFunSpec.build())
         }
 
-        // If there are any fields, the string builder will have a trailing comma-separator.
-        // We need to trim that off.
-        if (struct.fields.isNotEmpty()) {
-            buildParamStringBuilder.setLength(buildParamStringBuilder.length - 2)
-        }
-
         buildFunSpec
-                .addCode(buildParamStringBuilder.toString())
+                .addCode(buildParamStringBuilder.build())
                 .addCode(")»")
 
         if (builderRequiredConstructor && requiredCtor.parameters.isNotEmpty()) {
@@ -911,18 +909,19 @@ class KotlinCodeGenerator(
                 .addFunction(FunSpec.constructorBuilder()
                         .addParameter("source", structTypeName)
                         .callThisConstructor()
-                        .addStatement("this.$builderVarName = source")
+                        .addStatement("this.%N = source", builderVarName)
                         .build())
                 .addFunction(FunSpec.builder("build")
                         .addModifiers(KModifier.OVERRIDE)
                         .returns(structTypeName)
                         .addStatement(
-                                "return $builderVarName ?: error(%S)",
+                                "return %N ?: error(%S)",
+                                builderVarName,
                                 "Invalid union; at least one value is required")
                         .build())
                 .addFunction(FunSpec.builder("reset")
                         .addModifiers(KModifier.OVERRIDE)
-                        .addStatement("$builderVarName = %L", defaultValue)
+                        .addStatement("%N = %L", builderVarName, defaultValue)
                         .build())
 
         for (field in struct.fields) {
@@ -933,7 +932,7 @@ class KotlinCodeGenerator(
             // Add a builder fun
             spec.addFunction(FunSpec.builder(name)
                     .addParameter("value", type)
-                    .addStatement("return apply·{ this.$builderVarName·= ${struct.name}.$typeName(value) }")
+                    .addStatement("return apply·{ this.%N·= ${struct.name}.%N(value) }", builderVarName, typeName)
                     .build())
         }
 
@@ -987,7 +986,7 @@ class KotlinCodeGenerator(
             val fieldType = field.type
 
             if (!field.required) {
-                writer.beginControlFlow("if (struct.$name != null)")
+                writer.beginControlFlow("if (struct.%N != null)", name)
             }
 
             writer.addStatement("protocol.writeFieldBegin(%S, %L, %T.%L)",
@@ -2060,14 +2059,14 @@ class KotlinCodeGenerator(
                                 if (method.oneWay) {
                                     addStatement("cont.resumeWith(%T.success(Unit))", coroResultClass)
                                 } else {
-                                    addStatement("cont.resumeWith(%T.success(result))", coroResultClass)
+                                    addStatement("cont.resumeWith(%T.success(%N))", coroResultClass, "result")
                                 }
                             }
                             .build())
                     .addFunction(FunSpec.builder("onError")
                             .addModifiers(KModifier.OVERRIDE)
                             .addParameter("error", Throwable::class)
-                            .addStatement("cont.resumeWith(%T.failure(error))", coroResultClass)
+                            .addStatement("cont.resumeWith(%T.failure(%N))", coroResultClass, "error")
                             .build())
                     .build()
 
