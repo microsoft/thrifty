@@ -915,8 +915,9 @@ class KotlinCodeGenerator(
                         .addModifiers(KModifier.OVERRIDE)
                         .returns(structTypeName)
                         .addStatement(
-                                "return %N ?: error(%S)",
+                                "return %N ?: %M(%S)",
                                 builderVarName,
+                                MemberName("kotlin", "error"),
                                 "Invalid union; at least one value is required")
                         .build())
                 .addFunction(FunSpec.builder("reset")
