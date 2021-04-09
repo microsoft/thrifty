@@ -268,12 +268,11 @@ class KotlinCodeGenerator(
     }
 
     // endregion Configuration
+    private val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
+    private val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
+    private val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
 
     fun generate(schema: Schema): List<FileSpec> {
-        val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
-        val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
-        val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
-
         schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
         schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
