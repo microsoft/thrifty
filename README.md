@@ -5,8 +5,8 @@ Thrifty
 [![codecov](https://codecov.io/gh/Microsoft/thrifty/branch/master/graph/badge.svg)](https://codecov.io/gh/Microsoft/thrifty)
 
 
-Thrifty is an implementation of the Apache Thrift software stack for Android, which uses 1/4 of the method count taken by 
-the Apache Thrift compiler.
+Thrifty is an implementation of the Apache Thrift software stack, which uses 1/4 of the method count taken by 
+the Apache Thrift compiler, which makes it especially appealing for use on Android.
 
 Thrift is a widely-used cross-language service-definition software stack, with a nifty interface definition language
 from which to generate types and RPC implementations.  Unfortunately for Android devs, the canonical implementation
@@ -14,7 +14,7 @@ generates very verbose and method-heavy Java code, in a manner that is not very 
 
 Like Square's Wire project for Protocol Buffers, Thrifty does away with getters and setters (and is-setters and
 set-is-setters) in favor of public final fields.  It maintains some core abstractions like Transport and Protocol, but
-saves on methods by dispensing with Factories and server implementations and only generating code for the
+saves on methods by dispensing with Factories, omitting server implementations by default and only generating code for the
 protocols you actually need.
 
 Thrifty was born in the Outlook for Android codebase; before Thrifty, generated thrift classes consumed 20,000 methods.
@@ -94,7 +94,7 @@ The major differences are:
 - Thrifty structs are always valid, once built.
 - Fields that are neither required nor optional (i.e., "default") are treated as optional; a struct with an unset default field may still be serialized.
 - TupleProtocol is unsupported at present.
-- Server-specific features from Apache's implementation are not duplicated in Thrifty.
+- Server-specific features are only supported for Kotlin code generation and currently considered experimental
 
 ## Guide To Thrifty
 
@@ -323,6 +323,7 @@ java -jar thrifty-compiler.jar \
     --kt-file-per-type \
     --omit-file-comments \
     --kt-struct-builders \
+    --experimental-kt-generate-server \
     ...
 ```
 
@@ -346,6 +347,17 @@ Builders are unnecessary, and are not included by default.  For compatibility wi
 
 By default, Thrifty generates one Kotlin file per JVM package.  For larger thrift files, this can be a little hard on the Kotlin compiler.  If you find build times or IDE performance suffering, the `--kt-file-per-type` flag can help.  Outlook Mobile's single, large, Kotlin file took up to one minute just to typecheck, using Kotlin 1.2.51!  For these cases, `--kt-file-per-type` will tell Thrifty to generate one single file per top-level class - just like the Java code.
 
+#### Server Support
+Support for generating a server implementation was only added very recently, and while it passes the 'official'
+[Java client integration test](https://github.com/apache/thrift/blob/master/lib/java/test/org/apache/thrift/test/TestClient.java),
+you should consider this code experimental.
+
+Thrifty generates a `Processor` implementation that you pass an input `Protocol`, an output `Protocol` and a service handler
+and the code will take care of reading the request, passing it to the handler and returning the correct response to the output.
+
+If you want to use it, you need to wrap an appropriate communication layer around it, e.g. an HTTP server.
+You can have a look at the [integration tests](thrifty-integration-tests/src/test/kotlin/com/microsoft/thrifty/integration/conformance/server/TestServer.kt) for a basic example.
+
 ### Java-specific command-line options
 
 Thrifty can be made to add various kinds of nullability annotations to Java types with the `--nullability-annotation-type` flag.  Valid options are
@@ -353,6 +365,12 @@ Thrifty can be made to add various kinds of nullability annotations to Java type
 the `android.support.annotation` package.  Similarly, specifying `androidx` will use analogous annotations from `androidx.annotation`. 
 
 ## Thanks
+`--experimental-kt-generate-server` enabled code generation for the server portion of a thrift service. You can
+use this to implement a thrift server with the same benefits as the kotlin client: no runtime surprises thanks to
+structs being always valid by having nullability guarantees and unions represented as sealed classes.
+See 
+
+### Thanks
 
 Thrifty owes an enormous debt to Square and the Wire team; without them, this project would not exist.  Thanks!
 An equal debt is owed to Facebook and Apache for developing and opening Thrift to the world.
