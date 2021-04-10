@@ -31,13 +31,15 @@ class SerializableThriftOptions implements Serializable {
     static class Kotlin implements Serializable {
         private ClientStyle serviceClientStyle;
         private boolean structBuilders;
+        private boolean generateServer;
 
         // Required for Serializable
         Kotlin() {}
 
-        public Kotlin(ClientStyle serviceClientStyle, boolean structBuilders) {
+        public Kotlin(ClientStyle serviceClientStyle, boolean structBuilders, boolean generateServer) {
             this.serviceClientStyle = serviceClientStyle;
             this.structBuilders = structBuilders;
+            this.generateServer = generateServer;
         }
 
         public ClientStyle getServiceClientStyle() {
@@ -46,6 +48,10 @@ class SerializableThriftOptions implements Serializable {
 
         public boolean isStructBuilders() {
             return structBuilders;
+        }
+
+        public boolean isGenerateServer() {
+            return generateServer;
         }
     }
 
@@ -88,7 +94,7 @@ class SerializableThriftOptions implements Serializable {
 
         if (options instanceof KotlinThriftOptions) {
             KotlinThriftOptions kto = (KotlinThriftOptions) options;
-            this.kotlinOpts = new Kotlin(kto.getServiceClientStyle(), kto.getStructBuilders());
+            this.kotlinOpts = new Kotlin(kto.getServiceClientStyle(), kto.getStructBuilders(), kto.isGenerateServer());
         } else if (options instanceof JavaThriftOptions) {
             JavaThriftOptions jto = (JavaThriftOptions) options;
             this.javaOpts = new Java(jto.getNullabilityAnnotations());
