@@ -280,6 +280,10 @@ class KotlinCodeGenerator(
     private val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
 
     fun generate(schema: Schema): List<FileSpec> {
+        specsByNamespace.clear()
+        constantsByNamespace.clear()
+        typedefsByNamespace.clear()
+
         schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
         schema.structs.forEach { specsByNamespace.put(it.kotlinNamespace, generateDataClass(schema, it)) }
