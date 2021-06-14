@@ -114,6 +114,8 @@ private object Tags {
 // to instantiate a bunch of them.
 private object ClassNames {
     val EXCEPTION = ClassName("kotlin", "Exception")
+    val ILLEGAL_ARGUMENT_EXCEPTION = ClassName("kotlin", "IllegalArgumentException")
+    val THROWABLE = ClassName("kotlin", "Throwable")
     val RESULT = ClassName("kotlin", "Result")
     val THROWS = ClassName("kotlin", "Throws")
     val ARRAY_LIST = ClassName("kotlin.collections", "ArrayList")
@@ -2066,7 +2068,7 @@ class KotlinCodeGenerator(
 
         spec.addCode {
             beginControlFlow("else -> ")
-            addStatement("""throw %T("%L")""", IllegalArgumentException::class, "Unknown method \${msg.name}")
+            addStatement("""throw %T("%L")""", ClassNames.ILLEGAL_ARGUMENT_EXCEPTION, "Unknown method \${msg.name}")
             endControlFlow()
             endControlFlow()
 
@@ -2129,7 +2131,7 @@ class KotlinCodeGenerator(
                 .returns(argsTypeName)
                 .addParameter("protocol", Protocol::class)
                 .addAnnotation(AnnotationSpec.builder(Throws::class)
-                    .addMember("%T::class", Exception::class)
+                    .addMember("%T::class", ClassNames.EXCEPTION)
                     .build())
 
             recv.addCode {
@@ -2269,7 +2271,7 @@ class KotlinCodeGenerator(
                             .build())
                     .addFunction(FunSpec.builder("onError")
                             .addModifiers(KModifier.OVERRIDE)
-                            .addParameter("error", Throwable::class)
+                            .addParameter("error", ClassNames.THROWABLE)
                             .addStatement("cont.resumeWith(%T.failure(%N))", coroResultClass, "error")
                             .build())
                     .build()
