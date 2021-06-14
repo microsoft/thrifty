@@ -1,10 +1,18 @@
 package com.microsoft.thrifty.integration.conformance.server
 
+import com.microsoft.thrifty.integration.kgen.coro.HasUnion
+import com.microsoft.thrifty.integration.kgen.coro.Insanity
+import com.microsoft.thrifty.integration.kgen.coro.NonEmptyUnion
+import com.microsoft.thrifty.integration.kgen.coro.Numberz
 import com.microsoft.thrifty.integration.kgen.coro.ThriftTest
+import com.microsoft.thrifty.integration.kgen.coro.UnionWithDefault
 import com.microsoft.thrifty.integration.kgen.coro.UserId
+import com.microsoft.thrifty.integration.kgen.coro.Xception
+import com.microsoft.thrifty.integration.kgen.coro.Xception2
+import com.microsoft.thrifty.integration.kgen.coro.Xtruct
+import com.microsoft.thrifty.integration.kgen.coro.Xtruct2
 import okio.ByteString
 import org.apache.thrift.TException
-import java.util.LinkedHashMap
 
 class ThriftTestHandler : ThriftTest {
     override suspend fun testVoid() {
@@ -39,11 +47,11 @@ class ThriftTestHandler : ThriftTest {
         return thing
     }
 
-    override suspend fun testStruct(thing: com.microsoft.thrifty.integration.kgen.coro.Xtruct): com.microsoft.thrifty.integration.kgen.coro.Xtruct {
+    override suspend fun testStruct(thing: Xtruct): Xtruct {
         return thing
     }
 
-    override suspend fun testNest(thing: com.microsoft.thrifty.integration.kgen.coro.Xtruct2): com.microsoft.thrifty.integration.kgen.coro.Xtruct2 {
+    override suspend fun testNest(thing: Xtruct2): Xtruct2 {
         return thing
     }
 
@@ -63,7 +71,7 @@ class ThriftTestHandler : ThriftTest {
         return thing
     }
 
-    override suspend fun testEnum(thing: com.microsoft.thrifty.integration.kgen.coro.Numberz): com.microsoft.thrifty.integration.kgen.coro.Numberz {
+    override suspend fun testEnum(thing: Numberz): Numberz {
         return thing
     }
 
@@ -95,7 +103,7 @@ class ThriftTestHandler : ThriftTest {
         return result
     }
 
-    override suspend fun testInsanity(argument: com.microsoft.thrifty.integration.kgen.coro.Insanity): Map<UserId, Map<com.microsoft.thrifty.integration.kgen.coro.Numberz, com.microsoft.thrifty.integration.kgen.coro.Insanity>> {
+    override suspend fun testInsanity(argument: Insanity): Map<UserId, Map<Numberz, Insanity>> {
         /*
      *   { 1 => { 2 => argument,
      *            3 => argument,
@@ -112,14 +120,14 @@ class ThriftTestHandler : ThriftTest {
      *     2 => { 6 => <empty Insanity struct>, },
      *   }
      */
-        val result: MutableMap<Long, Map<com.microsoft.thrifty.integration.kgen.coro.Numberz, com.microsoft.thrifty.integration.kgen.coro.Insanity>> = LinkedHashMap()
-        val first: MutableMap<com.microsoft.thrifty.integration.kgen.coro.Numberz, com.microsoft.thrifty.integration.kgen.coro.Insanity> = LinkedHashMap()
-        val second: MutableMap<com.microsoft.thrifty.integration.kgen.coro.Numberz, com.microsoft.thrifty.integration.kgen.coro.Insanity> = LinkedHashMap()
+        val result: MutableMap<Long, Map<Numberz, Insanity>> = LinkedHashMap()
+        val first: MutableMap<Numberz, Insanity> = LinkedHashMap()
+        val second: MutableMap<Numberz, Insanity> = LinkedHashMap()
 
-        first[com.microsoft.thrifty.integration.kgen.coro.Numberz.TWO] = argument
-        first[com.microsoft.thrifty.integration.kgen.coro.Numberz.THREE] = argument
+        first[Numberz.TWO] = argument
+        first[Numberz.THREE] = argument
 
-        second[com.microsoft.thrifty.integration.kgen.coro.Numberz.SIX] = com.microsoft.thrifty.integration.kgen.coro.Insanity(null, null)
+        second[Numberz.SIX] = Insanity(null, null)
 
         result[1L] = first
         result[2L] = second
@@ -127,52 +135,59 @@ class ThriftTestHandler : ThriftTest {
         return result
     }
 
-    override suspend fun testMulti(arg0: Byte, arg1: Int, arg2: Long, arg3: Map<Short, String>, arg4: com.microsoft.thrifty.integration.kgen.coro.Numberz, arg5: UserId): com.microsoft.thrifty.integration.kgen.coro.Xtruct {
-        return com.microsoft.thrifty.integration.kgen.coro.Xtruct("Hello2", arg0, arg1, arg2, null, null)
+    override suspend fun testMulti(
+        arg0: Byte,
+        arg1: Int,
+        arg2: Long,
+        arg3: Map<Short, String>,
+        arg4: Numberz,
+        arg5: UserId
+    ): Xtruct {
+        return Xtruct("Hello2", arg0, arg1, arg2, null, null)
     }
 
     override suspend fun testException(arg: String) {
         if ("TException" == arg) {
             throw TException()
         } else if ("Xception" == arg) {
-            throw com.microsoft.thrifty.integration.kgen.coro.Xception(1001, "Xception")
+            throw Xception(1001, "Xception")
         }
     }
 
-    override suspend fun testMultiException(arg0: String, arg1: String): com.microsoft.thrifty.integration.kgen.coro.Xtruct {
+    override suspend fun testMultiException(arg0: String, arg1: String): Xtruct {
         if ("Xception" == arg0) {
-            throw com.microsoft.thrifty.integration.kgen.coro.Xception(1001, "This is an Xception")
+            throw Xception(1001, "This is an Xception")
         } else if ("Xception2" == arg0) {
-            val xtruct = com.microsoft.thrifty.integration.kgen.coro.Xtruct(
-                    string_thing = "This is an Xception2",
-                    byte_thing = null,
-                    i32_thing = null,
-                    i64_thing = null,
-                    double_thing = null,
-                    bool_thing = null
-            )
-            throw com.microsoft.thrifty.integration.kgen.coro.Xception2(2002, xtruct)
-        }
-
-        return com.microsoft.thrifty.integration.kgen.coro.Xtruct(
-                string_thing = arg1,
+            val xtruct = Xtruct(
+                string_thing = "This is an Xception2",
                 byte_thing = null,
                 i32_thing = null,
                 i64_thing = null,
                 double_thing = null,
                 bool_thing = null
+            )
+            throw Xception2(2002, xtruct)
+        }
+
+        return Xtruct(
+            string_thing = arg1,
+            byte_thing = null,
+            i32_thing = null,
+            i64_thing = null,
+            double_thing = null,
+            bool_thing = null
         )
     }
 
     override suspend fun testOneway(secondsToSleep: Int) {
     }
 
-    override suspend fun testUnionArgument(arg0: com.microsoft.thrifty.integration.kgen.coro.NonEmptyUnion): com.microsoft.thrifty.integration.kgen.coro.HasUnion {
-        val result = com.microsoft.thrifty.integration.kgen.coro.HasUnion(arg0)
+    override suspend fun testUnionArgument(arg0: NonEmptyUnion): HasUnion {
+        val result = HasUnion(arg0)
         return result
     }
 
-    override suspend fun testUnionWithDefault(theArg: com.microsoft.thrifty.integration.kgen.coro.UnionWithDefault): com.microsoft.thrifty.integration.kgen.coro.UnionWithDefault {
+    override suspend fun testUnionWithDefault(theArg: UnionWithDefault): UnionWithDefault {
         return theArg
     }
 
