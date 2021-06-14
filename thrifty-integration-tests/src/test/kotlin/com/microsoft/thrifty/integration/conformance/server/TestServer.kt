@@ -26,30 +26,18 @@ import com.microsoft.thrifty.protocol.CompactProtocol
 import com.microsoft.thrifty.protocol.JsonProtocol
 import com.microsoft.thrifty.protocol.Protocol
 import com.microsoft.thrifty.testing.ServerProtocol
-import com.microsoft.thrifty.testing.ServerTransport
-import com.microsoft.thrifty.transport.BufferTransport
-import com.microsoft.thrifty.transport.SocketTransport
 import com.microsoft.thrifty.transport.Transport
 import com.sun.net.httpserver.HttpContext
+import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import kotlinx.coroutines.runBlocking
+import okio.Buffer
 import org.junit.jupiter.api.extension.AfterEachCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.Extension
 import org.junit.jupiter.api.extension.ExtensionContext
-import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.Executors
-
-import java.util.concurrent.ThreadPoolExecutor
-import java.io.OutputStream
-
-import java.io.IOException
-
-import com.sun.net.httpserver.HttpExchange
-import kotlinx.coroutines.runBlocking
-import okio.Buffer
 
 
 class TestServer @JvmOverloads constructor(private val protocol: ServerProtocol = ServerProtocol.BINARY) : Extension, BeforeEachCallback, AfterEachCallback {
