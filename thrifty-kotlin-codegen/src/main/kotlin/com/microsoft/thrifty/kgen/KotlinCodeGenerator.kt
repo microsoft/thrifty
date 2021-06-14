@@ -62,7 +62,10 @@ import com.microsoft.thrifty.service.AsyncClientBase
 import com.microsoft.thrifty.service.MethodCall
 import com.microsoft.thrifty.service.ServiceMethodCallback
 import com.microsoft.thrifty.service.TMessageType
-import com.microsoft.thrifty.service.server.*
+import com.microsoft.thrifty.service.server.DefaultErrorHandler
+import com.microsoft.thrifty.service.server.ErrorHandler
+import com.microsoft.thrifty.service.server.Processor
+import com.microsoft.thrifty.service.server.ServerCall
 import com.microsoft.thrifty.util.ObfuscationUtil
 import com.microsoft.thrifty.util.ProtocolUtil
 import com.squareup.kotlinpoet.AnnotationSpec
