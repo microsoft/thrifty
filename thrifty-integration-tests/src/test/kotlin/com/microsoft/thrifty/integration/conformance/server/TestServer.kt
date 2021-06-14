@@ -40,12 +40,13 @@ import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 
 
-class TestServer @JvmOverloads constructor(private val protocol: ServerProtocol = ServerProtocol.BINARY) : Extension, BeforeEachCallback, AfterEachCallback {
+class TestServer(private val protocol: ServerProtocol = ServerProtocol.BINARY) : Extension, BeforeEachCallback,
+    AfterEachCallback {
     val processor = ThriftTestProcessor(ThriftTestHandler())
     private var server: HttpServer? = null
 
-    class TestTransport @JvmOverloads constructor(
-            val b: Buffer = Buffer()
+    class TestTransport(
+        val b: Buffer = Buffer()
     ) : Transport {
 
         override fun read(buffer: ByteArray, offset: Int, count: Int) = b.read(buffer, offset, count)
