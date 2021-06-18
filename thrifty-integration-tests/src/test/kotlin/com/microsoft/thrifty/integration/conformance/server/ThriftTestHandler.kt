@@ -1,16 +1,16 @@
 package com.microsoft.thrifty.integration.conformance.server
 
-import com.microsoft.thrifty.integration.kgen.coro.HasUnion
-import com.microsoft.thrifty.integration.kgen.coro.Insanity
-import com.microsoft.thrifty.integration.kgen.coro.NonEmptyUnion
-import com.microsoft.thrifty.integration.kgen.coro.Numberz
-import com.microsoft.thrifty.integration.kgen.coro.ThriftTest
-import com.microsoft.thrifty.integration.kgen.coro.UnionWithDefault
-import com.microsoft.thrifty.integration.kgen.coro.UserId
-import com.microsoft.thrifty.integration.kgen.coro.Xception
-import com.microsoft.thrifty.integration.kgen.coro.Xception2
-import com.microsoft.thrifty.integration.kgen.coro.Xtruct
-import com.microsoft.thrifty.integration.kgen.coro.Xtruct2
+import com.microsoft.thrifty.integration.kgen.HasUnion
+import com.microsoft.thrifty.integration.kgen.Insanity
+import com.microsoft.thrifty.integration.kgen.NonEmptyUnion
+import com.microsoft.thrifty.integration.kgen.Numberz
+import com.microsoft.thrifty.integration.kgen.server.ThriftTest
+import com.microsoft.thrifty.integration.kgen.UnionWithDefault
+import com.microsoft.thrifty.integration.kgen.UserId
+import com.microsoft.thrifty.integration.kgen.Xception
+import com.microsoft.thrifty.integration.kgen.Xception2
+import com.microsoft.thrifty.integration.kgen.Xtruct
+import com.microsoft.thrifty.integration.kgen.Xtruct2
 import okio.ByteString
 import org.apache.thrift.TException
 

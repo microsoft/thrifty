@@ -20,7 +20,7 @@
  */
 package com.microsoft.thrifty.integration.conformance.server
 
-import com.microsoft.thrifty.integration.kgen.coro.ThriftTestProcessor
+import com.microsoft.thrifty.integration.kgen.ThriftTestProcessor
 import com.microsoft.thrifty.protocol.BinaryProtocol
 import com.microsoft.thrifty.protocol.CompactProtocol
 import com.microsoft.thrifty.protocol.JsonProtocol
