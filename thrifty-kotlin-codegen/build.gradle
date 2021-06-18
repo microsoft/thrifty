@@ -37,4 +37,5 @@ dependencies {
 
     testImplementation deps.bundles.kotlin
     testImplementation deps.bundles.testing
+    testImplementation 'com.github.tschuchortdev:kotlin-compile-testing:1.4.2'
 }
