@@ -327,15 +327,15 @@ class KotlinCodeGenerator(
         }
 
         if (generateServer) {
-            check(coroutineServiceClients) { "Server feature currently requires coroutineServiceClients to be enabled" }
             schema.services.forEach {
+                val iface = generateCoroServiceInterface(it)
+                specsByNamespace.put(getServerNamespaceFor(it), iface)
                 specsByNamespace.put(
                         it.kotlinNamespace,
                         generateProcessorImplementation(
                                 schema,
                                 it,
-                                generateCoroServiceInterface(it),
-                                specsByNamespace
+                                iface
                         )
                 )
             }
@@ -392,6 +392,9 @@ class KotlinCodeGenerator(
             }
         }
     }
+
+    private fun getServerNamespaceFor(serviceType: ServiceType) = "${serviceType.kotlinNamespace}.server"
+    private fun getServerTypeName(serviceType: ServiceType) = ClassName(getServerNamespaceFor(serviceType), serviceType.name)
 
     // region Aliases
 
@@ -2011,12 +2014,12 @@ class KotlinCodeGenerator(
         return type.build()
     }
 
-    internal fun generateProcessorImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec, specsByNamespace: LinkedHashMultimap<String, TypeSpec>): TypeSpec {
+    internal fun generateProcessorImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
         val serverTypeName = serviceType.name + "Processor"
         val type = TypeSpec.classBuilder(serverTypeName).apply {
             primaryConstructor(
                     FunSpec.constructorBuilder()
-                            .addParameter("handler", serviceType.typeName)
+                            .addParameter("handler", getServerTypeName(serviceType))
                             .addParameter(ParameterSpec.builder(
                                     "errorHandler",
                                     ErrorHandler::class,
@@ -2031,7 +2034,7 @@ class KotlinCodeGenerator(
                             .build()
             )
             addProperty(
-                    PropertySpec.builder("handler", serviceType.typeName)
+                    PropertySpec.builder("handler", getServerTypeName(serviceType))
                             .initializer("handler")
                             .addModifiers(KModifier.PRIVATE)
                             .build()
@@ -2056,7 +2059,7 @@ class KotlinCodeGenerator(
             specsByNamespace.put(serviceType.kotlinNamespace, argsDataClass)
             specsByNamespace.put(serviceType.kotlinNamespace, resultDataClass)
 
-            val call = buildServerCallType(schema, method, interfaceFun, argsDataClass, resultDataClass)
+            val call = buildServerCallType(serviceType, method, interfaceFun, argsDataClass, resultDataClass)
             type.addType(call)
 
             spec.addCode {
@@ -2081,12 +2084,18 @@ class KotlinCodeGenerator(
         return type.build()
     }
 
-    private fun buildServerCallType(schema: Schema, method: ServiceMethod, interfaceFun: FunSpec, argsDataClass: TypeSpec, resultDataClass: TypeSpec): TypeSpec {
+    private fun buildServerCallType(
+        serviceType: ServiceType,
+        method: ServiceMethod,
+        interfaceFun: FunSpec,
+        argsDataClass: TypeSpec,
+        resultDataClass: TypeSpec
+    ): TypeSpec {
         val callName = callTypeName(method)
         val nameAllocator = nameAllocators[method]
 
         val argsTypeName = method.argsStruct.typeName
-        val handlerTypeName = schema.services.single { it.methods.contains(method) }.typeName
+        val handlerTypeName = getServerTypeName(serviceType)
         val superType = ServerCall::class
             .asTypeName()
             .parameterizedBy(argsTypeName, handlerTypeName)

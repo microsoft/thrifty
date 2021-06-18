@@ -241,7 +241,6 @@ class KotlinCodeGeneratorTest {
         """.trimIndent()
 
         val specs = generate(thrift) {
-            coroutineServiceClients()
             generateServer()
             withDataClassBuilders()
         }
