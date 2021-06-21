@@ -53,7 +53,7 @@ Or, with the Gradle plugin:
 
 buildscript {
   dependencies {
-    classpath 'com.microsoft.thrifty:thrifty-gradle-plugin:3.0.0-RC1'
+    classpath 'com.microsoft.thrifty:thrifty-gradle-plugin:3.0.0-RC01'
   }
 }
 

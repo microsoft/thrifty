@@ -1,6 +1,20 @@
-3.0.0 (unreleased)
+3.0.0-RC01 (released 21 June 2021)
 ------------------
-- ???: BREAK: Fields whose names are "soft" or "modifier" Kotlin keywords now have an underscore suffix
+- BREAK: All support for `@Generated` annotations has been removed (#402)
+- BREAK: thrifty-runtime-ktx is gone, and has been merged into thrifty-runtime (#397)
+- BREAK: thrifty-runtime ported to Kotlin (#391)
+- BREAK: Minimum supported JDK is now version 8 (#391)
+- BREAK: Fields whose names are "soft" or "modifier" Kotlin keywords now have an underscore suffix (thanks @luqasn) (#446)
+- Add Okio-based convenience APIs to thrifty-runtime (#408)
+- Add big-enum mode to enable enums with large numbers of members (Thanks @shashachu) (#421)
+- Change: Kotlin structs are builderless by default (#414)
+- Change: Gradle plugin defaults to Kotlin (#442)
+- Change: thrifty-compiler defaults to generating Kotlin (#451)
+- Fix: Empty structs use literal class name for hashCode (#415)
+- Fix: `Location` in thrifty-schema should always be an include root (#416)
+- Fix: Make `@JvmStatic` annotations opt-in (#417)
+- Fix: Including sibling .thrift files now works (#434)
+- Fix: Unions with fields named `error` (thanks @luqasn) (#444)
 
 2.1.1 (released 13 July 2020)
 ------------------
