@@ -319,7 +319,7 @@ There are a few new command-line options to control Kotlin code generation:
 ```
 java -jar thrifty-compiler.jar \
     --lang=kotlin \
-    --kt-coroutine-clients \
+    --service-type=coroutine \
     --kt-file-per-type \
     --omit-file-comments \
     --kt-struct-builders \
