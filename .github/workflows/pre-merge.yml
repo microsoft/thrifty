@@ -39,6 +39,11 @@ jobs:
             cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}
             cache-gradle-${{ matrix.os }}k-${{ matrix.jvm-version }}
 
+      - name: Ensure all code files have license headers
+        shell: bash
+        run: |
+          ./script/ensure_license_headers.sh
+
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
