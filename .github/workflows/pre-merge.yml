@@ -42,8 +42,7 @@ jobs:
       - name: Ensure all code files have license headers
         shell: bash
         run: |
-          LINES="$(find . -name "*.kt" | xargs grep -L -E "Copyright \((c|C)\)" | grep -v generated-src | grep -v 'test/projects' | wc -l)"
-          test "$LINES" -eq "0"
+          ./script/ensure_license_headers.sh
 
       - name: Set up JDK
         uses: actions/setup-java@v1
