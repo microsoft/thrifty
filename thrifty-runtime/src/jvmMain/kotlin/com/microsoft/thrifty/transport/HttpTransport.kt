@@ -19,8 +19,8 @@
 package com.microsoft.thrifty.transport
 
 
+import com.microsoft.thrifty.internal.ProtocolException
 import java.io.ByteArrayOutputStream
-import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -42,7 +42,7 @@ import java.net.URL
  *
  * @see [THRIFT-970](https://issues.apache.org/jira/browse/THRIFT-970)
  */
-open class THttpTransport(url: String) : Transport {
+open class HttpTransport(url: String) : Transport {
     private val url: URL = URL(url)
     private var currentState: Transport = Writing()
     private var connectTimeout: Int? = null
@@ -52,7 +52,7 @@ open class THttpTransport(url: String) : Transport {
 
     private inner class Writing : Transport {
         override fun read(buffer: ByteArray, offset: Int, count: Int): Int {
-            error("Currently in writing state")
+            throw ProtocolException("Currently in writing state")
         }
 
         override fun write(buffer: ByteArray, offset: Int, count: Int) {
@@ -72,23 +72,19 @@ open class THttpTransport(url: String) : Transport {
 
     private inner class Reading(val inputStream: InputStream) : Transport {
         override fun read(buffer: ByteArray, offset: Int, count: Int): Int {
-            val ret = try {
-                inputStream.read(buffer, offset, count)
-            } catch (iox: IOException) {
-                throw TTransportException(iox)
-            }
+            val ret = inputStream.read(buffer, offset, count)
             if (ret == -1) {
-                throw TTransportException("No more data available.")
+                throw ProtocolException("No more data available.")
             }
             return ret
         }
 
         override fun write(buffer: ByteArray, offset: Int, count: Int) {
-            error("currently in reading state")
+            throw ProtocolException("currently in reading state")
         }
 
         override fun flush() {
-            error("currently in reading state")
+            throw ProtocolException("currently in reading state")
         }
 
         override fun close() {
@@ -97,24 +93,20 @@ open class THttpTransport(url: String) : Transport {
     }
 
     fun send(data: ByteArray) {
-        try {
-            // Create connection object
-            val connection = url.openConnection() as HttpURLConnection
+        // Create connection object
+        val connection = url.openConnection() as HttpURLConnection
 
-            prepareConnection(connection)
-            // Make the request
-            connection.connect()
-            connection.outputStream.write(data)
-            val responseCode = connection.responseCode
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                throw TTransportException("HTTP Response code: $responseCode")
-            }
-
-            // Read the response
-            this.currentState = Reading(connection.inputStream)
-        } catch (iox: IOException) {
-            throw TTransportException(iox)
+        prepareConnection(connection)
+        // Make the request
+        connection.connect()
+        connection.outputStream.write(data)
+        val responseCode = connection.responseCode
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            throw ProtocolException("HTTP Response code: $responseCode")
         }
+
+        // Read the response
+        this.currentState = Reading(connection.inputStream)
     }
 
     protected open fun prepareConnection(connection: HttpURLConnection) {
