@@ -3,12 +3,8 @@ plugins {
     id 'java-library'
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    api "com.microsoft.thrifty:thrifty-runtime:2.1.2"
+    api msft.thrifty.runtime
 }
 
 thrifty {

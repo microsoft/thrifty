@@ -110,6 +110,9 @@ subprojects { sp ->
     apply plugin: 'idea'
     apply plugin: 'jacoco'
 
+    sp.targetCompatibility = "1.8"
+    sp.sourceCompatibility = "1.8"
+
     tasks.withType(JavaCompile).configureEach {
         options.fork = true
         options.incremental = true

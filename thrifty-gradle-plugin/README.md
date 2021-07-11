@@ -91,3 +91,9 @@ thrifty {
     }
 }
 ```
+
+### Implementation Notes
+
+Unlike the rest of Thrifty, this plugin is written in Java.  This is because Gradle bundles its own version of Kotlin, and provides no guarantee that it will be compatible with any other Kotlin code.
+
+According to Gradle's own advice, the _only_ safe way to use Kotlin in Gradle plugins, long-term, is to encapsulate all of it behind a classpath-isolated invocation of their Worker API.  This is what we do.
