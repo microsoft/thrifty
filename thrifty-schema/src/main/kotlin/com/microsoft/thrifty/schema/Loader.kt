@@ -34,6 +34,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.ArrayDeque
 import java.util.LinkedHashMap
+import kotlin.jvm.Throws
 
 /**
  * Loads a [Schema] from a set of Thrift files and include paths.
@@ -122,6 +123,7 @@ class Loader {
      * @throws LoadFailedException
      * if parsing fails for any reason.
      */
+    @Throws(LoadFailedException::class)
     fun load(): Schema {
         try {
             loadFromDisk()

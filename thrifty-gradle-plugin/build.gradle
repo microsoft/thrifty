@@ -20,7 +20,6 @@
  */
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm'
     id 'java-gradle-plugin'
     id 'com.vanniktech.maven.publish'
     id 'com.gradle.plugin-publish' version '0.12.0'
@@ -43,18 +42,49 @@ gradlePlugin {
     }
 }
 
+def versionTask = tasks.register("generateVersionProps") { t ->
+    def generatedResourcesDir = project.layout.buildDirectory.dir(["generated", "sources", "thrifty", "src", "main", "resources"].join(File.separator))
+    def outputFile = generatedResourcesDir.map {it -> it.file("thrifty-version.properties") }
+
+    t.inputs.property("thrifty-version", VERSION_NAME)
+    t.outputs.dir(generatedResourcesDir).withPropertyName("outputDir")
+
+    doFirst {
+        outputFile.get().getAsFile().text = "THRIFTY_VERSION=${VERSION_NAME}\nKOTLIN_VERSION=${kotlin_version}"
+    }
+}
+
+tasks.named("clean") {
+    delete versionTask
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs += versionTask
+        }
+    }
+}
+
 dependencies {
     compileOnly gradleApi()
 
-    api libraries.antlr
-    api libraries.kotlin
+    compileOnly project(':thrifty-java-codegen')
+    compileOnly project(':thrifty-kotlin-codegen')
+    compileOnly project(':thrifty-schema')
 
-    implementation project(':thrifty-java-codegen')
-    implementation project(':thrifty-kotlin-codegen')
-    implementation project(':thrifty-schema')
+    implementation "com.google.guava:guava:30.1.1-jre"
 
-    // Required for test fixtures to apply the kotlin plugin
-    implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.7.1"
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+}
 
-    testImplementation libraries.testing
+def installLocal = tasks.register("installForTesting") {
+    dependsOn project.rootProject.subprojects
+            .collect {it.tasks.findByName("publishToMavenLocal") }
+            .findAll { it != null }
+}
+
+tasks.withType(Test) {
+    dependsOn installLocal
 }
