@@ -19,126 +19,13 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
-allprojects {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-    }
+plugins {
+    id 'com.vanniktech.maven.publish' apply false
+    id 'org.jetbrains.dokka' apply false
+    id 'org.jetbrains.kotlin.jvm' apply false
 
-    group GROUP
-    version VERSION_NAME
-
-    project.ext {
-        kotlin_version = '1.4.30'
-
-        libraries = [
-                antlr: [
-                        'org.antlr:antlr4:4.9.1'
-                ],
-
-                clikt: [
-                        'com.github.ajalt.clikt:clikt:3.1.0'
-                ],
-
-                guava: [
-                        'com.google.guava:guava:29.0-jre'
-                ],
-
-                javaPoet: [
-                        'com.squareup:javapoet:1.13.0'
-                ],
-
-                kotlin: [
-                        dependencies.platform("org.jetbrains.kotlin:kotlin-bom:$kotlin_version"),
-                        "org.jetbrains.kotlin:kotlin-reflect",
-                ],
-
-                kotlinPoet: [
-                        dependencies.create('com.squareup:kotlinpoet:1.8.0') {
-                            exclude module: 'kotlin-stdlib'
-                            exclude module: 'kotlin-reflect'
-                        },
-                        "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-                ],
-
-                okio: [
-                        'com.squareup.okio:okio:2.10.0'
-                ],
-
-                okioMulti: 'com.squareup.okio:okio-multiplatform:2.10.0',
-
-                testing: [
-                        "org.junit.jupiter:junit-jupiter:5.7.1",
-
-                        'org.hamcrest:hamcrest:2.2',
-                        dependencies.create('io.kotest:kotest-assertions-core-jvm:4.4.1') {
-                            exclude module: 'kotlin-stdlib'
-                            exclude module: 'kotlin-reflect'
-                        },
-                        dependencies.create('io.kotest:kotest-assertions-core:4.4.1') {
-                            exclude module: 'kotlin-stdlib'
-                            exclude module: 'kotlin-reflect'
-                        },
-                        dependencies.create('io.kotest:kotest-assertions-compiler:4.0.5') {
-                            exclude module: 'kotlin-stdlib'
-                            exclude module: 'kotlin-reflect'
-                        },
-                        dependencies.platform("org.jetbrains.kotlin:kotlin-bom:$kotlin_version"),
-                ]
-        ]
-    }
+    id 'jacoco'
 }
-
-buildscript {
-    repositories {
-        mavenCentral()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.30"
-        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.4.30'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
-        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.13.0'
-    }
-}
-
-subprojects { sp ->
-    apply plugin: 'java-library'
-    apply plugin: 'idea'
-    apply plugin: 'jacoco'
-
-    sp.targetCompatibility = "1.8"
-    sp.sourceCompatibility = "1.8"
-
-    tasks.withType(JavaCompile).configureEach {
-        options.fork = true
-        options.incremental = true
-    }
-
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "1.8"
-            freeCompilerArgs = ['-Xjvm-default=enable']
-        }
-    }
-
-    test {
-        testLogging {
-            events "failed"
-            exceptionFormat "full"
-            showStackTraces true
-            showExceptions true
-            showCauses true
-        }
-
-        useJUnitPlatform()
-    }
-}
-
-apply plugin: 'jacoco'
 
 tasks.register("codeCoverageReport", JacocoReport) { t ->
     t.dependsOn subprojects*.test
@@ -150,10 +37,10 @@ tasks.register("codeCoverageReport", JacocoReport) { t ->
     }
 
     t.reports {
-        xml.enabled = true
+        xml.required = true
         xml.destination layout.buildDirectory.file("reports/jacoco/report.xml").map { it.asFile }
-        html.enabled = true
-        csv.enabled = false
+        html.required = true
+        csv.required = false
     }
 
     def filters = [ "**/AutoValue_*", "**/antlr/*", "com/microsoft/thrifty/test/gen/*"]
@@ -163,8 +50,8 @@ tasks.register("codeCoverageReport", JacocoReport) { t ->
 }
 
 wrapper {
-    gradleVersion = "6.6"
-    distributionType = Wrapper.DistributionType.ALL
+    gradleVersion = "7.1.1"
+    distributionType = Wrapper.DistributionType.BIN
 }
 
 def ci = providers.environmentVariable("CI").forUseAtConfigurationTime()

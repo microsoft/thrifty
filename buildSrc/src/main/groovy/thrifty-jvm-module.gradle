@@ -18,11 +18,34 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
+
 plugins {
-    id 'thrifty-jvm-module'
+    id 'java-library'
+    id 'idea'
+    id 'jacoco'
 }
 
-dependencies {
-    api deps.junitApi
-    implementation deps.apacheThrift
+group GROUP
+version VERSION_NAME
+
+java {
+    targetCompatibility = "1.8"
+    sourceCompatibility = "1.8"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.fork = true
+    options.incremental = true
+}
+
+test {
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+        showStackTraces true
+        showExceptions true
+        showCauses true
+    }
+
+    useJUnitPlatform()
 }

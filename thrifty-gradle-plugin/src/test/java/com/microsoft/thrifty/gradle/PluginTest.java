@@ -65,6 +65,7 @@ public class PluginTest {
         File fixture = new File(fixturesDir, fixtureName);
         File settings = new File(fixture, "settings.gradle");
         File buildDirectory = new File(fixture, "build");
+        File gradleDirectory = new File(fixture, ".gradle");
 
         boolean didCreateSettings = settings.createNewFile();
 
@@ -110,6 +111,7 @@ public class PluginTest {
         } finally {
             if (didCreateSettings) settings.delete();
             if (buildDirectory.exists()) deleteRecursively(buildDirectory);
+            if (gradleDirectory.exists()) deleteRecursively(gradleDirectory);
         }
     }
 

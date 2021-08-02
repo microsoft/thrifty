@@ -20,9 +20,10 @@
  */
 
 plugins {
+    id 'thrifty-jvm-module'
     id 'java-gradle-plugin'
     id 'com.vanniktech.maven.publish'
-    id 'com.gradle.plugin-publish' version '0.12.0'
+    id 'com.gradle.plugin-publish'
 }
 
 pluginBundle {
@@ -47,10 +48,15 @@ def versionTask = tasks.register("generateVersionProps") { t ->
     def outputFile = generatedResourcesDir.map {it -> it.file("thrifty-version.properties") }
 
     t.inputs.property("thrifty-version", VERSION_NAME)
+    t.inputs.property("kotlin-version", KOTLIN_VERSION)
     t.outputs.dir(generatedResourcesDir).withPropertyName("outputDir")
 
     doFirst {
-        outputFile.get().getAsFile().text = "THRIFTY_VERSION=${VERSION_NAME}\nKOTLIN_VERSION=${kotlin_version}"
+        outputFile.get().getAsFile().with {
+            it.delete()
+            it << "THRIFTY_VERSION=${VERSION_NAME}\n"
+            it << "KOTLIN_VERSION=${KOTLIN_VERSION}\n"
+        }
     }
 }
 
@@ -73,10 +79,10 @@ dependencies {
     compileOnly project(':thrifty-kotlin-codegen')
     compileOnly project(':thrifty-schema')
 
-    implementation "com.google.guava:guava:30.1.1-jre"
+    implementation deps.guava
 
-    testImplementation "org.junit.jupiter:junit-jupiter:5.7.1"
-    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testImplementation deps.junit
+    testImplementation deps.hamcrest
 }
 
 def installLocal = tasks.register("installForTesting") {

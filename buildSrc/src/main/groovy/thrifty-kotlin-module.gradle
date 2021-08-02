@@ -18,11 +18,27 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
+
 plugins {
     id 'thrifty-jvm-module'
+    id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.dokka'
 }
 
 dependencies {
-    api deps.junitApi
-    implementation deps.apacheThrift
+    api platform(deps.kotlin.bom)
+}
+
+tasks.named('compileKotlin').configure {
+    kotlinOptions {
+        jvmTarget = '1.8'
+        freeCompilerArgs = ['-Xjvm-default=enable']
+    }
+}
+
+tasks.named('compileTestKotlin').configure {
+    kotlinOptions {
+        jvmTarget = '1.8'
+        freeCompilerArgs = ['-Xjvm-default=enable']
+    }
 }
