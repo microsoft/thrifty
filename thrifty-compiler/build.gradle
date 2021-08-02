@@ -19,9 +19,11 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
-apply plugin: 'kotlin'
-apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'com.vanniktech.maven.publish'
+plugins {
+    id 'thrifty-kotlin-module'
+    id 'com.github.johnrengelman.shadow'
+    id 'com.vanniktech.maven.publish'
+}
 
 dependencies {
     implementation project(':thrifty-schema')
@@ -29,8 +31,8 @@ dependencies {
     implementation project(':thrifty-kotlin-codegen')
     implementation project(':thrifty-compiler-plugins')
 
-    implementation libraries.clikt
-    implementation libraries.kotlin
+    implementation deps.clikt
+    implementation deps.bundles.kotlin
 }
 
 sourceSets {

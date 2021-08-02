@@ -19,7 +19,7 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 plugins {
-    id 'kotlin'
+    id 'thrifty-kotlin-module'
     id 'antlr'
     id 'com.vanniktech.maven.publish'
 }
@@ -31,19 +31,18 @@ generateGrammarSource {
 }
 
 dependencies {
-    antlr libraries.antlr
-    implementation libraries.antlr
+    antlr deps.antlr
+    implementation deps.antlr
 
-    api libraries.guava
-    api libraries.kotlin
+    api deps.guava
+    api deps.bundles.kotlin
 
-    implementation libraries.okio
+    implementation deps.okio
 
-    testImplementation libraries.testing
+    testImplementation deps.bundles.testing
 }
 
 // For some reason, Kotlin compilation is being run prior to antlr by default.
-sourceSets {
-    main.java.srcDir tasks.named("generateGrammarSource", AntlrTask).map { it.outputDirectory }
-    test.java.srcDir tasks.named("generateTestGrammarSource", AntlrTask).map { it.outputDirectory }
+tasks.named('compileKotlin').configure {
+    dependsOn 'generateGrammarSource'
 }

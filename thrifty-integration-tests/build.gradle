@@ -19,19 +19,21 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
-apply plugin: 'kotlin'
-apply plugin: 'application'
-apply plugin: 'com.github.johnrengelman.shadow'
+plugins {
+    id 'thrifty-kotlin-module'
+    id 'application'
+    id 'com.github.johnrengelman.shadow'
+}
 
 dependencies {
     implementation project(':thrifty-compiler')
 
     testImplementation project(':thrifty-runtime')
     testImplementation project(':thrifty-test-server')
-    testImplementation libraries.guava
+    testImplementation deps.guava
 
-    testImplementation libraries.kotlin
-    testImplementation libraries.testing
+    testImplementation deps.bundles.kotlin
+    testImplementation deps.bundles.testing
 }
 
 sourceSets {

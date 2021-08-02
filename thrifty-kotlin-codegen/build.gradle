@@ -19,19 +19,22 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
-apply plugin: 'kotlin'
-apply plugin: 'com.vanniktech.maven.publish'
+plugins {
+    id 'thrifty-kotlin-module'
+    id 'com.vanniktech.maven.publish'
+}
 
 description = 'Converts Thrifty Schemas into Kotlin source files'
 
 dependencies {
     api project(":thrifty-schema")
     api project(":thrifty-compiler-plugins")
-    api libraries.kotlin
-    api libraries.okio
+    api deps.bundles.kotlin
+    api deps.okio
 
     implementation project(':thrifty-runtime')
-    implementation libraries.kotlinPoet
+    implementation deps.kotlinPoet
 
-    testImplementation libraries.testing
+    testImplementation deps.bundles.kotlin
+    testImplementation deps.bundles.testing
 }
