@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-  implementation 'com.microsoft.thrifty:thrifty-runtime:3.0.0-RC01'
+  implementation 'com.microsoft.thrifty:thrifty-runtime-jvm:3.0.0'
 }
 ```
 
@@ -53,7 +53,7 @@ Or, with the Gradle plugin:
 
 buildscript {
   dependencies {
-    classpath 'com.microsoft.thrifty:thrifty-gradle-plugin:3.0.0-RC01'
+    classpath 'com.microsoft.thrifty:thrifty-gradle-plugin:3.0.0'
   }
 }
 
@@ -254,7 +254,7 @@ val results = async { client.search(query) }.await()
 
 Every project has its own requirements, and no one style of boilerplate can fill them all.  Thrifty offers a small but 
 powerful plugin model that you can implement, using the standard Java SPI mechanism, which will allow one to customize
-each generated Java class before it is written out to disk.  Read more about it in the [thrifty-compiler-plugins README](thrifty-compiler-plugins/README.md).  You can see a worked example in [thrifty-example-postprocessor](thrifty-example-postprocessor).
+each generated class before it is written out to disk.  Read more about it in the [thrifty-compiler-plugins README](thrifty-compiler-plugins/README.md).  You can see a worked example in [thrifty-example-postprocessor](thrifty-example-postprocessor).
 
 ### Hiding PII with Redaction and Obfuscation
 
@@ -309,7 +309,7 @@ more method references than Kotlin.  Instead of data classes, Java structs are f
 and are constructable only with dedicated `Builder` types.
 
 To generate Java classes, pass `--lang=java` to the compiler (if using the command-line compiler), or provide a `java {}` block
-within the thrifty Gradle plugin configuration.
+within the thrifty Gradle plugin configuration block.
 
 ## Language-specific command-line options
 ### Kotlin-specific command-line options
