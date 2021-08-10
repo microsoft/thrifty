@@ -594,18 +594,19 @@ class KotlinCodeGenerator(
                 FunSpec.builder("findByValue")
                     .addParameter("value", Int::class)
                     .returns(enumType.typeName.copy(nullable = true))
-                    .jvmStatic()
+                    .apply { if (emitJvmStatic) jvmStatic() }
                     .addStatement(
                         "return %T.findByValue(value)",
                         lastParentClass
                     )
                     .build()
             )
+        // For smoother Java compatibility, every enum value has to be declared in the final 'enum' class
         enumType.members.forEach { member ->
             companion.addProperty(
                 PropertySpec.builder(member.name, enumType.typeName)
                     .initializer("`%L`", member.name.toGeneratedMemberName())
-                    .jvmField()
+                    .apply { if (emitJvmStatic) jvmField() }
                     .build()
             )
         }
