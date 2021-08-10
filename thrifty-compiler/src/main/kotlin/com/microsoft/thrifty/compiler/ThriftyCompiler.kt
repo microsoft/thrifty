@@ -64,7 +64,7 @@ import kotlin.system.exitProcess
  * [--kt-struct-builders]
  * [--kt-jvm-static]
  * [--kt-big-enums]
- * [--kt-huge-enum]
+ * [--kt-huge-enums]
  * [--parcelable]
  * [--use-android-annotations]
  * [--nullability-annotation-type=[none|android-support|androidx]]
@@ -120,10 +120,12 @@ import kotlin.system.exitProcess
  * representation.  Rather than each enum member containing its value, a single large
  * function mapping enums to values will be generated.  This works around some JVM class-size
  * limitations in some extreme cases, such as an enum with thousands of members.  This should
- * be avoided unless you know you need it.  Implies `--lang=kotlin`.
+ * be avoided unless you know you need it.  Implies `--lang=kotlin` and mutually-exclusive with
+ * `--kt-huge-enums`.
  *
  * `--kt-huge-enums` is optional.  When specified, generated enums will use a different
- * representation. FILL THIS OUT This should
+ * representation. Instead of `enum class`, a hierarchy of enum-like classes will be generated
+ * that is syntactically equivalent to access from Kotlin  This should
  * be avoided unless you know you need it.  Implies `--lang=kotlin`.
  *
  * `--parcelable` is optional.  When provided, generated types will contain a
