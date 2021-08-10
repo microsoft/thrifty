@@ -126,7 +126,8 @@ import kotlin.system.exitProcess
  * `--kt-huge-enums` is optional.  When specified, generated enums will use a different
  * representation. Instead of `enum class`, a hierarchy of enum-like classes will be generated
  * that is syntactically equivalent to access from Kotlin  This should
- * be avoided unless you know you need it.  Implies `--lang=kotlin`.
+ * be avoided unless you know you need it.  Implies `--lang=kotlin` and mutually-exclusive with
+ * `--kt-big-enums`.
  *
  * `--parcelable` is optional.  When provided, generated types will contain a
  * `Parcelable` implementation.  Kotlin types will use the `@Parcelize` extension.
