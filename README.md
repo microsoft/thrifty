@@ -5,7 +5,7 @@ Thrifty
 [![codecov](https://codecov.io/gh/Microsoft/thrifty/branch/master/graph/badge.svg)](https://codecov.io/gh/Microsoft/thrifty)
 
 
-Thrifty is an implementation of the Apache Thrift software stack, which uses 1/4 of the method count taken by 
+Thrifty is an implementation of the Apache Thrift software stack, which uses 1/4 of the method count taken by
 the Apache Thrift compiler, which makes it especially appealing for use on Android.
 
 Thrift is a widely-used cross-language service-definition software stack, with a nifty interface definition language
@@ -347,8 +347,13 @@ Builders are unnecessary, and are not included by default.  For compatibility wi
 
 By default, Thrifty generates one Kotlin file per JVM package.  For larger thrift files, this can be a little hard on the Kotlin compiler.  If you find build times or IDE performance suffering, the `--kt-file-per-type` flag can help.  Outlook Mobile's single, large, Kotlin file took up to one minute just to typecheck, using Kotlin 1.2.51!  For these cases, `--kt-file-per-type` will tell Thrifty to generate one single file per top-level class - just like the Java code.
 
+`--experimental-kt-generate-server` enabled code generation for the server portion of a thrift service. You can
+use this to implement a thrift server with the same benefits as the kotlin client: no runtime surprises thanks to
+structs being always valid by having nullability guarantees and unions represented as sealed classes.
+See [Server Support](#server-support).
+
 #### Server Support
-Support for generating a server implementation was only added very recently, and while it passes the 'official'
+Support for generating a Kotlin server implementation was only added very recently, and while it passes the 'official'
 [Java client integration test](https://github.com/apache/thrift/blob/master/lib/java/test/org/apache/thrift/test/TestClient.java),
 you should consider this code experimental.
 
@@ -365,12 +370,6 @@ Thrifty can be made to add various kinds of nullability annotations to Java type
 the `android.support.annotation` package.  Similarly, specifying `androidx` will use analogous annotations from `androidx.annotation`. 
 
 ## Thanks
-`--experimental-kt-generate-server` enabled code generation for the server portion of a thrift service. You can
-use this to implement a thrift server with the same benefits as the kotlin client: no runtime surprises thanks to
-structs being always valid by having nullability guarantees and unions represented as sealed classes.
-See 
-
-### Thanks
 
 Thrifty owes an enormous debt to Square and the Wire team; without them, this project would not exist.  Thanks!
 An equal debt is owed to Facebook and Apache for developing and opening Thrift to the world.
