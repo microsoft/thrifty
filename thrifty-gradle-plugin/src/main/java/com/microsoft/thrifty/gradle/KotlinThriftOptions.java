@@ -39,6 +39,7 @@ public class KotlinThriftOptions extends ThriftOptions implements Serializable {
 
     private ClientStyle serviceClientStyle = null;
     private boolean structBuilders = false;
+    private boolean generateServer = false;
 
     @Input
     @Optional
@@ -90,5 +91,14 @@ public class KotlinThriftOptions extends ThriftOptions implements Serializable {
 
     public void setStructBuilders(boolean structBuilders) {
         this.structBuilders = structBuilders;
+    }
+
+    @Input
+    public boolean isGenerateServer() {
+        return generateServer;
+    }
+
+    public void setGenerateServer(boolean generateServer) {
+        this.generateServer = generateServer;
     }
 }

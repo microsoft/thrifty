@@ -62,6 +62,10 @@ import com.microsoft.thrifty.service.AsyncClientBase
 import com.microsoft.thrifty.service.MethodCall
 import com.microsoft.thrifty.service.ServiceMethodCallback
 import com.microsoft.thrifty.service.TMessageType
+import com.microsoft.thrifty.service.server.DefaultErrorHandler
+import com.microsoft.thrifty.service.server.ErrorHandler
+import com.microsoft.thrifty.service.server.Processor
+import com.microsoft.thrifty.service.server.ServerCall
 import com.microsoft.thrifty.util.ObfuscationUtil
 import com.microsoft.thrifty.util.ProtocolUtil
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -86,6 +90,7 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.jvm.jvmField
 import com.squareup.kotlinpoet.jvm.jvmStatic
+import com.squareup.kotlinpoet.tag
 import okio.ByteString
 
 private object Tags {
@@ -109,6 +114,8 @@ private object Tags {
 // to instantiate a bunch of them.
 private object ClassNames {
     val EXCEPTION = ClassName("kotlin", "Exception")
+    val ILLEGAL_ARGUMENT_EXCEPTION = ClassName("kotlin", "IllegalArgumentException")
+    val THROWABLE = ClassName("kotlin", "Throwable")
     val RESULT = ClassName("kotlin", "Result")
     val THROWS = ClassName("kotlin", "Throws")
     val ARRAY_LIST = ClassName("kotlin.collections", "ArrayList")
@@ -142,6 +149,7 @@ class KotlinCodeGenerator(
     private var emitJvmStatic: Boolean = false
     private var emitBigEnums: Boolean = false
     private var failOnUnknownEnumValues: Boolean = true
+    private var generateServer: Boolean = false
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -247,6 +255,10 @@ class KotlinCodeGenerator(
         this.coroutineServiceClients = true
     }
 
+    fun generateServer(): KotlinCodeGenerator = apply {
+        this.generateServer = true
+    }
+
     fun emitJvmName(): KotlinCodeGenerator = apply {
         this.emitJvmName = true
     }
@@ -268,11 +280,14 @@ class KotlinCodeGenerator(
     }
 
     // endregion Configuration
+    private val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
+    private val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
+    private val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
 
     fun generate(schema: Schema): List<FileSpec> {
-        val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
-        val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
-        val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
+        specsByNamespace.clear()
+        constantsByNamespace.clear()
+        typedefsByNamespace.clear()
 
         schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
@@ -311,6 +326,21 @@ class KotlinCodeGenerator(
             }
         }
 
+        if (generateServer) {
+            schema.services.forEach {
+                val iface = generateCoroServiceInterface(it)
+                specsByNamespace.put(getServerNamespaceFor(it), iface)
+                specsByNamespace.put(
+                        it.kotlinNamespace,
+                        generateProcessorImplementation(
+                                schema,
+                                it,
+                                iface
+                        )
+                )
+            }
+        }
+
         return when (outputStyle) {
             OutputStyle.FILE_PER_NAMESPACE -> {
                 val namespaces = mutableSetOf<String>().apply {
@@ -342,6 +372,7 @@ class KotlinCodeGenerator(
                         val spec = makeFileSpecBuilder(ns, name)
                                 .addType(processedType)
                                 .build()
+
                         yield(spec)
                     }
 
@@ -361,6 +392,9 @@ class KotlinCodeGenerator(
             }
         }
     }
+
+    private fun getServerNamespaceFor(serviceType: ServiceType) = "${serviceType.kotlinNamespace}.server"
+    private fun getServerTypeName(serviceType: ServiceType) = ClassName(getServerNamespaceFor(serviceType), serviceType.name)
 
     // region Aliases
 
@@ -460,6 +494,10 @@ class KotlinCodeGenerator(
 
     // region Structs
 
+    // used to tag things with the corresponding thrift field id
+    // in order to be able to refer to them later
+    data class FieldIdMarker(val fieldId: Int)
+
     internal fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
         val structClassName = ClassName(struct.kotlinNamespace, struct.name)
         val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
@@ -497,7 +535,8 @@ class KotlinCodeGenerator(
                 anno.build()
             }
 
-            val param = ParameterSpec.builder(fieldName, typeName)
+            val param = ParameterSpec
+                .builder(fieldName, typeName)
 
             field.defaultValue?.let {
                 param.defaultValue(renderConstValue(schema, field.type, it))
@@ -611,6 +650,7 @@ class KotlinCodeGenerator(
                     .superclass(structClassName)
                     .addProperty(propertySpec.build())
                     .primaryConstructor(propConstructor.build())
+                    .tag(FieldIdMarker(field.id))
 
             val toStringBody = buildCodeBlock {
                 add("return \"${struct.name}($name=")
@@ -1974,6 +2014,180 @@ class KotlinCodeGenerator(
         return type.build()
     }
 
+    internal fun generateProcessorImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
+        val serverTypeName = serviceType.name + "Processor"
+        val type = TypeSpec.classBuilder(serverTypeName).apply {
+            primaryConstructor(
+                    FunSpec.constructorBuilder()
+                            .addParameter("handler", getServerTypeName(serviceType))
+                            .addParameter(ParameterSpec.builder(
+                                    "errorHandler",
+                                    ErrorHandler::class,
+                                    KModifier.PRIVATE).defaultValue("%T", DefaultErrorHandler::class).build()
+                            )
+                            .build()
+            )
+            addProperty(
+                    PropertySpec.builder("errorHandler", ErrorHandler::class)
+                            .initializer("errorHandler")
+                            .addModifiers(KModifier.PRIVATE)
+                            .build()
+            )
+            addProperty(
+                    PropertySpec.builder("handler", getServerTypeName(serviceType))
+                            .initializer("handler")
+                            .addModifiers(KModifier.PRIVATE)
+                            .build()
+            )
+            addSuperinterface(Processor::class)
+        }
+
+        val spec = FunSpec.builder("process").apply {
+            addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
+            addParameter("input", Protocol::class)
+            addParameter("output", Protocol::class)
+        }
+
+        spec.addCode {
+            beginControlFlow("input.%M { msg ->", MemberName("com.microsoft.thrifty.service.server", "readMessage"))
+            beginControlFlow("val call = when(msg.name)")
+        }
+
+        serviceInterface.funSpecs.zip(serviceType.methods).forEach { (interfaceFun, method) ->
+            val argsDataClass = generateDataClass(schema, method.argsStruct)
+            val resultDataClass = if (method.resultStruct.fields.isEmpty()) generateDataClass(schema, method.resultStruct) else generateSealedClass(schema, method.resultStruct)
+            specsByNamespace.put(serviceType.kotlinNamespace, argsDataClass)
+            specsByNamespace.put(serviceType.kotlinNamespace, resultDataClass)
+
+            val call = buildServerCallType(serviceType, method, interfaceFun, argsDataClass, resultDataClass)
+            type.addType(call)
+
+            spec.addCode {
+                addStatement( "%S -> %T()",
+                        method.name,
+                        ClassName(serviceType.kotlinNamespace, serverTypeName, callTypeName(method)))
+            }
+        }
+
+        spec.addCode {
+            beginControlFlow("else -> ")
+            addStatement("""throw %T("%L")""", ClassNames.ILLEGAL_ARGUMENT_EXCEPTION, "Unknown method \${msg.name}")
+            endControlFlow()
+            endControlFlow()
+
+            addStatement("call.process(msg, input, output, errorHandler, handler)")
+            endControlFlow()
+        }
+
+        type.addFunction(spec.build())
+
+        return type.build()
+    }
+
+    private fun buildServerCallType(
+        serviceType: ServiceType,
+        method: ServiceMethod,
+        interfaceFun: FunSpec,
+        argsDataClass: TypeSpec,
+        resultDataClass: TypeSpec
+    ): TypeSpec {
+        val callName = callTypeName(method)
+        val nameAllocator = nameAllocators[method]
+
+        val argsTypeName = method.argsStruct.typeName
+        val handlerTypeName = getServerTypeName(serviceType)
+        val superType = ServerCall::class
+            .asTypeName()
+            .parameterizedBy(argsTypeName, handlerTypeName)
+
+        return TypeSpec.classBuilder(callName).run {
+            addSuperinterface(superType)
+            addModifiers(KModifier.PRIVATE)
+
+            val getResultThrowsAnnotation = AnnotationSpec.builder(Throws::class).apply {
+                method.exceptions.forEach { this.addMember("%T::class", it.type.typeName) }
+            }.build()
+
+            addProperty(
+                PropertySpec
+                    .builder("oneWay", Boolean::class, KModifier.OVERRIDE)
+                    .initializer("%L", method.oneWay)
+                    .build()
+            )
+
+            val getResult = FunSpec.builder("getResult")
+                .addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
+                .addAnnotation(getResultThrowsAnnotation)
+                .returns(Struct::class)
+                .addParameter("args", argsTypeName)
+                .addParameter("handler", handlerTypeName)
+
+            getResult.addCode {
+                if (method.exceptions.isNotEmpty()) {
+                    wrapInThriftExceptionHandler(method.exceptions, resultDataClass, method.resultStruct.typeName) {
+                        callHandler(argsDataClass, resultDataClass, interfaceFun, method, method.resultStruct.typeName)
+                    }
+                } else {
+                    callHandler(argsDataClass, resultDataClass, interfaceFun, method, method.resultStruct.typeName)
+                }
+            }
+
+            addFunction(getResult.build())
+
+            // Add receive method
+            val recv = FunSpec.builder(nameAllocator.get(Tags.RECEIVE))
+                .addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
+                .returns(argsTypeName)
+                .addParameter("protocol", Protocol::class)
+                .addAnnotation(AnnotationSpec.builder(Throws::class)
+                    .addMember("%T::class", ClassNames.EXCEPTION)
+                    .build())
+
+            recv.addCode {
+                generateReadCall(this, "res", method.argsStruct.trueType)
+                addStatement("return res")
+            }
+
+            addFunction(recv.build())
+
+            build()
+        }
+    }
+
+    private fun CodeBlock.Builder.callHandler(argsDataClass: TypeSpec, resultDataClass: TypeSpec, interfaceFun: FunSpec, method: ServiceMethod, parentTypeName: TypeName) {
+        val names = argsDataClass.propertySpecs.map { it }
+        val format = names.joinToString(separator = ", ") { "args.%N" }
+
+        if(method.returnType == BuiltinType.VOID) {
+            addStatement("handler.%N($format)", interfaceFun, *names.toTypedArray())
+            addStatement("return %T", ServerCall::class.asTypeName().nestedClass("Empty"))
+        } else {
+            val concreteResultTypeName = resultDataClass.typeSpecs.single { it.tag<FieldIdMarker>()?.fieldId == 0 }.name
+            addStatement(
+                "return %T.%N(handler.%N($format))",
+                parentTypeName,
+                concreteResultTypeName,
+                interfaceFun,
+                *names.toTypedArray()
+            )
+        }
+    }
+
+    private fun CodeBlock.Builder.wrapInThriftExceptionHandler(exceptions: List<Field>, resultDataClass: TypeSpec, parentTypeName: TypeName, block: CodeBlock.Builder.() -> Unit) {
+        beginControlFlow("try")
+        block()
+        endControlFlow()
+
+        exceptions.forEach { field ->
+            beginControlFlow("catch (e: %T)", field.type.typeName)
+            val concreteResultTypeName = resultDataClass.typeSpecs.single { it.tag<FieldIdMarker>()?.fieldId == field.id }.name
+            addStatement("return %T.%N(e)", parentTypeName, concreteResultTypeName)
+            endControlFlow()
+        }
+    }
+
+    private fun callTypeName(method: ServiceMethod) = method.name.capitalize() + "ServerCall"
+
     internal fun generateCoroServiceInterface(serviceType: ServiceType): TypeSpec {
         val type = TypeSpec.interfaceBuilder(serviceType.name).apply {
             if (serviceType.hasJavadoc) addKdoc("%L", serviceType.documentation)
@@ -2066,7 +2280,7 @@ class KotlinCodeGenerator(
                             .build())
                     .addFunction(FunSpec.builder("onError")
                             .addModifiers(KModifier.OVERRIDE)
-                            .addParameter("error", Throwable::class)
+                            .addParameter("error", ClassNames.THROWABLE)
                             .addStatement("cont.resumeWith(%T.failure(%N))", coroResultClass, "error")
                             .build())
                     .build()

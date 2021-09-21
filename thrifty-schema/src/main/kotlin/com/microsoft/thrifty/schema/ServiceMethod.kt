@@ -20,8 +20,9 @@
  */
 package com.microsoft.thrifty.schema
 
+import com.microsoft.thrifty.schema.parser.FieldElement
 import com.microsoft.thrifty.schema.parser.FunctionElement
-
+import com.microsoft.thrifty.schema.parser.StructElement
 import java.util.LinkedHashMap
 
 /**
@@ -37,6 +38,24 @@ class ServiceMethod private constructor(
         val exceptions: List<Field> = element.exceptions.map { Field(it, mixin.namespaces) },
         private var returnType_: ThriftType? = null
 ) : UserElement by mixin {
+    val argsStruct = StructType(StructElement(
+            element.location,
+            FieldNamingPolicy.PASCAL.apply("${element.name}_Args"),
+            StructElement.Type.STRUCT,
+            element.params
+    ), mixin.namespaces)
+
+    val resultStruct = StructType(StructElement(
+            element.location,
+            FieldNamingPolicy.PASCAL.apply("${element.name}_Result"),
+            StructElement.Type.UNION,
+            element.exceptions + if (element.returnType.name == BuiltinType.VOID.name) emptyList() else listOf(FieldElement(
+                    element.location,
+                    0,
+                    element.returnType,
+                    "success"
+            ))
+    ), mixin.namespaces)
 
     /**
      * The type of value returned by this method, or [BuiltinType.VOID].
@@ -70,6 +89,8 @@ class ServiceMethod private constructor(
         }
 
         returnType_ = linker.resolveType(element.returnType)
+        argsStruct.link(linker)
+        resultStruct.link(linker)
     }
 
     internal fun validate(linker: Linker) {

@@ -34,6 +34,8 @@ dependencies {
 
     testImplementation deps.bundles.kotlin
     testImplementation deps.bundles.testing
+
+    implementation 'org.apache.thrift:libthrift:0.12.0'
 }
 
 sourceSets {
@@ -75,6 +77,7 @@ def kompileTestThrift = tasks.register("kompileTestThrift", JavaExec) { t ->
             "--map-type=java.util.LinkedHashMap",
             "--set-type=java.util.LinkedHashSet",
             "--list-type=java.util.ArrayList",
+            "--experimental-kt-generate-server",
             "$projectDir/ClientThriftTest.thrift"
     ]
 }

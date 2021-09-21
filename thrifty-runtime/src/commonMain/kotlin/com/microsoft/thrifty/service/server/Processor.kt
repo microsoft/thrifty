@@ -18,24 +18,10 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
+package com.microsoft.thrifty.service.server
 
-plugins {
-    id 'thrifty-kotlin-module'
-    id 'com.vanniktech.maven.publish'
-}
+import com.microsoft.thrifty.protocol.Protocol
 
-description = 'Converts Thrifty Schemas into Kotlin source files'
-
-dependencies {
-    api project(":thrifty-schema")
-    api project(":thrifty-compiler-plugins")
-    api deps.bundles.kotlin
-    api deps.okio
-
-    implementation project(':thrifty-runtime')
-    implementation deps.kotlinPoet
-
-    testImplementation deps.bundles.kotlin
-    testImplementation deps.bundles.testing
-    testImplementation 'com.github.tschuchortdev:kotlin-compile-testing:1.4.2'
+interface Processor {
+    suspend fun process(input: Protocol, output: Protocol)
 }

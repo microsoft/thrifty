@@ -174,6 +174,10 @@ public abstract class GenerateThriftSourcesWorkAction implements WorkAction<Gene
             gen.omitServiceClients();
         }
 
+        if (kopt.isGenerateServer()) {
+            gen.generateServer();
+        }
+
         if (opts.getListType() != null) {
             gen.listClassName(opts.getListType());
         }
