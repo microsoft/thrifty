@@ -44,7 +44,7 @@ kotlin {
     sourceSets {
         all {
             languageSettings {
-                useExperimentalAnnotation("kotlin.ExperimentalMultiplatform")
+                optIn("kotlin.ExperimentalMultiplatform")
             }
         }
 

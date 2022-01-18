@@ -33,9 +33,11 @@ dependencies {
 jar {
     archiveFileName.set('compiler.jar')
 
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     // Include dependencies in the final JAR
     from {
-        (configurations.runtime).collect() {
+        (configurations.runtimeClasspath).collect() {
             it.isDirectory() ? it : zipTree(it)
         }
     }
