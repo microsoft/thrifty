@@ -166,6 +166,8 @@ class Constant private constructor (
                         return
                     }
                 }
+
+                else -> {}
             }
 
             throw IllegalStateException(
