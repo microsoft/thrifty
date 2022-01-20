@@ -13,6 +13,7 @@ pluginManagement {
         id 'com.vanniktech.maven.publish' version '0.17.0'
         id 'org.jetbrains.dokka' version '1.6.10'
         id 'org.jetbrains.kotlin.jvm' version "${KOTLIN_VERSION}"
+        id 'org.jetbrains.kotlin.multiplatform' version "${KOTLIN_VERSION}"
     }
 }
 
@@ -30,10 +31,10 @@ dependencyResolutionManagement {
     versionCatalogs {
         deps {
             version('kotlin', "${KOTLIN_VERSION}")
-            version('okio', '2.10.0')
+            version('okio', '3.0.0')
 
             version('junit', '5.7.1')
-            version('kotest', '4.4.1')
+            version('kotest', '5.1.0')
 
             alias('antlr').to('org.antlr', 'antlr4').version('4.9.1')
             alias('apacheThrift').to('org.apache.thrift', 'libthrift').version('0.12.0')
@@ -44,10 +45,9 @@ dependencyResolutionManagement {
             alias('kotlin-reflect').to('org.jetbrains.kotlin', 'kotlin-reflect').versionRef('kotlin')
             alias('kotlin-stdlib').to('org.jetbrains.kotlin', 'kotlin-stdlib-jdk8').versionRef('kotlin')
             alias('kotlin-stdlibCommon').to('org.jetbrains.kotlin', 'kotlin-stdlib-common').versionRef('kotlin')
-            alias('kotlinx-coroutines').to('org.jetbrains.kotlinx', 'kotlinx-coroutines-core').version('1.5.2')
+            alias('kotlinx-coroutines').to('org.jetbrains.kotlinx', 'kotlinx-coroutines-core').version('1.6.0')
             alias('kotlinPoet').to('com.squareup', 'kotlinpoet').version('1.8.0')
             alias('okio').to('com.squareup.okio', 'okio').versionRef('okio')
-            alias('okioMulti').to('com.squareup.okio', 'okio-multiplatform').versionRef('okio')
 
             bundle('kotlin', ['kotlin-stdlib', 'kotlin-reflect'])
 
@@ -57,7 +57,7 @@ dependencyResolutionManagement {
             alias('kotest-assertions-common').to('io.kotest', 'kotest-common').versionRef('kotest')
             alias('kotest-assertions-core').to('io.kotest', 'kotest-assertions-core').versionRef('kotest')
             alias('kotest-assertions-coreJvm').to('io.kotest', 'kotest-assertions-core-jvm').versionRef('kotest')
-            alias('kotest-assertions-compiler').to('io.kotest', 'kotest-assertions-compiler').versionRef('kotest')
+            alias('kotest-assertions-compiler').to('io.kotest.extensions', 'kotest-assertions-compiler').version('1.0.0') // They forgot to publish newer binaries
 
             alias('kotlin-test-common').to('org.jetbrains.kotlin', 'kotlin-test-common').versionRef('kotlin')
             alias('kotlin-test-annotations-common').to('org.jetbrains.kotlin', 'kotlin-test-annotations-common').versionRef('kotlin')

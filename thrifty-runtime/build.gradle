@@ -19,6 +19,9 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
+import org.gradle.api.attributes.java.TargetJvmVersion
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+
 plugins {
     id 'thrifty-jvm-module'
     id 'org.jetbrains.kotlin.multiplatform'
@@ -51,7 +54,7 @@ kotlin {
         commonMain {
             dependencies {
                 api deps.kotlin.stdlibCommon
-                api deps.okioMulti
+                api deps.okio
                 api deps.kotlinx.coroutines
             }
         }
@@ -80,4 +83,23 @@ kotlin {
 
 jvmTest {
     useJUnitPlatform()
+}
+
+// What have I gotten myself in to
+configurations {
+    jvmApiElements {
+        attributes {
+            attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8)
+            attribute(Bundling.BUNDLING_ATTRIBUTE, project.objects.named(Bundling, "external"))
+        }
+    }
+
+    jvmRuntimeElements {
+        attributes {
+            attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8)
+            attribute(Bundling.BUNDLING_ATTRIBUTE, project.objects.named(Bundling, "external"))
+        }
+    }
 }
