@@ -90,7 +90,7 @@ import kotlin.system.exitProcess
  * class name when instantiating map-typed values.  Defaults to [java.util.HashMap].
  * Android users will likely wish to substitute `android.support.v4.util.ArrayMap`.
  *
- * `--lang=[java|kotlin]` is optional, defaulting to Java.  When provided, the
+ * `--lang=[java|kotlin]` is optional, defaulting to Kotlin.  When provided, the
  * compiler will generate code in the specified language.
  *
  * `--service-type=[coroutine|callback]` is optional, defaulting to `callback`.  When
