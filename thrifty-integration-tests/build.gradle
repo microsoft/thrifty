@@ -35,7 +35,7 @@ dependencies {
     testImplementation deps.bundles.kotlin
     testImplementation deps.bundles.testing
 
-    implementation 'org.apache.thrift:libthrift:0.12.0'
+    implementation 'org.apache.thrift:libthrift:0.16.0'
 }
 
 sourceSets {

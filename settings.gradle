@@ -37,7 +37,7 @@ dependencyResolutionManagement {
             version('kotest', '5.1.0')
 
             alias('antlr').to('org.antlr', 'antlr4').version('4.9.1')
-            alias('apacheThrift').to('org.apache.thrift', 'libthrift').version('0.12.0')
+            alias('apacheThrift').to('org.apache.thrift', 'libthrift').version('0.16.0')
             alias('clikt').to('com.github.ajalt.clikt', 'clikt').version('3.1.0')
             alias('guava').to('com.google.guava', 'guava').version('29.0-jre')
             alias('javaPoet').to('com.squareup', 'javapoet').version('1.13.0')
