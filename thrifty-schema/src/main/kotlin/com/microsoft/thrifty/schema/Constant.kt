@@ -106,6 +106,7 @@ class Constant private constructor (
         private val ENUM = EnumValidator
         private val COLLECTION = CollectionValidator
         private val MAP = MapValidator
+        private val STRUCT = StructValidator
 
         internal fun forType(type: ThriftType): ConstValueValidator {
             val tt = type.trueType
@@ -140,6 +141,11 @@ class Constant private constructor (
 
             if (tt.isMap) {
                 return MAP
+            }
+
+            if (tt.isStruct) {
+                // this should work for exception type as well. structType has isException field
+                return STRUCT
             }
 
             throw IllegalStateException("Struct-valued constants are not yet implemented")
@@ -376,6 +382,39 @@ class Constant private constructor (
                 }
 
                 else -> throw IllegalStateException("Expected a map literal, got: $valueElement")
+            }
+        }
+    }
+
+    private object StructValidator : ConstValueValidator {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            if (valueElement is MapValueElement) { // struct valued constants should always be defined as a Map
+                val struct = expected as StructType
+                val fields = struct.fields
+                val map = valueElement.value
+                for ((key, value) in map) {
+                    if (key !is LiteralValueElement) {
+                        throw IllegalStateException("${expected.name} struct const keys must be string")
+                    }
+                    // validate the struct defined fields are listed in the const valued struct map
+                    // field name must match the map key
+                    var keyMatchedField: Field? = null
+                    val keyString = key.value
+                    for (field in fields) {
+                        if (field.name == keyString) {
+                            keyMatchedField = field
+                            break
+                        }
+                    }
+                    if (keyMatchedField == null) {
+                        throw IllegalStateException("${expected.name} struct has no field ${key.value}")
+                    }
+                    Constant.validate(symbolTable, value, keyMatchedField.type)
+                }
+            } else {
+                throw IllegalStateException(
+                        "Type Error: const ${expected.name} should be declared as a Map"
+                )
             }
         }
     }

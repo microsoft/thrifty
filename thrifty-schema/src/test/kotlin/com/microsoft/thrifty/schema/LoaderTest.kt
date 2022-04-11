@@ -20,6 +20,7 @@
  */
 package com.microsoft.thrifty.schema
 
+import com.microsoft.thrifty.schema.parser.*
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.throwables.shouldThrowMessage
@@ -28,6 +29,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.throwable.shouldHaveMessage
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -991,6 +994,172 @@ class LoaderTest {
 
         shouldThrowExactly<LoadFailedException> { load(thrift) }
     }
+
+    @Test
+    fun structValuedConstant() {
+        val thrift = """
+
+            enum Membership {
+                MEMBER = 0
+                NON_MEMBER = 1
+                UNDER_REVIEW = 2
+            }
+            
+            struct Location {
+                1: required string currencyCode
+                2: required list<string> languages
+                3: required Membership membership
+            }
+            
+            struct Region {
+                1: required list<Location> locations 
+                2: optional bool isActive
+            }
+
+            const Region DEFAULT_REGION = {
+                "locations": [{"currencyCode" : "USD", "languages" : ["English", "Spanish"], "membership" : Membership.MEMBER}],
+                "isActive" : true
+            }
+
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val constants = schema.constants
+        constants.size shouldBe 1
+        val const = constants[0]
+        val map = const.value as MapValueElement
+        map.value.entries.size shouldBe 2
+        for ((key, value) in map.value.entries) {
+            assertTrue(key is LiteralValueElement)
+            val keyKey = (key as LiteralValueElement).value
+            when(keyKey) {
+                "locations" -> {
+                    val keyVal = (value as ListValueElement).value
+                    keyVal.size shouldBe 1
+                    val locationMap = keyVal[0] as MapValueElement
+                    locationMap.value.size shouldBe 3
+                    for ((locKey, locVal) in locationMap.value.entries) {
+                        when((locKey as LiteralValueElement).value) {
+                            "currencyCode" -> {
+                                assertTrue((locVal as LiteralValueElement).value == "USD")
+                            }
+                            "languages" -> {
+                                val languages = (locVal as ListValueElement).value
+                                languages.size shouldBe 2
+                                for (language in languages) {
+                                    val lang = (language as LiteralValueElement).value
+                                    assertTrue(lang in listOf("English", "Spanish"))
+                                }
+                            }
+                            "membership" -> {
+                                assertTrue((locVal as IdentifierValueElement).value == "Membership.MEMBER")
+                            }
+                            else -> {
+                                fail("Invalid const key; must be currencyCode, languages or membership")
+                            }
+                        }
+                    }
+                }
+                "isActive" -> {
+                    assertTrue((value as IdentifierValueElement).value == "true")
+                }
+                else -> {
+                    fail("Invalid const key; must be either locations or isActive")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun invalidStructValuedConstant() {
+        val thrift = """
+            
+            struct Region {
+                1: required string name 
+                2: optional bool isActive
+            }
+
+            const UnknownRegion DEFAULT_REGION = {
+                "name": "US",
+                "nonActive" : true // field name does not exist in Region
+            }
+
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Failed to resolve type 'UnknownRegion'"
+    }
+
+    @Test
+    fun invalidKeyStructValuedConstant() {
+        val thrift = """
+            
+            struct Region {
+                1: required string name 
+                2: optional bool isActive
+            }
+
+            const Region DEFAULT_REGION = {
+                1 : "US",
+                "isActive" : true // field name does not exist in Region
+            }
+
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Region struct const keys must be string"
+    }
+
+    @Test
+    fun invalidFieldStructValuedConstant() {
+        val thrift = """
+            
+            struct Region {
+                1: required string name 
+                2: optional bool isActive
+            }
+
+            const Region DEFAULT_REGION = {
+                "name": "US",
+                "nonActive" : true // field name does not exist in Region
+            }
+
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Region struct has no field nonActive"
+    }
+
+    @Test
+    fun invalidEnumStructValuedConst() {
+        val thrift = """
+
+            enum Membership {
+                MEMBER = 0
+                NON_MEMBER = 1
+                UNDER_REVIEW = 2
+            }
+            
+            struct Location {
+                1: required Membership membership
+            }
+            
+            struct Region {
+                1: required list<Location> locations 
+            }
+
+            // invalid Enum
+            const Region DEFAULT_REGION = {
+                "locations": [{"membership" : Membership.WRONG}]
+            }
+
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "'Membership.WRONG' is not a member of enum type Membership: members=[MEMBER, NON_MEMBER, UNDER_REVIEW]"
+    }
+
+
 
     private fun load(thrift: String): Schema {
         val f = File.createTempFile("test", ".thrift", tempDir)
