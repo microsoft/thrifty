@@ -31,8 +31,8 @@ dependencies {
     implementation project(':thrifty-kotlin-codegen')
     implementation project(':thrifty-compiler-plugins')
 
-    implementation deps.clikt
-    implementation deps.bundles.kotlin
+    implementation libs.clikt
+    implementation libs.bundles.kotlin
 }
 
 sourceSets {

@@ -53,18 +53,18 @@ kotlin {
 
         commonMain {
             dependencies {
-                api deps.kotlin.stdlibCommon
-                api deps.okio
-                api deps.kotlinx.coroutines
+                api libs.kotlin.stdlibCommon
+                api libs.okio
+                api libs.kotlinx.coroutines
             }
         }
 
         commonTest {
             dependencies {
-                implementation deps.kotlin.test.common
-                implementation deps.kotlin.test.annotations.common
-                implementation deps.kotest.assertions.common
-                implementation deps.kotest.assertions.core
+                implementation libs.kotlin.test.common
+                implementation libs.kotlin.test.annotations.common
+                implementation libs.kotest.assertions.common
+                implementation libs.kotest.assertions.core
             }
         }
 
@@ -73,9 +73,9 @@ kotlin {
 
         jvmTest {
             dependencies {
-                implementation deps.kotlin.test.junit5
-                implementation deps.kotest.assertions.coreJvm
-                implementation deps.junit
+                implementation libs.kotlin.test.junit5
+                implementation libs.kotest.assertions.coreJvm
+                implementation libs.junit
             }
         }
     }

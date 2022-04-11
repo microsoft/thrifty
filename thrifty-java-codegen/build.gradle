@@ -29,12 +29,12 @@ description = 'Converts Thrifty Schemas into Java source files'
 dependencies {
     api project(":thrifty-schema")
     api project(":thrifty-compiler-plugins")
-    api deps.okio
-    api deps.javaPoet
+    api libs.okio
+    api libs.javaPoet
 
-    api deps.bundles.kotlin
+    api libs.bundles.kotlin
 
     implementation project(':thrifty-runtime')
 
-    testImplementation deps.bundles.testing
+    testImplementation libs.bundles.testing
 }
