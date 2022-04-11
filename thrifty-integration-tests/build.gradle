@@ -30,10 +30,10 @@ dependencies {
 
     testImplementation project(':thrifty-runtime')
     testImplementation project(':thrifty-test-server')
-    testImplementation deps.guava
+    testImplementation libs.guava
 
-    testImplementation deps.bundles.kotlin
-    testImplementation deps.bundles.testing
+    testImplementation libs.bundles.kotlin
+    testImplementation libs.bundles.testing
 
     implementation 'org.apache.thrift:libthrift:0.12.0'
 }

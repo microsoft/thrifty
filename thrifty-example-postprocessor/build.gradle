@@ -24,10 +24,10 @@ plugins {
 
 dependencies {
     implementation project(':thrifty-compiler-plugins')
-    implementation deps.javaPoet
+    implementation libs.javaPoet
 
-    implementation deps.bundles.kotlin
-    implementation deps.kotlinPoet
+    implementation libs.bundles.kotlin
+    implementation libs.kotlinPoet
 }
 
 jar {

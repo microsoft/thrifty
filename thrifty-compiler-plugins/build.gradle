@@ -25,6 +25,6 @@ plugins {
 }
 
 dependencies {
-    api deps.javaPoet
-    api deps.kotlinPoet
+    api libs.javaPoet
+    api libs.kotlinPoet
 }

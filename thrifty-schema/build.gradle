@@ -31,15 +31,15 @@ generateGrammarSource {
 }
 
 dependencies {
-    antlr deps.antlr
-    implementation deps.antlr
+    antlr libs.antlr
+    implementation libs.antlr
 
-    api deps.guava
-    api deps.bundles.kotlin
+    api libs.guava
+    api libs.bundles.kotlin
 
-    implementation deps.okio
+    implementation libs.okio
 
-    testImplementation deps.bundles.testing
+    testImplementation libs.bundles.testing
 }
 
 // For some reason, Kotlin compilation is being run prior to antlr by default.

@@ -23,6 +23,6 @@ plugins {
 }
 
 dependencies {
-    api deps.junitApi
-    implementation deps.apacheThrift
+    api libs.junitApi
+    implementation libs.apacheThrift
 }

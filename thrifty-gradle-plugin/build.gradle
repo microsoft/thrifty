@@ -79,10 +79,10 @@ dependencies {
     compileOnly project(':thrifty-kotlin-codegen')
     compileOnly project(':thrifty-schema')
 
-    implementation deps.guava
+    implementation libs.guava
 
-    testImplementation deps.junit
-    testImplementation deps.hamcrest
+    testImplementation libs.junit
+    testImplementation libs.hamcrest
 }
 
 def installLocal = tasks.register("installForTesting") {
