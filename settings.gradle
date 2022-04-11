@@ -58,12 +58,13 @@ dependencyResolutionManagement {
             alias('kotest-assertions-core').to('io.kotest', 'kotest-assertions-core').versionRef('kotest')
             alias('kotest-assertions-coreJvm').to('io.kotest', 'kotest-assertions-core-jvm').versionRef('kotest')
             alias('kotest-assertions-compiler').to('io.kotest.extensions', 'kotest-assertions-compiler').version('1.0.0') // They forgot to publish newer binaries
+            alias('kotlin-compile-testing').to('com.github.tschuchortdev', 'kotlin-compile-testing').version('1.4.8')
 
             alias('kotlin-test-common').to('org.jetbrains.kotlin', 'kotlin-test-common').versionRef('kotlin')
             alias('kotlin-test-annotations-common').to('org.jetbrains.kotlin', 'kotlin-test-annotations-common').versionRef('kotlin')
             alias('kotlin-test-junit5').to('org.jetbrains.kotlin', 'kotlin-test-junit5').versionRef('kotlin')
 
-            bundle('testing', ['junit', 'hamcrest', 'kotest-assertions-core', 'kotest-assertions-coreJvm', 'kotest-assertions-compiler'])
+            bundle('testing', ['junit', 'hamcrest', 'kotest-assertions-core', 'kotest-assertions-coreJvm', 'kotest-assertions-compiler', 'kotlin-compile-testing'])
         }
     }
 }
