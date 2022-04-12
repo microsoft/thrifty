@@ -22,7 +22,7 @@
 plugins {
     id 'thrifty-kotlin-module'
     id 'application'
-    id 'com.github.johnrengelman.shadow'
+    alias(libs.plugins.shadow)
 }
 
 dependencies {
@@ -35,7 +35,7 @@ dependencies {
     testImplementation libs.bundles.kotlin
     testImplementation libs.bundles.testing
 
-    implementation 'org.apache.thrift:libthrift:0.12.0'
+    implementation libs.apacheThrift
 }
 
 sourceSets {

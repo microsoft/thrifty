@@ -1,0 +1,43 @@
+[versions]
+junit = "5.7.1"
+kotest = "5.1.0"
+kotlin = "1.6.20"
+okio = "3.0.0"
+
+[libraries]
+antlr = "org.antlr:antlr4:4.9.1"
+apacheThrift = "org.apache.thrift:libthrift:0.12.0"
+clikt = "com.github.ajalt.clikt:clikt:3.1.0"
+guava = "com.google.guava:guava:29.0-jre"
+javaPoet = "com.squareup:javapoet:1.13.0"
+kotlin-bom = { module = "org.jetbrains.kotlin:kotlin-bom", version.ref = "kotlin" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+kotlin-stdlibCommon = { module = "org.jetbrains.kotlin:kotlin-stdlib-common", version.ref = "kotlin" }
+kotlinx-coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0"
+kotlinPoet = "com.squareup:kotlinpoet:1.8.0"
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+
+junit = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junitApi = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+hamcrest = "org.hamcrest:hamcrest:2.2"
+kotest-assertions-common = { module = "io.kotest:kotest-common", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-assertions-coreJvm = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
+kotest-assertions-compiler = "io.kotest.extensions:kotest-assertions-compiler:1.0.0" # They have forgotten to publish newer binaries
+kotlin-compile-testing = "com.github.tschuchortdev:kotlin-compile-testing:1.4.8"
+kotlin-test-annotations-common = { module = "org.jetbrains.kotlin:kotlin-test-annotations-common", version.ref = "kotlin" }
+kotlin-test-common = { module = "org.jetbrains.kotlin:kotlin-test-common", version.ref = "kotlin" }
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
+
+[bundles]
+kotlin = [ "kotlin-stdlib", "kotlin-reflect" ]
+testing = ["junit", "hamcrest", "kotest-assertions-core", "kotest-assertions-coreJvm", "kotest-assertions-compiler", "kotlin-compile-testing"]
+
+[plugins]
+dokka = "org.jetbrains.dokka:1.6.10"
+gradlePluginPublish = "com.gradle.plugin-publish:0.12.0"
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-mpp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+mavenPublish = "com.vanniktech.maven.publish:0.17.0"
+shadow = "com.github.johnrengelman.shadow:6.1.0"
