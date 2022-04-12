@@ -108,7 +108,7 @@ class JsonProtocol @JvmOverloads constructor(
     private fun readJsonSyntaxChar(b: ByteArray) {
         val ch = reader.read()
         if (ch != b[0]) {
-            throw ProtocolException("Unexpected character:" + ch.toChar())
+            throw ProtocolException("Unexpected character:" + ch.toInt().toChar())
         }
     }
 
@@ -364,20 +364,20 @@ class JsonProtocol @JvmOverloads constructor(
                             + hexVal(tmpbuf[3]).toInt()).toShort()
                     try {
                         when {
-                            cu.toChar().isHighSurrogate() -> {
+                            cu.toInt().toChar().isHighSurrogate() -> {
                                 if (codeunits.size > 0) {
                                     throw ProtocolException("Expected low surrogate char")
                                 }
-                                codeunits.add(cu.toChar())
+                                codeunits.add(cu.toInt().toChar())
                             }
-                            cu.toChar().isLowSurrogate() -> {
+                            cu.toInt().toChar().isLowSurrogate() -> {
                                 if (codeunits.size == 0) {
                                     throw ProtocolException("Expected high surrogate char")
                                 }
-                                codeunits.add(cu.toChar())
+                                codeunits.add(cu.toInt().toChar())
                                 val bytes = Buffer()
-                                        .writeUtf8CodePoint(codeunits[0].toInt())
-                                        .writeUtf8CodePoint(codeunits[1].toInt())
+                                        .writeUtf8CodePoint(codeunits[0].code)
+                                        .writeUtf8CodePoint(codeunits[1].code)
                                         .readUtf8()
                                         .encodeToByteArray()
                                 buffer.write(bytes)
@@ -396,7 +396,7 @@ class JsonProtocol @JvmOverloads constructor(
                         throw ProtocolException("Invalid unicode sequence")
                     }
                 } else {
-                    val off = ESCAPE_CHARS.indexOf(ch.toChar())
+                    val off = ESCAPE_CHARS.indexOf(ch.toInt().toChar())
                     if (off == -1) {
                         throw ProtocolException("Expected control char")
                     }
@@ -410,7 +410,7 @@ class JsonProtocol @JvmOverloads constructor(
 
     // Return true if the given byte could be a valid part of a Json number.
     private fun isJsonNumeric(b: Byte): Boolean {
-        when (b.toChar()) {
+        when (b.toInt().toChar()) {
             '+', '-', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'E', 'e' -> return true
         }
         return false
@@ -426,7 +426,7 @@ class JsonProtocol @JvmOverloads constructor(
             if (!isJsonNumeric(ch)) {
                 break
             }
-            strbld.append(reader.read().toChar())
+            strbld.append(reader.read().toInt().toChar())
         }
         return strbld.toString()
     }
@@ -670,17 +670,17 @@ class JsonProtocol @JvmOverloads constructor(
     }
 
     private object JsonTypes {
-        @JvmField val BOOLEAN = byteArrayOf('t'.toByte(), 'f'.toByte())
-        @JvmField val BYTE = byteArrayOf('i'.toByte(), '8'.toByte())
-        @JvmField val I16 = byteArrayOf('i'.toByte(), '1'.toByte(), '6'.toByte())
-        @JvmField val I32 = byteArrayOf('i'.toByte(), '3'.toByte(), '2'.toByte())
-        @JvmField val I64 = byteArrayOf('i'.toByte(), '6'.toByte(), '4'.toByte())
-        @JvmField val DOUBLE = byteArrayOf('d'.toByte(), 'b'.toByte(), 'l'.toByte())
-        @JvmField val STRUCT = byteArrayOf('r'.toByte(), 'e'.toByte(), 'c'.toByte())
-        @JvmField val STRING = byteArrayOf('s'.toByte(), 't'.toByte(), 'r'.toByte())
-        @JvmField val MAP = byteArrayOf('m'.toByte(), 'a'.toByte(), 'p'.toByte())
-        @JvmField val LIST = byteArrayOf('l'.toByte(), 's'.toByte(), 't'.toByte())
-        @JvmField val SET = byteArrayOf('s'.toByte(), 'e'.toByte(), 't'.toByte())
+        @JvmField val BOOLEAN = byteArrayOf('t'.code.toByte(), 'f'.code.toByte())
+        @JvmField val BYTE = byteArrayOf('i'.code.toByte(), '8'.code.toByte())
+        @JvmField val I16 = byteArrayOf('i'.code.toByte(), '1'.code.toByte(), '6'.code.toByte())
+        @JvmField val I32 = byteArrayOf('i'.code.toByte(), '3'.code.toByte(), '2'.code.toByte())
+        @JvmField val I64 = byteArrayOf('i'.code.toByte(), '6'.code.toByte(), '4'.code.toByte())
+        @JvmField val DOUBLE = byteArrayOf('d'.code.toByte(), 'b'.code.toByte(), 'l'.code.toByte())
+        @JvmField val STRUCT = byteArrayOf('r'.code.toByte(), 'e'.code.toByte(), 'c'.code.toByte())
+        @JvmField val STRING = byteArrayOf('s'.code.toByte(), 't'.code.toByte(), 'r'.code.toByte())
+        @JvmField val MAP = byteArrayOf('m'.code.toByte(), 'a'.code.toByte(), 'p'.code.toByte())
+        @JvmField val LIST = byteArrayOf('l'.code.toByte(), 's'.code.toByte(), 't'.code.toByte())
+        @JvmField val SET = byteArrayOf('s'.code.toByte(), 'e'.code.toByte(), 't'.code.toByte())
 
         @JvmStatic
         fun ttypeToJson(typeId: Byte): ByteArray {
@@ -707,9 +707,9 @@ class JsonProtocol @JvmOverloads constructor(
         fun jsonToTtype(jsonId: ByteArray): Byte {
             var result = TType.STOP
             if (jsonId.size > 1) {
-                when (jsonId[0].toChar()) {
+                when (jsonId[0].toInt().toChar()) {
                     'd' -> result = TType.DOUBLE
-                    'i' -> when (jsonId[1].toChar()) {
+                    'i' -> when (jsonId[1].toInt().toChar()) {
                         '8' -> result = TType.BYTE
                         '1' -> result = TType.I16
                         '3' -> result = TType.I32
@@ -718,7 +718,7 @@ class JsonProtocol @JvmOverloads constructor(
                     'l' -> result = TType.LIST
                     'm' -> result = TType.MAP
                     'r' -> result = TType.STRUCT
-                    's' -> result = if (jsonId[1] == 't'.toByte()) {
+                    's' -> result = if (jsonId[1] == 't'.code.toByte()) {
                         TType.STRING
                     } else {
                         TType.SET
@@ -806,32 +806,32 @@ class JsonProtocol @JvmOverloads constructor(
     }
 
     companion object {
-        private val COMMA = byteArrayOf(','.toByte())
-        private val COLON = byteArrayOf(':'.toByte())
-        private val LBRACE = byteArrayOf('{'.toByte())
-        private val RBRACE = byteArrayOf('}'.toByte())
-        private val LBRACKET = byteArrayOf('['.toByte())
-        private val RBRACKET = byteArrayOf(']'.toByte())
-        private val QUOTE = byteArrayOf('"'.toByte())
-        private val BACKSLASH = byteArrayOf('\\'.toByte())
-        private val ESCSEQ = byteArrayOf('\\'.toByte(), 'u'.toByte(), '0'.toByte(), '0'.toByte())
+        private val COMMA = byteArrayOf(','.code.toByte())
+        private val COLON = byteArrayOf(':'.code.toByte())
+        private val LBRACE = byteArrayOf('{'.code.toByte())
+        private val RBRACE = byteArrayOf('}'.code.toByte())
+        private val LBRACKET = byteArrayOf('['.code.toByte())
+        private val RBRACKET = byteArrayOf(']'.code.toByte())
+        private val QUOTE = byteArrayOf('"'.code.toByte())
+        private val BACKSLASH = byteArrayOf('\\'.code.toByte())
+        private val ESCSEQ = byteArrayOf('\\'.code.toByte(), 'u'.code.toByte(), '0'.code.toByte(), '0'.code.toByte())
         private const val VERSION: Long = 1
         private val JSON_CHAR_TABLE = byteArrayOf( /*  0 1 2 3 4 5 6 7 8 9 A B C D E F */
-                0, 0, 0, 0, 0, 0, 0, 0, 'b'.toByte(), 't'.toByte(), 'n'.toByte(), 0, 'f'.toByte(), 'r'.toByte(), 0, 0,  // 0
+                0, 0, 0, 0, 0, 0, 0, 0, 'b'.code.toByte(), 't'.code.toByte(), 'n'.code.toByte(), 0, 'f'.code.toByte(), 'r'.code.toByte(), 0, 0,  // 0
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 1
-                1, 1, '"'.toByte(), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+                1, 1, '"'.code.toByte(), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
         private const val ESCAPE_CHARS = "\"\\/bfnrt"
         private val ESCAPE_CHAR_VALS = byteArrayOf(
-                '"'.toByte(), '\\'.toByte(), '/'.toByte(), '\b'.toByte(), '\u000C'.toByte(), '\n'.toByte(), '\r'.toByte(), '\t'.toByte())
+                '"'.code.toByte(), '\\'.code.toByte(), '/'.code.toByte(), '\b'.code.toByte(), '\u000C'.code.toByte(), '\n'.code.toByte(), '\r'.code.toByte(), '\t'.code.toByte())
 
         // Convert a byte containing a hex char ('0'-'9' or 'a'-'f') into its
         // corresponding hex value
         @Throws(IOException::class)
         private fun hexVal(ch: Byte): Byte {
-            return if (ch >= '0'.toByte() && ch <= '9'.toByte()) {
-                (ch.toChar() - '0').toByte()
-            } else if (ch >= 'a'.toByte() && ch <= 'f'.toByte()) {
-                (ch.toChar() - 'a' + 10).toByte()
+            return if (ch >= '0'.code.toByte() && ch <= '9'.code.toByte()) {
+                (ch.toInt().toChar() - '0').toByte()
+            } else if (ch >= 'a'.code.toByte() && ch <= 'f'.code.toByte()) {
+                (ch.toInt().toChar() - 'a' + 10).toByte()
             } else {
                 throw ProtocolException("Expected hex character")
             }
@@ -841,9 +841,9 @@ class JsonProtocol @JvmOverloads constructor(
         private fun hexChar(value: Byte): Byte {
             val b = (value.toInt() and 0x0F).toByte()
             return if (b < 10) {
-                (b.toInt() + '0'.toInt()).toByte()
+                (b.toInt() + '0'.code).toByte()
             } else {
-                ((b.toInt() - 10) + 'a'.toInt()).toByte()
+                ((b.toInt() - 10) + 'a'.code).toByte()
             }
         }
     }

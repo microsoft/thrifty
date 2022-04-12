@@ -85,7 +85,7 @@ class ThriftException(
 
     override fun write(protocol: Protocol) {
         protocol.writeStructBegin("TApplicationException")
-        if (message != null) {
+        message?.let { message ->
             protocol.writeFieldBegin("message", 1, TType.STRING)
             protocol.writeString(message)
             protocol.writeFieldEnd()
