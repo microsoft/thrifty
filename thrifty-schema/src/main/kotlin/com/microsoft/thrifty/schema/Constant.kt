@@ -148,7 +148,8 @@ class Constant private constructor (
                 return STRUCT
             }
 
-            throw IllegalStateException("Struct-valued constants are not yet implemented")
+            throw IllegalStateException("Illegal const definition. " +
+                    "Const must be of type [bool, byte, i16, i32, i64, double, string, enum, list, set, map, struct]")
         }
     }
 
@@ -398,18 +399,9 @@ class Constant private constructor (
                     }
                     // validate the struct defined fields are listed in the const valued struct map
                     // field name must match the map key
-                    var keyMatchedField: Field? = null
-                    val keyString = key.value
-                    for (field in fields) {
-                        if (field.name == keyString) {
-                            keyMatchedField = field
-                            break
-                        }
-                    }
-                    if (keyMatchedField == null) {
-                        throw IllegalStateException("${expected.name} struct has no field ${key.value}")
-                    }
-                    Constant.validate(symbolTable, value, keyMatchedField.type)
+                    val field = fields.firstOrNull { it.name == key.value }
+                            ?: throw IllegalStateException("${expected.name} struct has no field ${key.value}")
+                    Constant.validate(symbolTable, value, field.type)
                 }
             } else {
                 throw IllegalStateException(

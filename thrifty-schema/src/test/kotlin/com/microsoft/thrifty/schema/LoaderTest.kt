@@ -1100,8 +1100,9 @@ class LoaderTest {
             }
 
             const Region DEFAULT_REGION = {
+                // 1 is not a string; invalid definition
                 1 : "US",
-                "isActive" : true // field name does not exist in Region
+                "isActive" : true
             }
 
         """.trimIndent()
