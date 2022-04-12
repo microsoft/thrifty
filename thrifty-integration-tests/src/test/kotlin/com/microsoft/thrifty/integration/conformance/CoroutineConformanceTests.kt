@@ -220,8 +220,8 @@ abstract class CoroutineConformanceTests(
     @Test
     fun testStringMap() = runBlocking {
         val argument = mapOf(
-                "foo" to "bar",
-                "baz" to "quux",
+                "foo\no" to "bar",
+                "baz" to "qu\rux",
                 "one" to "more"
         )
 
