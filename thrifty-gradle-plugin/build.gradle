@@ -22,8 +22,8 @@
 plugins {
     id 'thrifty-jvm-module'
     id 'java-gradle-plugin'
-    id 'com.vanniktech.maven.publish'
-    id 'com.gradle.plugin-publish'
+    alias(libs.plugins.mavenPublish)
+    alias(libs.plugins.gradlePluginPublish)
 }
 
 pluginBundle {
@@ -48,14 +48,14 @@ def versionTask = tasks.register("generateVersionProps") { t ->
     def outputFile = generatedResourcesDir.map {it -> it.file("thrifty-version.properties") }
 
     t.inputs.property("thrifty-version", VERSION_NAME)
-    t.inputs.property("kotlin-version", KOTLIN_VERSION)
+    t.inputs.property("kotlin-version", libs.versions.kotlin.get())
     t.outputs.dir(generatedResourcesDir).withPropertyName("outputDir")
 
     doFirst {
         outputFile.get().getAsFile().with {
             it.delete()
             it << "THRIFTY_VERSION=${VERSION_NAME}\n"
-            it << "KOTLIN_VERSION=${KOTLIN_VERSION}\n"
+            it << "KOTLIN_VERSION=${libs.versions.kotlin.get()}\n"
         }
     }
 }

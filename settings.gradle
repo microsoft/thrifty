@@ -6,15 +6,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
-
-    plugins {
-        id 'com.gradle.plugin-publish' version '0.12.0'
-        id 'com.github.johnrengelman.shadow' version '6.1.0'
-        id 'com.vanniktech.maven.publish' version '0.17.0'
-        id 'org.jetbrains.dokka' version '1.6.10'
-        id 'org.jetbrains.kotlin.jvm' version "${KOTLIN_VERSION}"
-        id 'org.jetbrains.kotlin.multiplatform' version "${KOTLIN_VERSION}"
-    }
 }
 
 dependencyResolutionManagement {
@@ -24,46 +15,6 @@ dependencyResolutionManagement {
         mavenLocal()
         mavenCentral()
         gradlePluginPortal()
-    }
-
-    versionCatalogs {
-        libs {
-            version('kotlin', "${KOTLIN_VERSION}")
-            version('okio', '3.0.0')
-
-            version('junit', '5.7.1')
-            version('kotest', '5.1.0')
-
-            library('antlr', 'org.antlr', 'antlr4').version('4.9.1')
-            library('apacheThrift', 'org.apache.thrift', 'libthrift').version('0.12.0')
-            library('clikt', 'com.github.ajalt.clikt', 'clikt').version('3.1.0')
-            library('guava', 'com.google.guava', 'guava').version('29.0-jre')
-            library('javaPoet', 'com.squareup', 'javapoet').version('1.13.0')
-            library('kotlin-bom', 'org.jetbrains.kotlin', 'kotlin-bom').versionRef('kotlin')
-            library('kotlin-reflect', 'org.jetbrains.kotlin', 'kotlin-reflect').versionRef('kotlin')
-            library('kotlin-stdlib', 'org.jetbrains.kotlin', 'kotlin-stdlib-jdk8').versionRef('kotlin')
-            library('kotlin-stdlibCommon', 'org.jetbrains.kotlin', 'kotlin-stdlib-common').versionRef('kotlin')
-            library('kotlinx-coroutines', 'org.jetbrains.kotlinx', 'kotlinx-coroutines-core').version('1.6.0')
-            library('kotlinPoet', 'com.squareup', 'kotlinpoet').version('1.8.0')
-            library('okio', 'com.squareup.okio', 'okio').versionRef('okio')
-
-            bundle('kotlin', ['kotlin-stdlib', 'kotlin-reflect'])
-
-            library('junit', 'org.junit.jupiter', 'junit-jupiter').versionRef('junit')
-            library('junitApi', 'org.junit.jupiter', 'junit-jupiter-api').versionRef('junit')
-            library('hamcrest', 'org.hamcrest', 'hamcrest').version('2.2')
-            library('kotest-assertions-common', 'io.kotest', 'kotest-common').versionRef('kotest')
-            library('kotest-assertions-core', 'io.kotest', 'kotest-assertions-core').versionRef('kotest')
-            library('kotest-assertions-coreJvm', 'io.kotest', 'kotest-assertions-core-jvm').versionRef('kotest')
-            library('kotest-assertions-compiler', 'io.kotest.extensions', 'kotest-assertions-compiler').version('1.0.0') // They forgot to publish newer binaries
-            library('kotlin-compile-testing', 'com.github.tschuchortdev', 'kotlin-compile-testing').version('1.4.8')
-
-            library('kotlin-test-common', 'org.jetbrains.kotlin', 'kotlin-test-common').versionRef('kotlin')
-            library('kotlin-test-annotations-common', 'org.jetbrains.kotlin', 'kotlin-test-annotations-common').versionRef('kotlin')
-            library('kotlin-test-junit5', 'org.jetbrains.kotlin', 'kotlin-test-junit5').versionRef('kotlin')
-
-            bundle('testing', ['junit', 'hamcrest', 'kotest-assertions-core', 'kotest-assertions-coreJvm', 'kotest-assertions-compiler', 'kotlin-compile-testing'])
-        }
     }
 }
 

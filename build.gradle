@@ -20,9 +20,9 @@
  */
 
 plugins {
-    id 'com.vanniktech.maven.publish' apply false
-    id 'org.jetbrains.dokka' apply false
-    id 'org.jetbrains.kotlin.jvm' apply false
+    alias(libs.plugins.mavenPublish) apply false
+    alias(libs.plugins.dokka) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
 
     id 'jacoco'
 }

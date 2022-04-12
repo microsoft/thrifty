@@ -21,7 +21,7 @@
 
 plugins {
     id 'thrifty-jvm-module'
-    id 'com.vanniktech.maven.publish'
+    alias(libs.plugins.mavenPublish)
 }
 
 dependencies {
