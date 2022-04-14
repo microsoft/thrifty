@@ -195,7 +195,7 @@ class Constant private constructor (
                 }
             } else {
                 throw IllegalStateException(
-                        "Expected a value of type ${expected.name.toLowerCase()} but got $valueElement")
+                        "Expected a value of type ${expected.name.lowercase()} but got $valueElement")
             }
         }
     }
