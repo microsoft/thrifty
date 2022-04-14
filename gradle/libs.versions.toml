@@ -39,5 +39,5 @@ dokka = "org.jetbrains.dokka:1.6.10"
 gradlePluginPublish = "com.gradle.plugin-publish:0.12.0"
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-mpp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-mavenPublish = "com.vanniktech.maven.publish:0.17.0"
+mavenPublish = "com.vanniktech.maven.publish:0.19.0"
 shadow = "com.github.johnrengelman.shadow:6.1.0"
