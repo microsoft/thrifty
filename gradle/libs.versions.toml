@@ -1,5 +1,5 @@
 [versions]
-junit = "5.7.1"
+junit = "5.8.2"
 kotest = "5.1.0"
 kotlin = "1.6.20"
 okio = "3.0.0"
