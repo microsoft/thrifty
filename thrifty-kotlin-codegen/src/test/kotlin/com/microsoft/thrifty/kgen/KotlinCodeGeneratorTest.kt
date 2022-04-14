@@ -384,7 +384,7 @@ class KotlinCodeGeneratorTest {
             |
             |public class SvcClient(
             |  protocol: Protocol,
-            |  listener: AsyncClientBase.Listener
+            |  listener: AsyncClientBase.Listener,
             |) : AsyncClientBase(protocol, listener), Svc {
             |  public override suspend fun doSomething(foo: Int): Int = suspendCoroutine { cont ->
             |    this.enqueue(DoSomethingCall(foo, object : ServiceMethodCallback<Int> {
@@ -512,25 +512,25 @@ class KotlinCodeGeneratorTest {
         file.single().toString() should contain("""
             |
             |  public data class Foo(
-            |    public val `value`: Int
+            |    public val `value`: Int,
             |  ) : Union() {
             |    public override fun toString(): String = "Union(Foo=${'$'}value)"
             |  }
             |
             |  public data class Bar(
-            |    public val `value`: Long
+            |    public val `value`: Long,
             |  ) : Union() {
             |    public override fun toString(): String = "Union(Bar=${'$'}value)"
             |  }
             |
             |  public data class Baz(
-            |    public val `value`: String
+            |    public val `value`: String,
             |  ) : Union() {
             |    public override fun toString(): String = "Union(Baz=${'$'}value)"
             |  }
             |
             |  public data class NotFoo(
-            |    public val `value`: Int
+            |    public val `value`: Int,
             |  ) : Union() {
             |    public override fun toString(): String = "Union(NotFoo=${'$'}value)"
             |  }
@@ -820,7 +820,7 @@ class KotlinCodeGeneratorTest {
         file.shouldCompile()
 
         file.single().toString() should contain("""
-            |class Union : Struct {
+            |class Union() : Struct {
         """.trimMargin())
     }
 
@@ -849,7 +849,7 @@ class KotlinCodeGeneratorTest {
             |  }
             |
             |  public data class Struct(
-            |    public val `value`: Bonk
+            |    public val `value`: Bonk,
             |  ) : UnionStruct() {
             |    public override fun toString(): String = "UnionStruct(Struct=${'$'}value)"
             |  }
@@ -1060,7 +1060,7 @@ class KotlinCodeGeneratorTest {
         val expected = """
     @Deprecated(
       message = "Empty constructor deprecated, use required constructor instead",
-      replaceWith = ReplaceWith("Builder(field1)")
+      replaceWith = ReplaceWith("Builder(field1)"),
     )"""
 
         val file = generate(thrift) {

@@ -2022,8 +2022,7 @@ class KotlinCodeGenerator(
                             .addParameter("handler", getServerTypeName(serviceType))
                             .addParameter(ParameterSpec.builder(
                                     "errorHandler",
-                                    ErrorHandler::class,
-                                    KModifier.PRIVATE).defaultValue("%T", DefaultErrorHandler::class).build()
+                                    ErrorHandler::class).defaultValue("%T", DefaultErrorHandler::class).build()
                             )
                             .build()
             )
