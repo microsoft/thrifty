@@ -36,7 +36,7 @@ testing = ["junit", "hamcrest", "kotest-assertions-core", "kotest-assertions-cor
 
 [plugins]
 dokka = "org.jetbrains.dokka:1.6.10"
-gradlePluginPublish = "com.gradle.plugin-publish:0.12.0"
+gradlePluginPublish = "com.gradle.plugin-publish:0.21.0"
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-mpp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 mavenPublish = "com.vanniktech.maven.publish:0.19.0"
