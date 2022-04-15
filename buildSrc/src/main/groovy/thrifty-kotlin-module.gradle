@@ -32,13 +32,13 @@ dependencies {
 tasks.named('compileKotlin').configure {
     kotlinOptions {
         jvmTarget = '1.8'
-        freeCompilerArgs = ['-Xjvm-default=enable']
+        freeCompilerArgs = ['-Xjvm-default=all']
     }
 }
 
 tasks.named('compileTestKotlin').configure {
     kotlinOptions {
         jvmTarget = '1.8'
-        freeCompilerArgs = ['-Xjvm-default=enable']
+        freeCompilerArgs = ['-Xjvm-default=all']
     }
 }

@@ -23,8 +23,6 @@ package com.microsoft.thrifty.internal
 import kotlinx.coroutines.CoroutineDispatcher
 import okio.IOException
 
-expect annotation class DefaultMethod()
-
 expect class ProtocolException(message: String) : IOException
 
 expect val DefaultDispatcher: CoroutineDispatcher
