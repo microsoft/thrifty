@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.transport
 
-import com.microsoft.thrifty.internal.DefaultMethod
 import okio.Closeable
 import okio.IOException
 
@@ -29,7 +28,6 @@ interface Transport : Closeable {
     fun read(buffer: ByteArray, offset: Int, count: Int): Int
 
     @Throws(IOException::class)
-    @DefaultMethod
     fun write(data: ByteArray) {
         write(data, 0, data.size)
     }
