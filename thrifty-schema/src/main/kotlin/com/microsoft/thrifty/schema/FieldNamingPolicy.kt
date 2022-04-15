@@ -109,15 +109,15 @@ abstract class FieldNamingPolicy {
          */
         private fun caseFormatOf(s: String): CaseFormat? {
             if (s.contains("_")) {
-                if (s.toUpperCase() == s) {
+                if (s.uppercase() == s) {
                     return CaseFormat.UPPER_UNDERSCORE
                 }
 
-                if (s.toLowerCase() == s) {
+                if (s.lowercase() == s) {
                     return CaseFormat.LOWER_UNDERSCORE
                 }
             } else if (s.contains("-")) {
-                if (s.toLowerCase() == s) {
+                if (s.lowercase() == s) {
                     return CaseFormat.LOWER_HYPHEN
                 }
             } else {

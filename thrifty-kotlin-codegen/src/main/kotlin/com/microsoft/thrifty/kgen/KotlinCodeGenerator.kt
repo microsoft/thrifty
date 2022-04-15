@@ -92,6 +92,7 @@ import com.squareup.kotlinpoet.jvm.jvmField
 import com.squareup.kotlinpoet.jvm.jvmStatic
 import com.squareup.kotlinpoet.tag
 import okio.ByteString
+import java.util.Locale
 
 private object Tags {
     val ADAPTER = "RESERVED:ADAPTER"
@@ -158,23 +159,21 @@ class KotlinCodeGenerator(
     private val nameAllocators = CacheBuilder
             .newBuilder()
             .build(object : CacheLoader<UserElement, NameAllocator>() {
-        override fun load(key: UserElement?): NameAllocator {
-            val elem = requireNotNull(key) { "Can't get a name allocator for null" }
+        override fun load(key: UserElement): NameAllocator {
             return NameAllocator().apply {
-
-                when (elem) {
+                when (key) {
                     is StructType -> {
                         newName("ADAPTER", Tags.ADAPTER)
-                        if (elem.isException) {
+                        if (key.isException) {
                             newName("message", Tags.MESSAGE)
                             newName("cause", Tags.CAUSE)
                         }
 
-                        if (elem.isUnion && elem.fields.any { it.defaultValue != null }) {
+                        if (key.isUnion && key.fields.any { it.defaultValue != null }) {
                             newName("DEFAULT", Tags.DEFAULT)
                         }
 
-                        for (field in elem.fields) {
+                        for (field in key.fields) {
                             val conformingName = fieldNamingPolicy.apply(field.name)
                             newName(conformingName, field)
                         }
@@ -185,13 +184,13 @@ class KotlinCodeGenerator(
                     is EnumType -> {
                         newName("findByValue", Tags.FIND_BY_VALUE)
                         newName("value", Tags.VALUE)
-                        for (member in elem.members) {
+                        for (member in key.members) {
                             newName(member.name, member)
                         }
                     }
 
                     is ServiceType -> {
-                        for (method in elem.methods) {
+                        for (method in key.methods) {
                             newName(method.name, method)
                         }
                     }
@@ -203,11 +202,11 @@ class KotlinCodeGenerator(
                         newName("resultValue", Tags.RESULT)
                         newName("fieldMeta", Tags.FIELD)
 
-                        for (param in elem.parameters) {
+                        for (param in key.parameters) {
                             newName(param.name, param)
                         }
 
-                        for (ex in elem.exceptions) {
+                        for (ex in key.exceptions) {
                             newName(ex.name, ex)
                         }
                     }
@@ -2534,7 +2533,7 @@ class KotlinCodeGenerator(
     }
 
     private fun makeEmptyConstructorDeprecated(params: MutableList<ParameterSpec>): AnnotationSpec {
-        var parameterString = params.joinToString(prefix = "Builder(", postfix = ")", separator = ", ") { it.name }
+        val parameterString = params.joinToString(prefix = "Builder(", postfix = ")", separator = ", ") { it.name }
 
         return AnnotationSpec.builder(Deprecated::class)
                 .addMember("message = %S", "Empty constructor deprecated, use required constructor instead")
@@ -2558,6 +2557,10 @@ class KotlinCodeGenerator(
         return AnnotationSpec.builder(Suppress::class)
                 .addMember("%S", "UNUSED_PARAMETER")
                 .build()
+    }
+
+    private fun String.capitalize(): String {
+        return this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() }
     }
 }
 
