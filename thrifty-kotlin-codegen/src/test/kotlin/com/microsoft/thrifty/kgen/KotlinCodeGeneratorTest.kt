@@ -1226,6 +1226,126 @@ class KotlinCodeGeneratorTest {
         file.single().toString() shouldNotContain notExpected
     }
 
+    @Test
+    fun `struct-valued constant`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |struct Foo {
+            |  1: string text;
+            |  2: Bar bar;
+            |  3: Baz baz;
+            |  4: Quux quux;
+            |}
+            |
+            |struct Bar {
+            |  1: map<string, list<string>> keys;
+            |}
+            |
+            |enum Baz {
+            |  ONE,
+            |  TWO,
+            |  THREE
+            |}
+            |
+            |struct Quux {
+            |  1: string s;
+            |}
+            |
+            |const Quux THE_QUUX = {
+            |  "s": "s"
+            |}
+            |
+            |const Foo THE_FOO = {
+            |  "text": "some text",
+            |  "bar": {
+            |    "keys": {
+            |      "letters": ["a", "b", "c"],
+            |    }
+            |  },
+            |  "baz": Baz.ONE,
+            |  "quux": THE_QUUX
+            |}
+        """.trimMargin()
+
+        val expected = """
+            |public val THE_FOO: Foo = Foo(
+            |      text = "some text",
+            |      bar = Bar(
+            |        keys = mapOf("letters" to listOf("a", "b", "c")),
+            |      ),
+            |      baz = test.struct.Baz.ONE,
+            |      quux = test.struct.THE_QUUX,
+            |    )
+        """.trimMargin()
+
+        val file = generate(thrift).single()
+
+        file.toString() shouldContain expected
+        file.shouldCompile()
+    }
+
+    @Test
+    fun `struct-valued constants with builders`() {
+        val thrift = """
+            |namespace kt test.struct
+            |
+            |struct Foo {
+            |  1: string text;
+            |  2: Bar bar;
+            |  3: Baz baz;
+            |  4: Quux quux;
+            |}
+            |
+            |struct Bar {
+            |  1: map<string, list<string>> keys;
+            |}
+            |
+            |enum Baz {
+            |  ONE,
+            |  TWO,
+            |  THREE
+            |}
+            |
+            |struct Quux {
+            |  1: string s;
+            |}
+            |
+            |const Quux THE_QUUX = {
+            |  "s": "s"
+            |}
+            |
+            |const Foo THE_FOO = {
+            |  "text": "some text",
+            |  "bar": {
+            |    "keys": {
+            |      "letters": ["a", "b", "c"],
+            |    }
+            |  },
+            |  "baz": Baz.ONE,
+            |  "quux": THE_QUUX
+            |}
+        """.trimMargin()
+
+        val expected = """
+            |public val THE_FOO: Foo = Foo.Builder().let {
+            |      it.text("some text")
+            |      it.bar(Bar.Builder().let {
+            |        it.keys(mapOf("letters" to listOf("a", "b", "c")))
+            |        it.build()
+            |      })
+            |      it.baz(test.struct.Baz.ONE)
+            |      it.quux(test.struct.THE_QUUX)
+            |      it.build()
+            |    }
+        """.trimMargin()
+
+        val file = generate(thrift) { withDataClassBuilders() }.single()
+
+        file.toString() shouldContain expected
+        file.shouldCompile()
+    }
+
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
         val configOrDefault = config ?: { this }
         return KotlinCodeGenerator()

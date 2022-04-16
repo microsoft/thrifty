@@ -25,10 +25,12 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.throwables.shouldThrowMessage
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.throwable.shouldHaveMessage
+import io.kotest.matchers.types.beInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
@@ -1160,7 +1162,32 @@ class LoaderTest {
         e.message shouldContain "'Membership.WRONG' is not a member of enum type Membership: members=[MEMBER, NON_MEMBER, UNDER_REVIEW]"
     }
 
+    @Test
+    fun `struct const with reference to another const`() {
+        val thrift = """
+            |struct Example {
+            |  1: required string text
+            |}
+            |
+            |struct Container {
+            |  1: required Example example
+            |}
+            |
+            |const Example THE_EXAMPLE = {"text": "this is some text"}
+            |
+            |const Container THE_CONTAINER = {"example": THE_EXAMPLE}
+        """.trimMargin()
 
+        val schema = load(thrift)
+        val consts = schema.constants
+        val theContainer = consts.find { it.name == "THE_CONTAINER" } ?: error("Expected a constant named THE_CONTAINER")
+
+        val elements = (theContainer.value as MapValueElement).value
+        val singleValue = elements.values.single()
+        singleValue should beInstanceOf<IdentifierValueElement>()
+
+        (singleValue as IdentifierValueElement).value shouldBe "THE_EXAMPLE"
+    }
 
     private fun load(thrift: String): Schema {
         val f = File.createTempFile("test", ".thrift", tempDir)
