@@ -1863,7 +1863,51 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitStruct(structType: StructType) {
-                    TODO("not implemented")
+                    if (value !is MapValueElement) {
+                        constOrError("Invalid struct constant")
+                        return
+                    }
+
+                    val className = ClassName(structType.kotlinNamespace, structType.name)
+                    if (structType.fields.isEmpty()) {
+                        block.add("%T()", className)
+                        return
+                    }
+
+                    val names = nameAllocators[structType]
+                    val fieldValues = value.value.mapKeys { (it.key as LiteralValueElement).value }
+
+                    if (builderlessDataClasses) {
+                        block.add("%T(\n⇥", className)
+
+                        for (field in structType.fields) {
+                            // TODO: Once we allow default values, support them here
+                            val fieldValue = fieldValues[field.name]
+                                    ?: error("No value for struct field '$field.name'")
+
+                            block.add("%L = ", names[field])
+                            recursivelyRenderConstValue(block, field.type, fieldValue)
+                            block.add(",\n")
+                        }
+
+                        block.add("⇤)")
+                    } else {
+                        val builderType = ClassName(structType.kotlinNamespace, structType.name, "Builder")
+                        block.add("%T().let·{\n⇥", builderType)
+
+                        for (field in structType.fields) {
+                            // TODO: Once we allow default values, support them here
+                            val fieldValue = fieldValues[field.name]
+                                    ?: error("No value for struct field '$field.name'")
+
+                            block.add("it.%L(", names[field])
+                            recursivelyRenderConstValue(block, field.type, fieldValue)
+                            block.add(")\n")
+                        }
+
+                        block.add("it.build()\n")
+                        block.add("⇤}")
+                    }
                 }
 
                 override fun visitTypedef(typedefType: TypedefType) {
