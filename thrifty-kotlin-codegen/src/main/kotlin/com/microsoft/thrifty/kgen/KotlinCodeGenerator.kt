@@ -352,11 +352,11 @@ class KotlinCodeGenerator(
                         .toMap()
 
                 fileSpecsByNamespace.map { (ns, fileSpec) ->
-                    typedefsByNamespace[ns]?.forEach { fileSpec.addTypeAlias(it) }
-                    constantsByNamespace[ns]?.forEach { fileSpec.addProperty(it) }
+                    typedefsByNamespace[ns].forEach { fileSpec.addTypeAlias(it) }
+                    constantsByNamespace[ns].forEach { fileSpec.addProperty(it) }
                     specsByNamespace[ns]
-                            ?.mapNotNull { processor.process(it) }
-                            ?.forEach { fileSpec.addType(it) }
+                            .mapNotNull { processor.process(it) }
+                            .forEach { fileSpec.addType(it) }
                     fileSpec.build()
                 }
             }
