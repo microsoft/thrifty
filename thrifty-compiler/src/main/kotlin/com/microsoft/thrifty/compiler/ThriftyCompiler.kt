@@ -369,6 +369,8 @@ class ThriftyCompiler {
                 gen.emitBigEnums()
             }
 
+            gen.emitFileComment(!omitFileComments)
+
             if (kotlinFilePerType) {
                 gen.filePerType()
             } else {
