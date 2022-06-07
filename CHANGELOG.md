@@ -1,3 +1,16 @@
+3.1.0-RC02 (released 7 June 2022)
+------------------
+- Add preliminary support for TypeProcessor plugins to thrifty-gradle-plugin (#490)
+- Add "generated" comments to Kotlin files (thanks @shashachu) (#486)
+- Add Kotlin codegen for struct-value constants (#482)
+- Maybe break?  Removed deprecated `@JvmDefault` annotations from thrifty-runtime (#481)
+
+3.1.0-RC01 (released 13 April 2022)
+------------------
+- Add struct-valued constant validator to thirfty-schema (thanks @janarajan) (#467)
+- Add server support (thanks @luqasn) (#447)
+- Bump Kotlin to 1.6.20
+
 3.0.0 (released 7 August 2021)
 ------------------
 The major update in this release is the transition of Thrifty from a Java project to a Kotlin Multiplatform project.  Among other changes, one thing to note is that the runtime artifact `thrifty-runtime` now refers to an MPP artifact.  The correct artifact to reference in your existing Android or Java projects is `thrifty-runtime-jvm`.
