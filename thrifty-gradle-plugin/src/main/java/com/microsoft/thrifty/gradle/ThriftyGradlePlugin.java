@@ -101,6 +101,7 @@ public abstract class ThriftyGradlePlugin implements Plugin<Project> {
             deps.add(project.getDependencies().create("com.microsoft.thrifty:thrifty-schema:" + thriftyVersion.get()));
             deps.add(project.getDependencies().create("com.microsoft.thrifty:thrifty-java-codegen:" + thriftyVersion.get()));
             deps.add(project.getDependencies().create("com.microsoft.thrifty:thrifty-kotlin-codegen:" + thriftyVersion.get()));
+            deps.add(project.getDependencies().create("com.microsoft.thrifty:thrifty-compiler-plugins:" + thriftyVersion.get()));
         });
 
         return configuration;

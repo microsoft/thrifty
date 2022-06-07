@@ -20,6 +20,9 @@
  */
 package com.microsoft.thrifty.gradle;
 
+import com.microsoft.thrifty.compiler.TypeProcessorService;
+import com.microsoft.thrifty.compiler.spi.KotlinTypeProcessor;
+import com.microsoft.thrifty.compiler.spi.TypeProcessor;
 import com.microsoft.thrifty.gen.NullabilityAnnotationType;
 import com.microsoft.thrifty.gen.ThriftyCodeGenerator;
 import com.microsoft.thrifty.gradle.JavaThriftOptions.NullabilityAnnotations;
@@ -190,6 +193,12 @@ public abstract class GenerateThriftSourcesWorkAction implements WorkAction<Gene
             gen.mapClassName(opts.getMapType());
         }
 
+        TypeProcessorService typeProcessorService = TypeProcessorService.getInstance();
+        KotlinTypeProcessor kotlinProcessor = typeProcessorService.getKotlinProcessor();
+        if (kotlinProcessor != null) {
+            gen.setProcessor(kotlinProcessor);
+        }
+
         for (com.squareup.kotlinpoet.FileSpec fs : gen.generate(schema)) {
             fs.writeTo(getParameters().getOutputDirectory().getAsFile().get());
         }
@@ -235,6 +244,12 @@ public abstract class GenerateThriftSourcesWorkAction implements WorkAction<Gene
 
             default:
                 throw new IllegalStateException("Unexpected NullabilityAnnotations value: " + anno);
+        }
+
+        TypeProcessorService typeProcessorService = TypeProcessorService.getInstance();
+        TypeProcessor typeProcessor = typeProcessorService.getJavaProcessor();
+        if (typeProcessor != null) {
+            gen.usingTypeProcessor(typeProcessor);
         }
 
         gen.generate(getParameters().getOutputDirectory().getAsFile().get());
