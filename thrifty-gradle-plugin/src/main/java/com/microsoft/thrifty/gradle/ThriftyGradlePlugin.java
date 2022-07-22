@@ -26,9 +26,9 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.file.Directory;
+import org.gradle.api.plugins.JavaBasePlugin;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
-import org.gradle.api.tasks.SourceSet;
-import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskProvider;
 import org.jetbrains.annotations.NotNull;
 
@@ -66,13 +66,13 @@ public abstract class ThriftyGradlePlugin implements Plugin<Project> {
             t.source(ext.getSources().map(ss -> ss.stream().map(it -> it.getSourceDirectorySet()).collect(Collectors.toList())));
         });
 
-        project.afterEvaluate(p -> {
-            SourceSetContainer sourceSetContainer = (SourceSetContainer) p.property("sourceSets");
-            if (sourceSetContainer == null) {
-                throw new IllegalStateException("expected project property 'sourceSets' not to be null");
-            }
-            SourceSet main = sourceSetContainer.getByName("main");
-            main.getJava().srcDir(thriftTaskProvider);
+        project.getPlugins().withType(JavaBasePlugin.class).configureEach(plugin -> {
+            JavaPluginExtension extension = project.getExtensions().getByType(JavaPluginExtension.class);
+            extension.getSourceSets().configureEach(ss -> {
+                if (ss.getName().equals("main")) {
+                    ss.getJava().srcDir(thriftTaskProvider);
+                }
+            });
         });
     }
 
