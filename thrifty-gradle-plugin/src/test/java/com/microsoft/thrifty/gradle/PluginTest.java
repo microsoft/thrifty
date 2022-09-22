@@ -21,9 +21,14 @@
 package com.microsoft.thrifty.gradle;
 
 import com.google.common.base.Joiner;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -61,7 +66,29 @@ public class PluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":generateThriftFiles").getOutcome());
     }
 
+    @Test
+    void typeProcessorConfigurationWorks() throws Exception {
+        BuildResult result = buildFixtureWithSubprojectsAndTask(
+            runner,
+            "kotlin_type_processor",
+            Arrays.asList(":app", ":processor"),
+            ":app:build",
+            GradleRunner::build);
+        assertEquals(TaskOutcome.SUCCESS, result.task(":app:generateThriftFiles").getOutcome());
+
+        Assertions.assertTrue(result.getOutput().contains("I AM IN A TYPE PROCESSOR"));
+    }
+
     private BuildResult buildFixture(GradleRunner runner, String fixtureName, Function<GradleRunner, BuildResult> buildAndAssert) throws Exception {
+        return buildFixtureWithSubprojectsAndTask(
+            runner,
+            fixtureName,
+            Collections.emptyList(),
+            ":build",
+            buildAndAssert);
+    }
+
+    private BuildResult buildFixtureWithSubprojectsAndTask(GradleRunner runner, String fixtureName, List<String> subprojects, String task, Function<GradleRunner, BuildResult> buildAndAssert) throws Exception {
         File fixture = new File(fixturesDir, fixtureName);
         File settings = new File(fixture, "settings.gradle");
         File buildDirectory = new File(fixture, "build");
@@ -96,9 +123,14 @@ public class PluginTest {
             w.write(getThriftyVersion());
             w.write("')\n");
             w.write("      alias('thrifty-runtime').to('com.microsoft.thrifty', 'thrifty-runtime').versionRef('thrifty')\n");
+            w.write("      alias('thrifty-compilerPlugins').to('com.microsoft.thrifty', 'thrifty-compiler-plugins').versionRef('thrifty')\n");
             w.write("    }\n");
             w.write("  }\n");
             w.write("}\n");
+
+            for (String subproject : subprojects) {
+                w.write("include '" + subproject + "'\n");
+            }
 
             w.flush();
         }
@@ -106,7 +138,7 @@ public class PluginTest {
         try {
             GradleRunner run = runner
                     .withProjectDir(fixture)
-                    .withArguments(":build", "--stacktrace", "--info");
+                    .withArguments(task, "--stacktrace", "--info");
             return buildAndAssert.apply(run);
         } finally {
             if (didCreateSettings) settings.delete();

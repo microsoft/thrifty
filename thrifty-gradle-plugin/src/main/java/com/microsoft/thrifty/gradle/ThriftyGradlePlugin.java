@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 /**
  * The plugin makes everything happen.
  */
-@SuppressWarnings("UnstableApiUsage")
 public abstract class ThriftyGradlePlugin implements Plugin<Project> {
     @Override
     public void apply(@NotNull Project project) {
@@ -54,6 +53,7 @@ public abstract class ThriftyGradlePlugin implements Plugin<Project> {
         ext.getThriftyVersion().convention(version);
 
         Configuration thriftyConfig = createConfiguration(project, ext.getThriftyVersion());
+        createTypeProcessorConfiguration(project, thriftyConfig);
 
         TaskProvider<ThriftyTask> thriftTaskProvider = project.getTasks().register("generateThriftFiles", ThriftyTask.class, t -> {
             t.setGroup("thrifty");
@@ -88,14 +88,13 @@ public abstract class ThriftyGradlePlugin implements Plugin<Project> {
     }
 
     private Configuration createConfiguration(Project project, final Provider<String> thriftyVersion) {
-        Configuration configuration = project
-                .getConfigurations().create("thriftyGradle")
-                .setDescription("configuration for the Thrifty Gradle Plugin")
-                .setVisible(false)
-                .setTransitive(true);
-
-        configuration.setCanBeConsumed(false);
-        configuration.setCanBeResolved(true);
+        Configuration configuration = project.getConfigurations().create("thriftyGradle", c -> {
+            c.setDescription("configuration for the Thrifty Gradle Plugin");
+            c.setVisible(false);
+            c.setTransitive(true);
+            c.setCanBeConsumed(false);
+            c.setCanBeResolved(true);
+        });
 
         configuration.defaultDependencies(deps -> {
             deps.add(project.getDependencies().create("com.microsoft.thrifty:thrifty-schema:" + thriftyVersion.get()));
@@ -105,5 +104,17 @@ public abstract class ThriftyGradlePlugin implements Plugin<Project> {
         });
 
         return configuration;
+    }
+
+    private void createTypeProcessorConfiguration(Project project, Configuration thriftyConfiguration) {
+        project.getConfigurations().create("thriftyTypeProcessor", c -> {
+            c.setDescription("dependencies containing Thrifty type processors");
+            c.setVisible(true);
+            c.setTransitive(true);
+            c.setCanBeConsumed(false);
+            c.setCanBeResolved(true);
+
+            thriftyConfiguration.extendsFrom(c);
+        });
     }
 }

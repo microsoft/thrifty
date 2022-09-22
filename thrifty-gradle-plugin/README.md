@@ -90,6 +90,11 @@ thrifty {
         nullabilityAnnotationKind 'none'
     }
 }
+
+// If you want to put a TypeProcessor on the classpath, you can do it like so:
+dependencies {
+    thriftyTypeProcessor "com.example:example-type-processor:1.2.3"
+}
 ```
 
 ### Implementation Notes
