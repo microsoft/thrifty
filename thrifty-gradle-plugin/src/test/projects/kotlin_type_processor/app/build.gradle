@@ -1,0 +1,11 @@
+plugins {
+    id 'com.microsoft.thrifty'
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+dependencies {
+    api "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    api msft.thrifty.runtime
+
+    thriftyTypeProcessor project(':processor')
+}
