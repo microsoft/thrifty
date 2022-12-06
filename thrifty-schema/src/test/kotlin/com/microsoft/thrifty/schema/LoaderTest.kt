@@ -968,6 +968,61 @@ class LoaderTest {
     }
 
     @Test
+    fun constantsWithCircularReferences() {
+        val thrift = """
+            struct Node {
+                1: required string key;
+                2: optional Node value;
+            }
+            
+            const Node A = {
+                "key": "foo",
+                "value": B
+            }
+            
+            const Node B = {
+                "key": "bar",
+                "value": A
+            }
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Cycle detected while validating Thrift constants"
+    }
+
+    @Test
+    fun constantCycleWithMutuallyDependentStructs() {
+        val thrift = """
+            struct TweedleDee {
+              1: TweedleDum brother;
+            }
+            
+            struct TweedleDum {
+              1: TweedleDee brother;
+            }
+            
+            const TweedleDee TWEEDLE_DEE = { "brother": TWEEDLE_DUM }
+            const TweedleDum TWEEDLE_DUM = { "brother": TWEEDLE_DEE }
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Cycle detected while validating Thrift constants"
+    }
+
+    @Test
+    fun populatesReferencedConstants() {
+        val thrift = """
+            const string A = "a";
+            const string B = "b";
+            const list<string> STRS = [A, B];
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val strs = schema.constants.last()
+        strs.referencedConstants.map { it.name} shouldBe listOf("A", "B")
+    }
+
+    @Test
     fun unionWithOneDefaultValue() {
         val thrift = """
             union HasDefault {
