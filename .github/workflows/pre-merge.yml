@@ -8,13 +8,12 @@ on:
 
 jobs:
   build:
-    name: Build and test (JDK ${{ matrix.jvm-version }}, ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Build and test (JDK ${{ matrix.jvm-version }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        jvm-version: [8, 14]
-        os: [ubuntu-latest, macos-latest]
+        jvm-version: [8, 17]
     env:
       JDK_VERSION: ${{ matrix.jvm-version }}
       GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -34,10 +33,10 @@ jobs:
           path: |
             ~/.gradle/caches/
             ~/.gradle/wrapper/
-          key: cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}-${{ hashFiles('**/build.gradle') }}
+          key: cache-gradle-ubuntu-latest-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}-${{ hashFiles('**/build.gradle') }}
           restore-keys: |
-            cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}
-            cache-gradle-${{ matrix.os }}k-${{ matrix.jvm-version }}
+            cache-gradle-ubuntu-latest-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}
+            cache-gradle-ubuntu-latest-${{ matrix.jvm-version }}
 
       - name: Ensure all code files have license headers
         shell: bash
