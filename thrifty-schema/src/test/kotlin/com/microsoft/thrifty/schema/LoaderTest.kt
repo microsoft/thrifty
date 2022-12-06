@@ -1023,6 +1023,26 @@ class LoaderTest {
     }
 
     @Test
+    fun topologicallySortsConstants() {
+        val thrift = """
+            struct Node {
+              1: required list<Node> n;
+            }
+            
+            const Node A = { "n": [F] }
+            const Node B = { "n": [A] }
+            const Node C = { "n": [ ] }
+            const Node D = { "n": [B, C] }
+            const Node E = { "n": [C, F] }
+            const Node F = { "n": [ ] }
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val order = schema.constants.map { it.name }
+        order shouldBe listOf("F", "A", "C", "B", "E", "D")
+    }
+
+    @Test
     fun unionWithOneDefaultValue() {
         val thrift = """
             union HasDefault {

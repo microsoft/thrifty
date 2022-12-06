@@ -96,7 +96,7 @@ class Schema {
         this.unions = unions
         this.exceptions = exceptions
         this.enums = enums
-        this.constants = constants
+        this.constants = sortConstantsInDependencyOrder(constants)
         this.typedefs = typedefs
         this.services = services
     }
@@ -106,7 +106,7 @@ class Schema {
         this.unions = builder.unions
         this.exceptions = builder.exceptions
         this.enums = builder.enums
-        this.constants = builder.constants
+        this.constants = sortConstantsInDependencyOrder(builder.constants)
         this.typedefs = builder.typedefs
         this.services = builder.services
     }
@@ -213,5 +213,33 @@ class Schema {
         result = 31 * result + typedefs.hashCode()
         result = 31 * result + services.hashCode()
         return result
+    }
+
+    /**
+     * Returns a copy of the collection of [Constants][Constant] sorted in dependency
+     * order, suitable for generating code in the order presented.
+     *
+     * Dependency-order is a reverse topological sort, and  here means that for any
+     * given constant in the list, all constants on which it depends (i.e. that it
+     * references) come before it in order.  For example:
+     *
+     * ```
+     * // given this thrift
+     * const list<string> STRS = [A, B];
+     * const string A = "a";
+     * const string B = "b";
+     *
+     * // A reverse-topological-sort of these constants would be:
+     * [A, B, STRS]
+     *
+     * // A naive code-generation strategy of emitting constants in the order
+     * // in which they appear will work as expected:
+     * val A: String = "a"
+     * val B: String = "b"
+     * val STRS: List<String> = listOf(A, B)
+     * ```
+     */
+    private fun sortConstantsInDependencyOrder(constants: List<Constant>): List<Constant> {
+        return SortUtil.inDependencyOrder(constants) { it.referencedConstants }
     }
 }
