@@ -116,6 +116,10 @@ class Constant private constructor (
         return Builder(this)
     }
 
+    override fun toString(): String {
+        return "Constant(name=$name, loc=${location.path})"
+    }
+
     /**
      * An object that can build [Constants][Constant].
      */
@@ -448,10 +452,9 @@ class Constant private constructor (
                     Constant.validate(symbolTable, value, field.type)
                 }
 
-                // TODO: Relax this requirement and allow non-required or default-valued fields to be unspecified
-                check(allFields.isEmpty()) {
-                    val missingFieldNames = allFields.keys.joinToString(", ")
-                    "Expected all fields to be set; missing: $missingFieldNames"
+                check(allFields.none { it.value.required }) {
+                    val missingRequiredFieldNames = allFields.filter { it.value.required }.map { it.key }.joinToString(", ")
+                    "Some required fields are unset: $missingRequiredFieldNames"
                 }
             } else {
                 super.validate(symbolTable, expected, valueElement)
@@ -528,9 +531,14 @@ class Constant private constructor (
             return when (cve) {
                 is IdentifierValueElement -> getScalarConstantReference()
 
-                is MapValueElement -> cve.value.values.flatMap { elem ->
-                    val visitor = ConstantReferenceVisitor(elem, linker)
-                    mapType.valueType.accept(visitor)
+                is MapValueElement -> {
+                    cve.value.keys.flatMap { elem ->
+                        val visitor = ConstantReferenceVisitor(elem, linker)
+                        mapType.keyType.accept(visitor)
+                    } + cve.value.values.flatMap { elem ->
+                        val visitor = ConstantReferenceVisitor(elem, linker)
+                        mapType.valueType.accept(visitor)
+                    }.distinct()
                 }
 
                 else -> error("no")

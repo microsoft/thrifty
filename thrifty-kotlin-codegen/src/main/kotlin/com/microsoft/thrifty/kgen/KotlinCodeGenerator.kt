@@ -1888,13 +1888,16 @@ class KotlinCodeGenerator(
                         block.add("%T(\n⇥", className)
 
                         for (field in structType.fields) {
-                            // TODO: Once we allow default values, support them here
                             val fieldValue = fieldValues[field.name]
-                                    ?: error("No value for struct field '$field.name'")
-
-                            block.add("%L = ", names[field])
-                            recursivelyRenderConstValue(block, field.type, fieldValue)
-                            block.add(",\n")
+                            if (fieldValue != null) {
+                                block.add("%L = ", names[field])
+                                recursivelyRenderConstValue(block, field.type, fieldValue)
+                                block.add(",\n")
+                            } else {
+                                check(!field.required) { "Missing value for required field '${field.name}'" }
+                                // TODO: if there's a default value, support it
+                                block.add("%L = null,\n", names[field])
+                            }
                         }
 
                         block.add("⇤)")
@@ -1903,9 +1906,11 @@ class KotlinCodeGenerator(
                         block.add("%T().let·{\n⇥", builderType)
 
                         for (field in structType.fields) {
-                            // TODO: Once we allow default values, support them here
                             val fieldValue = fieldValues[field.name]
-                                    ?: error("No value for struct field '$field.name'")
+                            if (fieldValue == null) {
+                                check(!field.required) { "Missing value for required field '${field.name}'" }
+                                continue
+                            }
 
                             block.add("it.%L(", names[field])
                             recursivelyRenderConstValue(block, field.type, fieldValue)

@@ -59,6 +59,11 @@ struct Bonk
 
 typedef map<string,Bonk> MapType
 
+const Bonk A_BONK = {
+  "message": "foobar",
+  "type": 100,
+}
+
 struct Bools {
   1: bool im_true,
   2: bool im_false,
@@ -94,6 +99,21 @@ struct Insanity
 {
   1: map<Numberz, UserId> userMap,
   2: list<Xtruct> xtructs
+}
+
+const Insanity TOTAL_INSANITY = {
+  "userMap": {
+    myNumberz: 1234
+  },
+  "xtructs": [
+    {
+      "string_thing": "hello",
+    },
+    {
+      "i32_thing": 1,
+      "bool_thing": 0,
+    },
+  ]
 }
 
 struct CrazyNesting {
