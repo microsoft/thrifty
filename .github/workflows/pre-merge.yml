@@ -8,12 +8,13 @@ on:
 
 jobs:
   build:
-    name: Build and test (JDK ${{ matrix.jvm-version }})
-    runs-on: ubuntu-latest
+    name: Build and test (OS ${{ matrix.os }}, JDK ${{ matrix.jvm-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         jvm-version: [8, 17]
+        os: [ubuntu-latest, windows-latest]
     env:
       JDK_VERSION: ${{ matrix.jvm-version }}
       GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -35,10 +36,11 @@ jobs:
             ~/.gradle/wrapper/
           key: cache-gradle-ubuntu-latest-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}-${{ hashFiles('**/build.gradle') }}
           restore-keys: |
-            cache-gradle-ubuntu-latest-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}
-            cache-gradle-ubuntu-latest-${{ matrix.jvm-version }}
+            cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}
+            cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}
 
       - name: Ensure all code files have license headers
+        if: matrix.os == 'ubuntu-latest' && matrix.jvm-version == '17'
         shell: bash
         run: |
           ./script/ensure_license_headers.sh
@@ -53,7 +55,7 @@ jobs:
         run: ./gradlew check codeCoverageReport --parallel
 
       - name: Upload coverage stats
-        if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '14'
+        if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '17'
         uses: codecov/codecov-action@v1
 
       # TODO: figure out snapshot uploads
