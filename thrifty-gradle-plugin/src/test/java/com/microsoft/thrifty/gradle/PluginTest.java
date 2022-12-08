@@ -138,7 +138,7 @@ public class PluginTest {
         try {
             GradleRunner run = runner
                     .withProjectDir(fixture)
-                    .withArguments(task, "--stacktrace", "--info");
+                    .withArguments(task, "--stacktrace", "--info", "--no-build-cache", "--no-configuration-cache");
             return buildAndAssert.apply(run);
         } finally {
             if (didCreateSettings) settings.delete();
