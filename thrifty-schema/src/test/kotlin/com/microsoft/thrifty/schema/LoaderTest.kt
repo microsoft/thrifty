@@ -1023,6 +1023,20 @@ class LoaderTest {
     }
 
     @Test
+    fun constantInMapKey() {
+        val thrift = """
+            const string KEY = "foo"
+            const map<string, string> MAP = {
+                KEY: "bar"
+            }
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val (key, map) = schema.constants
+        map.referencedConstants shouldBe listOf(key)
+    }
+
+    @Test
     fun topologicallySortsConstants() {
         val thrift = """
             struct Node {

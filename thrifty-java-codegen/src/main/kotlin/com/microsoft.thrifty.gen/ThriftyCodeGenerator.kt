@@ -82,7 +82,7 @@ class ThriftyCodeGenerator {
         typeResolver.setSetClass(TypeNames.HASH_SET)
         typeResolver.setMapClass(TypeNames.HASH_MAP)
 
-        constantBuilder = ConstantBuilder(typeResolver, schema)
+        constantBuilder = ConstantBuilder(typeResolver, fieldNamer, schema)
         serviceBuilder = ServiceBuilder(typeResolver, constantBuilder, fieldNamer)
     }
 
@@ -852,6 +852,10 @@ class ThriftyCodeGenerator {
         return toString.build()
     }
 
+    /**
+     * Builds a `Constants` type containing all constants defined for one
+     * single package.
+     */
     private fun buildConst(constants: Collection<Constant>): TypeSpec {
         val builder = TypeSpec.classBuilder("Constants")
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -934,7 +938,7 @@ class ThriftyCodeGenerator {
                             tempName,
                             type,
                             constant.value,
-                            true)
+                            needsDeclaration = true)
                     staticInit.addStatement("\$N = \$T.\$L(\$N)",
                             constant.name,
                             TypeNames.COLLECTIONS,
@@ -945,7 +949,19 @@ class ThriftyCodeGenerator {
                 }
 
                 override fun visitStruct(structType: StructType) {
-                    throw UnsupportedOperationException("Struct-type constants are not supported")
+                    val cve = constant.value
+                    if (cve is MapValueElement && cve.value.isEmpty()) {
+                        field.initializer("new \$T.Builder().build()", typeResolver.getJavaClass(constant.type))
+                    } else {
+                        constantBuilder.generateFieldInitializer(
+                            staticInit,
+                            allocator,
+                            scope,
+                            constant.name,
+                            constant.type.trueType,
+                            cve,
+                            needsDeclaration = false)
+                    }
                 }
 
                 override fun visitTypedef(typedefType: TypedefType) {
