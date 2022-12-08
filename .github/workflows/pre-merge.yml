@@ -19,7 +19,7 @@ jobs:
       JDK_VERSION: ${{ matrix.jvm-version }}
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 2 # set to a value > 1 to support codecov.io SHA detection
 
@@ -29,7 +29,7 @@ jobs:
           rm -rf ~/.gradle/caches/ && rm -rf ~/.gradle/wrapper/
 
       - name: Cache Gradle folders
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.gradle/caches/
@@ -47,16 +47,17 @@ jobs:
           ./script/ensure_license_headers.sh
 
       - name: Set up JDK
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v2
         with:
           java-version: ${{ matrix.jvm-version }}
+          distribution: zulu
 
       - name: Build and test
         shell: bash
-        run: ./gradlew check codeCoverageReport --parallel
+        run: ./gradlew check codeCoverageReport --parallel --no-daemon
 
       - name: Upload coverage stats
         if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '17'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
 
       # TODO: figure out snapshot uploads
