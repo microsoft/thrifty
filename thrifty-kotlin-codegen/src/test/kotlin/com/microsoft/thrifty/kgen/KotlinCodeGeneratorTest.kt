@@ -1370,6 +1370,54 @@ class KotlinCodeGeneratorTest {
     }
 
     @Test
+    fun `struct const with default field value using builders`() {
+        val thrift = """
+            |namespace kt test.struct_const.default_fields
+            |
+            |struct Foo {
+            |  1: required string text = "FOO";
+            |  2: required i32 number;
+            |}
+            |
+            |const Foo THE_FOO = {"number": 42}
+        """.trimMargin()
+
+        val file = generate(thrift) { withDataClassBuilders() }
+
+        file.toString() shouldContain """
+            |public val THE_FOO: Foo = Foo.Builder().let {
+            |      it.number(42)
+            |      it.build()
+            |    }
+        """.trimMargin()
+    }
+
+    @Test
+    fun `struct const with default field value using data classes`() {
+        val thrift = """
+            |namespace kt test.struct_const.default_fields
+            |
+            |struct Foo {
+            |  1: required string text = "FOO";
+            |  2: required i32 number;
+            |}
+            |
+            |const Foo THE_FOO = {"number": 42}
+        """.trimMargin()
+
+        val file = generate(thrift)
+
+        println(file)
+
+        file.toString() shouldContain """
+            |public val THE_FOO: Foo = Foo(
+            |      text = "FOO",
+            |      number = 42,
+            |    )
+        """.trimMargin()
+    }
+
+    @Test
     fun `constant reference`() {
         val thrift = """
             |namespace kt test.const_ref

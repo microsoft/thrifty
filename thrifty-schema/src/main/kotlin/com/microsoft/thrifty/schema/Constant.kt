@@ -452,8 +452,9 @@ class Constant private constructor (
                     Constant.validate(symbolTable, value, field.type)
                 }
 
-                check(allFields.none { it.value.required }) {
-                    val missingRequiredFieldNames = allFields.filter { it.value.required }.map { it.key }.joinToString(", ")
+                val missingFields = allFields.values.filter { it.required && it.defaultValue == null }
+                check(missingFields.isEmpty()) {
+                    val missingRequiredFieldNames = missingFields.joinToString(", ") { it.name }
                     "Some required fields are unset: $missingRequiredFieldNames"
                 }
             } else {

@@ -1888,14 +1888,13 @@ class KotlinCodeGenerator(
                         block.add("%T(\n⇥", className)
 
                         for (field in structType.fields) {
-                            val fieldValue = fieldValues[field.name]
+                            val fieldValue = fieldValues[field.name] ?: field.defaultValue
                             if (fieldValue != null) {
                                 block.add("%L = ", names[field])
                                 recursivelyRenderConstValue(block, field.type, fieldValue)
                                 block.add(",\n")
                             } else {
                                 check(!field.required) { "Missing value for required field '${field.name}'" }
-                                // TODO: if there's a default value, support it
                                 block.add("%L = null,\n", names[field])
                             }
                         }
@@ -1908,7 +1907,9 @@ class KotlinCodeGenerator(
                         for (field in structType.fields) {
                             val fieldValue = fieldValues[field.name]
                             if (fieldValue == null) {
-                                check(!field.required) { "Missing value for required field '${field.name}'" }
+                                check(!field.required || field.defaultValue != null) {
+                                    "Missing value for required field '${field.name}'"
+                                }
                                 continue
                             }
 

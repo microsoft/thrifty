@@ -606,6 +606,30 @@ class ThriftyCodeGeneratorTest {
         java shouldContain "public Builder(@NonNull Foo struct)"
     }
 
+    @Test
+    fun structConstWithDefaultValueInField() {
+        val thrift = """
+            |namespace java test.struct_const.default_fields
+            |
+            |struct Foo {
+            |  1: required string text = "FOO";
+            |  2: required i32 number;
+            |}
+            |
+            |const Foo THE_FOO = {"number": 42}
+        """.trimMargin()
+
+        val file = compile("consts.thrift", thrift).single { it.typeSpec.name == "Constants" }
+
+        file.toString() shouldContain """
+            |  static {
+            |    Foo.Builder fooBuilder0 = new Foo.Builder();
+            |    fooBuilder0.number(42);
+            |    THE_FOO = fooBuilder0.build();
+            |  }
+        """.trimMargin()
+    }
+
     private fun compile(filename: String, text: String): List<JavaFile> {
         val schema = parse(filename, text)
         val gen = ThriftyCodeGenerator(schema).emitFileComment(false)
