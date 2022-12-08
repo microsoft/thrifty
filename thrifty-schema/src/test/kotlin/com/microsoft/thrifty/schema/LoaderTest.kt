@@ -260,7 +260,7 @@ class LoaderTest {
         schema.enums shouldHaveSize 1
 
         val enum = schema.enums.single()
-        enum.location.path shouldBe "nested/a.thrift"
+        enum.location.path shouldBe listOf("nested", "a.thrift").joinToString(File.separator)
     }
 
     @Test
