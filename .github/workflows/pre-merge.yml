@@ -35,7 +35,7 @@ jobs:
             ~/.gradle/caches/
             ~/.gradle/wrapper/
             .build-cache/
-          key: cache-gradle-ubuntu-latest-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}-${{ hashFiles('**/build.gradle') }}
+          key: cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}-${{ hashFiles('**/build.gradle') }}
           restore-keys: |
             cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}
             cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}
