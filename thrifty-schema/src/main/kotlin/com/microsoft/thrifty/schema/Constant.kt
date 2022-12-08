@@ -68,7 +68,7 @@ class Constant private constructor (
     }
 
     internal fun linkReferencedConstants(linker: Linker) {
-        referencedConstants = type.accept(ConstantReferenceVisitor(value, linker))
+        referencedConstants = type.accept(ConstantReferenceVisitor(value, linker)).distinct()
     }
 
     internal fun validate(linker: Linker) {
