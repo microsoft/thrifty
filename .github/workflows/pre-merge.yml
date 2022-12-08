@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build and test (OS ${{ matrix.os }},JDK ${{ matrix.jvm-version }})
+    name: Build and test (OS ${{ matrix.os }}, JDK ${{ matrix.jvm-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
