@@ -961,6 +961,8 @@ class ThriftyCodeGenerator {
                             constant.type.trueType,
                             cve,
                             needsDeclaration = false)
+
+                        hasStaticInit.set(true)
                     }
                 }
 

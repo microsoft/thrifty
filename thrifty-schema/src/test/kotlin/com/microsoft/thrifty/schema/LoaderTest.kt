@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.schema
 
 import com.microsoft.thrifty.schema.parser.*
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.throwables.shouldThrowMessage
@@ -1290,6 +1291,49 @@ class LoaderTest {
         val (str, strs) = schema.constants
 
         strs.referencedConstants shouldBe listOf(str)
+    }
+
+    @Test
+    fun `struct constants can omit fields with default values`() {
+        val baseThrift = """
+            |namespace java foo;
+            |
+            |struct Foo {
+            |  1: required string TEXT;
+            |  2: required string TEXT_WITH_DEFAULT = "foo";
+            |  3: optional string OPTIONAL_TEXT;
+            |}
+        """.trimMargin()
+
+        val goodThrift = """
+            |namespace java bar;
+            |
+            |include "foo.thrift"
+            |
+            |const foo.Foo THE_FOO = {"TEXT": "some text"}
+        """.trimMargin()
+
+        val badThrift = """
+            |namespace java baz;
+            |
+            |include "foo.thrift"
+            |
+            |const foo.Foo NOT_THE_FOO = {"OPTIONAL_TEXT": "t"}
+        """.trimMargin()
+
+        val baseFile = File(tempDir, "foo.thrift")
+        val goodFile = File(tempDir, "good.thrift")
+        val badFile = File(tempDir, "bad.thrift")
+
+        baseFile.writeText(baseThrift)
+        goodFile.writeText(goodThrift)
+        badFile.writeText(badThrift)
+
+        val err = shouldThrow<LoadFailedException> { load(baseFile, badFile) }
+        err.message shouldContain "Some required fields are unset"
+
+
+        shouldNotThrowAny { load(baseFile, goodFile) }
     }
 
     private fun load(thrift: String): Schema {
