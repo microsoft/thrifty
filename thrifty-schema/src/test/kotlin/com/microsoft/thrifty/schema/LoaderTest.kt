@@ -1278,6 +1278,20 @@ class LoaderTest {
         (singleValue as IdentifierValueElement).value shouldBe "THE_EXAMPLE"
     }
 
+    @Test
+    fun `struct references are deduplicated`() {
+        val thrift = """
+            |const string STR = "foo"
+            |
+            |const list<string> STRS = [STR, STR]
+        """.trimMargin()
+
+        val schema = load(thrift)
+        val (str, strs) = schema.constants
+
+        strs.referencedConstants shouldBe listOf(str)
+    }
+
     private fun load(thrift: String): Schema {
         val f = File.createTempFile("test", ".thrift", tempDir)
         f.writeText(thrift)
