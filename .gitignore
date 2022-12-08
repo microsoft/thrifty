@@ -4,6 +4,7 @@ out/
 local.properties
 .idea/
 .git/
+.build-cache/
 
 *.iml
 .DS_Store
