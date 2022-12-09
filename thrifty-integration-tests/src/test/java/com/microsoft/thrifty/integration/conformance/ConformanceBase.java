@@ -20,6 +20,12 @@
  */
 package com.microsoft.thrifty.integration.conformance;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.microsoft.thrifty.ThriftException;
@@ -30,33 +36,28 @@ import com.microsoft.thrifty.integration.gen.Xception;
 import com.microsoft.thrifty.integration.gen.Xception2;
 import com.microsoft.thrifty.integration.gen.Xtruct;
 import com.microsoft.thrifty.integration.gen.Xtruct2;
+import com.microsoft.thrifty.protocol.BinaryProtocol;
+import com.microsoft.thrifty.protocol.CompactProtocol;
+import com.microsoft.thrifty.protocol.JsonProtocol;
 import com.microsoft.thrifty.protocol.Protocol;
 import com.microsoft.thrifty.service.AsyncClientBase;
-import com.microsoft.thrifty.testing.ServerProtocol;
-import com.microsoft.thrifty.testing.ServerTransport;
 import com.microsoft.thrifty.testing.TestServer;
+import com.microsoft.thrifty.transport.FramedTransport;
 import com.microsoft.thrifty.transport.SocketTransport;
 import com.microsoft.thrifty.transport.Transport;
-import kotlin.Unit;
-import okio.ByteString;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import kotlin.Unit;
+import okio.ByteString;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 /**
  * A test of auto-generated service code for the standard ThriftTest
@@ -73,34 +74,54 @@ public abstract class ConformanceBase {
      * An Apache Thrift server that is started anew for each test.
      *
      * <p>The server's transport and protocols are configured based
-     * on values returned by the abstract methods
-     * {@link #getServerProtocol()} and {@link #getServerTransport()}.
+     * on values returned provided in {@link com.microsoft.thrifty.testing.ServerConfig} annotations.
      */
     @RegisterExtension
-    TestServer testServer;
+    static TestServer testServer = new TestServer();
 
-    private Transport transport;
-    private Protocol protocol;
-    private ThriftTestClient client;
+    private static Transport transport;
+    private static Protocol protocol;
+    private static ThriftTestClient client;
 
-    public ConformanceBase() {
-        ServerTransport serverTransport = getServerTransport();
-        ServerProtocol serverProtocol = getServerProtocol();
-        testServer = new TestServer(serverProtocol, serverTransport);
-    }
-
-    @BeforeEach
-    public void setup() throws Exception {
+    @BeforeAll
+    static void beforeAll() throws Exception {
         int port = testServer.port();
-        SocketTransport transport = new SocketTransport.Builder("localhost", port)
-                .readTimeout(2000)
-                .build();
+        SocketTransport socketTransport = new SocketTransport.Builder("localhost", port)
+            .readTimeout(2000)
+            .build();
 
-        transport.connect();
+        socketTransport.connect();
 
-        this.transport = decorateTransport(transport);
-        this.protocol = createProtocol(this.transport);
-        this.client = new ThriftTestClient(protocol, new AsyncClientBase.Listener() {
+        switch (testServer.getTransport()) {
+            case BLOCKING:
+               transport = socketTransport;
+               break;
+
+            case NON_BLOCKING:
+                transport = new FramedTransport(socketTransport);
+                break;
+
+            default:
+                throw new AssertionError("Missing server transport; did you forget @ServerConfig?");
+        }
+
+        switch (testServer.getProtocol()) {
+            case BINARY:
+                protocol = new BinaryProtocol(transport);
+                break;
+
+            case COMPACT:
+                protocol = new CompactProtocol(transport);
+                break;
+
+            case JSON:
+                protocol = new JsonProtocol(transport);
+                break;
+
+            default:
+                throw new AssertionError("Missing server protocol; did you forget @ServerConfig?");
+        }
+        client = new ThriftTestClient(protocol, new AsyncClientBase.Listener() {
             @Override
             public void onTransportClosed() {
 
@@ -113,29 +134,8 @@ public abstract class ConformanceBase {
         });
     }
 
-    /**
-     * Specifies the kind of transport (blocking or non-blocking) for the
-     * test server.
-     */
-    protected abstract ServerTransport getServerTransport();
-
-    /**
-     * Specifies which Thrift protocol the test server will use.
-     */
-    protected abstract ServerProtocol getServerProtocol();
-
-    /**
-     * When overridden in a derived class, wraps the given transport
-     * in a decorator, e.g. a framed transport.
-     */
-    protected Transport decorateTransport(Transport transport) {
-        return transport;
-    }
-
-    protected abstract Protocol createProtocol(Transport transport);
-
-    @AfterEach
-    public void teardown() throws Exception {
+    @AfterAll
+    static void afterAll() throws Exception {
         if (client != null) {
             client.close();
             client = null;

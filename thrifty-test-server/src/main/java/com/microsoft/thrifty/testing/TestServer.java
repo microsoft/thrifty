@@ -21,6 +21,8 @@
 package com.microsoft.thrifty.testing;
 
 import com.microsoft.thrifty.test.gen.ThriftTest;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -33,8 +35,8 @@ import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
@@ -44,14 +46,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class TestServer implements Extension,
-        BeforeEachCallback,
-        AfterEachCallback {
-    private final ServerProtocol protocol;
-    private final ServerTransport transport;
+        BeforeAllCallback,
+        AfterAllCallback {
+    private static final Logger LOG = Logger.getLogger(TestServer.class.getName());
+
+    private ServerProtocol protocol;
+    private ServerTransport transport;
 
     private TServerTransport serverTransport;
     private TServer server;
     private Thread serverThread;
+
+    private Class<?> testClass;
 
     public void run() {
         ThriftTestHandler handler = new ThriftTestHandler(System.out);
@@ -65,25 +71,26 @@ public class TestServer implements Extension,
         final CountDownLatch latch = new CountDownLatch(1);
         serverThread = new Thread(() -> {
             latch.countDown();
-            server.serve();
+            LOG.entering("TestServer", "serve");
+            try {
+                server.serve();
+            } catch (Throwable t) {
+                LOG.log(Level.SEVERE, "Error while serving", t);
+            } finally {
+                LOG.exiting("TestServer", "serve");
+            }
         });
 
         serverThread.start();
 
         try {
-            latch.await(100, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ignored) {
-            // continue
+            if (!latch.await(1, TimeUnit.SECONDS)) {
+                LOG.severe("Server thread failed to start");
+            }
+        } catch (InterruptedException e) {
+            LOG.severe("Interrupted while waiting for server thread to start");
+            e.printStackTrace();
         }
-    }
-
-    public TestServer() {
-        this(ServerProtocol.BINARY, ServerTransport.BLOCKING);
-    }
-
-    public TestServer(ServerProtocol protocol, ServerTransport transport) {
-        this.protocol = protocol;
-        this.transport = transport;
     }
 
     public int port() {
@@ -97,13 +104,31 @@ public class TestServer implements Extension,
         }
     }
 
+    public ServerProtocol getProtocol() {
+        return protocol;
+    }
+
+    public ServerTransport getTransport() {
+        return transport;
+    }
+
+    public Class<?> getTestClass() {
+        return testClass;
+    }
+
     @Override
-    public void beforeEach(ExtensionContext context) {
+    public void beforeAll(ExtensionContext context) throws Exception {
+        testClass = context.getRequiredTestClass();
+
+        ServerConfig config = testClass.getDeclaredAnnotation(ServerConfig.class);
+        protocol = config != null ? config.protocol() : ServerProtocol.BINARY;
+        transport = config != null ? config.transport() : ServerTransport.BLOCKING;
+
         run();
     }
 
     @Override
-    public void afterEach(ExtensionContext context) {
+    public void afterAll(ExtensionContext context) throws Exception {
         cleanupServer();
     }
 
