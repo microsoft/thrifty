@@ -20,25 +20,10 @@
  */
 package com.microsoft.thrifty.integration.conformance;
 
-import com.microsoft.thrifty.protocol.CompactProtocol;
-import com.microsoft.thrifty.protocol.Protocol;
+import com.microsoft.thrifty.testing.ServerConfig;
 import com.microsoft.thrifty.testing.ServerProtocol;
 import com.microsoft.thrifty.testing.ServerTransport;
-import com.microsoft.thrifty.transport.Transport;
 
+@ServerConfig(transport = ServerTransport.BLOCKING, protocol = ServerProtocol.COMPACT)
 public class CompactProtocolConformance extends ConformanceBase {
-    @Override
-    protected ServerTransport getServerTransport() {
-        return ServerTransport.BLOCKING;
-    }
-
-    @Override
-    protected ServerProtocol getServerProtocol() {
-        return ServerProtocol.COMPACT;
-    }
-
-    @Override
-    protected Protocol createProtocol(Transport transport) {
-        return new CompactProtocol(transport);
-    }
 }

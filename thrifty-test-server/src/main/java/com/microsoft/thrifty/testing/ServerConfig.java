@@ -18,12 +18,16 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-package com.microsoft.thrifty.integration.conformance;
+package com.microsoft.thrifty.testing;
 
-import com.microsoft.thrifty.testing.ServerConfig;
-import com.microsoft.thrifty.testing.ServerProtocol;
-import com.microsoft.thrifty.testing.ServerTransport;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@ServerConfig(transport = ServerTransport.NON_BLOCKING, protocol = ServerProtocol.JSON)
-public class NonblockingJsonProtocolConformance extends ConformanceBase {
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface ServerConfig {
+  ServerProtocol protocol() default ServerProtocol.BINARY;
+  ServerTransport transport() default ServerTransport.BLOCKING;
 }

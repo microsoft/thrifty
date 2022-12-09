@@ -20,25 +20,10 @@
  */
 package com.microsoft.thrifty.integration.conformance;
 
-import com.microsoft.thrifty.protocol.BinaryProtocol;
-import com.microsoft.thrifty.protocol.Protocol;
+import com.microsoft.thrifty.testing.ServerConfig;
 import com.microsoft.thrifty.testing.ServerProtocol;
 import com.microsoft.thrifty.testing.ServerTransport;
-import com.microsoft.thrifty.transport.Transport;
 
+@ServerConfig(transport = ServerTransport.BLOCKING, protocol = ServerProtocol.BINARY)
 public class BinaryProtocolConformance extends ConformanceBase {
-    @Override
-    protected ServerTransport getServerTransport() {
-        return ServerTransport.BLOCKING;
-    }
-
-    @Override
-    protected ServerProtocol getServerProtocol() {
-        return ServerProtocol.BINARY;
-    }
-
-    @Override
-    protected Protocol createProtocol(Transport transport) {
-        return new BinaryProtocol(transport);
-    }
 }
