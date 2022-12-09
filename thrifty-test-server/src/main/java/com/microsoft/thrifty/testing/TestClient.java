@@ -27,6 +27,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.*;
 import org.apache.thrift.transport.*;
+import org.apache.thrift.transport.layered.TFastFramedTransport;
+import org.apache.thrift.transport.layered.TFramedTransport;
 
 import java.nio.ByteBuffer;
 import java.util.*;

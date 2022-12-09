@@ -25,4 +25,7 @@ plugins {
 dependencies {
     api libs.junitApi
     implementation libs.apacheThrift
+    implementation "commons-codec:commons-codec:1.15"
+    implementation "org.apache.httpcomponents:httpclient:4.5.13"
+    implementation "org.slf4j:slf4j-api:2.0.5"
 }
