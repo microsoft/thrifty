@@ -31,6 +31,8 @@ dependencies {
 }
 
 jar {
+    dependsOn ":thrifty-compiler-plugins:jar"
+
     archiveFileName.set('compiler.jar')
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
