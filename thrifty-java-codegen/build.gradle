@@ -21,7 +21,7 @@
 
 plugins {
     id 'thrifty-kotlin-module'
-    alias(libs.plugins.mavenPublish)
+    id 'thrifty-publish-module'
 }
 
 description = 'Converts Thrifty Schemas into Java source files'
