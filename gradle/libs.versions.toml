@@ -26,6 +26,7 @@ kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.
 kotest-assertions-coreJvm = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
 kotest-assertions-compiler = "io.kotest.extensions:kotest-assertions-compiler:1.0.0" # They have forgotten to publish newer binaries
 kotlin-compile-testing = "com.github.tschuchortdev:kotlin-compile-testing:1.4.9"
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-test-annotations-common = { module = "org.jetbrains.kotlin:kotlin-test-annotations-common", version.ref = "kotlin" }
 kotlin-test-common = { module = "org.jetbrains.kotlin:kotlin-test-common", version.ref = "kotlin" }
 kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
@@ -39,5 +40,5 @@ dokka = "org.jetbrains.dokka:1.7.20"
 gradlePluginPublish = "com.gradle.plugin-publish:0.21.0"
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-mpp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-mavenPublish = "com.vanniktech.maven.publish:0.19.0"
+mavenPublish = "com.vanniktech.maven.publish:0.22.0"
 shadow = "com.github.johnrengelman.shadow:7.1.2"

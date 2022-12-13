@@ -20,8 +20,8 @@
  */
 plugins {
     id 'thrifty-kotlin-module'
+    id 'thrifty-publish-module'
     id 'antlr'
-    alias(libs.plugins.mavenPublish)
 }
 
 description = 'A simple Thrift IDL parser and validator'
@@ -44,5 +44,15 @@ dependencies {
 
 // For some reason, Kotlin compilation is being run prior to antlr by default.
 tasks.named('compileKotlin').configure {
+    dependsOn 'generateGrammarSource'
+}
+
+tasks.named('compileTestKotlin').configure {
+    dependsOn 'generateTestGrammarSource'
+}
+
+// antlr doesn't hook up nicely with javaSourcesJar, so Gradle complains about
+// it unless we manually specify the dependency between the two
+tasks.matching { it.name == 'javaSourcesJar' }.configureEach {
     dependsOn 'generateGrammarSource'
 }

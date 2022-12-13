@@ -20,25 +20,13 @@
  */
 
 plugins {
-    id 'thrifty-jvm-module'
-    id 'org.jetbrains.kotlin.jvm'
-    id 'org.jetbrains.dokka'
+    id "com.vanniktech.maven.publish"
 }
 
-dependencies {
-    api platform(libs.kotlin.bom)
-}
+mavenPublishing {
+    publishToMavenCentral()
 
-tasks.named('compileKotlin').configure {
-    kotlinOptions {
-        jvmTarget = '1.8'
-        freeCompilerArgs = ['-Xjvm-default=all']
-    }
-}
-
-tasks.named('compileTestKotlin').configure {
-    kotlinOptions {
-        jvmTarget = '1.8'
-        freeCompilerArgs = ['-Xjvm-default=all']
+    if (!VERSION_NAME.endsWith("-SNAPSHOT")) {
+        signAllPublications()
     }
 }
