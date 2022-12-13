@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-  implementation 'com.microsoft.thrifty:thrifty-runtime-jvm:3.0.0'
+  implementation 'com.microsoft.thrifty:thrifty-runtime-jvm:3.1.0'
 }
 ```
 
@@ -53,7 +53,7 @@ Or, with the Gradle plugin:
 
 buildscript {
   dependencies {
-    classpath 'com.microsoft.thrifty:thrifty-gradle-plugin:3.0.0'
+    classpath 'com.microsoft.thrifty:thrifty-gradle-plugin:3.1.0'
   }
 }
 
