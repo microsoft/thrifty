@@ -1,3 +1,14 @@
+3.1.0 (released 13 December 2022)
+------------------
+- Add: Support default field values in struct-typed constants (#507)
+- Add: Implement Java codegen for struct-typed constants (#503)
+- Add: Sort constants in Schema by "dependency order" (#502)
+- Add: Added `Constant#referencedConstants` list (#499)
+- Add: new Gradle plugin support for TypeProcessors (#494)
+- Change: Bump Okio to 3.2.0 (#510)
+- Change: Bump Kotlin to 1.7.20 (#495)
+- Fix: avoid afterEvaluate in thrifty-gradle-plugin (#492)
+
 3.1.0-RC02 (released 7 June 2022)
 ------------------
 - Add preliminary support for TypeProcessor plugins to thrifty-gradle-plugin (#490)
