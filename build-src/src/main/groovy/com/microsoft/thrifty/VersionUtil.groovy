@@ -19,14 +19,13 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
-plugins {
-    id "com.vanniktech.maven.publish"
-}
+package com.microsoft.thrifty
 
-mavenPublishing {
-    publishToMavenCentral()
+import org.gradle.api.Project
 
-    if (!VERSION_NAME.endsWith("-SNAPSHOT")) {
-        signAllPublications()
+class VersionUtil {
+    static boolean isReleaseBuild(Project project) {
+        String versionName = project.findProperty("VERSION_NAME")
+        return versionName != null && !versionName.endsWith("-SNAPSHOT")
     }
 }

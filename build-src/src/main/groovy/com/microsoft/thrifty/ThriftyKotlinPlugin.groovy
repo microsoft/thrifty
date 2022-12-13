@@ -45,8 +45,7 @@ class ThriftyKotlinPlugin implements Plugin<Project> {
         project.plugins.apply("thrifty-jvm-module")
         project.plugins.apply("org.jetbrains.kotlin.jvm")
 
-        String versionName = project.findProperty("VERSION_NAME")
-        if (versionName != null && !versionName.endsWith("SNAPSHOT")) {
+        if (VersionUtil.isReleaseBuild(project)) {
             project.plugins.apply("org.jetbrains.dokka")
         }
     }
