@@ -40,7 +40,11 @@ dependencies {
 
 sourceSets {
     test {
-        java.srcDirs += ['build/generated-src/thrifty/java', 'build/generated-src/thrifty/kotlin']
+        java.srcDirs += [
+                'build/generated-src/thrifty-java/java',
+                'build/generated-src/thrifty-kotlin/kotlin',
+                'build/generated-src/thrifty-kotlin-coro/kotlin'
+        ]
     }
 }
 
@@ -54,12 +58,14 @@ mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
 
 def compileTestThrift = tasks.register("compileTestThrift", JavaExec) { t ->
     t.inputs.file("$projectDir/ClientThriftTest.thrift")
-    t.outputs.dir("$projectDir/build/generated-src/thrifty/java")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty-java/java")
+
+    t.outputs.cacheIf("This task is always cacheable based on its inputs") { true }
 
     t.classpath shadowJar.archiveFile
 
     args = [
-            "--out=$projectDir/build/generated-src/thrifty/java",
+            "--out=$projectDir/build/generated-src/thrifty-java/java",
             "--lang=java",
             "$projectDir/ClientThriftTest.thrift"]
 }
@@ -67,12 +73,14 @@ def compileTestThrift = tasks.register("compileTestThrift", JavaExec) { t ->
 
 def kompileTestThrift = tasks.register("kompileTestThrift", JavaExec) { t ->
     t.inputs.file("$projectDir/ClientThriftTest.thrift")
-    t.outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty-kotlin/kotlin")
+
+    t.outputs.cacheIf("This task is always cacheable based on its inputs") { true }
 
     t.classpath shadowJar.archiveFile
 
     args = [
-            "--out=$projectDir/build/generated-src/thrifty/kotlin",
+            "--out=$projectDir/build/generated-src/thrifty-kotlin/kotlin",
             "--kt-struct-builders",
             "--map-type=java.util.LinkedHashMap",
             "--set-type=java.util.LinkedHashSet",
@@ -84,12 +92,14 @@ def kompileTestThrift = tasks.register("kompileTestThrift", JavaExec) { t ->
 
 def kompileCoroutineTestThrift = tasks.register("kompileCoroutineTestThrift", JavaExec) { t ->
     t.inputs.file("$projectDir/CoroutineClientTest.thrift")
-    t.outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty-kotlin-coro/kotlin")
+
+    t.outputs.cacheIf("This task is always cacheable based on its inputs") { true }
 
     t.classpath shadowJar.archiveFile
 
     args = [
-            "--out=$projectDir/build/generated-src/thrifty/kotlin",
+            "--out=$projectDir/build/generated-src/thrifty-kotlin-coro/kotlin",
             "--kt-file-per-type",
             "--kt-emit-jvmname",
             "--service-type=coroutine",
