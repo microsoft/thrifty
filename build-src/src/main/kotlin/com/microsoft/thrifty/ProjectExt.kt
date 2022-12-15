@@ -18,23 +18,21 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-
 package com.microsoft.thrifty
 
-import com.vanniktech.maven.publish.MavenPublishBaseExtension
-import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.plugins.ExtensionContainer
+import org.gradle.api.tasks.TaskCollection
 
-class ThriftyPublishPlugin implements Plugin<Project> {
-    @Override
-    void apply(Project project) {
-        project.plugins.apply("com.vanniktech.maven.publish")
-
-        MavenPublishBaseExtension ext = project.extensions.findByType(MavenPublishBaseExtension)
-        ext.publishToMavenCentral()
-
-        if (VersionUtil.isReleaseBuild(project)) {
-            ext.signAllPublications()
-        }
+val Project.isReleaseBuild: Boolean
+    get() {
+        val versionName = project.findProperty("VERSION_NAME") as String?
+        return versionName != null && !versionName.endsWith("-SNAPSHOT")
     }
+
+inline fun <reified T : Task> TaskCollection<in Task>.withType(): TaskCollection<T> {
+    return withType(T::class.java)
 }
+
+inline fun <reified T> ExtensionContainer.findByType(): T? = findByType(T::class.java)
