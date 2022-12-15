@@ -18,34 +18,23 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
+package com.microsoft.thrifty
 
-plugins {
-    id 'java-library'
-    id 'idea'
-    id 'jacoco'
-}
+import com.vanniktech.maven.publish.MavenPublishBaseExtension
+import org.gradle.api.Plugin
+import org.gradle.api.Project
 
-group GROUP
-version VERSION_NAME
+@Suppress("UnstableApiUsage")
+class ThriftyPublishPlugin : Plugin<Project> {
+    override fun apply(project: Project) {
+        project.plugins.apply("com.vanniktech.maven.publish")
+        val ext = project
+            .extensions
+            .findByType<MavenPublishBaseExtension>()!!
 
-java {
-    targetCompatibility = "1.8"
-    sourceCompatibility = "1.8"
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.fork = true
-    options.incremental = true
-}
-
-test {
-    testLogging {
-        events "failed"
-        exceptionFormat "full"
-        showStackTraces true
-        showExceptions true
-        showCauses true
+        ext.publishToMavenCentral()
+        if (project.isReleaseBuild) {
+            ext.signAllPublications()
+        }
     }
-
-    useJUnitPlatform()
 }

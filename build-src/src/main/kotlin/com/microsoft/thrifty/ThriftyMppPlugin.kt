@@ -18,14 +18,17 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-
 package com.microsoft.thrifty
 
+import org.gradle.api.Plugin
 import org.gradle.api.Project
 
-class VersionUtil {
-    static boolean isReleaseBuild(Project project) {
-        String versionName = project.findProperty("VERSION_NAME")
-        return versionName != null && !versionName.endsWith("-SNAPSHOT")
+class ThriftyMppPlugin : Plugin<Project> {
+    override fun apply(project: Project) {
+        project.plugins.apply("thrifty-jvm-module")
+        project.plugins.apply("org.jetbrains.kotlin.multiplatform")
+        if (project.isReleaseBuild) {
+            project.plugins.apply("org.jetbrains.dokka")
+        }
     }
 }

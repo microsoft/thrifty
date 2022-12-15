@@ -18,13 +18,11 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-
 package com.microsoft.thrifty
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -33,37 +31,41 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
  *
  * All this, just to make Dokka optional.
  */
-class ThriftyKotlinPlugin implements Plugin<Project> {
-    @Override
-    void apply(Project project) {
+class ThriftyKotlinPlugin : Plugin<Project> {
+    override fun apply(project: Project) {
         applyBasePlugins(project)
         addKotlinBom(project)
         configureKotlinTasks(project)
     }
 
-    private static void applyBasePlugins(Project project) {
+    private fun applyBasePlugins(project: Project) {
         project.plugins.apply("thrifty-jvm-module")
         project.plugins.apply("org.jetbrains.kotlin.jvm")
-
-        if (VersionUtil.isReleaseBuild(project)) {
+        if (project.isReleaseBuild) {
             project.plugins.apply("org.jetbrains.dokka")
         }
     }
 
-    private static void addKotlinBom(Project project) {
-        VersionCatalogsExtension catalogs = project.extensions.findByType(VersionCatalogsExtension)
-        VersionCatalog catalog = catalogs.named("libs")
-        Dependency kotlinBom = catalog.findLibrary("kotlin-bom").get().get()
-        Dependency kotlinBomPlatformDependency = project.dependencies.platform(kotlinBom)
+    private fun addKotlinBom(project: Project) {
+        val catalogs = project.extensions.findByType<VersionCatalogsExtension>()!!
+        val catalog = catalogs.named("libs")
+        val maybeBomProvider = catalog.findLibrary("kotlin-bom")
+        check(maybeBomProvider.isPresent) { "No kotlin-bom dependency found" }
 
-        project.configurations.findByName("api").dependencies.add(kotlinBomPlatformDependency)
+        val kotlinBom: Dependency = maybeBomProvider.get().get()
+        val kotlinBomPlatformDependency = project.dependencies.platform(kotlinBom)
+        project.configurations
+            .getByName("api")
+            .dependencies
+            .add(kotlinBomPlatformDependency)
     }
 
-    private static void configureKotlinTasks(Project project) {
-        project.tasks.withType(KotlinCompile).configureEach { t ->
-            t.kotlinOptions {
-                jvmTarget = '1.8'
-                freeCompilerArgs = ['-Xjvm-default=all']
+    private fun configureKotlinTasks(project: Project) {
+        val kotlinCompileTasks = project.tasks.withType<KotlinCompile>()
+        kotlinCompileTasks.configureEach { task ->
+            task.kotlinOptions { opts ->
+                opts.jvmTarget = "1.8"
+                opts.freeCompilerArgs = listOf("-Xjvm-default=all")
             }
         }
     }

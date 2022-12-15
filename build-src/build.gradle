@@ -1,10 +1,18 @@
 plugins {
-    id 'groovy-gradle-plugin'
+    id 'java-gradle-plugin'
+    alias(libs.plugins.kotlin.jvm)
 }
 
 gradlePlugin {
     plugins {
-        thrifty {
+        java {
+            id = "thrifty-jvm-module"
+            displayName = "thrifty-jvm-module"
+            description = "common Java/JVM settings"
+            implementationClass = "com.microsoft.thrifty.ThriftyJavaPlugin"
+        }
+
+        kotlin {
             id = "thrifty-kotlin-module"
             displayName = "thrifty-kotlin-module"
             description = "common kotlin settings"
