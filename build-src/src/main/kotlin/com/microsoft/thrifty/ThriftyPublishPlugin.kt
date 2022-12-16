@@ -31,7 +31,7 @@ class ThriftyPublishPlugin : Plugin<Project> {
         val ext = project.extensions.findByType<MavenPublishBaseExtension>()!!
 
         ext.publishToMavenCentral()
-        if (project.isReleaseBuild) {
+        if (project.shouldSignAndDocumentBuild) {
             ext.signAllPublications()
         }
     }

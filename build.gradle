@@ -51,20 +51,22 @@ wrapper {
     distributionType = Wrapper.DistributionType.BIN
 }
 
-def ci = providers.environmentVariable("CI").forUseAtConfigurationTime()
-def travisRepoSlug = providers.environmentVariable("TRAVIS_REPO_SLUG").forUseAtConfigurationTime()
-def travisBranch = providers.environmentVariable("TRAVIS_BRANCH").forUseAtConfigurationTime()
-def travisPullRequest = providers.environmentVariable("TRAVIS_PULL_REQUEST").forUseAtConfigurationTime()
-def versionName = providers.gradleProperty("VERSION_NAME").forUseAtConfigurationTime()
-def currentJavaVersion = providers.systemProperty("java.version").forUseAtConfigurationTime()
+def ci = providers.environmentVariable("CI")
+def githubRepository = providers.environmentVariable("GITHUB_REPOSITORY")
+def githubBranchName = providers.environmentVariable("GITHUB_REF_NAME")
+def githubBaseRef = providers.environmentVariable("GITHUB_BASE_REF")
+def versionName = providers.gradleProperty("VERSION_NAME")
+def currentJavaVersion = providers.systemProperty("java.version")
+def publishSnapshotProperty = providers.gradleProperty("PUBLISH_SNAPSHOT")
 
-tasks.register("uploadSnapshot") {
+tasks.register("publishSnapshot") {
     def isCi = ci.getOrElse("") == "true"
-    def isMainRepo = travisRepoSlug.getOrElse("").matches("[Mm]icrosoft/thrifty")
-    def isMainBranch = travisBranch.getOrElse("") == "master"
-    def isNotPR = travisPullRequest.getOrElse("") == "false"
+    def isMainRepo = githubRepository.getOrElse("").matches("[Mm]icrosoft/thrifty")
+    def isMainBranch = githubBranchName.getOrElse("") == "master"
+    def isNotPR = githubBaseRef.getOrElse("") == ""
     def isSnapshot = versionName.get().endsWith("-SNAPSHOT")
     def isJava8 = currentJavaVersion.map { JavaVersion.toVersion(it) }.get().isJava8()
+    def isConfiguredForSnapshots = publishSnapshotProperty.getOrElse("false") == "true"
 
     // We only want to upload snapshots if we're a CI build,
     // for the main repo, on the main branch (and not due to a
@@ -83,8 +85,10 @@ tasks.register("uploadSnapshot") {
         doFirst { logger.lifecycle("Not a snapshot") }
     } else if (!isJava8) {
         doFirst { logger.lifecycle("Wrong JDK version") }
+    } else if(!isConfiguredForSnapshots) {
+        doFirst { logger.lifecycle("Not configured to publish snapshots - did you forget -PPUBLISH_SNAPSHOTS=true?") }
     } else {
         // whew
-        dependsOn subprojects*.tasks*.named("uploadArchives")
+        dependsOn tasks.named("publish")
     }
 }

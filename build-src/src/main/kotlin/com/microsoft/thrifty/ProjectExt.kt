@@ -33,6 +33,12 @@ val Project.isReleaseBuild: Boolean
         return versionName != null && !versionName.endsWith("-SNAPSHOT")
     }
 
+val Project.isPublishingSnapshot: Boolean
+    get() = project.findProperty("PUBLISH_SNAPSHOT")?.toString() == "true"
+
+val Project.shouldSignAndDocumentBuild: Boolean
+    get() = isReleaseBuild || isPublishingSnapshot
+
 inline fun <reified T : Task> TaskCollection<in Task>.withType(): TaskCollection<T> {
     return withType(T::class.java)
 }
