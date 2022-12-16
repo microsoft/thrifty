@@ -59,9 +59,3 @@ jobs:
       - name: Upload coverage stats
         if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '8'
         uses: codecov/codecov-action@v3
-
-      - name: Upload snapshot
-        if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '8'
-        shell: bash
-        run: |
-          ./gradlew -PPUBLISH_SNAPSHOT=true publishSnapshot
