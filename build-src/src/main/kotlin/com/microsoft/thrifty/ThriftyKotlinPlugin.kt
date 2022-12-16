@@ -39,10 +39,10 @@ class ThriftyKotlinPlugin : Plugin<Project> {
     }
 
     private fun applyBasePlugins(project: Project) {
-        project.plugins.apply("thrifty-jvm-module")
-        project.plugins.apply("org.jetbrains.kotlin.jvm")
+        project.plugins.apply<ThriftyJavaPlugin>()
+        project.plugins.apply(Plugins.KOTLIN_JVM)
         if (project.isReleaseBuild) {
-            project.plugins.apply("org.jetbrains.dokka")
+            project.plugins.apply(Plugins.DOKKA)
         }
     }
 

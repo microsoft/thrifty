@@ -27,10 +27,8 @@ import org.gradle.api.Project
 @Suppress("UnstableApiUsage")
 class ThriftyPublishPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        project.plugins.apply("com.vanniktech.maven.publish")
-        val ext = project
-            .extensions
-            .findByType<MavenPublishBaseExtension>()!!
+        project.plugins.apply(Plugins.MAVEN_PUBLISH)
+        val ext = project.extensions.findByType<MavenPublishBaseExtension>()!!
 
         ext.publishToMavenCentral()
         if (project.isReleaseBuild) {

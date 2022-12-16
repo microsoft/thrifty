@@ -23,7 +23,8 @@ plugins {
     id 'thrifty-jvm-module'
     id 'thrifty-publish-module'
     id 'java-gradle-plugin'
-    alias(libs.plugins.gradlePluginPublish)
+
+    alias libs.plugins.gradlePluginPublish
 }
 
 pluginBundle {

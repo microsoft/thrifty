@@ -25,10 +25,10 @@ import org.gradle.api.Project
 
 class ThriftyMppPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        project.plugins.apply("thrifty-jvm-module")
-        project.plugins.apply("org.jetbrains.kotlin.multiplatform")
+        project.plugins.apply<ThriftyJavaPlugin>()
+        project.plugins.apply(Plugins.KOTLIN_MPP)
         if (project.isReleaseBuild) {
-            project.plugins.apply("org.jetbrains.dokka")
+            project.plugins.apply(Plugins.DOKKA)
         }
     }
 }

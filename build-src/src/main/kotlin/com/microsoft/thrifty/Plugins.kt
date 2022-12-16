@@ -20,23 +20,14 @@
  */
 package com.microsoft.thrifty
 
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.api.Task
-import org.gradle.api.plugins.ExtensionContainer
-import org.gradle.api.plugins.PluginContainer
-import org.gradle.api.tasks.TaskCollection
+object Plugins {
+    const val JAVA = "java-library"
+    const val IDEA = "idea"
+    const val JACOCO = "jacoco"
 
-val Project.isReleaseBuild: Boolean
-    get() {
-        val versionName = project.findProperty("VERSION_NAME") as String?
-        return versionName != null && !versionName.endsWith("-SNAPSHOT")
-    }
+    const val KOTLIN_JVM = "org.jetbrains.kotlin.jvm"
+    const val KOTLIN_MPP = "org.jetbrains.kotlin.multiplatform"
+    const val DOKKA = "org.jetbrains.dokka"
 
-inline fun <reified T : Task> TaskCollection<in Task>.withType(): TaskCollection<T> {
-    return withType(T::class.java)
+    const val MAVEN_PUBLISH = "com.vanniktech.maven.publish"
 }
-
-inline fun <reified T> ExtensionContainer.findByType(): T? = findByType(T::class.java)
-
-inline fun <reified T : Plugin<Project>> PluginContainer.apply(): T = apply(T::class.java)

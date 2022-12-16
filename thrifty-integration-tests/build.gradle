@@ -22,7 +22,7 @@
 plugins {
     id 'thrifty-kotlin-module'
     id 'application'
-    alias(libs.plugins.shadow)
+    alias libs.plugins.shadow
 }
 
 dependencies {
