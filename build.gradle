@@ -21,6 +21,7 @@
 
 plugins {
     id 'thrifty-kotlin-module' apply false
+    id 'jacoco'
 }
 
 tasks.register("codeCoverageReport", JacocoReport) { t ->
