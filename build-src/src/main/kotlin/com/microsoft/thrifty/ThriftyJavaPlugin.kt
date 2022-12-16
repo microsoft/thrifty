@@ -39,9 +39,9 @@ class ThriftyJavaPlugin : Plugin<Project> {
 
     private fun applyBasePlugins(project: Project) {
         with(project.plugins) {
-            apply("java-library")
-            apply("idea")
-            apply("jacoco")
+            apply(Plugins.JAVA)
+            apply(Plugins.IDEA)
+            apply(Plugins.JACOCO)
         }
     }
 
@@ -51,7 +51,7 @@ class ThriftyJavaPlugin : Plugin<Project> {
     }
 
     private fun applyJavaSettings(project: Project) {
-        val java = project.extensions.findByType(JavaPluginExtension::class.java)!!
+        val java = project.extensions.findByType<JavaPluginExtension>()!!
         java.sourceCompatibility = JavaVersion.VERSION_1_8
         java.targetCompatibility = JavaVersion.VERSION_1_8
 
@@ -64,7 +64,7 @@ class ThriftyJavaPlugin : Plugin<Project> {
     }
 
     private fun configureTestTasks(project: Project) {
-        project.tasks.withType(Test::class.java).configureEach { task ->
+        project.tasks.withType<Test>().configureEach { task ->
             task.useJUnitPlatform()
             task.testLogging { logging ->
                 logging.events(TestLogEvent.FAILED)

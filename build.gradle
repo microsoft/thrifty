@@ -20,11 +20,7 @@
  */
 
 plugins {
-    alias(libs.plugins.mavenPublish) apply false
-    alias(libs.plugins.dokka) apply false
-    alias(libs.plugins.kotlin.jvm) apply false
-
-    id 'jacoco'
+    id 'thrifty-kotlin-module' apply false
 }
 
 tasks.register("codeCoverageReport", JacocoReport) { t ->

@@ -1,6 +1,6 @@
 plugins {
     id 'java-gradle-plugin'
-    alias(libs.plugins.kotlin.jvm)
+    alias libs.plugins.kotlin.jvm
 }
 
 gradlePlugin {
@@ -40,6 +40,7 @@ repositories {
 }
 
 dependencies {
+    implementation libs.dokka
     implementation libs.kotlin.gradle.plugin
     implementation libs.mavenPublishPlugin
 }
