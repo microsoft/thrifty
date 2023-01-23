@@ -553,6 +553,7 @@ class KotlinCodeGenerator(
                     .jvmField()
                     .addAnnotation(thriftField)
 
+            if (field.hasJavadoc) prop.addKdoc("%L", field.documentation)
             if (field.isObfuscated) prop.addAnnotation(Obfuscated::class)
             if (field.isRedacted) prop.addAnnotation(Redacted::class)
 
