@@ -30,6 +30,7 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
@@ -176,6 +177,53 @@ class KotlinCodeGeneratorTest {
         struct.funSpecs.any { it.name == "toString" } shouldBe false
         struct.funSpecs.any { it.name == "hashCode" } shouldBe false
         struct.funSpecs.any { it.name == "equals" } shouldBe false
+    }
+
+    @Test
+    fun `struct with docs is a data class with docs`() {
+        val thrift = """
+            namespace kt com.test
+
+            /** Docs */
+            struct NonEmpty {
+              1: required i32 Number
+            }
+        """.trimIndent()
+
+        val specs = generate(thrift)
+        specs.shouldCompile()
+
+        val struct = specs.single().members.single() as TypeSpec
+
+        struct.name shouldBe "NonEmpty"
+        struct.modifiers.any { it == KModifier.DATA } shouldBe true
+        struct.kdoc.isNotEmpty() shouldBe true
+        struct.kdoc.toString().trim() shouldBe "Docs"
+    }
+
+    @Test
+    fun `struct field with docs is a data class property with docs`() {
+        val thrift = """
+            namespace kt com.test
+           
+            struct NonEmpty {
+              /** Docs */
+              1: required i32 Number
+            }
+        """.trimIndent()
+
+        val specs = generate(thrift)
+        specs.shouldCompile()
+
+        val struct = specs.single().members.single() as TypeSpec
+
+        struct.name shouldBe "NonEmpty"
+        struct.modifiers.any { it == KModifier.DATA } shouldBe true
+        struct.kdoc.isEmpty() shouldBe true
+        struct.propertySpecs shouldHaveSize 1
+        val propertySpec = struct.propertySpecs.first()
+        propertySpec.kdoc.isNotEmpty() shouldBe true
+        propertySpec.kdoc.toString().trim() shouldBe "Docs"
     }
 
     @Test
