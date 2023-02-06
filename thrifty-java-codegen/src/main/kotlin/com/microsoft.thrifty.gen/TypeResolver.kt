@@ -36,9 +36,6 @@ import com.squareup.javapoet.ClassName
 import com.squareup.javapoet.ParameterizedTypeName
 import com.squareup.javapoet.TypeName
 
-import java.util.ArrayList
-import java.util.HashMap
-import java.util.HashSet
 import java.util.LinkedHashMap
 
 /**
@@ -46,22 +43,9 @@ import java.util.LinkedHashMap
  * [ThriftType] instances.
  */
 internal class TypeResolver {
-
-    private var listClass = classNameOf<ArrayList<*>>()
-    private var setClass = classNameOf<HashSet<*>>()
-    private var mapClass = classNameOf<HashMap<*, *>>()
-
-    fun setListClass(listClass: ClassName) {
-        this.listClass = listClass
-    }
-
-    fun setSetClass(setClass: ClassName) {
-        this.setClass = setClass
-    }
-
-    fun setMapClass(mapClass: ClassName) {
-        this.mapClass = mapClass
-    }
+    var listClass = TypeNames.ARRAY_LIST
+    var setClass = TypeNames.LINKED_HASH_SET
+    var mapClass = TypeNames.LINKED_HASH_MAP
 
     /**
      * Returns the [TType] constant representing the type-code for the given

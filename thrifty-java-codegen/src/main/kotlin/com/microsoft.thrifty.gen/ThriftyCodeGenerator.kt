@@ -60,44 +60,32 @@ import java.util.ArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
-class ThriftyCodeGenerator {
-
-    private val schema: Schema
+class ThriftyCodeGenerator(
+    private val schema: Schema,
+    namingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT
+) {
     private val typeResolver = TypeResolver()
-    private val fieldNamer: FieldNamer
-    private val constantBuilder: ConstantBuilder
-    private val serviceBuilder: ServiceBuilder
+    private val fieldNamer: FieldNamer = FieldNamer(namingPolicy)
+    private val constantBuilder: ConstantBuilder = ConstantBuilder(typeResolver, fieldNamer, schema)
+    private val serviceBuilder: ServiceBuilder = ServiceBuilder(typeResolver, constantBuilder, fieldNamer)
     private var typeProcessor: TypeProcessor? = null
     private var nullabilityAnnotationType: NullabilityAnnotationType = NullabilityAnnotationType.NONE
     private var emitParcelable: Boolean = false
     private var emitFileComment = true
     private var failOnUnknownEnumValues = true
 
-    constructor(schema: Schema, namingPolicy: FieldNamingPolicy = FieldNamingPolicy.DEFAULT) {
-
-        this.schema = schema
-        this.fieldNamer = FieldNamer(namingPolicy)
-
-        typeResolver.setListClass(TypeNames.ARRAY_LIST)
-        typeResolver.setSetClass(TypeNames.HASH_SET)
-        typeResolver.setMapClass(TypeNames.HASH_MAP)
-
-        constantBuilder = ConstantBuilder(typeResolver, fieldNamer, schema)
-        serviceBuilder = ServiceBuilder(typeResolver, constantBuilder, fieldNamer)
-    }
-
     fun withListType(listClassName: String): ThriftyCodeGenerator {
-        typeResolver.setListClass(ClassName.bestGuess(listClassName))
+        typeResolver.listClass = ClassName.bestGuess(listClassName)
         return this
     }
 
     fun withSetType(setClassName: String): ThriftyCodeGenerator {
-        typeResolver.setSetClass(ClassName.bestGuess(setClassName))
+        typeResolver.setClass = ClassName.bestGuess(setClassName)
         return this
     }
 
     fun withMapType(mapClassName: String): ThriftyCodeGenerator {
-        typeResolver.setMapClass(ClassName.bestGuess(mapClassName))
+        typeResolver.mapClass = ClassName.bestGuess(mapClassName)
         return this
     }
 
