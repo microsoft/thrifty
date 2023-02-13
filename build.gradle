@@ -25,17 +25,16 @@ plugins {
 }
 
 tasks.register("codeCoverageReport", JacocoReport) { t ->
-    t.dependsOn subprojects*.test
-
-    t.executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
-
     subprojects.each {
+        t.dependsOn it.tasks.withType(Test)
+        t.dependsOn it.tasks.findAll { it.name == "allTests" } // MPP why are you like this
         t.sourceSets it.sourceSets.main
     }
 
+    t.executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
     t.reports {
         xml.required = true
-        xml.destination layout.buildDirectory.file("reports/jacoco/report.xml").map { it.asFile }
+        xml.outputLocation = layout.buildDirectory.file("reports/jacoco/report.xml")
         html.required = true
         csv.required = false
     }
@@ -47,6 +46,6 @@ tasks.register("codeCoverageReport", JacocoReport) { t ->
 }
 
 wrapper {
-    gradleVersion = "7.6"
+    gradleVersion = "8.0"
     distributionType = Wrapper.DistributionType.BIN
 }
