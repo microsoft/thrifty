@@ -35,7 +35,7 @@ tasks.register("codeCoverageReport", JacocoReport) { t ->
 
     t.reports {
         xml.required = true
-        xml.destination layout.buildDirectory.file("reports/jacoco/report.xml").map { it.asFile }
+        xml.outputLocation = layout.buildDirectory.file("reports/jacoco/report.xml")
         html.required = true
         csv.required = false
     }
