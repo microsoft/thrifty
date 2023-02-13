@@ -7,8 +7,10 @@ and have Thrifty generate Kotlin or Java code from them as part of regular build
 Incorporate it into your build like so:
 
 ```groovy
-apply plugin: 'kotlin'
-apply plugin: 'com.microsoft.thrifty'
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'com.microsoft.thrifty'
+}
 
 // usual gradle stuff
 

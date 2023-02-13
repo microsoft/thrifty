@@ -41,7 +41,7 @@ import java.io.File;
 /**
  * The Gradle task responsible for triggering generation of Thrifty source files.
  *
- * In practice, just a thin layer around a Worker API action which does the heavy
+ * <p>In practice, just a thin layer around a Worker API action which does the heavy
  * lifting.
  */
 public abstract class ThriftyTask extends SourceTask {
@@ -63,7 +63,6 @@ public abstract class ThriftyTask extends SourceTask {
     @Inject
     abstract public WorkerExecutor getWorkerExecutor();
 
-    @SuppressWarnings("UnstableApiUsage")
     @TaskAction
     public void run() {
         WorkQueue workQueue = getWorkerExecutor().classLoaderIsolation(spec -> {

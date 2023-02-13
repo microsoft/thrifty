@@ -50,14 +50,13 @@ import java.nio.file.attribute.BasicFileAttributes;
 /**
  * A {@link WorkAction} that actually generates the Thrifty sources.
  *
- * We're doing this via the Worker API to ensure that Gradle's hard-coded Kotlin
+ * <p>We're doing this via the Worker API to ensure that Gradle's hard-coded Kotlin
  * version doesn't cause us grief.  Thrifty is entirely written in Kotlin, and
  * there's no guarantee that we'll be using a version compatible with whatever
  * Gradle happens to have bundled.  According to some of their engineers, this
  * (with classpath-level isolation) is the only safe way to use Kotlin in the context
  * of a Gradle plugin.
  */
-@SuppressWarnings("UnstableApiUsage")
 public abstract class GenerateThriftSourcesWorkAction implements WorkAction<GenerateThriftSourcesWorkParams> {
     private static final Logger LOGGER = LoggerFactory.getLogger(GenerateThriftSourcesWorkAction.class);
 

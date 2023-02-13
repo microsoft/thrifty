@@ -33,7 +33,6 @@ import java.io.File;
  * Encapsulates all input to Thrifty compilation, in a {@link java.io.Serializable Serializable}
  * form.
  */
-@SuppressWarnings("UnstableApiUsage")
 public interface GenerateThriftSourcesWorkParams extends WorkParameters {
     DirectoryProperty getOutputDirectory();
     ListProperty<File> getIncludePath();
