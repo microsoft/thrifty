@@ -47,6 +47,6 @@ tasks.register("codeCoverageReport", JacocoReport) { t ->
 }
 
 wrapper {
-    gradleVersion = "7.6"
+    gradleVersion = "8.0"
     distributionType = Wrapper.DistributionType.BIN
 }

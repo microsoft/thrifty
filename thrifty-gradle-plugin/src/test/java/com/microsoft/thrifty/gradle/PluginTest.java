@@ -111,7 +111,6 @@ public class PluginTest {
             w.write("'\n");
             w.write("  }\n");
             w.write("}\n");
-            w.write("enableFeaturePreview('VERSION_CATALOGS')\n");
             w.write("dependencyResolutionManagement {\n");
             w.write("  repositories {\n");
             w.write("    mavenLocal()\n");
@@ -122,8 +121,8 @@ public class PluginTest {
             w.write("      version('thrifty', '");
             w.write(getThriftyVersion());
             w.write("')\n");
-            w.write("      alias('thrifty-runtime').to('com.microsoft.thrifty', 'thrifty-runtime').versionRef('thrifty')\n");
-            w.write("      alias('thrifty-compilerPlugins').to('com.microsoft.thrifty', 'thrifty-compiler-plugins').versionRef('thrifty')\n");
+            w.write("      library('thrifty-runtime', 'com.microsoft.thrifty', 'thrifty-runtime').versionRef('thrifty')\n");
+            w.write("      library('thrifty-compilerPlugins', 'com.microsoft.thrifty', 'thrifty-compiler-plugins').versionRef('thrifty')\n");
             w.write("    }\n");
             w.write("  }\n");
             w.write("}\n");
