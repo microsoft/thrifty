@@ -32,6 +32,13 @@ gradlePlugin {
             description = "Maven publication logic"
             implementationClass = "com.microsoft.thrifty.ThriftyPublishPlugin"
         }
+
+        coverage {
+            id = "thrifty-coverage-plugin"
+            displayName = "thrifty-coverage-plugin"
+            description = "Jacoco coverage-report logic"
+            implementationClass = "com.microsoft.thrifty.ThriftyCodeCoveragePlugin"
+        }
     }
 }
 

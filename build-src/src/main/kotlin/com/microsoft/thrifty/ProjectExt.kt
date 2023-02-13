@@ -20,12 +20,15 @@
  */
 package com.microsoft.thrifty
 
+import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.api.plugins.PluginContainer
 import org.gradle.api.tasks.TaskCollection
+import org.gradle.api.tasks.TaskContainer
+import org.gradle.api.tasks.TaskProvider
 
 val Project.isReleaseBuild: Boolean
     get() {
@@ -46,3 +49,7 @@ inline fun <reified T : Task> TaskCollection<in Task>.withType(): TaskCollection
 inline fun <reified T> ExtensionContainer.findByType(): T? = findByType(T::class.java)
 
 inline fun <reified T : Plugin<Project>> PluginContainer.apply(): T = apply(T::class.java)
+
+inline fun <reified T : Task> TaskContainer.register(name: String, action: Action<in T>): TaskProvider<T> {
+    return register(name, T::class.java, action)
+}

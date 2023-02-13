@@ -21,28 +21,7 @@
 
 plugins {
     id 'thrifty-kotlin-module' apply false
-    id 'jacoco'
-}
-
-tasks.register("codeCoverageReport", JacocoReport) { t ->
-    subprojects.each {
-        t.dependsOn it.tasks.withType(Test)
-        t.dependsOn it.tasks.findAll { it.name == "allTests" } // MPP why are you like this
-        t.sourceSets it.sourceSets.main
-    }
-
-    t.executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
-    t.reports {
-        xml.required = true
-        xml.outputLocation = layout.buildDirectory.file("reports/jacoco/report.xml")
-        html.required = true
-        csv.required = false
-    }
-
-    def filters = [ "**/AutoValue_*", "**/antlr/*", "com/microsoft/thrifty/test/gen/*"]
-    t.classDirectories.setFrom(files(t.classDirectories.files.collect {
-        fileTree(dir: it, exclude: filters)
-    }))
+    id 'thrifty-coverage-plugin'
 }
 
 wrapper {
