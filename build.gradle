@@ -27,6 +27,7 @@ plugins {
 tasks.register("codeCoverageReport", JacocoReport) { t ->
     subprojects.each {
         t.dependsOn it.tasks.withType(Test)
+        t.dependsOn it.tasks.findAll { it.name == "allTests" } // MPP why are you like this
         t.sourceSets it.sourceSets.main
     }
 
