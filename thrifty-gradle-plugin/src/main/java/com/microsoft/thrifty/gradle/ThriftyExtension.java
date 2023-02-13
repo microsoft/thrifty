@@ -21,6 +21,7 @@
 package com.microsoft.thrifty.gradle;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import org.gradle.api.Action;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
@@ -41,10 +42,9 @@ import java.util.stream.Collectors;
 /**
  * Implements the 'thrifty' Gradle extension.
  *
- * This is the public interface of our Gradle plugin to build scripts.  Renaming
+ * <p>This is the public interface of our Gradle plugin to build scripts.  Renaming
  * or removing a method is a breaking change!
  */
-@SuppressWarnings("UnstableApiUsage")
 public abstract class ThriftyExtension {
     private static final String DEFAULT_SOURCE_DIR = Joiner.on(File.separator).join("src", "main", "thrift");
     private static final String DEFAULT_OUTPUT_DIR = Joiner.on(File.separator).join("generated", "sources", "thrifty");
@@ -79,19 +79,34 @@ public abstract class ThriftyExtension {
                 .include("**/*.thrift");
     }
 
-    public Provider<List<Directory>> getIncludePathEntries() {
+    Provider<List<Directory>> getIncludePathEntries() {
         return includePathEntries;
     }
 
-    public Provider<List<DefaultThriftSourceDirectory>> getSources() {
+    Provider<List<File>> getIncludePath() {
+        return getIncludePathEntries().map(
+            dirs -> dirs.stream()
+                .map(Directory::getAsFile)
+                .collect(Collectors.toList())
+        );
+    }
+
+    Provider<List<DefaultThriftSourceDirectory>> getSources() {
         return sources;
     }
 
-    public Provider<ThriftOptions> getThriftOptions() {
+    Provider<List<SourceDirectorySet>> getSourceDirectorySets() {
+        return getSources().map(
+            ss -> ss.stream()
+                .map(DefaultThriftSourceDirectory::getSourceDirectorySet)
+                .collect(Collectors.toList()));
+    }
+
+    Provider<ThriftOptions> getThriftOptions() {
         return thriftOptions;
     }
 
-    public Provider<Directory> getOutputDirectory() {
+    Provider<Directory> getOutputDirectory() {
         return outputDirectory;
     }
 
@@ -122,9 +137,10 @@ public abstract class ThriftyExtension {
     public void includePath(String... paths) {
         for (String path : paths) {
             Directory dir = layout.getProjectDirectory().dir(path);
-            if (!dir.getAsFile().isDirectory()) {
-                throw new IllegalArgumentException("Include-path entries must be directories");
-            }
+            Preconditions.checkArgument(
+                dir.getAsFile().isDirectory(),
+                "Include-path '%s' is not a directory",
+                path);
             includePathEntries.add(dir);
         }
     }

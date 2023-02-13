@@ -21,11 +21,12 @@
 package com.microsoft.thrifty.gradle;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.io.ByteSource;
+import com.google.common.io.Resources;
 import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.file.Directory;
 import org.gradle.api.plugins.JavaBasePlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
@@ -34,8 +35,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 /**
  * The plugin makes everything happen.
@@ -58,12 +59,12 @@ public abstract class ThriftyGradlePlugin implements Plugin<Project> {
         TaskProvider<ThriftyTask> thriftTaskProvider = project.getTasks().register("generateThriftFiles", ThriftyTask.class, t -> {
             t.setGroup("thrifty");
             t.setDescription("Generate Thrifty thrift implementations for .thrift files");
-            t.getIncludePath().set(ext.getIncludePathEntries().map(dirs -> dirs.stream().map(Directory::getAsFile).collect(Collectors.toList())));
+            t.getIncludePath().set(ext.getIncludePath());
             t.getOutputDirectory().set(ext.getOutputDirectory());
             t.getThriftOptions().set(ext.getThriftOptions());
             t.getShowStacktrace().set(project.getGradle().getStartParameter().getShowStacktrace());
             t.getThriftyClasspath().from(thriftyConfig);
-            t.source(ext.getSources().map(ss -> ss.stream().map(it -> it.getSourceDirectorySet()).collect(Collectors.toList())));
+            t.source(ext.getSourceDirectorySets());
         });
 
         project.getPlugins().withType(JavaBasePlugin.class).configureEach(plugin -> {
@@ -78,7 +79,9 @@ public abstract class ThriftyGradlePlugin implements Plugin<Project> {
 
     @VisibleForTesting
     static Properties loadVersionProps() {
-        try (InputStream is = ThriftyGradlePlugin.class.getClassLoader().getResourceAsStream("thrifty-version.properties")) {
+        URL url = Resources.getResource("thrifty-version.properties");
+        ByteSource byteSource = Resources.asByteSource(url);
+        try (InputStream is = byteSource.openBufferedStream()) {
             Properties props = new Properties();
             props.load(is);
             return props;

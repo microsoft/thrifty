@@ -23,7 +23,7 @@ package com.microsoft.thrifty.gradle;
 /**
  * Represents a pattern-filterable source directory.
  *
- * Pattern syntax is as in {@link org.gradle.api.tasks.util.PatternFilterable}.
+ * <p>Pattern syntax is as in {@link org.gradle.api.tasks.util.PatternFilterable}.
  */
 public interface ThriftSourceDirectory {
     /**
@@ -34,7 +34,7 @@ public interface ThriftSourceDirectory {
     /**
      * Excludes all files described by the given pattern.
      *
-     * Exclusions take precedence over inclusions.
+     * <p>Exclusions take precedence over inclusions.
      */
     void exclude(String pattern);
 }

@@ -61,7 +61,7 @@ def versionTask = tasks.register("generateVersionProps") { t ->
     }
 }
 
-tasks.named("clean") {
+clean {
     delete versionTask
 }
 
@@ -92,6 +92,6 @@ def installLocal = tasks.register("installForTesting") {
             .findAll { it != null }
 }
 
-tasks.withType(Test) {
+tasks.withType(Test).configureEach {
     dependsOn installLocal
 }
