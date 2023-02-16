@@ -29,6 +29,15 @@ tasks.register("codeCoverageReport", JacocoReport) { t ->
         t.dependsOn it.tasks.withType(Test)
         t.dependsOn it.tasks.findAll { it.name == "allTests" } // MPP why are you like this
         t.sourceSets it.sourceSets.main
+
+        def commonMain = it.file("src/commonMain/kotlin")
+        def jvmMain = it.file("src/jvmMain/kotlin")
+        def isMpp = commonMain.exists() || jvmMain.exists()
+
+        if (isMpp) {
+            [commonMain, jvmMain].findAll(File::exists).each { d -> t.sourceDirectories.from(d) }
+            t.classDirectories.from(it.fileTree("build/classes/kotlin/jvm/main"))
+        }
     }
 
     t.executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
