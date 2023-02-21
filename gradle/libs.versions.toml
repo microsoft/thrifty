@@ -26,8 +26,7 @@ hamcrest = "org.hamcrest:hamcrest:2.2"
 kotest-assertions-common = { module = "io.kotest:kotest-common", version.ref = "kotest" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 kotest-assertions-coreJvm = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
-kotest-assertions-compiler = "io.kotest.extensions:kotest-assertions-compiler:1.0.0" # They have forgotten to publish newer binaries
-kotlin-compile-testing = "com.github.tschuchortdev:kotlin-compile-testing:1.4.9"
+kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler", version.ref = "kotlin" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-test-annotations-common = { module = "org.jetbrains.kotlin:kotlin-test-annotations-common", version.ref = "kotlin" }
 kotlin-test-common = { module = "org.jetbrains.kotlin:kotlin-test-common", version.ref = "kotlin" }
@@ -35,7 +34,7 @@ kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", versi
 
 [bundles]
 kotlin = [ "kotlin-stdlib", "kotlin-reflect" ]
-testing = ["junit", "hamcrest", "kotest-assertions-core", "kotest-assertions-coreJvm", "kotest-assertions-compiler", "kotlin-compile-testing"]
+testing = ["junit", "hamcrest", "kotest-assertions-core", "kotest-assertions-coreJvm"]
 
 [plugins]
 dokka = "org.jetbrains.dokka:1.7.20"
