@@ -5,6 +5,7 @@ local.properties
 .idea/
 .git/
 .build-cache/
+bin/
 
 *.iml
 .DS_Store
