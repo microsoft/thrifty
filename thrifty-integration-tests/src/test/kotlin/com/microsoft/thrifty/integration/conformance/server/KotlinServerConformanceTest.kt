@@ -44,32 +44,6 @@ class JsonServerConformanceTest : KotlinServerConformanceTest(ServerProtocol.JSO
 abstract class KotlinServerConformanceTest(
         private val serverProtocol: ServerProtocol
 ) {
-    protected class ExitException(val status: Int) : Exception()
-
-    private class NoExitSecurityManager : SecurityManager() {
-        override fun checkPermission(perm: Permission) {
-            // allow anything.
-        }
-
-        override fun checkPermission(perm: Permission, context: Any) {
-            // allow anything.
-        }
-
-        override fun checkExit(status: Int) {
-            throw ExitException(status)
-        }
-    }
-
-    class NoExit : Closeable {
-        init {
-            System.setSecurityManager(NoExitSecurityManager())
-        }
-
-        override fun close() {
-            System.setSecurityManager(null)
-        }
-    }
-
     @JvmField
     @RegisterExtension
     val testServer = TestServer(serverProtocol)
@@ -82,17 +56,13 @@ abstract class KotlinServerConformanceTest(
             ServerProtocol.COMPACT -> "compact"
             ServerProtocol.JSON -> "json"
         }
-        val res = shouldThrow<ExitException> {
-            NoExit().use {
-                TestClient.main(arrayOf(
-                        "--host=localhost",
-                        "--port=$port",
-                        "--transport=http",
-                        "--protocol=$protocol"
-                ))
-            }
-        }
-        res.status shouldBe 0
+
+        TestClient.main(arrayOf(
+            "--host=localhost",
+            "--port=$port",
+            "--transport=http",
+            "--protocol=$protocol"
+        ))
     }
 }
 
