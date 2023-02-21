@@ -92,7 +92,7 @@ public class TestClient {
       }
     } catch (Exception x) {
       System.err.println("Can not parse arguments! See --help");
-      System.exit(ERR_UNKNOWN);
+      throw new RuntimeException(x);
     }
 
     try {
@@ -117,7 +117,7 @@ public class TestClient {
       }
     } catch (Exception e) {
       System.err.println("Error: " + e.getMessage());
-      System.exit(ERR_UNKNOWN);
+      throw new RuntimeException(e);
     }
 
     TTransport transport = null;
@@ -144,7 +144,7 @@ public class TestClient {
       }
     } catch (Exception x) {
       x.printStackTrace();
-      System.exit(ERR_UNKNOWN);
+      throw new RuntimeException(x);
     }
 
     TProtocol tProtocol = null;
@@ -183,7 +183,7 @@ public class TestClient {
           } catch (TTransportException ttx) {
             ttx.printStackTrace();
             System.out.println("Connect failed: " + ttx.getMessage());
-            System.exit(ERR_UNKNOWN);
+            throw new RuntimeException(ttx);
           }
         }
 
@@ -198,7 +198,7 @@ public class TestClient {
           System.out.print(" = void\n");
         } catch (TApplicationException tax) {
           tax.printStackTrace();
-          returnCode |= ERR_BASETYPES;
+          throw new RuntimeException(tax);
         }
 
         /**
@@ -210,6 +210,7 @@ public class TestClient {
         if (!s.equals("Test")) {
           returnCode |= ERR_BASETYPES;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("expected " + s + " to equal 'Test'");
         }
 
         /**
@@ -223,6 +224,7 @@ public class TestClient {
           if (!s.equals("testString(\"Test2\")")) {
             returnCode |= ERR_PROTOCOLS;
             System.out.println("*** FAILURE ***\n");
+            throw new RuntimeException("Expected s to equal 'testString(\"Test2\")'");
           }
         }
         /**
@@ -234,6 +236,7 @@ public class TestClient {
         if (i8 != 1) {
           returnCode |= ERR_BASETYPES;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Expected i8 to equal 1");
         }
 
         /**
@@ -245,6 +248,7 @@ public class TestClient {
         if (i32 != -1) {
           returnCode |= ERR_BASETYPES;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Expected i32 to equal -1");
         }
 
         /**
@@ -256,6 +260,7 @@ public class TestClient {
         if (i64 != -34359738368L) {
           returnCode |= ERR_BASETYPES;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Expected i64 to equal -34359738368L");
         }
 
         /**
@@ -267,6 +272,7 @@ public class TestClient {
         if (Math.abs(dub - (-5.325098235)) > 0.001) {
           returnCode |= ERR_BASETYPES;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Expected dub to be around -5.325098235");
         }
 
         /**
@@ -293,11 +299,13 @@ public class TestClient {
           if (!ByteBuffer.wrap(data).equals(bin)) {
             returnCode |= ERR_BASETYPES;
             System.out.println("*** FAILURE ***\n");
+            throw new RuntimeException("something is wrong with a binary");
           }
         } catch (Exception ex) {
           returnCode |= ERR_BASETYPES;
           System.out.println("\n*** FAILURE ***\n");
           ex.printStackTrace(System.out);
+          throw new RuntimeException(ex);
         }
 
         /**
@@ -318,6 +326,7 @@ public class TestClient {
         if (!in.equals(out)) {
           returnCode |= ERR_STRUCTS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Expected " + in + "to equal " + out);
         }
 
         /**
@@ -339,6 +348,7 @@ public class TestClient {
         if (!in2.equals(out2)) {
           returnCode |= ERR_STRUCTS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Nested struct failure");
         }
 
         /**
@@ -374,6 +384,7 @@ public class TestClient {
         if (!mapout.equals(mapin)) {
           returnCode |= ERR_CONTAINERS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Map failure");
         }
 
         /**
@@ -408,11 +419,13 @@ public class TestClient {
           if (!smapout.equals(smapin)) {
             returnCode |= ERR_CONTAINERS;
             System.out.println("*** FAILURE ***\n");
+            throw new RuntimeException("String map failure");
           }
         } catch (Exception ex) {
           returnCode |= ERR_CONTAINERS;
           System.out.println("*** FAILURE ***\n");
           ex.printStackTrace(System.out);
+          throw new RuntimeException(ex);
         }
 
         /**
@@ -448,6 +461,7 @@ public class TestClient {
         if (!setout.equals(setin)) {
           returnCode |= ERR_CONTAINERS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Set failure");
         }
 
         /**
@@ -483,6 +497,7 @@ public class TestClient {
         if (!listout.equals(listin)) {
           returnCode |= ERR_CONTAINERS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("list failure");
         }
 
         /**
@@ -494,6 +509,7 @@ public class TestClient {
         if (ret != Numberz.ONE) {
           returnCode |= ERR_STRUCTS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Enum failure 1");
         }
 
         System.out.print("testEnum(TWO)");
@@ -502,6 +518,7 @@ public class TestClient {
         if (ret != Numberz.TWO) {
           returnCode |= ERR_STRUCTS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Enum failure 2");
         }
 
         System.out.print("testEnum(THREE)");
@@ -510,6 +527,7 @@ public class TestClient {
         if (ret != Numberz.THREE) {
           returnCode |= ERR_STRUCTS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Enum failure 3");
         }
 
         System.out.print("testEnum(FIVE)");
@@ -518,6 +536,7 @@ public class TestClient {
         if (ret != Numberz.FIVE) {
           returnCode |= ERR_STRUCTS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Enum failure 4");
         }
 
         System.out.print("testEnum(EIGHT)");
@@ -526,6 +545,7 @@ public class TestClient {
         if (ret != Numberz.EIGHT) {
           returnCode |= ERR_STRUCTS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Enum failure 5");
         }
 
         /**
@@ -537,6 +557,7 @@ public class TestClient {
         if (uid != 309858235082523L) {
           returnCode |= ERR_BASETYPES;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Typedef failure");
         }
 
         /**
@@ -558,6 +579,7 @@ public class TestClient {
         if (mm.size() != 2 || !mm.containsKey(4) || !mm.containsKey(-4)) {
           returnCode |= ERR_CONTAINERS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Nested map failure 1");
         } else {
           Map<Integer, Integer> m1 = mm.get(4);
           Map<Integer, Integer> m2 = mm.get(-4);
@@ -565,6 +587,7 @@ public class TestClient {
               m2.get(-1) != -1 || m2.get(-2) != -2 || m2.get(-3) != -3 || m2.get(-4) != -4) {
             returnCode |= ERR_CONTAINERS;
             System.out.println("*** FAILURE ***\n");
+            throw new RuntimeException("Nested map failure 2");
           }
         }
 
@@ -652,10 +675,12 @@ public class TestClient {
           System.out.println("*** FAILURE ***\n");
           ex.printStackTrace(System.out);
           insanityFailed = false;
+          throw new RuntimeException(ex);
         }
         if (insanityFailed) {
           returnCode |= ERR_STRUCTS;
           System.out.println("*** FAILURE ***\n");
+          throw new RuntimeException("Insanity failed");
         }
 
         /**
@@ -666,6 +691,7 @@ public class TestClient {
           testClient.testException("Xception");
           System.out.print("  void\n*** FAILURE ***\n");
           returnCode |= ERR_EXCEPTIONS;
+          throw new RuntimeException("Exception failure 1");
         } catch(Xception e) {
           System.out.printf("  {%d, \"%s\"}\n", e.errorCode, e.message);
         }
@@ -675,6 +701,7 @@ public class TestClient {
           testClient.testException("TException");
           System.out.print("  void\n*** FAILURE ***\n");
           returnCode |= ERR_EXCEPTIONS;
+          throw new RuntimeException("Exception failure 2");
         } catch(TException e) {
           System.out.printf("  {\"%s\"}\n", e.getMessage());
         }
@@ -686,6 +713,7 @@ public class TestClient {
         }catch(Exception e) {
           System.out.printf("  exception\n*** FAILURE ***\n");
           returnCode |= ERR_EXCEPTIONS;
+          throw new RuntimeException("Exception failure 3");
         }
 
 
@@ -698,6 +726,7 @@ public class TestClient {
           testClient.testMultiException("Xception", "test 1");
           System.out.print("  result\n*** FAILURE ***\n");
           returnCode |= ERR_EXCEPTIONS;
+          throw new RuntimeException("Exception failure 4");
         } catch(Xception e) {
           System.out.printf("  {%d, \"%s\"}\n", e.errorCode, e.message);
         }
@@ -707,6 +736,7 @@ public class TestClient {
           testClient.testMultiException("Xception2", "test 2");
           System.out.print("  result\n*** FAILURE ***\n");
           returnCode |= ERR_EXCEPTIONS;
+          throw new RuntimeException("Exception failure 5");
         } catch(Xception2 e) {
           System.out.printf("  {%d, {\"%s\"}}\n", e.errorCode, e.struct_thing.string_thing);
         }
@@ -719,6 +749,7 @@ public class TestClient {
         } catch(Exception e) {
           System.out.printf("  exception\n*** FAILURE ***\n");
           returnCode |= ERR_EXCEPTIONS;
+          throw new RuntimeException("Exception failure 6");
         }
 
 
@@ -736,6 +767,7 @@ public class TestClient {
                              "ms");
           System.out.printf("*** FAILURE ***\n");
           returnCode |= ERR_BASETYPES;
+          throw new RuntimeException("Oneway failure 1");
         } else {
           System.out.println("Success - took " +
                              Long.toString(onewayElapsedMillis) +
@@ -761,6 +793,7 @@ public class TestClient {
         System.out.printf("*** FAILURE ***\n");
         x.printStackTrace();
         returnCode |= ERR_UNKNOWN;
+        throw new RuntimeException("Oneway failure 1", x);
       }
     }
 
@@ -777,9 +810,11 @@ public class TestClient {
       System.out.println("*** FAILURE ***");
       x.printStackTrace();
       returnCode |= ERR_BASETYPES;
+      throw new RuntimeException("json failure 1", x);
     }
 
-
-    System.exit(returnCode);
+    if (returnCode != 0) {
+      throw new RuntimeException("whoops, missed something; returnCode=" + returnCode);
+    }
   }
 }
