@@ -37,4 +37,5 @@ dependencies {
 
     testImplementation libs.bundles.kotlin
     testImplementation libs.bundles.testing
+    testImplementation libs.kotlin.compiler
 }
