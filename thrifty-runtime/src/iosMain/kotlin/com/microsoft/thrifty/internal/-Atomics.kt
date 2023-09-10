@@ -23,7 +23,7 @@ package com.microsoft.thrifty.internal
 actual class AtomicBoolean actual constructor(
     initialValue: Boolean
 ) {
-    private val actualAtomicBool = kotlin.native.concurrent.AtomicInt(if (initialValue) 1 else 0)
+    private val actualAtomicBool = kotlin.concurrent.AtomicInt(if (initialValue) 1 else 0)
 
     actual fun get(): Boolean {
         return actualAtomicBool.value == 1
@@ -39,9 +39,9 @@ actual class AtomicBoolean actual constructor(
 actual class AtomicInteger actual constructor(
     initialValue: Int
 ) {
-    private val actualAtomicInt = kotlin.native.concurrent.AtomicInt(initialValue)
+    private val actualAtomicInt = kotlin.concurrent.AtomicInt(initialValue)
 
     actual fun get(): Int = actualAtomicInt.value
 
-    actual fun incrementAndGet(): Int = actualAtomicInt.addAndGet(1)
+    actual fun incrementAndGet(): Int = actualAtomicInt.incrementAndGet()
 }

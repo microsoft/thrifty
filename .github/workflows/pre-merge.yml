@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jvm-version: [8, 17]
+        jvm-version: [17]
         os: [ubuntu-latest, windows-latest]
     env:
       JDK_VERSION: ${{ matrix.jvm-version }}

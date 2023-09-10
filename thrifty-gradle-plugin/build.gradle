@@ -27,19 +27,17 @@ plugins {
     alias libs.plugins.gradlePluginPublish
 }
 
-pluginBundle {
+gradlePlugin {
     website = 'https://github.com/microsoft/thrifty'
     vcsUrl = 'https://github.com/microsoft/thrifty.git'
-    tags = ['thrift', 'code-generation', 'thrifty']
-}
 
-gradlePlugin {
     plugins {
         thriftyPlugin {
             id = 'com.microsoft.thrifty'
             displayName = 'Thrifty Gradle Plugin'
             description = 'Generates Java and/or Kotlin sources from .thrift files'
             implementationClass = 'com.microsoft.thrifty.gradle.ThriftyGradlePlugin'
+            tags.set(['thrift', 'code-generation', 'thrifty'])
         }
     }
 }
