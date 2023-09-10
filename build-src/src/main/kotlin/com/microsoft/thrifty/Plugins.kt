@@ -22,6 +22,7 @@ package com.microsoft.thrifty
 
 object Plugins {
     const val JAVA = "java-library"
+    const val TEST_SUITE = "jvm-test-suite"
     const val IDEA = "idea"
     const val JACOCO = "jacoco"
 

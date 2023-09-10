@@ -24,9 +24,12 @@ package com.microsoft.thrifty.gradle;
  * The name styles supported by Thrifty.
  *
  * <table>
+ *     <caption>Name styles supported by Thrifty.</caption>
  *     <thead>
+ *       <tr>
  *         <th>Name</th>
  *         <th>Description</th>
+*        </tr>
  *     </thead>
  *     <tbody>
  *         <tr>

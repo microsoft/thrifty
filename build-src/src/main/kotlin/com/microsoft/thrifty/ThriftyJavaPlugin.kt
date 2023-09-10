@@ -23,11 +23,13 @@ package com.microsoft.thrifty
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.plugins.jvm.JvmTestSuite
 import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.testing.base.TestingExtension
 
 class ThriftyJavaPlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -40,6 +42,7 @@ class ThriftyJavaPlugin : Plugin<Project> {
     private fun applyBasePlugins(project: Project) {
         with(project.plugins) {
             apply(Plugins.JAVA)
+            apply(Plugins.TEST_SUITE)
             apply(Plugins.IDEA)
             apply(Plugins.JACOCO)
         }
@@ -63,15 +66,31 @@ class ThriftyJavaPlugin : Plugin<Project> {
             }
     }
 
+    @Suppress("UnstableApiUsage")
     private fun configureTestTasks(project: Project) {
-        project.tasks.withType<Test>().configureEach { task ->
-            task.useJUnitPlatform()
-            task.testLogging { logging ->
-                logging.events(TestLogEvent.FAILED)
-                logging.exceptionFormat = TestExceptionFormat.FULL
-                logging.showStackTraces = true
-                logging.showExceptions = true
-                logging.showCauses = true
+        val catalogs = project.extensions.findByType<VersionCatalogsExtension>()!!
+        val catalog = catalogs.named("libs")
+        val maybeJunitVersion = catalog.findVersion("junit")
+        check(maybeJunitVersion.isPresent) { "No junit version found" }
+
+        val junitVersion = maybeJunitVersion.get()
+
+        project.extensions.configure(TestingExtension::class.java) { ext ->
+            ext.suites.named("test") {
+                val suite = it as JvmTestSuite
+
+                suite.useJUnitJupiter("$junitVersion")
+                suite.targets.configureEach { target ->
+                    target.testTask.configure { task ->
+                        task.testLogging { logging ->
+                            logging.events(TestLogEvent.FAILED)
+                            logging.exceptionFormat = TestExceptionFormat.FULL
+                            logging.showStackTraces = true
+                            logging.showExceptions = true
+                            logging.showCauses = true
+                        }
+                    }
+                }
             }
         }
     }

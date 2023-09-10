@@ -54,7 +54,9 @@ shadowJar {
     }
 }
 
-mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+application {
+    mainClass = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+}
 
 def compileTestThrift = tasks.register("compileTestThrift", JavaExec) { t ->
     t.inputs.file("$projectDir/ClientThriftTest.thrift")
