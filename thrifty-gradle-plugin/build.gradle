@@ -1,6 +1,7 @@
 /*
  * Thrifty
  *
+ * Copyright (c) Benjamin Bader
  * Copyright (c) Microsoft Corporation
  *
  * All rights reserved.
@@ -28,15 +29,15 @@ plugins {
 }
 
 gradlePlugin {
-    website = 'https://github.com/microsoft/thrifty'
-    vcsUrl = 'https://github.com/microsoft/thrifty.git'
+    website = 'https://github.com/benjamin-bader/thrifty'
+    vcsUrl = 'https://github.com/benjamin-bader/thrifty.git'
 
     plugins {
         thriftyPlugin {
-            id = 'com.microsoft.thrifty'
+            id = 'com.bendb.thrifty'
             displayName = 'Thrifty Gradle Plugin'
             description = 'Generates Java and/or Kotlin sources from .thrift files'
-            implementationClass = 'com.microsoft.thrifty.gradle.ThriftyGradlePlugin'
+            implementationClass = 'com.bendb.thrifty.gradle.ThriftyGradlePlugin'
             tags.set(['thrift', 'code-generation', 'thrifty'])
         }
     }

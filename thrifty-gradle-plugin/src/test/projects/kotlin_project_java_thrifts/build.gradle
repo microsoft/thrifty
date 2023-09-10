@@ -1,5 +1,5 @@
 plugins {
-    id 'com.microsoft.thrifty' // order matters, apparently
+    id 'com.bendb.thrifty' // order matters, apparently
     id 'org.jetbrains.kotlin.jvm'
 }
 
@@ -9,5 +9,5 @@ thrifty {
 
 dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    api msft.thrifty.runtime
+    api testLibs.thrifty.runtime
 }

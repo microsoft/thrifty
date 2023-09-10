@@ -2,6 +2,6 @@
 
 The Thrifty compiler "Java back-end".
 
-# Package com.microsoft.thrifty.gen
+# Package com.bendb.thrifty.gen
 
 Contains all code relating to generating Java classes from Thrifty schemas.

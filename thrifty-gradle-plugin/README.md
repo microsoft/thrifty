@@ -9,7 +9,7 @@ Incorporate it into your build like so:
 ```groovy
 plugins {
     id 'org.jetbrains.kotlin.jvm'
-    id 'com.microsoft.thrifty'
+    id 'com.bendb.thrifty'
 }
 
 // usual gradle stuff

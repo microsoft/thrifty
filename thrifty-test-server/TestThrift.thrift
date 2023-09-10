@@ -25,7 +25,7 @@
  * details.
  */
 
-namespace java com.microsoft.thrifty.test.gen
+namespace java com.bendb.thrifty.test.gen
 
 /**
  * Docstring!

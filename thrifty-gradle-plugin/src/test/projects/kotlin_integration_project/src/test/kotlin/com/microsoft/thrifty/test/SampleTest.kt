@@ -1,4 +1,4 @@
-package com.microsoft.thrifty.test
+package com.bendb.thrifty.test
 
 fun testNewFooFetcher() {
     val fetcher = newFooFetcher()

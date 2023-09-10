@@ -4,5 +4,5 @@ plugins {
 
 dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    api msft.thrifty.compilerPlugins
+    api testLibs.thrifty.compilerPlugins
 }

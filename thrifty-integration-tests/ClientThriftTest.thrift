@@ -27,8 +27,8 @@
  * details.
  */
 
-namespace java com.microsoft.thrifty.integration.gen
-namespace kt com.microsoft.thrifty.integration.kgen
+namespace java com.bendb.thrifty.integration.gen
+namespace kt com.bendb.thrifty.integration.kgen
 
 /**
  * Docstring!

@@ -1,6 +1,7 @@
 /*
  * Thrifty
  *
+ * Copyright (c) Benjamin Bader
  * Copyright (c) Microsoft Corporation
  *
  * All rights reserved.
@@ -46,7 +47,7 @@ jar {
 
     // Make the compiler's main class the entry point
     manifest {
-        attributes("Main-Class": "com.microsoft.thrifty.compiler.ThriftyCompiler")
+        attributes("Main-Class": "com.bendb.thrifty.compiler.ThriftyCompiler")
     }
 
 }

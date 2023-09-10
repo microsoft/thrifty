@@ -1,10 +1,10 @@
 plugins {
-    id 'com.microsoft.thrifty'
+    id 'com.bendb.thrifty'
     id 'java-library'
 }
 
 dependencies {
-    api msft.thrifty.runtime
+    api testLibs.thrifty.runtime
 }
 
 thrifty {

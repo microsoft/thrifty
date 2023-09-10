@@ -1,6 +1,7 @@
 /*
  * Thrifty
  *
+ * Copyright (c) Benjamin Bader
  * Copyright (c) Microsoft Corporation
  *
  * All rights reserved.
@@ -18,7 +19,7 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-namespace java com.microsoft.thrifty.compiler.testcases
+namespace java com.bendb.thrifty.compiler.testcases
 
 typedef string EmailAddress
 

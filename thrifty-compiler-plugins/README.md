@@ -73,8 +73,8 @@ src/
     - resources/
       - META-INF/
         - services/
-          - com.microsoft.thrifty.compiler.spi.TypeProcessor // For a Java processor
-          - com.microsoft.thrifty.compiler.spi.KotlinTypeProcessor // for a Kotlin processor
+          - com.bendb.thrifty.compiler.spi.TypeProcessor // For a Java processor
+          - com.bendb.thrifty.compiler.spi.KotlinTypeProcessor // for a Kotlin processor
 
 The file under META-INF is how Java services are identified.  The file should
 contain the full name of your processor class:
@@ -93,7 +93,7 @@ Once this project is built into a JAR, you can include it in the classpath on th
 like so:
 
 ```bash
-java -cp thrifty-compiler.jar:your-processor.jar com.microsoft.thrifty.compiler.ThriftyCompiler # compiler args as usual
+java -cp thrifty-compiler.jar:your-processor.jar com.bendb.thrifty.compiler.ThriftyCompiler # compiler args as usual
 ```
 
 This is a little wordy.  An easier but less-flexible approach could be to build an uberjar including

@@ -1,8 +1,8 @@
 Thrifty
 =======
 
-![Build status](https://github.com/microsoft/thrifty/workflows/Pre-merge%20checks/badge.svg) [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-Thrifty-green.svg?style=true)](https://android-arsenal.com/details/1/3227)
-[![codecov](https://codecov.io/gh/Microsoft/thrifty/branch/master/graph/badge.svg)](https://codecov.io/gh/Microsoft/thrifty)
+![Build status](https://github.com/benjamin-bader/thrifty/workflows/Pre-merge%20checks/badge.svg) [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-Thrifty-green.svg?style=true)](https://android-arsenal.com/details/1/3227)
+[![codecov](https://codecov.io/gh/benjamin-bader/thrifty/branch/master/graph/badge.svg)](https://codecov.io/gh/benjamin-bader/thrifty)
 
 
 Thrifty is an implementation of the Apache Thrift software stack, which uses 1/4 of the method count taken by
@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-  implementation 'com.microsoft.thrifty:thrifty-runtime-jvm:3.1.0'
+  implementation 'com.bendb.thrifty:thrifty-runtime-jvm:3.1.0'
 }
 ```
 
@@ -53,11 +53,11 @@ Or, with the Gradle plugin:
 
 buildscript {
   dependencies {
-    classpath 'com.microsoft.thrifty:thrifty-gradle-plugin:3.1.0'
+    classpath 'com.bendb.thrifty:thrifty-gradle-plugin:3.1.0'
   }
 }
 
-apply plugin: 'com.microsoft.thrifty'
+apply plugin: 'com.bendb.thrifty'
 
 thrifty {
   // Optionally configure things, see thrifty-gradle-plugin/README.md
@@ -159,12 +159,12 @@ The latter looks like this:
 ```kotlin
 package com.foo.bar
 
-import com.microsoft.thrifty.Struct
-import com.microsoft.thrifty.TType
-import com.microsoft.thrifty.ThriftField
-import com.microsoft.thrifty.kotlin.Adapter
-import com.microsoft.thrifty.protocol.Protocol
-import com.microsoft.thrifty.util.ProtocolUtil
+import com.bendb.thrifty.Struct
+import com.bendb.thrifty.TType
+import com.bendb.thrifty.ThriftField
+import com.bendb.thrifty.kotlin.Adapter
+import com.bendb.thrifty.protocol.Protocol
+import com.bendb.thrifty.util.ProtocolUtil
 import kotlin.Long
 import kotlin.String
 import kotlin.Unit
@@ -361,7 +361,7 @@ Thrifty generates a `Processor` implementation that you pass an input `Protocol`
 and the code will take care of reading the request, passing it to the handler and returning the correct response to the output.
 
 If you want to use it, you need to wrap an appropriate communication layer around it, e.g. an HTTP server.
-You can have a look at the [integration tests](thrifty-integration-tests/src/test/kotlin/com/microsoft/thrifty/integration/conformance/server/TestServer.kt) for a basic example.
+You can have a look at the [integration tests](thrifty-integration-tests/src/test/kotlin/com/bendb/thrifty/integration/conformance/server/TestServer.kt) for a basic example.
 
 ### Java-specific command-line options
 
@@ -376,4 +376,5 @@ An equal debt is owed to Facebook and Apache for developing and opening Thrift t
 
 -------
 
+Copyright © Benjamin Bader
 Copyright © Microsoft Corporation

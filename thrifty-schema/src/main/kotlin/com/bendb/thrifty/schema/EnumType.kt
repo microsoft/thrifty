@@ -1,0 +1,93 @@
+/*
+ * Thrifty
+ *
+ * Copyright (c) Benjamin Bader
+ * Copyright (c) Microsoft Corporation
+ *
+ * All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * THIS CODE IS PROVIDED ON AN  *AS IS* BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+ * WITHOUT LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE,
+ * FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABLITY OR NON-INFRINGEMENT.
+ *
+ * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
+ */
+package com.bendb.thrifty.schema
+
+import com.bendb.thrifty.schema.parser.EnumElement
+
+/**
+ * Represents an enumeration defined in Thrift IDL.
+ */
+class EnumType : UserType {
+
+    /**
+     * All members contained within this enum type.
+     */
+    val members: List<EnumMember>
+
+    internal constructor(element: EnumElement, namespaces: Map<NamespaceScope, String>): super(UserElementMixin(element, namespaces)) {
+        this.members = element.members.map { EnumMember(it, namespaces) }
+    }
+
+    private constructor(builder: Builder) : super(builder.mixin) {
+        this.members = builder.members
+    }
+
+    /**
+     * Find the [member][EnumMember] with the given [name].
+     *
+     * @throws NoSuchElementException
+     */
+    fun findMemberByName(name: String): EnumMember {
+        return members.first { it.name == name }
+    }
+
+    /**
+     * Find the [member][EnumMember] with the given [id].
+     *
+     * @throws NoSuchElementException
+     */
+    fun findMemberById(id: Int): EnumMember {
+        return members.first { it.value == id }
+    }
+
+    override val isEnum: Boolean = true
+
+    override fun <T> accept(visitor: ThriftType.Visitor<T>): T = visitor.visitEnum(this)
+
+    override fun withAnnotations(annotations: Map<String, String>): ThriftType {
+        return toBuilder()
+                .annotations(mergeAnnotations(this.annotations, annotations))
+                .build()
+    }
+
+    /**
+     * Create a [Builder] initialized with this object's values.
+     */
+    fun toBuilder(): Builder = Builder(this)
+
+    /**
+     * An object that can build [EnumType] instances.
+     */
+    class Builder internal constructor(enumType: EnumType) : UserType.UserTypeBuilder<EnumType, Builder>(enumType) {
+        internal var members: List<EnumMember> = enumType.members
+            private set
+
+        /**
+         * Use the given [members] for the enum under construction.
+         */
+        fun members(members: List<EnumMember>): Builder = apply {
+            this.members = members.toList()
+        }
+
+        override fun build(): EnumType = EnumType(this)
+    }
+}

@@ -1,6 +1,7 @@
 /*
  * Thrifty
  *
+ * Copyright (c) Benjamin Bader
  * Copyright (c) Microsoft Corporation
  *
  * All rights reserved.
@@ -55,7 +56,7 @@ shadowJar {
 }
 
 application {
-    mainClass = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+    mainClass = 'com.bendb.thrifty.compiler.ThriftyCompiler'
 }
 
 def compileTestThrift = tasks.register("compileTestThrift", JavaExec) { t ->

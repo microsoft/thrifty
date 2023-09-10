@@ -1,4 +1,4 @@
-namespace jvm com.microsoft.thrifty.test;
+namespace jvm com.bendb.thrifty.test;
 
 include "common.thrift";
 

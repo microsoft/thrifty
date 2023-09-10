@@ -1,6 +1,7 @@
 /*
  * Thrifty
  *
+ * Copyright (c) Benjamin Bader
  * Copyright (c) Microsoft Corporation
  *
  * All rights reserved.
@@ -27,7 +28,7 @@ plugins {
 description = 'A simple Thrift IDL parser and validator'
 
 generateGrammarSource {
-    arguments += ["-package", "com.microsoft.thrifty.schema.antlr"]
+    arguments += ["-package", "com.bendb.thrifty.schema.antlr"]
 }
 
 dependencies {

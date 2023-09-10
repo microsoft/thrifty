@@ -27,7 +27,7 @@
  * details.
  */
 
-namespace kt com.microsoft.thrifty.integration.kgen.coro
+namespace kt com.bendb.thrifty.integration.kgen.coro
 
 /**
  * Docstring!

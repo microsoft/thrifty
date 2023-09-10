@@ -1,5 +1,5 @@
 plugins {
-    id 'com.microsoft.thrifty'
+    id 'com.bendb.thrifty'
     id 'org.jetbrains.kotlin.jvm'
 }
 
@@ -10,5 +10,5 @@ thrifty {
 
 dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    api msft.thrifty.runtime
+    api testLibs.thrifty.runtime
 }
