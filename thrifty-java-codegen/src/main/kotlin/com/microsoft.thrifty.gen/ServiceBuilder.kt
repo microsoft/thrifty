@@ -34,6 +34,7 @@ import com.squareup.javapoet.NameAllocator
 import com.squareup.javapoet.ParameterizedTypeName
 import com.squareup.javapoet.TypeName
 import com.squareup.javapoet.TypeSpec
+import java.util.Locale
 
 import javax.lang.model.element.Modifier
 import java.util.concurrent.atomic.AtomicInteger
@@ -162,7 +163,7 @@ internal class ServiceBuilder(
     }
 
     private fun buildCallSpec(method: ServiceMethod): TypeSpec {
-        val name = "${method.name.capitalize()}Call"
+        val name = "${method.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }}Call"
 
         val returnType = method.returnType
         val returnTypeName = if (returnType == BuiltinType.VOID) {

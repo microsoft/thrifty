@@ -20,14 +20,20 @@
  */
 package com.microsoft.thrifty.schema
 
+import com.microsoft.thrifty.schema.parser.*
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.throwables.shouldThrowMessage
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.throwable.shouldHaveMessage
+import io.kotest.matchers.types.beInstanceOf
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -255,7 +261,7 @@ class LoaderTest {
         schema.enums shouldHaveSize 1
 
         val enum = schema.enums.single()
-        enum.location.path shouldBe "nested/a.thrift"
+        enum.location.path shouldBe listOf("nested", "a.thrift").joinToString(File.separator)
     }
 
     @Test
@@ -963,6 +969,95 @@ class LoaderTest {
     }
 
     @Test
+    fun constantsWithCircularReferences() {
+        val thrift = """
+            struct Node {
+                1: required string key;
+                2: optional Node value;
+            }
+            
+            const Node A = {
+                "key": "foo",
+                "value": B
+            }
+            
+            const Node B = {
+                "key": "bar",
+                "value": A
+            }
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Cycle detected while validating Thrift constants"
+    }
+
+    @Test
+    fun constantCycleWithMutuallyDependentStructs() {
+        val thrift = """
+            struct TweedleDee {
+              1: TweedleDum brother;
+            }
+            
+            struct TweedleDum {
+              1: TweedleDee brother;
+            }
+            
+            const TweedleDee TWEEDLE_DEE = { "brother": TWEEDLE_DUM }
+            const TweedleDum TWEEDLE_DUM = { "brother": TWEEDLE_DEE }
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Cycle detected while validating Thrift constants"
+    }
+
+    @Test
+    fun populatesReferencedConstants() {
+        val thrift = """
+            const string A = "a";
+            const string B = "b";
+            const list<string> STRS = [A, B];
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val strs = schema.constants.last()
+        strs.referencedConstants.map { it.name} shouldBe listOf("A", "B")
+    }
+
+    @Test
+    fun constantInMapKey() {
+        val thrift = """
+            const string KEY = "foo"
+            const map<string, string> MAP = {
+                KEY: "bar"
+            }
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val (key, map) = schema.constants
+        map.referencedConstants shouldBe listOf(key)
+    }
+
+    @Test
+    fun topologicallySortsConstants() {
+        val thrift = """
+            struct Node {
+              1: required list<Node> n;
+            }
+            
+            const Node A = { "n": [F] }
+            const Node B = { "n": [A] }
+            const Node C = { "n": [ ] }
+            const Node D = { "n": [B, C] }
+            const Node E = { "n": [C, F] }
+            const Node F = { "n": [ ] }
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val order = schema.constants.map { it.name }
+        order shouldBe listOf("F", "A", "C", "B", "E", "D")
+    }
+
+    @Test
     fun unionWithOneDefaultValue() {
         val thrift = """
             union HasDefault {
@@ -990,6 +1085,255 @@ class LoaderTest {
         """.trimIndent()
 
         shouldThrowExactly<LoadFailedException> { load(thrift) }
+    }
+
+    @Test
+    fun structValuedConstant() {
+        val thrift = """
+
+            enum Membership {
+                MEMBER = 0
+                NON_MEMBER = 1
+                UNDER_REVIEW = 2
+            }
+            
+            struct Location {
+                1: required string currencyCode
+                2: required list<string> languages
+                3: required Membership membership
+            }
+            
+            struct Region {
+                1: required list<Location> locations 
+                2: optional bool isActive
+            }
+
+            const Region DEFAULT_REGION = {
+                "locations": [{"currencyCode" : "USD", "languages" : ["English", "Spanish"], "membership" : Membership.MEMBER}],
+                "isActive" : true
+            }
+
+        """.trimIndent()
+
+        val schema = load(thrift)
+        val constants = schema.constants
+        constants.size shouldBe 1
+        val const = constants[0]
+        val map = const.value as MapValueElement
+        map.value.entries.size shouldBe 2
+        for ((key, value) in map.value.entries) {
+            assertTrue(key is LiteralValueElement)
+            val keyKey = (key as LiteralValueElement).value
+            when(keyKey) {
+                "locations" -> {
+                    val keyVal = (value as ListValueElement).value
+                    keyVal.size shouldBe 1
+                    val locationMap = keyVal[0] as MapValueElement
+                    locationMap.value.size shouldBe 3
+                    for ((locKey, locVal) in locationMap.value.entries) {
+                        when((locKey as LiteralValueElement).value) {
+                            "currencyCode" -> {
+                                assertTrue((locVal as LiteralValueElement).value == "USD")
+                            }
+                            "languages" -> {
+                                val languages = (locVal as ListValueElement).value
+                                languages.size shouldBe 2
+                                for (language in languages) {
+                                    val lang = (language as LiteralValueElement).value
+                                    assertTrue(lang in listOf("English", "Spanish"))
+                                }
+                            }
+                            "membership" -> {
+                                assertTrue((locVal as IdentifierValueElement).value == "Membership.MEMBER")
+                            }
+                            else -> {
+                                fail("Invalid const key; must be currencyCode, languages or membership")
+                            }
+                        }
+                    }
+                }
+                "isActive" -> {
+                    assertTrue((value as IdentifierValueElement).value == "true")
+                }
+                else -> {
+                    fail("Invalid const key; must be either locations or isActive")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun invalidStructValuedConstant() {
+        val thrift = """
+            
+            struct Region {
+                1: required string name 
+                2: optional bool isActive
+            }
+
+            const UnknownRegion DEFAULT_REGION = {
+                "name": "US",
+                "nonActive" : true // field name does not exist in Region
+            }
+
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Failed to resolve type 'UnknownRegion'"
+    }
+
+    @Test
+    fun invalidKeyStructValuedConstant() {
+        val thrift = """
+            
+            struct Region {
+                1: required string name 
+                2: optional bool isActive
+            }
+
+            const Region DEFAULT_REGION = {
+                // 1 is not a string; invalid definition
+                1 : "US",
+                "isActive" : true
+            }
+
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Region struct const keys must be string"
+    }
+
+    @Test
+    fun invalidFieldStructValuedConstant() {
+        val thrift = """
+            
+            struct Region {
+                1: required string name 
+                2: optional bool isActive
+            }
+
+            const Region DEFAULT_REGION = {
+                "name": "US",
+                "nonActive" : true // field name does not exist in Region
+            }
+
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "Region struct has no field nonActive"
+    }
+
+    @Test
+    fun invalidEnumStructValuedConst() {
+        val thrift = """
+
+            enum Membership {
+                MEMBER = 0
+                NON_MEMBER = 1
+                UNDER_REVIEW = 2
+            }
+            
+            struct Location {
+                1: required Membership membership
+            }
+            
+            struct Region {
+                1: required list<Location> locations 
+            }
+
+            // invalid Enum
+            const Region DEFAULT_REGION = {
+                "locations": [{"membership" : Membership.WRONG}]
+            }
+
+        """.trimIndent()
+
+        val e = shouldThrow<LoadFailedException> { load(thrift) }
+        e.message shouldContain "'Membership.WRONG' is not a member of enum type Membership: members=[MEMBER, NON_MEMBER, UNDER_REVIEW]"
+    }
+
+    @Test
+    fun `struct const with reference to another const`() {
+        val thrift = """
+            |struct Example {
+            |  1: required string text
+            |}
+            |
+            |struct Container {
+            |  1: required Example example
+            |}
+            |
+            |const Example THE_EXAMPLE = {"text": "this is some text"}
+            |
+            |const Container THE_CONTAINER = {"example": THE_EXAMPLE}
+        """.trimMargin()
+
+        val schema = load(thrift)
+        val consts = schema.constants
+        val theContainer = consts.find { it.name == "THE_CONTAINER" } ?: error("Expected a constant named THE_CONTAINER")
+
+        val elements = (theContainer.value as MapValueElement).value
+        val singleValue = elements.values.single()
+        singleValue should beInstanceOf<IdentifierValueElement>()
+
+        (singleValue as IdentifierValueElement).value shouldBe "THE_EXAMPLE"
+    }
+
+    @Test
+    fun `struct references are deduplicated`() {
+        val thrift = """
+            |const string STR = "foo"
+            |
+            |const list<string> STRS = [STR, STR]
+        """.trimMargin()
+
+        val schema = load(thrift)
+        val (str, strs) = schema.constants
+
+        strs.referencedConstants shouldBe listOf(str)
+    }
+
+    @Test
+    fun `struct constants can omit fields with default values`() {
+        val baseThrift = """
+            |namespace java foo;
+            |
+            |struct Foo {
+            |  1: required string TEXT;
+            |  2: required string TEXT_WITH_DEFAULT = "foo";
+            |  3: optional string OPTIONAL_TEXT;
+            |}
+        """.trimMargin()
+
+        val goodThrift = """
+            |namespace java bar;
+            |
+            |include "foo.thrift"
+            |
+            |const foo.Foo THE_FOO = {"TEXT": "some text"}
+        """.trimMargin()
+
+        val badThrift = """
+            |namespace java baz;
+            |
+            |include "foo.thrift"
+            |
+            |const foo.Foo NOT_THE_FOO = {"OPTIONAL_TEXT": "t"}
+        """.trimMargin()
+
+        val baseFile = File(tempDir, "foo.thrift")
+        val goodFile = File(tempDir, "good.thrift")
+        val badFile = File(tempDir, "bad.thrift")
+
+        baseFile.writeText(baseThrift)
+        goodFile.writeText(goodThrift)
+        badFile.writeText(badThrift)
+
+        val err = shouldThrow<LoadFailedException> { load(baseFile, badFile) }
+        err.message shouldContain "Some required fields are unset"
+
+
+        shouldNotThrowAny { load(baseFile, goodFile) }
     }
 
     private fun load(thrift: String): Schema {

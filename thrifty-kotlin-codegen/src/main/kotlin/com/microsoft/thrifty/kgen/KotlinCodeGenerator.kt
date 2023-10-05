@@ -62,6 +62,10 @@ import com.microsoft.thrifty.service.AsyncClientBase
 import com.microsoft.thrifty.service.MethodCall
 import com.microsoft.thrifty.service.ServiceMethodCallback
 import com.microsoft.thrifty.service.TMessageType
+import com.microsoft.thrifty.service.server.DefaultErrorHandler
+import com.microsoft.thrifty.service.server.ErrorHandler
+import com.microsoft.thrifty.service.server.Processor
+import com.microsoft.thrifty.service.server.ServerCall
 import com.microsoft.thrifty.util.ObfuscationUtil
 import com.microsoft.thrifty.util.ProtocolUtil
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -86,7 +90,11 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.jvm.jvmField
 import com.squareup.kotlinpoet.jvm.jvmStatic
+import com.squareup.kotlinpoet.tag
 import okio.ByteString
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private object Tags {
     val ADAPTER = "RESERVED:ADAPTER"
@@ -109,6 +117,8 @@ private object Tags {
 // to instantiate a bunch of them.
 private object ClassNames {
     val EXCEPTION = ClassName("kotlin", "Exception")
+    val ILLEGAL_ARGUMENT_EXCEPTION = ClassName("kotlin", "IllegalArgumentException")
+    val THROWABLE = ClassName("kotlin", "Throwable")
     val RESULT = ClassName("kotlin", "Result")
     val THROWS = ClassName("kotlin", "Throws")
     val ARRAY_LIST = ClassName("kotlin.collections", "ArrayList")
@@ -141,7 +151,9 @@ class KotlinCodeGenerator(
     private var emitJvmName: Boolean = false
     private var emitJvmStatic: Boolean = false
     private var emitBigEnums: Boolean = false
+    private var emitFileComment: Boolean = true
     private var failOnUnknownEnumValues: Boolean = true
+    private var generateServer: Boolean = false
 
     private var listClassName: ClassName? = null
     private var setClassName: ClassName? = null
@@ -150,23 +162,21 @@ class KotlinCodeGenerator(
     private val nameAllocators = CacheBuilder
             .newBuilder()
             .build(object : CacheLoader<UserElement, NameAllocator>() {
-        override fun load(key: UserElement?): NameAllocator {
-            val elem = requireNotNull(key) { "Can't get a name allocator for null" }
+        override fun load(key: UserElement): NameAllocator {
             return NameAllocator().apply {
-
-                when (elem) {
+                when (key) {
                     is StructType -> {
                         newName("ADAPTER", Tags.ADAPTER)
-                        if (elem.isException) {
+                        if (key.isException) {
                             newName("message", Tags.MESSAGE)
                             newName("cause", Tags.CAUSE)
                         }
 
-                        if (elem.isUnion && elem.fields.any { it.defaultValue != null }) {
+                        if (key.isUnion && key.fields.any { it.defaultValue != null }) {
                             newName("DEFAULT", Tags.DEFAULT)
                         }
 
-                        for (field in elem.fields) {
+                        for (field in key.fields) {
                             val conformingName = fieldNamingPolicy.apply(field.name)
                             newName(conformingName, field)
                         }
@@ -177,13 +187,13 @@ class KotlinCodeGenerator(
                     is EnumType -> {
                         newName("findByValue", Tags.FIND_BY_VALUE)
                         newName("value", Tags.VALUE)
-                        for (member in elem.members) {
+                        for (member in key.members) {
                             newName(member.name, member)
                         }
                     }
 
                     is ServiceType -> {
-                        for (method in elem.methods) {
+                        for (method in key.methods) {
                             newName(method.name, method)
                         }
                     }
@@ -195,11 +205,11 @@ class KotlinCodeGenerator(
                         newName("resultValue", Tags.RESULT)
                         newName("fieldMeta", Tags.FIELD)
 
-                        for (param in elem.parameters) {
+                        for (param in key.parameters) {
                             newName(param.name, param)
                         }
 
-                        for (ex in elem.exceptions) {
+                        for (ex in key.exceptions) {
                             newName(ex.name, ex)
                         }
                     }
@@ -247,6 +257,10 @@ class KotlinCodeGenerator(
         this.coroutineServiceClients = true
     }
 
+    fun generateServer(): KotlinCodeGenerator = apply {
+        this.generateServer = true
+    }
+
     fun emitJvmName(): KotlinCodeGenerator = apply {
         this.emitJvmName = true
     }
@@ -259,6 +273,10 @@ class KotlinCodeGenerator(
         this.emitBigEnums = true
     }
 
+    fun emitFileComment(emitFileComment: Boolean): KotlinCodeGenerator = apply {
+        this.emitFileComment = emitFileComment
+    }
+
     fun failOnUnknownEnumValues(value: Boolean = true): KotlinCodeGenerator = apply {
         this.failOnUnknownEnumValues = value
     }
@@ -268,11 +286,14 @@ class KotlinCodeGenerator(
     }
 
     // endregion Configuration
+    private val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
+    private val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
+    private val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
 
     fun generate(schema: Schema): List<FileSpec> {
-        val specsByNamespace = LinkedHashMultimap.create<String, TypeSpec>()
-        val constantsByNamespace = LinkedHashMultimap.create<String, PropertySpec>()
-        val typedefsByNamespace = LinkedHashMultimap.create<String, TypeAliasSpec>()
+        specsByNamespace.clear()
+        constantsByNamespace.clear()
+        typedefsByNamespace.clear()
 
         schema.typedefs.forEach { typedefsByNamespace.put(it.kotlinNamespace, generateTypeAlias(it)) }
         schema.enums.forEach { specsByNamespace.put(it.kotlinNamespace, generateEnumClass(it)) }
@@ -311,6 +332,21 @@ class KotlinCodeGenerator(
             }
         }
 
+        if (generateServer) {
+            schema.services.forEach {
+                val iface = generateCoroServiceInterface(it)
+                specsByNamespace.put(getServerNamespaceFor(it), iface)
+                specsByNamespace.put(
+                        it.kotlinNamespace,
+                        generateProcessorImplementation(
+                                schema,
+                                it,
+                                iface
+                        )
+                )
+            }
+        }
+
         return when (outputStyle) {
             OutputStyle.FILE_PER_NAMESPACE -> {
                 val namespaces = mutableSetOf<String>().apply {
@@ -323,11 +359,11 @@ class KotlinCodeGenerator(
                         .toMap()
 
                 fileSpecsByNamespace.map { (ns, fileSpec) ->
-                    typedefsByNamespace[ns]?.forEach { fileSpec.addTypeAlias(it) }
-                    constantsByNamespace[ns]?.forEach { fileSpec.addProperty(it) }
+                    typedefsByNamespace[ns].forEach { fileSpec.addTypeAlias(it) }
+                    constantsByNamespace[ns].forEach { fileSpec.addProperty(it) }
                     specsByNamespace[ns]
-                            ?.mapNotNull { processor.process(it) }
-                            ?.forEach { fileSpec.addType(it) }
+                            .mapNotNull { processor.process(it) }
+                            .forEach { fileSpec.addType(it) }
                     fileSpec.build()
                 }
             }
@@ -342,6 +378,7 @@ class KotlinCodeGenerator(
                         val spec = makeFileSpecBuilder(ns, name)
                                 .addType(processedType)
                                 .build()
+
                         yield(spec)
                     }
 
@@ -361,6 +398,9 @@ class KotlinCodeGenerator(
             }
         }
     }
+
+    private fun getServerNamespaceFor(serviceType: ServiceType) = "${serviceType.kotlinNamespace}.server"
+    private fun getServerTypeName(serviceType: ServiceType) = ClassName(getServerNamespaceFor(serviceType), serviceType.name)
 
     // region Aliases
 
@@ -460,6 +500,10 @@ class KotlinCodeGenerator(
 
     // region Structs
 
+    // used to tag things with the corresponding thrift field id
+    // in order to be able to refer to them later
+    data class FieldIdMarker(val fieldId: Int)
+
     internal fun generateDataClass(schema: Schema, struct: StructType): TypeSpec {
         val structClassName = ClassName(struct.kotlinNamespace, struct.name)
         val typeBuilder = TypeSpec.classBuilder(structClassName).apply {
@@ -497,7 +541,8 @@ class KotlinCodeGenerator(
                 anno.build()
             }
 
-            val param = ParameterSpec.builder(fieldName, typeName)
+            val param = ParameterSpec
+                .builder(fieldName, typeName)
 
             field.defaultValue?.let {
                 param.defaultValue(renderConstValue(schema, field.type, it))
@@ -508,6 +553,7 @@ class KotlinCodeGenerator(
                     .jvmField()
                     .addAnnotation(thriftField)
 
+            if (field.hasJavadoc) prop.addKdoc("%L", field.documentation)
             if (field.isObfuscated) prop.addAnnotation(Obfuscated::class)
             if (field.isRedacted) prop.addAnnotation(Redacted::class)
 
@@ -611,6 +657,7 @@ class KotlinCodeGenerator(
                     .superclass(structClassName)
                     .addProperty(propertySpec.build())
                     .primaryConstructor(propConstructor.build())
+                    .tag(FieldIdMarker(field.id))
 
             val toStringBody = buildCodeBlock {
                 add("return \"${struct.name}($name=")
@@ -915,8 +962,9 @@ class KotlinCodeGenerator(
                         .addModifiers(KModifier.OVERRIDE)
                         .returns(structTypeName)
                         .addStatement(
-                                "return %N ?: error(%S)",
+                                "return %N ?: %M(%S)",
                                 builderVarName,
+                                MemberName("kotlin", "error"),
                                 "Invalid union; at least one value is required")
                         .build())
                 .addFunction(FunSpec.builder("reset")
@@ -1823,7 +1871,57 @@ class KotlinCodeGenerator(
                 }
 
                 override fun visitStruct(structType: StructType) {
-                    TODO("not implemented")
+                    if (value !is MapValueElement) {
+                        constOrError("Invalid struct constant")
+                        return
+                    }
+
+                    val className = ClassName(structType.kotlinNamespace, structType.name)
+                    if (structType.fields.isEmpty()) {
+                        block.add("%T()", className)
+                        return
+                    }
+
+                    val names = nameAllocators[structType]
+                    val fieldValues = value.value.mapKeys { (it.key as LiteralValueElement).value }
+
+                    if (builderlessDataClasses) {
+                        block.add("%T(\n⇥", className)
+
+                        for (field in structType.fields) {
+                            val fieldValue = fieldValues[field.name] ?: field.defaultValue
+                            if (fieldValue != null) {
+                                block.add("%L = ", names[field])
+                                recursivelyRenderConstValue(block, field.type, fieldValue)
+                                block.add(",\n")
+                            } else {
+                                check(!field.required) { "Missing value for required field '${field.name}'" }
+                                block.add("%L = null,\n", names[field])
+                            }
+                        }
+
+                        block.add("⇤)")
+                    } else {
+                        val builderType = ClassName(structType.kotlinNamespace, structType.name, "Builder")
+                        block.add("%T().let·{\n⇥", builderType)
+
+                        for (field in structType.fields) {
+                            val fieldValue = fieldValues[field.name]
+                            if (fieldValue == null) {
+                                check(!field.required || field.defaultValue != null) {
+                                    "Missing value for required field '${field.name}'"
+                                }
+                                continue
+                            }
+
+                            block.add("it.%L(", names[field])
+                            recursivelyRenderConstValue(block, field.type, fieldValue)
+                            block.add(")\n")
+                        }
+
+                        block.add("it.build()\n")
+                        block.add("⇤}")
+                    }
                 }
 
                 override fun visitTypedef(typedefType: TypedefType) {
@@ -1973,6 +2071,179 @@ class KotlinCodeGenerator(
         return type.build()
     }
 
+    internal fun generateProcessorImplementation(schema: Schema, serviceType: ServiceType, serviceInterface: TypeSpec): TypeSpec {
+        val serverTypeName = serviceType.name + "Processor"
+        val type = TypeSpec.classBuilder(serverTypeName).apply {
+            primaryConstructor(
+                    FunSpec.constructorBuilder()
+                            .addParameter("handler", getServerTypeName(serviceType))
+                            .addParameter(ParameterSpec.builder(
+                                    "errorHandler",
+                                    ErrorHandler::class).defaultValue("%T", DefaultErrorHandler::class).build()
+                            )
+                            .build()
+            )
+            addProperty(
+                    PropertySpec.builder("errorHandler", ErrorHandler::class)
+                            .initializer("errorHandler")
+                            .addModifiers(KModifier.PRIVATE)
+                            .build()
+            )
+            addProperty(
+                    PropertySpec.builder("handler", getServerTypeName(serviceType))
+                            .initializer("handler")
+                            .addModifiers(KModifier.PRIVATE)
+                            .build()
+            )
+            addSuperinterface(Processor::class)
+        }
+
+        val spec = FunSpec.builder("process").apply {
+            addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
+            addParameter("input", Protocol::class)
+            addParameter("output", Protocol::class)
+        }
+
+        spec.addCode {
+            beginControlFlow("input.%M { msg ->", MemberName("com.microsoft.thrifty.service.server", "readMessage"))
+            beginControlFlow("val call = when(msg.name)")
+        }
+
+        serviceInterface.funSpecs.zip(serviceType.methods).forEach { (interfaceFun, method) ->
+            val argsDataClass = generateDataClass(schema, method.argsStruct)
+            val resultDataClass = if (method.resultStruct.fields.isEmpty()) generateDataClass(schema, method.resultStruct) else generateSealedClass(schema, method.resultStruct)
+            specsByNamespace.put(serviceType.kotlinNamespace, argsDataClass)
+            specsByNamespace.put(serviceType.kotlinNamespace, resultDataClass)
+
+            val call = buildServerCallType(serviceType, method, interfaceFun, argsDataClass, resultDataClass)
+            type.addType(call)
+
+            spec.addCode {
+                addStatement( "%S -> %T()",
+                        method.name,
+                        ClassName(serviceType.kotlinNamespace, serverTypeName, callTypeName(method)))
+            }
+        }
+
+        spec.addCode {
+            beginControlFlow("else -> ")
+            addStatement("""throw %T("%L")""", ClassNames.ILLEGAL_ARGUMENT_EXCEPTION, "Unknown method \${msg.name}")
+            endControlFlow()
+            endControlFlow()
+
+            addStatement("call.process(msg, input, output, errorHandler, handler)")
+            endControlFlow()
+        }
+
+        type.addFunction(spec.build())
+
+        return type.build()
+    }
+
+    private fun buildServerCallType(
+        serviceType: ServiceType,
+        method: ServiceMethod,
+        interfaceFun: FunSpec,
+        argsDataClass: TypeSpec,
+        resultDataClass: TypeSpec
+    ): TypeSpec {
+        val callName = callTypeName(method)
+        val nameAllocator = nameAllocators[method]
+
+        val argsTypeName = method.argsStruct.typeName
+        val handlerTypeName = getServerTypeName(serviceType)
+        val superType = ServerCall::class
+            .asTypeName()
+            .parameterizedBy(argsTypeName, handlerTypeName)
+
+        return TypeSpec.classBuilder(callName).run {
+            addSuperinterface(superType)
+            addModifiers(KModifier.PRIVATE)
+
+            val getResultThrowsAnnotation = AnnotationSpec.builder(Throws::class).apply {
+                method.exceptions.forEach { this.addMember("%T::class", it.type.typeName) }
+            }.build()
+
+            addProperty(
+                PropertySpec
+                    .builder("oneWay", Boolean::class, KModifier.OVERRIDE)
+                    .initializer("%L", method.oneWay)
+                    .build()
+            )
+
+            val getResult = FunSpec.builder("getResult")
+                .addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
+                .addAnnotation(getResultThrowsAnnotation)
+                .returns(Struct::class)
+                .addParameter("args", argsTypeName)
+                .addParameter("handler", handlerTypeName)
+
+            getResult.addCode {
+                if (method.exceptions.isNotEmpty()) {
+                    wrapInThriftExceptionHandler(method.exceptions, resultDataClass, method.resultStruct.typeName) {
+                        callHandler(argsDataClass, resultDataClass, interfaceFun, method, method.resultStruct.typeName)
+                    }
+                } else {
+                    callHandler(argsDataClass, resultDataClass, interfaceFun, method, method.resultStruct.typeName)
+                }
+            }
+
+            addFunction(getResult.build())
+
+            // Add receive method
+            val recv = FunSpec.builder(nameAllocator.get(Tags.RECEIVE))
+                .addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
+                .returns(argsTypeName)
+                .addParameter("protocol", Protocol::class)
+                .addAnnotation(AnnotationSpec.builder(Throws::class)
+                    .addMember("%T::class", ClassNames.EXCEPTION)
+                    .build())
+
+            recv.addCode {
+                generateReadCall(this, "res", method.argsStruct.trueType)
+                addStatement("return res")
+            }
+
+            addFunction(recv.build())
+
+            build()
+        }
+    }
+
+    private fun CodeBlock.Builder.callHandler(argsDataClass: TypeSpec, resultDataClass: TypeSpec, interfaceFun: FunSpec, method: ServiceMethod, parentTypeName: TypeName) {
+        val names = argsDataClass.propertySpecs.map { it }
+        val format = names.joinToString(separator = ", ") { "args.%N" }
+
+        if(method.returnType == BuiltinType.VOID) {
+            addStatement("handler.%N($format)", interfaceFun, *names.toTypedArray())
+            addStatement("return %T", ServerCall::class.asTypeName().nestedClass("Empty"))
+        } else {
+            val concreteResultTypeName = resultDataClass.typeSpecs.single { it.tag<FieldIdMarker>()?.fieldId == 0 }.name
+            addStatement(
+                "return %T.%N(handler.%N($format))",
+                parentTypeName,
+                concreteResultTypeName,
+                interfaceFun,
+                *names.toTypedArray()
+            )
+        }
+    }
+
+    private fun CodeBlock.Builder.wrapInThriftExceptionHandler(exceptions: List<Field>, resultDataClass: TypeSpec, parentTypeName: TypeName, block: CodeBlock.Builder.() -> Unit) {
+        beginControlFlow("try")
+        block()
+        endControlFlow()
+
+        exceptions.forEach { field ->
+            beginControlFlow("catch (e: %T)", field.type.typeName)
+            val concreteResultTypeName = resultDataClass.typeSpecs.single { it.tag<FieldIdMarker>()?.fieldId == field.id }.name
+            addStatement("return %T.%N(e)", parentTypeName, concreteResultTypeName)
+            endControlFlow()
+        }
+    }
+
+    private fun callTypeName(method: ServiceMethod) = method.name.capitalize() + "ServerCall"
+
     internal fun generateCoroServiceInterface(serviceType: ServiceType): TypeSpec {
         val type = TypeSpec.interfaceBuilder(serviceType.name).apply {
             if (serviceType.hasJavadoc) addKdoc("%L", serviceType.documentation)
@@ -2065,7 +2336,7 @@ class KotlinCodeGenerator(
                             .build())
                     .addFunction(FunSpec.builder("onError")
                             .addModifiers(KModifier.OVERRIDE)
-                            .addParameter("error", Throwable::class)
+                            .addParameter("error", ClassNames.THROWABLE)
                             .addStatement("cont.resumeWith(%T.failure(%N))", coroResultClass, "error")
                             .build())
                     .build()
@@ -2310,6 +2581,10 @@ class KotlinCodeGenerator(
                         .addMember("%S", fileName)
                         .build())
             }
+
+            if (emitFileComment) {
+                addFileComment(FILE_COMMENT + DATE_FORMATTER.format(Instant.now()))
+            }
         }
     }
 
@@ -2320,7 +2595,7 @@ class KotlinCodeGenerator(
     }
 
     private fun makeEmptyConstructorDeprecated(params: MutableList<ParameterSpec>): AnnotationSpec {
-        var parameterString = params.joinToString(prefix = "Builder(", postfix = ")", separator = ", ") { it.name }
+        val parameterString = params.joinToString(prefix = "Builder(", postfix = ")", separator = ", ") { it.name }
 
         return AnnotationSpec.builder(Deprecated::class)
                 .addMember("message = %S", "Empty constructor deprecated, use required constructor instead")
@@ -2344,6 +2619,17 @@ class KotlinCodeGenerator(
         return AnnotationSpec.builder(Suppress::class)
                 .addMember("%S", "UNUSED_PARAMETER")
                 .build()
+    }
+
+    private fun String.capitalize(): String {
+        return this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() }
+    }
+
+    companion object {
+        private const val FILE_COMMENT =
+                "Automatically generated by the Thrifty compiler; do not edit!\nGenerated on: "
+
+        private val DATE_FORMATTER = DateTimeFormatter.ISO_INSTANT
     }
 }
 

@@ -19,135 +19,33 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
-allprojects {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-    }
-
-    group GROUP
-    version VERSION_NAME
-
-    project.ext {
-        kotlin_version = '1.4.30'
-
-        libraries = [
-                antlr: [
-                        'org.antlr:antlr4:4.9.1'
-                ],
-
-                clikt: [
-                        'com.github.ajalt.clikt:clikt:3.1.0'
-                ],
-
-                guava: [
-                        'com.google.guava:guava:29.0-jre'
-                ],
-
-                javaPoet: [
-                        'com.squareup:javapoet:1.13.0'
-                ],
-
-                kotlin: [
-                        dependencies.platform("org.jetbrains.kotlin:kotlin-bom:$kotlin_version"),
-                        "org.jetbrains.kotlin:kotlin-reflect",
-                ],
-
-                kotlinPoet: [
-                        dependencies.create('com.squareup:kotlinpoet:1.8.0') {
-                            exclude module: 'kotlin-stdlib'
-                            exclude module: 'kotlin-reflect'
-                        },
-                        "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-                ],
-
-                okio: [
-                        'com.squareup.okio:okio:2.10.0'
-                ],
-
-                okioMulti: 'com.squareup.okio:okio-multiplatform:2.10.0',
-
-                testing: [
-                        "org.junit.jupiter:junit-jupiter:5.7.1",
-
-                        'org.hamcrest:hamcrest:2.2',
-                        dependencies.create('io.kotest:kotest-assertions-core-jvm:4.4.1') {
-                            exclude module: 'kotlin-stdlib'
-                            exclude module: 'kotlin-reflect'
-                        },
-                        dependencies.create('io.kotest:kotest-assertions-core:4.4.1') {
-                            exclude module: 'kotlin-stdlib'
-                            exclude module: 'kotlin-reflect'
-                        },
-                        dependencies.platform("org.jetbrains.kotlin:kotlin-bom:$kotlin_version"),
-                ]
-        ]
-    }
+plugins {
+    id 'thrifty-kotlin-module' apply false
+    id 'jacoco'
 }
-
-buildscript {
-    repositories {
-        mavenCentral()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-        jcenter() // for dokka only - ugh
-    }
-
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.30"
-        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.4.20'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
-        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.13.0'
-    }
-}
-
-subprojects { sp ->
-    apply plugin: 'java-library'
-    apply plugin: 'idea'
-    apply plugin: 'jacoco'
-
-    tasks.withType(JavaCompile).configureEach {
-        options.fork = true
-        options.incremental = true
-    }
-
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "1.8"
-            freeCompilerArgs = ['-Xjvm-default=enable']
-        }
-    }
-
-    test {
-        testLogging {
-            events "failed"
-            exceptionFormat "full"
-            showStackTraces true
-            showExceptions true
-            showCauses true
-        }
-
-        useJUnitPlatform()
-    }
-}
-
-apply plugin: 'jacoco'
 
 tasks.register("codeCoverageReport", JacocoReport) { t ->
-    t.dependsOn subprojects*.test
-
-    t.executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
-
     subprojects.each {
+        t.dependsOn it.tasks.withType(Test)
+        t.dependsOn it.tasks.findAll { it.name == "allTests" } // MPP why are you like this
         t.sourceSets it.sourceSets.main
+
+        def commonMain = it.file("src/commonMain/kotlin")
+        def jvmMain = it.file("src/jvmMain/kotlin")
+        def isMpp = commonMain.exists() || jvmMain.exists()
+
+        if (isMpp) {
+            [commonMain, jvmMain].findAll(File::exists).each { d -> t.sourceDirectories.from(d) }
+            t.classDirectories.from(it.fileTree("build/classes/kotlin/jvm/main"))
+        }
     }
 
+    t.executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
     t.reports {
-        xml.enabled = true
-        xml.destination layout.buildDirectory.file("reports/jacoco/report.xml").map { it.asFile }
-        html.enabled = true
-        csv.enabled = false
+        xml.required = true
+        xml.outputLocation = layout.buildDirectory.file("reports/jacoco/report.xml")
+        html.required = true
+        csv.required = false
     }
 
     def filters = [ "**/AutoValue_*", "**/antlr/*", "com/microsoft/thrifty/test/gen/*"]
@@ -157,44 +55,6 @@ tasks.register("codeCoverageReport", JacocoReport) { t ->
 }
 
 wrapper {
-    gradleVersion = "6.6"
-    distributionType = Wrapper.DistributionType.ALL
-}
-
-def ci = providers.environmentVariable("CI").forUseAtConfigurationTime()
-def travisRepoSlug = providers.environmentVariable("TRAVIS_REPO_SLUG").forUseAtConfigurationTime()
-def travisBranch = providers.environmentVariable("TRAVIS_BRANCH").forUseAtConfigurationTime()
-def travisPullRequest = providers.environmentVariable("TRAVIS_PULL_REQUEST").forUseAtConfigurationTime()
-def versionName = providers.gradleProperty("VERSION_NAME").forUseAtConfigurationTime()
-def currentJavaVersion = providers.systemProperty("java.version").forUseAtConfigurationTime()
-
-tasks.register("uploadSnapshot") {
-    def isCi = ci.getOrElse("") == "true"
-    def isMainRepo = travisRepoSlug.getOrElse("").matches("[Mm]icrosoft/thrifty")
-    def isMainBranch = travisBranch.getOrElse("") == "master"
-    def isNotPR = travisPullRequest.getOrElse("") == "false"
-    def isSnapshot = versionName.get().endsWith("-SNAPSHOT")
-    def isJava8 = currentJavaVersion.map { JavaVersion.toVersion(it) }.get().isJava8()
-
-    // We only want to upload snapshots if we're a CI build,
-    // for the main repo, on the main branch (and not due to a
-    // new/updated PR), and our current version is a snapshot version,
-    // _and_ we're being built using JDK 8.
-
-    if (!isCi) {
-        doFirst { logger.lifecycle("Not a CI build") }
-    } else if (!isMainRepo) {
-        doFirst { logger.lifecycle("Wrong repo") }
-    } else if (!isMainBranch) {
-        doFirst { logger.lifecycle("Wrong branch") }
-    } else if (!isNotPR) {
-        doFirst { logger.lifecycle("Pull request") }
-    } else if (!isSnapshot) {
-        doFirst { logger.lifecycle("Not a snapshot") }
-    } else if (!isJava8) {
-        doFirst { logger.lifecycle("Wrong JDK version") }
-    } else {
-        // whew
-        dependsOn subprojects*.tasks*.named("uploadArchives")
-    }
+    gradleVersion = "8.3"
+    distributionType = Wrapper.DistributionType.BIN
 }

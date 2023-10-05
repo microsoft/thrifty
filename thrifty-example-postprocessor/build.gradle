@@ -18,22 +18,28 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-apply plugin: 'kotlin'
+plugins {
+    id 'thrifty-kotlin-module'
+}
 
 dependencies {
     implementation project(':thrifty-compiler-plugins')
-    implementation libraries.javaPoet
+    implementation libs.javaPoet
 
-    implementation libraries.kotlin
-    implementation libraries.kotlinPoet
+    implementation libs.bundles.kotlin
+    implementation libs.kotlinPoet
 }
 
 jar {
+    dependsOn ":thrifty-compiler-plugins:jar"
+
     archiveFileName.set('compiler.jar')
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     // Include dependencies in the final JAR
     from {
-        (configurations.runtime).collect() {
+        (configurations.runtimeClasspath).collect() {
             it.isDirectory() ? it : zipTree(it)
         }
     }

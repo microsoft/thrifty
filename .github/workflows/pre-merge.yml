@@ -8,18 +8,18 @@ on:
 
 jobs:
   build:
-    name: Build and test (JDK ${{ matrix.jvm-version }}, ${{ matrix.os }})
+    name: Build and test (OS ${{ matrix.os }}, JDK ${{ matrix.jvm-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        jvm-version: [8, 14]
-        os: [ubuntu-latest, macos-latest]
+        jvm-version: [17]
+        os: [ubuntu-latest, windows-latest]
     env:
       JDK_VERSION: ${{ matrix.jvm-version }}
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 2 # set to a value > 1 to support codecov.io SHA detection
 
@@ -29,27 +29,33 @@ jobs:
           rm -rf ~/.gradle/caches/ && rm -rf ~/.gradle/wrapper/
 
       - name: Cache Gradle folders
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.gradle/caches/
             ~/.gradle/wrapper/
+            .build-cache/
           key: cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}-${{ hashFiles('**/build.gradle') }}
           restore-keys: |
             cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}
-            cache-gradle-${{ matrix.os }}k-${{ matrix.jvm-version }}
+            cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}
+
+      - name: Ensure all code files have license headers
+        if: matrix.os == 'ubuntu-latest' && matrix.jvm-version == '17'
+        shell: bash
+        run: |
+          ./script/ensure_license_headers.sh
 
       - name: Set up JDK
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v2
         with:
           java-version: ${{ matrix.jvm-version }}
+          distribution: zulu
 
       - name: Build and test
         shell: bash
-        run: ./gradlew check codeCoverageReport --parallel
+        run: ./gradlew check codeCoverageReport --parallel --no-daemon
 
       - name: Upload coverage stats
-        if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '14'
-        uses: codecov/codecov-action@v1
-
-      # TODO: figure out snapshot uploads
+        if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '8'
+        uses: codecov/codecov-action@v3

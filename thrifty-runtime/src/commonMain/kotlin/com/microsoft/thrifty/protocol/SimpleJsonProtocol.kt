@@ -113,14 +113,14 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
         private const val MODE_VALUE = true
         
         private val ESCAPES: Array<CharArray?> = arrayOfNulls(128)
-        private val TRUE = byteArrayOf('t'.toByte(), 'r'.toByte(), 'u'.toByte(), 'e'.toByte())
-        private val FALSE = byteArrayOf('f'.toByte(), 'a'.toByte(), 'l'.toByte(), 's'.toByte(), 'e'.toByte())
-        private val COMMA = byteArrayOf(','.toByte())
-        private val COLON: ByteArray = byteArrayOf(':'.toByte())
-        private val LBRACKET = byteArrayOf('['.toByte())
-        private val RBRACKET = byteArrayOf(']'.toByte())
-        private val LBRACE = byteArrayOf('{'.toByte())
-        private val RBRACE = byteArrayOf('}'.toByte())
+        private val TRUE = byteArrayOf('t'.code.toByte(), 'r'.code.toByte(), 'u'.code.toByte(), 'e'.code.toByte())
+        private val FALSE = byteArrayOf('f'.code.toByte(), 'a'.code.toByte(), 'l'.code.toByte(), 's'.code.toByte(), 'e'.code.toByte())
+        private val COMMA = byteArrayOf(','.code.toByte())
+        private val COLON: ByteArray = byteArrayOf(':'.code.toByte())
+        private val LBRACKET = byteArrayOf('['.code.toByte())
+        private val RBRACKET = byteArrayOf(']'.code.toByte())
+        private val LBRACE = byteArrayOf('{'.code.toByte())
+        private val RBRACE = byteArrayOf('}'.code.toByte())
 
         init {
             for (i in 0..31) {
@@ -134,13 +134,13 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
                 chars[5] = "0123456789abcdef"[i and 0xF]
                 ESCAPES[i] = chars
             }
-            ESCAPES['\\'.toInt()] = charArrayOf('\\', '\\')
-            ESCAPES['\"'.toInt()] = charArrayOf('\\', '"')
-            ESCAPES['\b'.toInt()] = charArrayOf('\\', 'b')
-            ESCAPES['\u000C'.toInt()] = charArrayOf('\\', 'f')
-            ESCAPES['\r'.toInt()] = charArrayOf('\\', 'r')
-            ESCAPES['\n'.toInt()] = charArrayOf('\\', 'n')
-            ESCAPES['\t'.toInt()] = charArrayOf('\\', 't')
+            ESCAPES['\\'.code] = charArrayOf('\\', '\\')
+            ESCAPES['\"'.code] = charArrayOf('\\', '"')
+            ESCAPES['\b'.code] = charArrayOf('\\', 'b')
+            ESCAPES['\u000C'.code] = charArrayOf('\\', 'f')
+            ESCAPES['\r'.code] = charArrayOf('\\', 'r')
+            ESCAPES['\n'.code] = charArrayOf('\\', 'n')
+            ESCAPES['\t'.code] = charArrayOf('\\', 't')
         }
     }
 
@@ -172,7 +172,7 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
 
     @Throws(IOException::class)
     override fun writeStructBegin(structName: String) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         pushWriteContext(MapWriteContext())
         transport.write(LBRACE)
         writeString("__thriftStruct")
@@ -201,7 +201,7 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
 
     @Throws(IOException::class)
     override fun writeMapBegin(keyTypeId: Byte, valueTypeId: Byte, mapSize: Int) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         pushWriteContext(MapWriteContext())
         transport.write(LBRACE)
     }
@@ -214,7 +214,7 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
 
     @Throws(IOException::class)
     override fun writeListBegin(elementTypeId: Byte, listSize: Int) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         pushWriteContext(ListWriteContext())
         transport.write(LBRACKET)
     }
@@ -227,7 +227,7 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
 
     @Throws(IOException::class)
     override fun writeSetBegin(elementTypeId: Byte, setSize: Int) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         pushWriteContext(ListWriteContext())
         transport.write(LBRACKET)
     }
@@ -240,61 +240,61 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
 
     @Throws(IOException::class)
     override fun writeBool(b: Boolean) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         transport.write(if (b) TRUE else FALSE)
     }
 
     @Throws(IOException::class)
     override fun writeByte(b: Byte) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         val toWrite = b.toString().encodeToByteArray()
         transport.write(toWrite)
     }
 
     @Throws(IOException::class)
     override fun writeI16(i16: Short) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         transport.write(i16.toString().encodeToByteArray())
     }
 
     @Throws(IOException::class)
     override fun writeI32(i32: Int) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         transport.write(i32.toString().encodeToByteArray())
     }
 
     @Throws(IOException::class)
     override fun writeI64(i64: Long) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         transport.write(i64.toString().encodeToByteArray())
     }
 
     @Throws(IOException::class)
     override fun writeDouble(dub: Double) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         transport.write(dub.toString().encodeToByteArray())
     }
 
     @Throws(IOException::class)
     override fun writeString(str: String) {
-        writeContext()!!.beforeWrite()
+        writeContext().beforeWrite()
         val len = str.length
         val buffer = Buffer()
-        buffer.writeUtf8CodePoint('"'.toInt())
+        buffer.writeUtf8CodePoint('"'.code)
         for (i in 0 until len) {
             val c = str[i]
-            if (c.toInt() < 128) {
-                val maybeEscape = ESCAPES[c.toInt()]
+            if (c.code < 128) {
+                val maybeEscape = ESCAPES[c.code]
                 if (maybeEscape != null) {
-                    maybeEscape.forEach { buffer.writeUtf8CodePoint(it.toInt()) } // These are known to be equivalent
+                    maybeEscape.forEach { buffer.writeUtf8CodePoint(it.code) } // These are known to be equivalent
                 } else {
-                    buffer.writeUtf8CodePoint(c.toInt())
+                    buffer.writeUtf8CodePoint(c.code)
                 }
             } else {
                 buffer.writeUtf8("$c") // Not sure how to get code points from a string in MPP
             }
         }
-        buffer.writeUtf8CodePoint('"'.toInt())
+        buffer.writeUtf8CodePoint('"'.code)
         val bs = buffer.readByteArray()
         transport.write(bs, 0, bs.size)
     }
@@ -313,7 +313,7 @@ class SimpleJsonProtocol(transport: Transport?) : BaseProtocol(transport!!) {
         writeStack.addFirst(context)
     }
 
-    private fun writeContext(): WriteContext? {
+    private fun writeContext(): WriteContext {
         var top = writeStack.firstOrNull()
         if (top == null) {
             top = defaultWriteContext

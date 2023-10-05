@@ -72,8 +72,8 @@ internal object TypeNames {
     val NULL_POINTER_EXCEPTION = classNameOf<java.lang.NullPointerException>()
 
     val ARRAY_LIST = classNameOf<ArrayList<*>>()
-    val HASH_SET = classNameOf<HashSet<*>>()
-    val HASH_MAP = classNameOf<HashMap<*, *>>()
+    val LINKED_HASH_MAP = classNameOf<LinkedHashMap<*, *>>()
+    val LINKED_HASH_SET = classNameOf<LinkedHashSet<*>>()
 
     val LIST_META = classNameOf<ListMetadata>()
     val SET_META = classNameOf<SetMetadata>()
@@ -83,7 +83,7 @@ internal object TypeNames {
     val PROTO_UTIL = classNameOf<ProtocolUtil>()
     val PROTOCOL_EXCEPTION = classNameOf<ProtocolException>()
     val IO_EXCEPTION = classNameOf<IOException>()
-    val EXCEPTION = classNameOf<Exception>()
+    val EXCEPTION = classNameOf<java.lang.Exception>()
     val TTYPE = classNameOf<TType>()
     val TMESSAGE_TYPE = classNameOf<TMessageType>()
 

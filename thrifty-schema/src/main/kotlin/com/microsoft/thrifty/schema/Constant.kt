@@ -54,6 +54,9 @@ class Constant private constructor (
     override val isDeprecated: Boolean
         get() = mixin.isDeprecated
 
+    var referencedConstants: List<Constant> = emptyList()
+        private set
+
     internal constructor(element: ConstElement, namespaces: Map<NamespaceScope, String>, type: ThriftType? = null)
             : this(element, UserElementMixin(element, namespaces), type)
 
@@ -64,8 +67,46 @@ class Constant private constructor (
         type_ = linker.resolveType(element.type)
     }
 
+    internal fun linkReferencedConstants(linker: Linker) {
+        referencedConstants = type.accept(ConstantReferenceVisitor(value, linker)).distinct()
+    }
+
     internal fun validate(linker: Linker) {
         validate(linker, element.value, type)
+        detectCycles(linker, mutableMapOf(), mutableListOf(this))
+    }
+
+    private fun detectCycles(linker: Linker, visitStates: MutableMap<Constant, VisitState>, path: MutableList<Constant>) {
+        if (visitStates[this] == VisitState.VISITING) {
+            val message = path.joinToString(
+                separator = "\n\t -> ",
+                prefix = "Cycle detected while validating Thrift constants: \n\t") { elem ->
+                    "${elem.name} (${elem.location.path}:${elem.location.line})"
+            }
+            throw IllegalStateException(message)
+        }
+
+        visitStates[this] = VisitState.VISITING
+
+        for (const in referencedConstants) {
+            if (visitStates[const] == VisitState.VISITED) {
+                continue
+            }
+
+            path.add(const)
+            const.detectCycles(linker, visitStates, path)
+            path.removeLast()
+        }
+
+        visitStates[this] = VisitState.VISITED
+    }
+
+    /**
+     * Used to implement a depth-first search for cycle detection during validation.
+     */
+    private enum class VisitState {
+        VISITING,
+        VISITED
     }
 
     /**
@@ -73,6 +114,10 @@ class Constant private constructor (
      */
     fun toBuilder(): Builder {
         return Builder(this)
+    }
+
+    override fun toString(): String {
+        return "Constant(name=$name, loc=${location.path})"
     }
 
     /**
@@ -83,7 +128,7 @@ class Constant private constructor (
     ) : AbstractUserElementBuilder<Constant, Builder>(constant.mixin) {
 
         internal val element: ConstElement = constant.element
-        internal val type: ThriftType? = constant.type
+        internal val type: ThriftType = constant.type
 
         override fun build(): Constant {
             return Constant(this)
@@ -106,8 +151,9 @@ class Constant private constructor (
         private val ENUM = EnumValidator
         private val COLLECTION = CollectionValidator
         private val MAP = MapValidator
+        private val STRUCT = StructValidator
 
-        internal fun forType(type: ThriftType): ConstValueValidator {
+        fun forType(type: ThriftType): ConstValueValidator {
             val tt = type.trueType
 
             if (tt.isBuiltin) {
@@ -142,7 +188,13 @@ class Constant private constructor (
                 return MAP
             }
 
-            throw IllegalStateException("Struct-valued constants are not yet implemented")
+            if (tt.isStruct) {
+                // this should work for exception type as well. structType has isException field
+                return STRUCT
+            }
+
+            throw IllegalStateException("Illegal const definition. " +
+                    "Const must be of type [bool, byte, i16, i32, i64, double, string, enum, list, set, map, struct]")
         }
     }
 
@@ -166,6 +218,8 @@ class Constant private constructor (
                         return
                     }
                 }
+
+                else -> {}
             }
 
             throw IllegalStateException(
@@ -186,7 +240,7 @@ class Constant private constructor (
                 }
             } else {
                 throw IllegalStateException(
-                        "Expected a value of type ${expected.name.toLowerCase()} but got $valueElement")
+                        "Expected a value of type ${expected.name.lowercase()} but got $valueElement")
             }
         }
     }
@@ -375,6 +429,152 @@ class Constant private constructor (
 
                 else -> throw IllegalStateException("Expected a map literal, got: $valueElement")
             }
+        }
+    }
+
+    private object StructValidator : BaseValidator() {
+        override fun validate(symbolTable: SymbolTable, expected: ThriftType, valueElement: ConstValueElement) {
+            if (valueElement is MapValueElement) { // struct valued constants should always be defined as a Map
+                val struct = expected as StructType
+                val fields = struct.fields
+                val map = valueElement.value
+
+                val allFields = fields.associateByTo(LinkedHashMap()) { it.name }
+                for ((key, value) in map) {
+                    if (key !is LiteralValueElement) {
+                        throw IllegalStateException("${expected.name} struct const keys must be string")
+                    }
+                    // validate the struct defined fields are listed in the const valued struct map
+                    // field name must match the map key
+                    val field = allFields.remove(key.value)
+                            ?: throw IllegalStateException("${expected.name} struct has no field ${key.value}")
+
+                    Constant.validate(symbolTable, value, field.type)
+                }
+
+                val missingFields = allFields.values.filter { it.required && it.defaultValue == null }
+                check(missingFields.isEmpty()) {
+                    val missingRequiredFieldNames = missingFields.joinToString(", ") { it.name }
+                    "Some required fields are unset: $missingRequiredFieldNames"
+                }
+            } else {
+                super.validate(symbolTable, expected, valueElement)
+            }
+        }
+    }
+
+    private class ConstantReferenceVisitor(
+        private val cve: ConstValueElement,
+        private val linker: Linker,
+    ) : ThriftType.Visitor<List<Constant>> {
+        override fun visitVoid(voidType: BuiltinType): List<Constant> = emptyList()
+
+        private fun getScalarConstantReference(): List<Constant> {
+            if (cve !is IdentifierValueElement) {
+                return emptyList()
+            }
+
+            val ref = linker.lookupConst(cve.value)
+                ?: throw IllegalStateException("Unrecognized const identifier: ${cve.value}")
+
+            return listOf(ref)
+        }
+
+        override fun visitBool(boolType: BuiltinType): List<Constant> {
+            if (cve is IdentifierValueElement) {
+                val maybeRef = linker.lookupConst(cve.value)
+                if (maybeRef != null) {
+                    return listOf(maybeRef)
+                }
+                // Bool constants can have IdentifierValueElement values that are not
+                // const references; that's likely the case here.
+            }
+            return emptyList()
+        }
+        override fun visitByte(byteType: BuiltinType) = getScalarConstantReference()
+        override fun visitI16(i16Type: BuiltinType) = getScalarConstantReference()
+        override fun visitI32(i32Type: BuiltinType) = getScalarConstantReference()
+        override fun visitI64(i64Type: BuiltinType) = getScalarConstantReference()
+        override fun visitDouble(doubleType: BuiltinType) = getScalarConstantReference()
+        override fun visitString(stringType: BuiltinType) = getScalarConstantReference()
+        override fun visitBinary(binaryType: BuiltinType) = getScalarConstantReference()
+
+        override fun visitEnum(enumType: EnumType): List<Constant> {
+            if (cve is IdentifierValueElement) {
+                val maybeRef = linker.lookupConst(cve.value)
+                if (maybeRef != null) {
+                    return listOf(maybeRef)
+                }
+                // Enum constants can have IdentifierValueElement values that are not
+                // const references; that's likely the case here.
+            }
+            return emptyList()
+        }
+
+        override fun visitList(listType: ListType) = visitListOrSet(listType.elementType)
+
+        override fun visitSet(setType: SetType) = visitListOrSet(setType.elementType)
+
+        private fun visitListOrSet(elementType: ThriftType): List<Constant> {
+            return when (cve) {
+                is IdentifierValueElement -> getScalarConstantReference()
+
+                is ListValueElement -> cve.value.flatMap { elem ->
+                    val visitor = ConstantReferenceVisitor(elem, linker)
+                    elementType.accept(visitor)
+                }
+
+                else -> error("wat")
+            }
+        }
+
+        override fun visitMap(mapType: MapType): List<Constant> {
+            return when (cve) {
+                is IdentifierValueElement -> getScalarConstantReference()
+
+                is MapValueElement -> {
+                    cve.value.keys.flatMap { elem ->
+                        val visitor = ConstantReferenceVisitor(elem, linker)
+                        mapType.keyType.accept(visitor)
+                    } + cve.value.values.flatMap { elem ->
+                        val visitor = ConstantReferenceVisitor(elem, linker)
+                        mapType.valueType.accept(visitor)
+                    }.distinct()
+                }
+
+                else -> error("no")
+            }
+        }
+
+        override fun visitStruct(structType: StructType): List<Constant> {
+            if (cve is IdentifierValueElement) {
+                return getScalarConstantReference()
+            }
+
+            if (cve !is MapValueElement) {
+                error("unpossible")
+            }
+
+            val fieldsByName = structType.fields.associateBy { it.name }
+
+            return cve.value.flatMap { (key, value) ->
+                if (key !is LiteralValueElement) {
+                    error("wtf")
+                }
+
+                val fieldName = key.value
+                val field = fieldsByName[fieldName] ?: error("nope")
+                val visitor = ConstantReferenceVisitor(value, linker)
+                field.type.accept(visitor)
+            }
+        }
+
+        override fun visitTypedef(typedefType: TypedefType): List<Constant> {
+            return typedefType.trueType.accept(this)
+        }
+
+        override fun visitService(serviceType: ServiceType): List<Constant> {
+            error("No such thing as a Service-typed constant")
         }
     }
 

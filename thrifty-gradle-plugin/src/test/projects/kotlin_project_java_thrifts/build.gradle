@@ -7,11 +7,7 @@ thrifty {
     java {}
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.20"
-    api "com.microsoft.thrifty:thrifty-runtime-ktx:2.1.2"
+    api "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    api msft.thrifty.runtime
 }

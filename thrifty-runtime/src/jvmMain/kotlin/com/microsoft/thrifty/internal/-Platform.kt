@@ -23,8 +23,6 @@ package com.microsoft.thrifty.internal
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
-actual typealias DefaultMethod = JvmDefault
-
 actual typealias ProtocolException = java.net.ProtocolException
 
 actual val DefaultDispatcher: CoroutineDispatcher = Dispatchers.IO

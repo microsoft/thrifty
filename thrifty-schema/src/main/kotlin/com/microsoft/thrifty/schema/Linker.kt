@@ -88,6 +88,8 @@ internal class Linker(
 
             // Only validate the schema if linking succeeded; no point otherwise.
             if (!reporter.hasError) {
+                linkConstantReferences()
+
                 validateTypedefs()
                 validateConstants()
                 validateStructs()
@@ -268,6 +270,16 @@ internal class Linker(
         }
     }
 
+    private fun linkConstantReferences() {
+        for (constant in program.constants) {
+            try {
+                constant.linkReferencedConstants(this)
+            } catch (e: IllegalStateException) {
+                reporter.error(constant.location, e.message ?: "Error linking constant references")
+            }
+        }
+    }
+
     private fun validateStructs() {
         for (struct in program.structs) {
             struct.validate(this)
@@ -433,7 +445,8 @@ internal class Linker(
                 val qualifiedName = symbol.substring(ix + 1)
                 val expectedPath = "$includeName.thrift"
                 constant = program.includes
-                        .filter { p -> p.location.path == expectedPath }
+                        .asSequence()
+                        .filter { p -> p.location.path == expectedPath } // TODO: Should this be ==, or endsWith?
                         .mapNotNull { p -> p.constantMap[qualifiedName] }
                         .firstOrNull()
             }

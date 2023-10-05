@@ -1,0 +1,14 @@
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
+}
+
+buildCache {
+    local {
+        directory = new File(rootDir, "../.build-cache")
+        removeUnusedEntriesAfterDays = 30
+    }
+}

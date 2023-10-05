@@ -113,7 +113,7 @@ internal data class UserElementMixin(
     fun hasThriftOrJavadocAnnotation(name: String): Boolean {
         return (annotations.containsKey(name)
                 || annotations.containsKey("thrifty.$name")
-                || hasJavadoc && documentation.toLowerCase(Locale.US).contains("@$name"))
+                || hasJavadoc && documentation.lowercase(Locale.US).contains("@$name"))
     }
 
     override fun toString(): String {

@@ -38,15 +38,18 @@ import com.microsoft.thrifty.schema.parser.IntValueElement
 import com.microsoft.thrifty.schema.parser.ListValueElement
 import com.microsoft.thrifty.schema.parser.LiteralValueElement
 import com.microsoft.thrifty.schema.parser.MapValueElement
+import com.squareup.javapoet.ClassName
 import com.squareup.javapoet.CodeBlock
 import com.squareup.javapoet.NameAllocator
 import com.squareup.javapoet.ParameterizedTypeName
 import com.squareup.javapoet.TypeName
+import java.util.Locale
 import java.util.NoSuchElementException
 import java.util.concurrent.atomic.AtomicInteger
 
 internal class ConstantBuilder(
         private val typeResolver: TypeResolver,
+        private val fieldNamer: FieldNamer,
         private val schema: Schema
 ) {
 
@@ -133,8 +136,29 @@ internal class ConstantBuilder(
             }
 
             override fun visitStruct(structType: StructType) {
-                // TODO: this
-                throw UnsupportedOperationException("struct-type default values are not yet implemented")
+                val structTypeName = typeResolver.getJavaClass(structType) as ClassName
+                val builderTypeName = structTypeName.nestedClass("Builder")
+                val loweredStructName = structType.name.replaceFirstChar { it.lowercase(Locale.US) }
+                val builderName = "${loweredStructName}Builder${scope.getAndIncrement()}"
+
+                initializer.addStatement("\$1T \$2N = new \$1T()", builderTypeName, builderName)
+
+                val fieldsByName = structType.fields.associateBy { it.name }
+
+                val map = (value as MapValueElement).value
+                for ((keyElement, valueElement) in map) {
+                    val key = (keyElement as LiteralValueElement).value
+                    val field = fieldsByName[key] ?: error("Struct ${structType.name} has no field named '$key'")
+                    val setterName = fieldNamer.getName(field)
+                    val valueName = renderConstValue(initializer, allocator, scope, field.type, valueElement)
+                    initializer.addStatement("\$N.\$N(\$L)", builderName, setterName, valueName)
+                }
+
+                if (needsDeclaration) {
+                    initializer.addStatement("\$T \$N = \$N.build()", structTypeName, name, builderName)
+                } else {
+                    initializer.addStatement("\$N = \$N.build()", name, builderName)
+                }
             }
 
             override fun visitTypedef(typedefType: TypedefType) {
@@ -189,12 +213,12 @@ internal class ConstantBuilder(
                 return constantOrError("Invalid boolean constant")
             }
 
-            return CodeBlock.builder().add(name).build()
+            return CodeBlock.of(name)
         }
 
         override fun visitByte(byteType: BuiltinType): CodeBlock {
             return if (value is IntValueElement) {
-                CodeBlock.builder().add("(byte) \$L", getNumberLiteral(value)).build()
+                CodeBlock.of("(byte) \$L", getNumberLiteral(value))
             } else {
                 constantOrError("Invalid byte constant")
             }
@@ -202,7 +226,7 @@ internal class ConstantBuilder(
 
         override fun visitI16(i16Type: BuiltinType): CodeBlock {
             return if (value is IntValueElement) {
-                CodeBlock.builder().add("(short) \$L", getNumberLiteral(value)).build()
+                CodeBlock.of("(short) \$L", getNumberLiteral(value))
             } else {
                 constantOrError("Invalid i16 constant")
             }
@@ -210,7 +234,7 @@ internal class ConstantBuilder(
 
         override fun visitI32(i32Type: BuiltinType): CodeBlock {
             return if (value is IntValueElement) {
-                CodeBlock.builder().add("\$L", getNumberLiteral(value)).build()
+                CodeBlock.of("\$L", getNumberLiteral(value))
             } else {
                 constantOrError("Invalid i32 constant")
             }
@@ -218,7 +242,7 @@ internal class ConstantBuilder(
 
         override fun visitI64(i64Type: BuiltinType): CodeBlock {
             return if (value is IntValueElement) {
-                CodeBlock.builder().add("\$LL", getNumberLiteral(value)).build()
+                CodeBlock.of("\$LL", getNumberLiteral(value))
             } else {
                 constantOrError("Invalid i64 constant")
             }
@@ -234,7 +258,7 @@ internal class ConstantBuilder(
 
         override fun visitString(stringType: BuiltinType): CodeBlock {
             return if (value is LiteralValueElement) {
-                CodeBlock.builder().add("\$S", value.value).build()
+                CodeBlock.of("\$S", value.value)
             } else {
                 constantOrError("Invalid string constant")
             }
@@ -253,7 +277,12 @@ internal class ConstantBuilder(
                 when (value) {
                     is IntValueElement -> enumType.findMemberById(value.value.toInt())
                     is IdentifierValueElement -> {
-                        // TODO(ben): Figure out how to handle const references
+                        try {
+                            return constantOrError("this is gross, sorry")
+                        } catch (e: IllegalStateException) {
+                            // Not a constant
+                        }
+
                         // Remove the enum name prefix, assuming it is present
                         val name = value.value.split(".").last()
                         enumType.findMemberByName(name)
@@ -265,18 +294,14 @@ internal class ConstantBuilder(
                         "No enum member in ${enumType.name} with value $value")
             }
 
-            return CodeBlock.builder()
-                    .add("\$T.\$L", typeResolver.getJavaClass(enumType), member.name)
-                    .build()
+            return CodeBlock.of("\$T.\$L", typeResolver.getJavaClass(enumType), member.name)
         }
 
         override fun visitList(listType: ListType): CodeBlock {
             return if (value is ListValueElement) {
                 if (value.value.isEmpty()) {
                     val elementType = typeResolver.getJavaClass(listType.elementType)
-                    CodeBlock.builder()
-                            .add("\$T.<\$T>emptyList()", TypeNames.COLLECTIONS, elementType)
-                            .build()
+                    CodeBlock.of("\$T.<\$T>emptyList()", TypeNames.COLLECTIONS, elementType)
                 } else {
                     visitCollection(listType, "list", "unmodifiableList")
                 }
@@ -289,9 +314,7 @@ internal class ConstantBuilder(
             return if (value is ListValueElement) { // not a typo; ListValueElement covers lists and sets.
                 if (value.value.isEmpty()) {
                     val elementType = typeResolver.getJavaClass(setType.elementType)
-                    CodeBlock.builder()
-                            .add("\$T.<\$T>emptySet()", TypeNames.COLLECTIONS, elementType)
-                            .build()
+                    CodeBlock.of("\$T.<\$T>emptySet()", TypeNames.COLLECTIONS, elementType)
                 } else {
                     visitCollection(setType, "set", "unmodifiableSet")
                 }
@@ -305,9 +328,7 @@ internal class ConstantBuilder(
                 if (value.value.isEmpty()) {
                     val keyType = typeResolver.getJavaClass(mapType.keyType)
                     val valueType = typeResolver.getJavaClass(mapType.valueType)
-                    CodeBlock.builder()
-                            .add("\$T.<\$T, \$T>emptyMap()", TypeNames.COLLECTIONS, keyType, valueType)
-                            .build()
+                    CodeBlock.of("\$T.<\$T, \$T>emptyMap()", TypeNames.COLLECTIONS, keyType, valueType)
                 } else {
                     visitCollection(mapType, "map", "unmodifiableMap")
                 }
@@ -322,11 +343,14 @@ internal class ConstantBuilder(
                 method: String): CodeBlock {
             val name = allocator.newName(tempName, scope.getAndIncrement())
             generateFieldInitializer(block, allocator, scope, name, type, value, true)
-            return CodeBlock.builder().add("\$T.\$L(\$N)", TypeNames.COLLECTIONS, method, name).build()
+            return CodeBlock.of("\$T.\$L(\$N)", TypeNames.COLLECTIONS, method, name)
         }
 
         override fun visitStruct(structType: StructType): CodeBlock {
-            throw IllegalStateException("nested structs not implemented")
+            val loweredStructName = structType.name.replaceFirstChar { it.lowercase(Locale.getDefault()) }
+            val name = allocator.newName(loweredStructName, scope.getAndIncrement())
+            generateFieldInitializer(block, allocator, scope, name, type, value, true)
+            return CodeBlock.of(name)
         }
 
         override fun visitTypedef(typedefType: TypedefType): CodeBlock {
@@ -363,7 +387,14 @@ internal class ConstantBuilder(
                     .firstOrNull() ?: throw IllegalStateException(message)
 
             val packageName = c.getNamespaceFor(NamespaceScope.JAVA)
-            return CodeBlock.builder().add("$packageName.Constants.$name").build()
+            return CodeBlock.of("$packageName.Constants.$name")
+        }
+
+        private inline fun buildCodeBlock(fn: CodeBlock.Builder.() -> Unit): CodeBlock {
+            return CodeBlock.builder().let { builder ->
+                builder.fn()
+                builder.build()
+            }
         }
     }
 }

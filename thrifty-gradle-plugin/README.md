@@ -7,8 +7,10 @@ and have Thrifty generate Kotlin or Java code from them as part of regular build
 Incorporate it into your build like so:
 
 ```groovy
-apply plugin: 'kotlin'
-apply plugin: 'com.microsoft.thrifty'
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'com.microsoft.thrifty'
+}
 
 // usual gradle stuff
 
@@ -90,4 +92,15 @@ thrifty {
         nullabilityAnnotationKind 'none'
     }
 }
+
+// If you want to put a TypeProcessor on the classpath, you can do it like so:
+dependencies {
+    thriftyTypeProcessor "com.example:example-type-processor:1.2.3"
+}
 ```
+
+### Implementation Notes
+
+Unlike the rest of Thrifty, this plugin is written in Java.  This is because Gradle bundles its own version of Kotlin, and provides no guarantee that it will be compatible with any other Kotlin code.
+
+According to Gradle's own advice, the _only_ safe way to use Kotlin in Gradle plugins, long-term, is to encapsulate all of it behind a classpath-isolated invocation of their Worker API.  This is what we do.

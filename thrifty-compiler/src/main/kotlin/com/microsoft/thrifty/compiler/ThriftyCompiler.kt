@@ -25,6 +25,7 @@ import com.github.ajalt.clikt.output.TermUi
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.deprecated
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
@@ -57,6 +58,7 @@ import kotlin.system.exitProcess
  * [--set-type=java.util.HashSet]
  * [--map-type=java.util.HashMap]
  * [--lang=[java|kotlin]]
+ * [--service-type=[callback|coroutine]
  * [--kt-file-per-type]
  * [--kt-struct-builders]
  * [--kt-jvm-static]
@@ -88,8 +90,15 @@ import kotlin.system.exitProcess
  * class name when instantiating map-typed values.  Defaults to [java.util.HashMap].
  * Android users will likely wish to substitute `android.support.v4.util.ArrayMap`.
  *
- * `--lang=[java|kotlin]` is optional, defaulting to Java.  When provided, the
+ * `--lang=[java|kotlin]` is optional, defaulting to Kotlin.  When provided, the
  * compiler will generate code in the specified language.
+ *
+ * `--service-type=[coroutine|callback]` is optional, defaulting to `callback`.  When
+ * provided, controls the style of interface generated for Thrift services.  `callback`
+ * will result in services whose methods accept a callback object, to which their results
+ * will be delivered.  `coroutine` will result in services whose methods are suspend
+ * functions, and whose results are returned normally.  `coroutine` implies `--lang=kotlin`
+ * and has no effect when Java code is being generated.
  *
  * `--kt-file-per-type` is optional.  When specified, one Kotlin file will be generated
  * for each top-level generated Thrift type.  When absent (the default), all generated
@@ -99,11 +108,17 @@ import kotlin.system.exitProcess
  * `--kt-struct-builders` is optional.  When specified, Kotlin structs will be generated
  * with inner 'Builder' classes, in the same manner as Java code.  The Kotlin default is
  * to use pure data classes.  This option is for retaining compatibility in codebases using
- * older Thrifty versions, and should be avoided in new code.
+ * older Thrifty versions, and should be avoided in new code.  Implies `--lang=kotlin`.
  *
  * `--kt-jvm-static` is optional.  When specified, certain companion-object functions will
  * be annotated with [JvmStatic].  This option is for those who want easier Java interop,
- * and results in slightly larger code.
+ * and results in slightly larger code.  Implies `--lang=kotlin`.
+ *
+ * `--kt-big-enums` is optional.  When specified, generated enums will use a different
+ * representation.  Rather than each enum member containing its value, a single large
+ * function mapping enums to values will be generated.  This works around some JVM class-size
+ * limitations in some extreme cases, such as an enum with thousands of members.  This should
+ * be avoided unless you know you need it.  Implies `--lang=kotlin`.
  *
  * `--parcelable` is optional.  When provided, generated types will contain a
  * `Parcelable` implementation.  Kotlin types will use the `@Parcelize` extension.
@@ -120,7 +135,7 @@ import kotlin.system.exitProcess
  * annotations were repackaged from `android.support.annotation` to `androidx.annotation`.  Use
  * the `android-support` option for projects that are using the Android Support Library and have
  * not migrated to AndroidX.  Use the `androidx` option for projects that have migrated to AndroidX.
- * Has no effect on Kotlin code.
+ * Has no effect on Kotlin code.  This flag implies '--lang=java'.
  *
  * `--omit-service-clients` is optional.  When specified, no service clients are generated.
  *
@@ -144,6 +159,11 @@ class ThriftyCompiler {
         KOTLIN
     }
 
+    enum class ServiceInterfaceType {
+        CALLBACK,
+        COROUTINE
+    }
+
     private val cli = object : CliktCommand(
             name = "thrifty-compiler",
             help = "Generate Java or Kotlin code from .thrift files"
@@ -158,7 +178,7 @@ class ThriftyCompiler {
                 .multiple()
 
         val language: Language? by option(
-                        "-l", "--lang", help = "the target language for generated code.  Default is java.")
+                        "-l", "--lang", help = "the target language for generated code.  Default is kotlin.")
                 .choice("java" to Language.JAVA, "kotlin" to Language.KOTLIN)
 
         val nameStyle: FieldNamingPolicy by option(
@@ -171,13 +191,13 @@ class ThriftyCompiler {
         val setTypeName: String? by option("--set-type", help =  "when specified, the concrete type to use for sets")
         val mapTypeName: String? by option("--map-type", help = "when specified, the concrete type to use for maps")
 
-        val emitNullabilityAnnotations: Boolean by option("--use-android-annotations",
-                    help = "Deprecated.  When set, will add android.support nullability annotations to fields.  Equivalent to --nullability-annotation-type=android-support.")
+        val emitNullabilityAnnotations: Boolean by option("--use-android-annotations", hidden = true)
                 .flag(default = false)
+                .deprecated("Equivalent to --nullability-annotation-type=android-support")
 
         val nullabilityAnnotationType: NullabilityAnnotationType by option(
                         "--nullability-annotation-type",
-                        help = "the type of nullability annotations, if any, to add to fields.  Default is none.")
+                        help = "the type of nullability annotations, if any, to add to fields.  Default is none.  Implies --lang=java.")
                 .choice(
                         "none" to NullabilityAnnotationType.NONE,
                         "android-support" to NullabilityAnnotationType.ANDROID_SUPPORT,
@@ -198,6 +218,10 @@ class ThriftyCompiler {
                     help = "When set, don't generate service clients")
                 .flag(default = false)
 
+        val generateServer: Boolean by option("--experimental-kt-generate-server",
+                help = "When set, generate kotlin server implementation (EXPERIMENTAL)")
+                .flag(default = false)
+
         val omitFileComments: Boolean by option("--omit-file-comments",
                     help = "When set, don't add file comments to generated files")
                 .flag(default = false)
@@ -214,17 +238,22 @@ class ThriftyCompiler {
                     help = "Generate struct Builder constructor with required parameters, and mark empty Builder constructor as deprecated")
                 .flag(default = false)
 
-        val kotlinStructBuilders: Boolean by option("--kt-struct-builders")
+        val kotlinStructBuilders: Boolean by option("--kt-struct-builders",
+                    help = "Generate builders for struct types.  This is deprecated and for compatibility with existing code only.")
                 .flag("--kt-no-struct-builders", default = false)
 
-        val kotlinEmitJvmStatic: Boolean by option("--kt-jvm-static")
+        val kotlinEmitJvmStatic: Boolean by option("--kt-jvm-static",
+                    help = "Add @JvmStatic annotations to companion-object functions.  For ease-of-use with Java code.")
                 .flag("--kt-no-jvm-static", default = false)
 
         val kotlinBigEnums: Boolean by option("--kt-big-enums")
                 .flag("--kt-no-big-enums", default = false)
 
-        val kotlinCoroutineClients: Boolean by option("--kt-coroutine-clients")
-                .flag(default = false)
+        val serviceType: ServiceInterfaceType by option(
+                "--service-type",
+                help = "The style of interface for generated service clients; default is callbacks.")
+            .choice("callback" to ServiceInterfaceType.CALLBACK, "coroutine" to ServiceInterfaceType.COROUTINE)
+            .default(ServiceInterfaceType.CALLBACK)
 
         val thriftFiles: List<Path> by argument(help = "All .thrift files to compile")
                 .path(mustExist = true, canBeFile = true, canBeDir = false, mustBeReadable = true)
@@ -264,10 +293,10 @@ class ThriftyCompiler {
                 kotlinStructBuilders -> Language.KOTLIN
                 kotlinBuilderRequiredConstructor -> Language.KOTLIN
                 kotlinFilePerType -> Language.KOTLIN
-                kotlinCoroutineClients -> Language.KOTLIN
                 kotlinEmitJvmName -> Language.KOTLIN
                 kotlinEmitJvmStatic -> Language.KOTLIN
                 kotlinBigEnums -> Language.KOTLIN
+                serviceType == ServiceInterfaceType.COROUTINE -> Language.KOTLIN
                 nullabilityAnnotationType != NullabilityAnnotationType.NONE -> Language.JAVA
                 else -> null
             }
@@ -284,8 +313,8 @@ class ThriftyCompiler {
 
             when (language ?: impliedLanguage) {
                 null,
-                Language.JAVA -> generateJava(schema)
                 Language.KOTLIN -> generateKotlin(schema)
+                Language.JAVA -> generateJava(schema)
             }
         }
 
@@ -324,6 +353,10 @@ class ThriftyCompiler {
                 gen.omitServiceClients()
             }
 
+            if (generateServer) {
+                gen.generateServer()
+            }
+
             if (kotlinEmitJvmName) {
                 gen.emitJvmName()
             }
@@ -335,6 +368,8 @@ class ThriftyCompiler {
             if (kotlinBigEnums) {
                 gen.emitBigEnums()
             }
+
+            gen.emitFileComment(!omitFileComments)
 
             if (kotlinFilePerType) {
                 gen.filePerType()
@@ -356,7 +391,7 @@ class ThriftyCompiler {
                 gen.builderRequiredConstructor()
             }
 
-            if (kotlinCoroutineClients) {
+            if (serviceType == ServiceInterfaceType.COROUTINE) {
                 gen.coroutineServiceClients()
             }
 

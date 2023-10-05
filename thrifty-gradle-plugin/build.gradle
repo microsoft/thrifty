@@ -20,25 +20,53 @@
  */
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm'
+    id 'thrifty-jvm-module'
+    id 'thrifty-publish-module'
     id 'java-gradle-plugin'
-    id 'com.vanniktech.maven.publish'
-    id 'com.gradle.plugin-publish' version '0.12.0'
-}
 
-pluginBundle {
-    website = 'https://github.com/microsoft/thrifty'
-    vcsUrl = 'https://github.com/microsoft/thrifty.git'
-    tags = ['thrift', 'code-generation', 'thrifty']
+    alias libs.plugins.gradlePluginPublish
 }
 
 gradlePlugin {
+    website = 'https://github.com/microsoft/thrifty'
+    vcsUrl = 'https://github.com/microsoft/thrifty.git'
+
     plugins {
         thriftyPlugin {
             id = 'com.microsoft.thrifty'
             displayName = 'Thrifty Gradle Plugin'
             description = 'Generates Java and/or Kotlin sources from .thrift files'
             implementationClass = 'com.microsoft.thrifty.gradle.ThriftyGradlePlugin'
+            tags.set(['thrift', 'code-generation', 'thrifty'])
+        }
+    }
+}
+
+def versionTask = tasks.register("generateVersionProps") { t ->
+    def generatedResourcesDir = project.layout.buildDirectory.dir(["generated", "sources", "thrifty", "src", "main", "resources"].join(File.separator))
+    def outputFile = generatedResourcesDir.map {it -> it.file("thrifty-version.properties") }
+
+    t.inputs.property("thrifty-version", VERSION_NAME)
+    t.inputs.property("kotlin-version", libs.versions.kotlin.get())
+    t.outputs.dir(generatedResourcesDir).withPropertyName("outputDir")
+
+    doFirst {
+        outputFile.get().getAsFile().with {
+            it.delete()
+            it << "THRIFTY_VERSION=${VERSION_NAME}\n"
+            it << "KOTLIN_VERSION=${libs.versions.kotlin.get()}\n"
+        }
+    }
+}
+
+clean {
+    delete versionTask
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs += versionTask
         }
     }
 }
@@ -46,15 +74,22 @@ gradlePlugin {
 dependencies {
     compileOnly gradleApi()
 
-    api libraries.antlr
-    api libraries.kotlin
+    compileOnly project(':thrifty-java-codegen')
+    compileOnly project(':thrifty-kotlin-codegen')
+    compileOnly project(':thrifty-schema')
 
-    implementation project(':thrifty-java-codegen')
-    implementation project(':thrifty-kotlin-codegen')
-    implementation project(':thrifty-schema')
+    implementation libs.guava
 
-    // Required for test fixtures to apply the kotlin plugin
-    implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    testImplementation libs.junit
+    testImplementation libs.hamcrest
+}
 
-    testImplementation libraries.testing
+def installLocal = tasks.register("installForTesting") {
+    dependsOn project.rootProject.subprojects
+            .collect {it.tasks.findByName("publishToMavenLocal") }
+            .findAll { it != null }
+}
+
+tasks.withType(Test).configureEach {
+    dependsOn installLocal
 }

@@ -19,24 +19,32 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 
-apply plugin: 'kotlin'
-apply plugin: 'application'
-apply plugin: 'com.github.johnrengelman.shadow'
+plugins {
+    id 'thrifty-kotlin-module'
+    id 'application'
+    alias libs.plugins.shadow
+}
 
 dependencies {
     implementation project(':thrifty-compiler')
 
     testImplementation project(':thrifty-runtime')
     testImplementation project(':thrifty-test-server')
-    testImplementation libraries.guava
+    testImplementation libs.guava
 
-    testImplementation libraries.kotlin
-    testImplementation libraries.testing
+    testImplementation libs.bundles.kotlin
+    testImplementation libs.bundles.testing
+
+    implementation libs.apacheThrift
 }
 
 sourceSets {
     test {
-        java.srcDirs += ['build/generated-src/thrifty/java', 'build/generated-src/thrifty/kotlin']
+        java.srcDirs += [
+                'build/generated-src/thrifty-java/java',
+                'build/generated-src/thrifty-kotlin/kotlin',
+                'build/generated-src/thrifty-kotlin-coro/kotlin'
+        ]
     }
 }
 
@@ -46,48 +54,57 @@ shadowJar {
     }
 }
 
-mainClassName = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+application {
+    mainClass = 'com.microsoft.thrifty.compiler.ThriftyCompiler'
+}
 
 def compileTestThrift = tasks.register("compileTestThrift", JavaExec) { t ->
     t.inputs.file("$projectDir/ClientThriftTest.thrift")
-    t.outputs.dir("$projectDir/build/generated-src/thrifty/java")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty-java/java")
+
+    t.outputs.cacheIf("This task is always cacheable based on its inputs") { true }
 
     t.classpath shadowJar.archiveFile
 
     args = [
-            "--out=$projectDir/build/generated-src/thrifty/java",
+            "--out=$projectDir/build/generated-src/thrifty-java/java",
+            "--lang=java",
             "$projectDir/ClientThriftTest.thrift"]
 }
 
 
 def kompileTestThrift = tasks.register("kompileTestThrift", JavaExec) { t ->
     t.inputs.file("$projectDir/ClientThriftTest.thrift")
-    t.outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty-kotlin/kotlin")
+
+    t.outputs.cacheIf("This task is always cacheable based on its inputs") { true }
 
     t.classpath shadowJar.archiveFile
 
     args = [
-            "--out=$projectDir/build/generated-src/thrifty/kotlin",
-            "--lang=kotlin",
+            "--out=$projectDir/build/generated-src/thrifty-kotlin/kotlin",
             "--kt-struct-builders",
             "--map-type=java.util.LinkedHashMap",
             "--set-type=java.util.LinkedHashSet",
             "--list-type=java.util.ArrayList",
+            "--experimental-kt-generate-server",
             "$projectDir/ClientThriftTest.thrift"
     ]
 }
 
 def kompileCoroutineTestThrift = tasks.register("kompileCoroutineTestThrift", JavaExec) { t ->
     t.inputs.file("$projectDir/CoroutineClientTest.thrift")
-    t.outputs.dir("$projectDir/build/generated-src/thrifty/kotlin")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty-kotlin-coro/kotlin")
+
+    t.outputs.cacheIf("This task is always cacheable based on its inputs") { true }
 
     t.classpath shadowJar.archiveFile
 
     args = [
-            "--out=$projectDir/build/generated-src/thrifty/kotlin",
-            "--lang=kotlin",
-            "--kt-coroutine-clients",
+            "--out=$projectDir/build/generated-src/thrifty-kotlin-coro/kotlin",
             "--kt-file-per-type",
+            "--kt-emit-jvmname",
+            "--service-type=coroutine",
             "$projectDir/CoroutineClientTest.thrift"
     ]
 }
@@ -105,7 +122,7 @@ compileTestKotlin {
 
     kotlinOptions {
         jvmTarget = "1.8"
-        freeCompilerArgs = ['-Xjvm-default=enable']
+        freeCompilerArgs = ['-Xjvm-default=all']
     }
 }
 

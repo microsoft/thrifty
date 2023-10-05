@@ -42,6 +42,10 @@ enum Numberz
   EIGHT = 8
 }
 
+const double ActualDouble = 42
+
+const Numberz myNumberz = Numberz.ONE;
+
 typedef i64 UserId
 
 struct Bonk
@@ -313,4 +317,24 @@ union UnionWithResult {
   1: i32 result;
   2: i64 bigResult;
   3: string error;
+}
+
+const Insanity TOTAL_INSANITY = {
+  "userMap": {
+    myNumberz: 1234
+  },
+  "xtructs": [
+    {
+      "string_thing": "hello",
+    },
+    {
+      "i32_thing": 1,
+      "bool_thing": 0,
+    },
+  ]
+}
+
+const Bonk A_BONK = {
+  "message": "foobar",
+  "type": 100,
 }

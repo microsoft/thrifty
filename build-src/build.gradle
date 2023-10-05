@@ -1,0 +1,46 @@
+plugins {
+    id 'java-gradle-plugin'
+    alias libs.plugins.kotlin.jvm
+}
+
+gradlePlugin {
+    plugins {
+        java {
+            id = "thrifty-jvm-module"
+            displayName = "thrifty-jvm-module"
+            description = "common Java/JVM settings"
+            implementationClass = "com.microsoft.thrifty.ThriftyJavaPlugin"
+        }
+
+        kotlin {
+            id = "thrifty-kotlin-module"
+            displayName = "thrifty-kotlin-module"
+            description = "common kotlin settings"
+            implementationClass = "com.microsoft.thrifty.ThriftyKotlinPlugin"
+        }
+
+        mpp {
+            id = "thrifty-mpp-module"
+            displayName = "thrifty-mpp-module"
+            description = "multiplatform build logic"
+            implementationClass = "com.microsoft.thrifty.ThriftyMppPlugin"
+        }
+
+        publishing {
+            id = "thrifty-publish-module"
+            displayName = "thrifty-publish-module"
+            description = "Maven publication logic"
+            implementationClass = "com.microsoft.thrifty.ThriftyPublishPlugin"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.dokka
+    implementation libs.kotlin.gradle.plugin
+    implementation libs.mavenPublishPlugin
+}

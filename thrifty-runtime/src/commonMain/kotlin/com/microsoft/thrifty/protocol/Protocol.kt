@@ -20,7 +20,6 @@
  */
 package com.microsoft.thrifty.protocol
 
-import com.microsoft.thrifty.internal.DefaultMethod
 import okio.ByteString
 import okio.Closeable
 import okio.IOException
@@ -157,7 +156,6 @@ interface Protocol : Closeable {
     @Throws(IOException::class)
     fun flush()
 
-    @DefaultMethod
     fun reset() {
         // to be implemented by implementations as needed
     }

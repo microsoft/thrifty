@@ -19,9 +19,9 @@
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
 plugins {
-    id 'kotlin'
+    id 'thrifty-kotlin-module'
+    id 'thrifty-publish-module'
     id 'antlr'
-    id 'com.vanniktech.maven.publish'
 }
 
 description = 'A simple Thrift IDL parser and validator'
@@ -31,19 +31,28 @@ generateGrammarSource {
 }
 
 dependencies {
-    antlr libraries.antlr
-    implementation libraries.antlr
+    antlr libs.antlr
+    implementation libs.antlr
 
-    api libraries.guava
-    api libraries.kotlin
+    api libs.guava
+    api libs.bundles.kotlin
 
-    implementation libraries.okio
+    implementation libs.okio
 
-    testImplementation libraries.testing
+    testImplementation libs.bundles.testing
 }
 
 // For some reason, Kotlin compilation is being run prior to antlr by default.
-sourceSets {
-    main.java.srcDir tasks.named("generateGrammarSource", AntlrTask).map { it.outputDirectory }
-    test.java.srcDir tasks.named("generateTestGrammarSource", AntlrTask).map { it.outputDirectory }
+tasks.named('compileKotlin').configure {
+    dependsOn 'generateGrammarSource'
+}
+
+tasks.named('compileTestKotlin').configure {
+    dependsOn 'generateTestGrammarSource'
+}
+
+// antlr doesn't hook up nicely with javaSourcesJar, so Gradle complains about
+// it unless we manually specify the dependency between the two
+tasks.matching { it.name == 'javaSourcesJar' || it.name == 'kotlinSourcesJar' }.configureEach {
+    dependsOn 'generateGrammarSource'
 }
