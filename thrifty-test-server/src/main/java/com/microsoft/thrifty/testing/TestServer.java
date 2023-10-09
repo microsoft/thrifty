@@ -66,6 +66,8 @@ public class TestServer implements Extension,
             case BLOCKING:
             case NON_BLOCKING:
                 return new SocketBasedServer();
+            case HTTP:
+                return new HttpServer();
             default:
                 throw new AssertionError("Invalid transport type: " + transport);
         }

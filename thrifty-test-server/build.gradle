@@ -28,4 +28,5 @@ dependencies {
     implementation "commons-codec:commons-codec:1.15"
     implementation "org.apache.httpcomponents:httpclient:4.5.13"
     implementation "org.slf4j:slf4j-api:2.0.5"
+    implementation "org.apache.tomcat.embed:tomcat-embed-core:10.1.4"
 }
