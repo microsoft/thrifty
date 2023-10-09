@@ -20,89 +20,26 @@
  */
 package com.microsoft.thrifty.testing;
 
-import com.microsoft.thrifty.test.gen.ThriftTest;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TJSONProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
-import org.apache.thrift.server.TNonblockingServer;
-import org.apache.thrift.server.TServer;
-import org.apache.thrift.server.TThreadPoolServer;
-import org.apache.thrift.transport.TNonblockingServerSocket;
-import org.apache.thrift.transport.TNonblockingServerTransport;
-import org.apache.thrift.transport.TServerSocket;
-import org.apache.thrift.transport.TServerTransport;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 public class TestServer implements Extension,
         BeforeAllCallback,
         AfterAllCallback {
-    private static final Logger LOG = Logger.getLogger(TestServer.class.getName());
+    private TestServerInterface serverImplementation;
 
     private ServerProtocol protocol;
     private ServerTransport transport;
 
-    private TServerTransport serverTransport;
-    private TServer server;
-    private Thread serverThread;
 
     private Class<?> testClass;
 
-    public void run() {
-        ThriftTestHandler handler = new ThriftTestHandler(System.out);
-        ThriftTest.Processor<ThriftTestHandler> processor = new ThriftTest.Processor<>(handler);
-
-        TProtocolFactory factory = getProtocolFactory();
-
-        serverTransport = getServerTransport();
-        server = startServer(processor, factory);
-
-        final CountDownLatch latch = new CountDownLatch(1);
-        serverThread = new Thread(() -> {
-            latch.countDown();
-            LOG.entering("TestServer", "serve");
-            try {
-                server.serve();
-            } catch (Throwable t) {
-                LOG.log(Level.SEVERE, "Error while serving", t);
-            } finally {
-                LOG.exiting("TestServer", "serve");
-            }
-        });
-
-        serverThread.start();
-
-        try {
-            if (!latch.await(1, TimeUnit.SECONDS)) {
-                LOG.severe("Server thread failed to start");
-            }
-        } catch (InterruptedException e) {
-            LOG.severe("Interrupted while waiting for server thread to start");
-            e.printStackTrace();
-        }
-    }
-
-    public int port() {
-        if (serverTransport instanceof TServerSocket) {
-            return ((TServerSocket) serverTransport).getServerSocket().getLocalPort();
-        } else if (serverTransport instanceof TNonblockingServerSocket) {
-            TNonblockingServerSocket sock = (TNonblockingServerSocket) serverTransport;
-            return sock.getPort();
-        } else {
-            throw new AssertionError("Unexpected server transport type: " + serverTransport.getClass());
-        }
-    }
 
     public ServerProtocol getProtocol() {
         return protocol;
@@ -110,10 +47,6 @@ public class TestServer implements Extension,
 
     public ServerTransport getTransport() {
         return transport;
-    }
-
-    public Class<?> getTestClass() {
-        return testClass;
     }
 
     @Override
@@ -124,69 +57,34 @@ public class TestServer implements Extension,
         protocol = config != null ? config.protocol() : ServerProtocol.BINARY;
         transport = config != null ? config.transport() : ServerTransport.BLOCKING;
 
-        run();
+        serverImplementation = getServerImplementation(transport);
+        serverImplementation.run(protocol, transport);
     }
 
-    @Override
-    public void afterAll(ExtensionContext context) throws Exception {
-        cleanupServer();
-    }
-
-    public void close() {
-        cleanupServer();
-    }
-
-    private void cleanupServer() {
-        if (serverTransport != null) {
-            serverTransport.close();
-            serverTransport = null;
-        }
-
-        if (server != null) {
-            server.stop();
-            server = null;
-        }
-
-        if (serverThread != null) {
-            serverThread.interrupt();
-            serverThread = null;
-        }
-    }
-
-    private TServerTransport getServerTransport() {
+    private TestServerInterface getServerImplementation(ServerTransport transport) {
         switch (transport) {
-            case BLOCKING: return getBlockingServerTransport();
-            case NON_BLOCKING: return getNonBlockingServerTransport();
+            case BLOCKING:
+            case NON_BLOCKING:
+                return new SocketBasedServer();
             default:
                 throw new AssertionError("Invalid transport type: " + transport);
         }
     }
 
-    private TServerTransport getBlockingServerTransport() {
-        try {
-            InetAddress localhost = InetAddress.getByName("localhost");
-            InetSocketAddress socketAddress = new InetSocketAddress(localhost, 0);
-            TServerSocket.ServerSocketTransportArgs args = new TServerSocket.ServerSocketTransportArgs()
-                    .bindAddr(socketAddress);
-
-            return new TServerSocket(args);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+    @Override
+    public void afterAll(ExtensionContext context) throws Exception {
+        serverImplementation.close();
     }
 
-    private TServerTransport getNonBlockingServerTransport() {
-        try {
-            InetAddress localhost = InetAddress.getByName("localhost");
-            InetSocketAddress socketAddress = new InetSocketAddress(localhost, 0);
-
-            return new TNonblockingServerSocket(socketAddress);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+    public int port() {
+        return serverImplementation.port();
     }
 
-    private TProtocolFactory getProtocolFactory() {
+    public void close() {
+        serverImplementation.close();
+    }
+
+    public static TProtocolFactory getProtocolFactory(ServerProtocol protocol) {
         switch (protocol) {
             case BINARY: return new TBinaryProtocol.Factory();
             case COMPACT: return new TCompactProtocol.Factory();
@@ -196,29 +94,5 @@ public class TestServer implements Extension,
         }
     }
 
-    private TServer startServer(TProcessor processor, TProtocolFactory protocolFactory) {
-        switch (transport) {
-            case BLOCKING: return startBlockingServer(processor, protocolFactory);
-            case NON_BLOCKING: return startNonblockingServer(processor, protocolFactory);
-            default:
-                throw new AssertionError("Invalid transport type: " + transport);
-        }
-    }
 
-    private TServer startBlockingServer(TProcessor processor, TProtocolFactory protocolFactory) {
-        TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport)
-                .processor(processor)
-                .protocolFactory(protocolFactory);
-
-        return new TThreadPoolServer(args);
-    }
-
-    private TServer startNonblockingServer(TProcessor processor, TProtocolFactory protocolFactory) {
-        TNonblockingServerTransport nonblockingTransport = (TNonblockingServerTransport) serverTransport;
-        TNonblockingServer.Args args = new TNonblockingServer.Args(nonblockingTransport)
-                .processor(processor)
-                .protocolFactory(protocolFactory);
-
-        return new TNonblockingServer(args);
-    }
 }
