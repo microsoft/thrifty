@@ -18,15 +18,14 @@
  *
  * See the Apache Version 2.0 License for specific language governing permissions and limitations under the License.
  */
-plugins {
-    id 'thrifty-jvm-module'
-}
+package com.microsoft.thrifty.testing;
 
-dependencies {
-    api libs.junitApi
-    implementation libs.apacheThrift
-    implementation "commons-codec:commons-codec:1.15"
-    implementation "org.apache.httpcomponents:httpclient:4.5.13"
-    implementation "org.slf4j:slf4j-api:2.0.5"
-    implementation "org.apache.tomcat.embed:tomcat-embed-core:10.1.4"
+import com.microsoft.thrifty.test.gen.ThriftTest;
+
+public interface TestServerInterface {
+    void run(ServerProtocol protocol, ServerTransport transport);
+
+    int port();
+
+    void close();
 }

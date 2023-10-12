@@ -42,6 +42,7 @@ import com.microsoft.thrifty.testing.ServerProtocol
 import com.microsoft.thrifty.testing.ServerTransport
 import com.microsoft.thrifty.testing.TestServer
 import com.microsoft.thrifty.transport.FramedTransport
+import com.microsoft.thrifty.transport.HttpTransport
 import com.microsoft.thrifty.transport.SocketTransport
 import com.microsoft.thrifty.transport.Transport
 import io.kotest.matchers.should
@@ -71,6 +72,9 @@ class NonblockingCompactConformanceTest : KotlinConformanceTest()
 
 @ServerConfig(transport = ServerTransport.NON_BLOCKING, protocol = ServerProtocol.JSON)
 class NonblockingJsonConformanceTest : KotlinConformanceTest()
+
+@ServerConfig(transport = ServerTransport.HTTP, protocol = ServerProtocol.JSON)
+class HttpJsonConformanceTest : KotlinConformanceTest()
 
 /**
  * A test of auto-generated service code for the standard ThriftTest
@@ -102,12 +106,7 @@ abstract class KotlinConformanceTest {
         @BeforeAll
         @JvmStatic
         fun beforeAll() {
-            val port = testServer.port()
-            val transport = SocketTransport.Builder("localhost", port)
-                .readTimeout(2000)
-                .build()
-
-            transport.connect()
+            val transport = getTransportImpl()
 
             this.transport = decorateTransport(transport)
             this.protocol = createProtocol(this.transport)
@@ -120,6 +119,18 @@ abstract class KotlinConformanceTest {
                     throw AssertionError(error)
                 }
             })
+        }
+
+        private fun getTransportImpl(): Transport {
+            return when(testServer.transport) {
+                ServerTransport.BLOCKING, ServerTransport.NON_BLOCKING ->
+                    return SocketTransport.Builder("localhost", testServer.port())
+                        .readTimeout(2000)
+                        .build()
+                        .apply { connect() }
+
+                ServerTransport.HTTP -> HttpTransport("http://localhost:${testServer.port()}/test/service")
+            }
         }
 
         /**

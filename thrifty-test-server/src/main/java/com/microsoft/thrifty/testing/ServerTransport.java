@@ -29,5 +29,6 @@ public enum ServerTransport {
     /**
      * A framed, non-blocking server socket,i.e. TNonblockingServerTransport.
      */
-    NON_BLOCKING
+    NON_BLOCKING,
+    HTTP
 }
