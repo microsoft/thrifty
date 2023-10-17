@@ -26,36 +26,43 @@ import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 import javax.net.SocketFactory
+import javax.net.ssl.SSLSocketFactory
 
-class SocketTransport internal constructor(
+actual class SocketTransport actual constructor(
         builder: Builder
 ) : Transport {
     private val host = builder.host
     private val port = builder.port
     private val readTimeout = builder.readTimeout
     private val connectTimeout = builder.connectTimeout
-    private val socketFactory = builder.socketFactory ?: SocketFactory.getDefault()
+    private val socketFactory = builder.socketFactory ?: builder.getDefaultSocketFactory()
 
     private var socket: Socket? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
 
-    class Builder(host: String, port: Int) {
+    actual class Builder actual constructor(host: String, port: Int) {
         internal val host: String
         internal val port: Int
         internal var readTimeout = 0
         internal var connectTimeout = 0
         internal var socketFactory: SocketFactory? = null
+        internal var enableTls = false
 
-        fun readTimeout(readTimeout: Int): Builder {
+        actual fun readTimeout(readTimeout: Int): Builder {
             require(readTimeout >= 0) { "readTimeout cannot be negative" }
             this.readTimeout = readTimeout
             return this
         }
 
-        fun connectTimeout(connectTimeout: Int): Builder {
+        actual fun connectTimeout(connectTimeout: Int): Builder {
             require(connectTimeout >= 0) { "connectTimeout cannot be negative" }
             this.connectTimeout = connectTimeout
+            return this
+        }
+
+        actual fun enableTls(enableTls: Boolean): Builder {
+            this.enableTls = enableTls
             return this
         }
 
@@ -64,8 +71,16 @@ class SocketTransport internal constructor(
             return this
         }
 
-        fun build(): SocketTransport {
+        actual fun build(): SocketTransport {
             return SocketTransport(this)
+        }
+
+        fun getDefaultSocketFactory(): SocketFactory {
+            return if (enableTls) {
+                SSLSocketFactory.getDefault()
+            } else {
+                SocketFactory.getDefault()
+            }
         }
 
         init {
@@ -98,7 +113,7 @@ class SocketTransport internal constructor(
     }
 
     @Throws(IOException::class)
-    fun connect() {
+    actual fun connect() {
         if (socket == null) {
             socket = socketFactory.createSocket()
         }

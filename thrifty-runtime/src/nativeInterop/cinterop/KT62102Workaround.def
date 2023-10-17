@@ -1,0 +1,26 @@
+language=Objective-C
+---
+#import <Network/connection.h>
+
+void nw_connection_send_with_default_context(
+  nw_connection_t connection,
+  _Nullable dispatch_data_t content,
+  bool is_complete,
+  nw_connection_send_completion_t completion
+) {
+  nw_connection_send(connection, content, NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT, is_complete, completion);
+}
+
+// Not related to KT-62102, but this is a good place to put it.
+//
+// As of kt 1.9.10, DISPATCH_DATA_DESTRUCTOR_DEFAULT is erroneously mapped
+// as a COpaquePointer, and not as a dispatch_block_t, rendering it unusable
+// with dispatch_data_create.  This function works around that deficiency.
+
+dispatch_block_t dispatch_data_default_destructor() {
+  return DISPATCH_DATA_DESTRUCTOR_DEFAULT;
+}
+
+dispatch_queue_t dispatch_get_target_default_queue() {
+  return DISPATCH_TARGET_QUEUE_DEFAULT;
+}

@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         jvm-version: [17]
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, macos-13]
     env:
       JDK_VERSION: ${{ matrix.jvm-version }}
       GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -34,6 +34,7 @@ jobs:
           path: |
             ~/.gradle/caches/
             ~/.gradle/wrapper/
+            ~/.konan/
             .build-cache/
           key: cache-gradle-${{ matrix.os }}-${{ matrix.jvm-version }}-${{ hashFiles('settings.gradle') }}-${{ hashFiles('**/build.gradle') }}
           restore-keys: |
@@ -55,6 +56,16 @@ jobs:
       - name: Build and test
         shell: bash
         run: ./gradlew check codeCoverageReport --parallel --no-daemon
+
+      - name: Boot simulator
+        if: matrix.os == 'macos-13'
+        shell: bash
+        run: xcrun simctl boot 'iPhone 14 Pro Max' || true
+
+      - name: Run simulator tests
+        if: matrix.os == 'macos-13'
+        shell: bash
+        run: ./gradlew -PiosDevice="iPhone 14 Pro Max" iosTest
 
       - name: Upload coverage stats
         if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '8'
