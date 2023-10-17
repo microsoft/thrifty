@@ -65,7 +65,7 @@ jobs:
       - name: Run simulator tests
         if: matrix.os == 'macos-13'
         shell: bash
-        run: ./gradlew iosTest
+        run: ./gradlew -PiosDevice="iPhone 14 Pro Max" iosTest
 
       - name: Upload coverage stats
         if: success() && matrix.os == 'ubuntu-latest' && matrix.jvm-version == '8'
