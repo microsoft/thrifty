@@ -946,6 +946,7 @@ class KotlinCodeGenerator(
         }
 
         val structTypeName = ClassName(struct.kotlinNamespace, struct.name)
+        val resultVarName = nameAllocator.newName("resultVar", "resultVar")
         val spec = TypeSpec.classBuilder("Builder")
                 .addSuperinterface(StructBuilder::class.asTypeName().parameterizedBy(structTypeName))
                 .addProperty(PropertySpec.builder(builderVarName, structTypeName.copy(nullable = true), KModifier.PRIVATE)
@@ -961,11 +962,20 @@ class KotlinCodeGenerator(
                 .addFunction(FunSpec.builder("build")
                         .addModifiers(KModifier.OVERRIDE)
                         .returns(structTypeName)
-                        .addStatement(
-                                "return %N ?: %M(%S)",
-                                builderVarName,
-                                MemberName("kotlin", "error"),
-                                "Invalid union; at least one value is required")
+                        // We're doing some convoluted stuff to work around an apparent kotlinc bug
+                        // where type inference and/or smart-casting fails.  iOS tests got a compiler
+                        // error about the builder var being of type "UnionType.Builder" which clearly
+                        // it isn't.  This reformulation seems to work.
+                        .addStatement("val %N = %N", resultVarName, builderVarName)
+                        .beginControlFlow("if (%N == null)", resultVarName)
+                        .addStatement("%M(%S)", MemberName("kotlin", "error"), "Invalid union; at least one value is required")
+                        .endControlFlow()
+                        .addStatement("return %N!!", resultVarName)
+//                        .addStatement(
+//                                "return %N ?: %M(%S)",
+//                                builderVarName,
+//                                MemberName("kotlin", "error"),
+//                                "Invalid union; at least one value is required")
                         .build())
                 .addFunction(FunSpec.builder("reset")
                         .addModifiers(KModifier.OVERRIDE)

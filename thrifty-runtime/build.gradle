@@ -38,6 +38,24 @@ tasks.withType(KotlinCompile).configureEach {
     }
 }
 
+def compileTestThrift = tasks.register("compileTestThrift", JavaExec) { t ->
+    t.inputs.file("$projectDir/ClientThriftTest.thrift")
+    t.outputs.dir("$projectDir/build/generated-src/thrifty-kotlin/kotlin")
+
+    t.outputs.cacheIf("This task is always cacheable based on its inputs") { true }
+
+    t.classpath = project(":thrifty-compiler").sourceSets.main.runtimeClasspath
+
+    mainClass = "com.microsoft.thrifty.compiler.ThriftyCompiler"
+
+    args = [
+            "--out=$projectDir/build/generated-src/thrifty-kotlin/kotlin",
+            "--kt-struct-builders",
+            "--service-type=coroutine",
+            "$projectDir/ClientThriftTest.thrift"
+    ]
+}
+
 kotlin {
     jvm()
 
@@ -51,6 +69,10 @@ kotlin {
         compilations.main.cinterops {
             KT62102Workaround {}
         }
+
+        compilations.test.compileTaskProvider.configure {
+            dependsOn compileTestThrift
+        }
     }
 
     iosX64 {
@@ -62,6 +84,10 @@ kotlin {
 
         compilations.main.cinterops {
             KT62102Workaround {}
+        }
+
+        compilations.test.compileTaskProvider.configure {
+            dependsOn compileTestThrift
         }
     }
 
@@ -107,6 +133,8 @@ kotlin {
         iosTest {
             dependsOn commonTest
 
+            kotlin.srcDir("$buildDir/generated-src/thrifty-kotlin/kotlin")
+
             dependencies {
                 implementation libs.kotlin.test.common
                 implementation libs.kotest.assertions.common
@@ -136,19 +164,72 @@ jvmTest {
     useJUnitPlatform()
 }
 
-tasks.register("iosTest") {
-    def device = project.findProperty("iosDevice")?.toString() ?: "iPhone 15 Pro Max"
+abstract class IosTestTask extends DefaultTask {
+    @InputFiles
+    abstract Property<FileCollection> getServerClasspath()
+
+    @InputFile
+    abstract RegularFileProperty getTestBinary()
+
+    @Input
+    abstract Property<String> getDevice()
+
+    private Process serverProcess
+
+    private int port
+
+    @TaskAction
+    def run() {
+        try {
+            serverProcess = startServer()
+            logger.quiet("Server listening on $port")
+            runTests()
+        } finally {
+            serverProcess?.destroyForcibly()
+        }
+    }
+
+    private void runTests() {
+        def thePort = port
+        project.exec {
+            environment("SIMCTL_CHILD_THRIFTY_HTTP_SERVER_PORT", thePort.toString())
+            commandLine 'xcrun', 'simctl', 'spawn', device.get(), testBinary.get().getAsFile().absolutePath
+        }
+    }
+
+    private Process startServer() {
+        Process process = new ProcessBuilder()
+            .command(["java", "-cp", serverClasspath.get().getAsPath(), "com.microsoft.thrifty.mains.HttpServerMain"])
+            .start()
+
+        def reader = new InputStreamReader(process.getInputStream())
+
+        while (true) {
+            String portLine = reader.readLine()
+            if (portLine == null) {
+                throw new RuntimeException("Server failed to start")
+            }
+
+            if (portLine.startsWith("port ")) {
+                port = Integer.parseInt(portLine.substring(5))
+                break
+            }
+        }
+
+        return process
+    }
+}
+
+tasks.register("iosTest", IosTestTask) {
+    dependsOn 'compileTestThrift'
     dependsOn 'linkDebugTestIosX64'
+
     group = JavaBasePlugin.VERIFICATION_GROUP
     description = "Runs tests for target 'ios' on an iOS simulator"
 
-    doLast {
-        def binary = kotlin.targets.iosX64.binaries.getTest('DEBUG').outputFile
-        println("muh binary: ${binary.absolutePath}")
-        exec {
-            commandLine 'xcrun', 'simctl', 'spawn', device, binary.absolutePath
-        }
-    }
+    device = project.findProperty("iosDevice")?.toString() ?: "iPhone 15 Pro Max"
+    testBinary = kotlin.targets.iosX64.binaries.getTest('DEBUG').outputFile
+    serverClasspath = project(":thrifty-test-server").sourceSets.main.runtimeClasspath
 }
 
 // What have I gotten myself in to

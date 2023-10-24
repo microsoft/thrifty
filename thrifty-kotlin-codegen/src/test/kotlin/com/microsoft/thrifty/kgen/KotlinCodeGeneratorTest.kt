@@ -616,8 +616,13 @@ class KotlinCodeGeneratorTest {
             |      this.value_ = source
             |    }
             |
-            |    public override fun build(): Union = value_ ?:
+            |    public override fun build(): Union {
+            |      val resultVar = value_
+            |      if (resultVar == null) {
             |        error("Invalid union; at least one value is required")
+            |      }
+            |      return resultVar!!
+            |    }
             |
             |    public override fun reset(): Unit {
             |      value_ = null
@@ -1486,6 +1491,27 @@ class KotlinCodeGeneratorTest {
         positionOfA shouldBeLessThan positionOfD
 
         files.shouldCompile()
+    }
+
+    @Test
+    fun `union with builder should compile`() {
+        val thrift = """
+            |namespace kt test.union
+            |
+            |union Union {
+            |  1: i32 result;
+            |  2: i64 bigResult;
+            |  3: string error;
+            |}
+        """.trimMargin()
+
+        val files = generate(thrift) {
+            withDataClassBuilders()
+            coroutineServiceClients()
+        }
+        files.shouldCompile()
+
+        println(files)
     }
 
     private fun generate(thrift: String, config: (KotlinCodeGenerator.() -> KotlinCodeGenerator)? = null): List<FileSpec> {
