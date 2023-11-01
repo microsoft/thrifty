@@ -20,13 +20,14 @@
  */
 package com.microsoft.thrifty.testing;
 
+import java.io.Closeable;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.startup.Tomcat;
 
 import static com.microsoft.thrifty.testing.TestServer.getProtocolFactory;
 
-public class HttpServer implements TestServerInterface {
+public class HttpServer implements TestServerInterface, Closeable {
     private Tomcat tomcat;
 
     @Override
@@ -65,5 +66,9 @@ public class HttpServer implements TestServerInterface {
         } catch (LifecycleException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void await() {
+        tomcat.getServer().await();
     }
 }

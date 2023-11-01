@@ -64,7 +64,7 @@ import java.net.URL
  *
  * @see [THRIFT-970](https://issues.apache.org/jira/browse/THRIFT-970)
  */
-open class HttpTransport(url: String) : Transport {
+actual open class HttpTransport actual constructor(url: String) : Transport {
     private val url: URL = URL(url)
     private var currentState: Transport = Writing()
     private var connectTimeout: Int? = null
@@ -146,20 +146,20 @@ open class HttpTransport(url: String) : Transport {
         connection.doOutput = true
     }
 
-    fun setConnectTimeout(timeout: Int) {
+    actual fun setConnectTimeout(timeout: Int) {
         connectTimeout = timeout
     }
 
-    fun setReadTimeout(timeout: Int) {
+    actual fun setReadTimeout(timeout: Int) {
         readTimeout = timeout
     }
 
-    fun setCustomHeaders(headers: Map<String, String>) {
+    actual fun setCustomHeaders(headers: Map<String, String>) {
         customHeaders.clear()
         customHeaders.putAll(headers)
     }
 
-    fun setCustomHeader(key: String, value: String) {
+    actual fun setCustomHeader(key: String, value: String) {
         customHeaders[key] = value
     }
 

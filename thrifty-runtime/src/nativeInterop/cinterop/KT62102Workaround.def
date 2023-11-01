@@ -24,3 +24,7 @@ dispatch_block_t dispatch_data_default_destructor() {
 dispatch_queue_t dispatch_get_target_default_queue() {
   return DISPATCH_TARGET_QUEUE_DEFAULT;
 }
+
+dispatch_queue_attr_t dispatch_attr_serial() {
+  return DISPATCH_QUEUE_SERIAL;
+}
