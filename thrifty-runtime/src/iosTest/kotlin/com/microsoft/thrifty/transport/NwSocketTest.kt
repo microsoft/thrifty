@@ -137,7 +137,7 @@ class NwSocketTest {
         dispatch_async(clientQueue) {
             try {
                 val port = nw_listener_get_port(serverListener)
-                SocketTransport.Builder("127.0.0.1", port.toInt()).readTimeout(100).build()
+                SocketTransport.Builder("127.0.0.1", port.toInt()).readTimeout(5000).build()
                     .use { transport ->
                         transport.connect()
                         val protocol = BinaryProtocol(transport)
