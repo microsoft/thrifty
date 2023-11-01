@@ -221,7 +221,6 @@ abstract class IosTestTask extends DefaultTask {
 }
 
 tasks.register("iosTest", IosTestTask) {
-    dependsOn 'compileTestThrift'
     dependsOn 'linkDebugTestIosX64'
 
     group = JavaBasePlugin.VERIFICATION_GROUP
