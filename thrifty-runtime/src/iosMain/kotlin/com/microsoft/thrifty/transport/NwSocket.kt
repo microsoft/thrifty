@@ -135,7 +135,9 @@ class NwSocket(
         }
 
         if (!sem.waitWithTimeout(readWriteTimeoutMillis)) {
-            throw IOException("Timed out waiting for read")
+            val e = IOException("Timed out waiting for read")
+            println(e.stackTraceToString())
+            throw e
         }
 
         networkError?.throwError()
