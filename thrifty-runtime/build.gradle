@@ -91,6 +91,22 @@ kotlin {
         }
     }
 
+    iosSimulatorArm64 {
+        binaries {
+            framework {
+                baseName = "Thrifty"
+            }
+        }
+
+        compilations.main.cinterops {
+            KT62102Workaround {}
+        }
+
+        compilations.test.compileTaskProvider.configure {
+            dependsOn compileTestThrift
+        }
+    }
+
     sourceSets {
         all {
             languageSettings {
@@ -155,6 +171,14 @@ kotlin {
         }
 
         iosX64Test {
+            dependsOn iosTest
+        }
+
+        iosSimulatorArm64Main {
+            dependsOn iosMain
+        }
+            
+        iosSimulatorArm64Test {
             dependsOn iosTest
         }
     }
