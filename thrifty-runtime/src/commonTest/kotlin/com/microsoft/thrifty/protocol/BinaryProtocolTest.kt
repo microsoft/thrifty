@@ -84,6 +84,77 @@ class BinaryProtocolTest {
     }
 
     @Test
+    fun readMessage() {
+        val name = "foo"
+        val buffer = Buffer()
+        buffer.writeInt(name.encodeToByteArray().size)
+        buffer.writeUtf8(name)
+        buffer.writeByte(1)
+        buffer.writeInt(1)
+        val proto = BinaryProtocol(transport = BufferTransport(buffer))
+
+        val messageData = proto.readMessageBegin()
+        messageData.name shouldBe "foo"
+        messageData.type shouldBe 1
+        messageData.seqId shouldBe 1
+    }
+
+    @Test
+    fun readMessageStrict() {
+        val name = "foo"
+        val buffer = Buffer()
+        buffer.writeInt(-0x7FFEFFFF)
+        buffer.writeInt(name.encodeToByteArray().size)
+        buffer.writeUtf8(name)
+        buffer.writeInt(1)
+        val proto = BinaryProtocol(
+            transport = BufferTransport(buffer),
+            strictRead = true,
+        )
+        val messageData = proto.readMessageBegin()
+        messageData.name shouldBe "foo"
+        messageData.type shouldBe 1
+        messageData.seqId shouldBe 1
+    }
+
+    @Test
+    fun readMessageStrictMissingVersion() {
+        val name = "foo"
+        val buffer = Buffer()
+        buffer.writeInt(name.encodeToByteArray().size)
+        buffer.writeUtf8(name)
+        buffer.writeInt(1)
+        val proto = BinaryProtocol(
+            transport = BufferTransport(buffer),
+            strictRead = true,
+        )
+
+        val error = runCatching {
+            proto.readMessageBegin()
+        }.exceptionOrNull() as ProtocolException
+        error.message shouldBe "Missing version in readMessageBegin"
+    }
+
+    @Test
+    fun readMessageStrictInvalidVersion() {
+        val name = "foo"
+        val buffer = Buffer()
+        buffer.writeInt(-0xFF)
+        buffer.writeInt(name.encodeToByteArray().size)
+        buffer.writeUtf8(name)
+        buffer.writeInt(1)
+        val proto = BinaryProtocol(
+            transport = BufferTransport(buffer),
+            strictRead = true,
+        )
+
+        val error = runCatching {
+            proto.readMessageBegin()
+        }.exceptionOrNull() as ProtocolException
+        error.message shouldBe "Bad version in readMessageBegin"
+    }
+
+    @Test
     fun writeByte() {
         val buffer = Buffer()
         val proto = BinaryProtocol(BufferTransport(buffer))
@@ -142,29 +213,63 @@ class BinaryProtocolTest {
     }
 
     @Test
+    fun writeMessage() {
+        val buffer = Buffer()
+        val proto = BinaryProtocol(BufferTransport(buffer))
+        proto.writeMessageBegin(
+            name = "foo",
+            typeId = 1,
+            seqId = 1,
+        )
+
+        buffer.readInt() shouldBe 3
+        buffer.readUtf8(3) shouldBe "foo"
+        buffer.readByte() shouldBe 1
+        buffer.readInt() shouldBe 1
+    }
+
+    @Test
+    fun writeMessageStrict() {
+        val buffer = Buffer()
+        val proto = BinaryProtocol(
+            transport = BufferTransport(buffer),
+            strictWrite = true,
+        )
+        proto.writeMessageBegin(
+            name = "foo",
+            typeId = 1,
+            seqId = 1,
+        )
+        buffer.readInt() shouldBe -0x7FFEFFFF
+        buffer.readInt() shouldBe 3
+        buffer.readUtf8(3) shouldBe "foo"
+        buffer.readInt() shouldBe 1
+    }
+
+    @Test
     fun adapterTest() {
         // This test case comes from actual data, and is intended
         // to ensure in particular that readers don't grab more data than
         // they are supposed to.
         val payload = "030001000600" +
-                "0200030600030002" +
-                "0b00040000007f08" +
-                "0001000001930600" +
-                "0200a70b00030000" +
-                "006b0e00010c0000" +
-                "000206000100020b" +
-                "0002000000243030" +
-                "3030303030302d30" +
-                "3030302d30303030" +
-                "2d303030302d3030" +
-                "3030303030303030" +
-                "3031000600010001" +
-                "0b00020000002430" +
-                "613831356232312d" +
-                "616533372d343966" +
-                "622d616633322d31" +
-                "3636363261616366" +
-                "62333300000000"
+            "0200030600030002" +
+            "0b00040000007f08" +
+            "0001000001930600" +
+            "0200a70b00030000" +
+            "006b0e00010c0000" +
+            "000206000100020b" +
+            "0002000000243030" +
+            "3030303030302d30" +
+            "3030302d30303030" +
+            "2d303030302d3030" +
+            "3030303030303030" +
+            "3031000600010001" +
+            "0b00020000002430" +
+            "613831356232312d" +
+            "616533372d343966" +
+            "622d616633322d31" +
+            "3636363261616366" +
+            "62333300000000"
         val binaryData: ByteString = payload.decodeHex()
         val buffer = Buffer()
         buffer.write(binaryData)
