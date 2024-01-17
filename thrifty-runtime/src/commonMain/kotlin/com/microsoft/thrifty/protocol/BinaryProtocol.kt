@@ -284,29 +284,29 @@ class BinaryProtocol @JvmOverloads constructor(
     override fun readI16(): Short {
         readFully(buffer, 2)
         return (((buffer[0].toInt() and 0xFF) shl 8)
-            or (buffer[1].toInt() and 0xFF)).toShort()
+                or (buffer[1].toInt() and 0xFF)).toShort()
     }
 
     @Throws(IOException::class)
     override fun readI32(): Int {
         readFully(buffer, 4)
         return (((buffer[0].toInt() and 0xFF) shl 24)
-            or ((buffer[1].toInt() and 0xFF) shl 16)
-            or ((buffer[2].toInt() and 0xFF) shl 8)
-            or (buffer[3].toInt() and 0xFF))
+                or ((buffer[1].toInt() and 0xFF) shl 16)
+                or ((buffer[2].toInt() and 0xFF) shl 8)
+                or (buffer[3].toInt() and 0xFF))
     }
 
     @Throws(IOException::class)
     override fun readI64(): Long {
         readFully(buffer, 8)
         return (((buffer[0].toLong() and 0xFFL) shl 56)
-            or ((buffer[1].toLong() and 0xFFL) shl 48)
-            or ((buffer[2].toLong() and 0xFFL) shl 40)
-            or ((buffer[3].toLong() and 0xFFL) shl 32)
-            or ((buffer[4].toLong() and 0xFFL) shl 24)
-            or ((buffer[5].toLong() and 0xFFL) shl 16)
-            or ((buffer[6].toLong() and 0xFFL) shl 8)
-            or ((buffer[7].toLong() and 0xFFL)))
+                or ((buffer[1].toLong() and 0xFFL) shl 48)
+                or ((buffer[2].toLong() and 0xFFL) shl 40)
+                or ((buffer[3].toLong() and 0xFFL) shl 32)
+                or ((buffer[4].toLong() and 0xFFL) shl 24)
+                or ((buffer[5].toLong() and 0xFFL) shl 16)
+                or ((buffer[6].toLong() and 0xFFL) shl 8)
+                or ((buffer[7].toLong() and 0xFFL)))
     }
 
     @Throws(IOException::class)
