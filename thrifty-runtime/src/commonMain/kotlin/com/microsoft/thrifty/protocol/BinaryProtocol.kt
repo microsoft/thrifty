@@ -43,11 +43,11 @@ import kotlin.jvm.JvmOverloads
  *      (maps, lists, sets).
  */
 class BinaryProtocol @JvmOverloads constructor(
-    transport: Transport,
-    private val stringLengthLimit: Long = -1,
-    private val containerLengthLimit: Long = -1,
-    private val strictRead: Boolean = false,
-    private val strictWrite: Boolean = false,
+        transport: Transport,
+        private val stringLengthLimit: Long = -1,
+        private val containerLengthLimit: Long = -1,
+        private val strictRead: Boolean = false,
+        private val strictWrite: Boolean = false,
 ) : BaseProtocol(transport) {
     /**
      * A shared buffer for writing.
