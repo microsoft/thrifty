@@ -84,6 +84,77 @@ class BinaryProtocolTest {
     }
 
     @Test
+    fun readMessage() {
+        val name = "foo"
+        val buffer = Buffer()
+        buffer.writeInt(name.encodeToByteArray().size)
+        buffer.writeUtf8(name)
+        buffer.writeByte(1)
+        buffer.writeInt(1)
+        val proto = BinaryProtocol(transport = BufferTransport(buffer))
+
+        val messageData = proto.readMessageBegin()
+        messageData.name shouldBe "foo"
+        messageData.type shouldBe 1
+        messageData.seqId shouldBe 1
+    }
+
+    @Test
+    fun readMessageStrict() {
+        val name = "foo"
+        val buffer = Buffer()
+        buffer.writeInt(-0x7FFEFFFF)
+        buffer.writeInt(name.encodeToByteArray().size)
+        buffer.writeUtf8(name)
+        buffer.writeInt(1)
+        val proto = BinaryProtocol(
+            transport = BufferTransport(buffer),
+            strictRead = true,
+        )
+        val messageData = proto.readMessageBegin()
+        messageData.name shouldBe "foo"
+        messageData.type shouldBe 1
+        messageData.seqId shouldBe 1
+    }
+
+    @Test
+    fun readMessageStrictMissingVersion() {
+        val name = "foo"
+        val buffer = Buffer()
+        buffer.writeInt(name.encodeToByteArray().size)
+        buffer.writeUtf8(name)
+        buffer.writeInt(1)
+        val proto = BinaryProtocol(
+            transport = BufferTransport(buffer),
+            strictRead = true,
+        )
+
+        val error = runCatching {
+            proto.readMessageBegin()
+        }.exceptionOrNull() as ProtocolException
+        error.message shouldBe "Missing version in readMessageBegin"
+    }
+
+    @Test
+    fun readMessageStrictInvalidVersion() {
+        val name = "foo"
+        val buffer = Buffer()
+        buffer.writeInt(-0xFF)
+        buffer.writeInt(name.encodeToByteArray().size)
+        buffer.writeUtf8(name)
+        buffer.writeInt(1)
+        val proto = BinaryProtocol(
+            transport = BufferTransport(buffer),
+            strictRead = true,
+        )
+
+        val error = runCatching {
+            proto.readMessageBegin()
+        }.exceptionOrNull() as ProtocolException
+        error.message shouldBe "Bad version in readMessageBegin"
+    }
+
+    @Test
     fun writeByte() {
         val buffer = Buffer()
         val proto = BinaryProtocol(BufferTransport(buffer))
@@ -139,6 +210,40 @@ class BinaryProtocolTest {
         proto.writeString("here is a string")
         buffer.readInt() shouldBe 16
         buffer.readUtf8() shouldBe "here is a string"
+    }
+
+    @Test
+    fun writeMessage() {
+        val buffer = Buffer()
+        val proto = BinaryProtocol(BufferTransport(buffer))
+        proto.writeMessageBegin(
+            name = "foo",
+            typeId = 1,
+            seqId = 1,
+        )
+
+        buffer.readInt() shouldBe 3
+        buffer.readUtf8(3) shouldBe "foo"
+        buffer.readByte() shouldBe 1
+        buffer.readInt() shouldBe 1
+    }
+
+    @Test
+    fun writeMessageStrict() {
+        val buffer = Buffer()
+        val proto = BinaryProtocol(
+            transport = BufferTransport(buffer),
+            strictWrite = true,
+        )
+        proto.writeMessageBegin(
+            name = "foo",
+            typeId = 1,
+            seqId = 1,
+        )
+        buffer.readInt() shouldBe -0x7FFEFFFF
+        buffer.readInt() shouldBe 3
+        buffer.readUtf8(3) shouldBe "foo"
+        buffer.readInt() shouldBe 1
     }
 
     @Test
