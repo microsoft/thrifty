@@ -446,7 +446,7 @@ internal class Linker(
                 val expectedPath = "$includeName.thrift"
                 constant = program.includes
                         .asSequence()
-                        .filter { p -> p.location.path == expectedPath } // TODO: Should this be ==, or endsWith?
+                        .filter { p -> File(p.location.path).name == expectedPath }
                         .mapNotNull { p -> p.constantMap[qualifiedName] }
                         .firstOrNull()
             }
