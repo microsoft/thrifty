@@ -981,8 +981,8 @@ class LoaderTest {
         """)
 
         val schema = Loader()
-            .addIncludePath(tempDir.toPath())
-            .load()
+                .addIncludePath(tempDir.toPath())
+                .load()
 
         schema.typedefs shouldHaveSize 1
         schema.typedefs[0].name shouldBe "Uuid"
