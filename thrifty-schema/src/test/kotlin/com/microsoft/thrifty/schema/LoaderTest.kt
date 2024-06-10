@@ -267,33 +267,33 @@ class LoaderTest {
     @Test
     fun crazyIncludeReferencedConst() {
         val nestedDir = File(tempDir, "nested").apply { mkdir() }
-        val f1 = File(nestedDir, "a.thrift")
-        val f2 = File(tempDir, "another_a.thrift")
-        val f3 = File(tempDir, "b.thrift")
+        val fileNestedAThrift = File(nestedDir, "a.thrift")
+        val fileAnotherAThrift = File(tempDir, "another_a.thrift")
+        val fileBThrift = File(tempDir, "b.thrift")
 
-        val a = """
-            namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
-            
-            const string HELLO = "hello"
-        """
-
-        val b = """
-            namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
-            
-            const string HELLO = "actually goodbye"
-        """
-
-        val c = """
-            include 'another_a.thrift'
-            include 'nested/a.thrift'
-            namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
-            
-            const string HELLO_AGAIN = a.HELLO
-        """
-
-        f1.writeText(a)
-        f2.writeText(b)
-        f3.writeText(c)
+        fileNestedAThrift.writeText(
+            """
+                namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
+                
+                const string HELLO = "hello"
+            """
+        )
+        fileAnotherAThrift.writeText(
+            """
+                namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
+                
+                const string HELLO = "actually goodbye"
+            """
+        )
+        fileBThrift.writeText(
+            """
+                include 'another_a.thrift'
+                include 'nested/a.thrift'
+                namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
+                
+                const string HELLO_AGAIN = a.HELLO
+            """
+        )
 
         val loader = Loader()
         loader.addIncludePath(tempDir.toPath())
@@ -981,8 +981,8 @@ class LoaderTest {
         """)
 
         val schema = Loader()
-                .addIncludePath(tempDir.toPath())
-                .load()
+            .addIncludePath(tempDir.toPath())
+            .load()
 
         schema.typedefs shouldHaveSize 1
         schema.typedefs[0].name shouldBe "Uuid"
