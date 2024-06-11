@@ -265,6 +265,47 @@ class LoaderTest {
     }
 
     @Test
+    fun crazyIncludeReferencedConst() {
+        val nestedDir = File(tempDir, "nested").apply { mkdir() }
+        val fileNestedAThrift = File(nestedDir, "a.thrift")
+        val fileAnotherAThrift = File(tempDir, "another_a.thrift")
+        val fileBThrift = File(tempDir, "b.thrift")
+
+        fileNestedAThrift.writeText(
+            """
+                namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
+                
+                const string HELLO = "hello"
+            """
+        )
+        fileAnotherAThrift.writeText(
+            """
+                namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
+                
+                const string HELLO = "actually goodbye"
+            """
+        )
+        fileBThrift.writeText(
+            """
+                include 'another_a.thrift'
+                include 'nested/a.thrift'
+                namespace java com.microsoft.thrifty.test.crazyIncludeReferencedConst
+                
+                const string HELLO_AGAIN = a.HELLO
+            """
+        )
+
+        val loader = Loader()
+        loader.addIncludePath(tempDir.toPath())
+
+        val schema = loader.load()
+
+        val helloAgain = schema.constants.single { const -> const.name == "HELLO_AGAIN" }
+        val referencedConstant = helloAgain.referencedConstants.single()
+        referencedConstant.location.path shouldBe listOf("nested", "a.thrift").joinToString(File.separator)
+    }
+
+    @Test
     fun relativeIncludesConsiderIncludingFileLocation() {
         val thriftDir = File(tempDir, "thrift").apply { mkdir() }
         val barDir = File(thriftDir, "bar").apply { mkdir() }

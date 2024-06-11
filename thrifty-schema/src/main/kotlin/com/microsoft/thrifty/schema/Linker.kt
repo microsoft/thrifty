@@ -443,10 +443,9 @@ internal class Linker(
             if (ix != -1) {
                 val includeName = symbol.substring(0, ix)
                 val qualifiedName = symbol.substring(ix + 1)
-                val expectedPath = "$includeName.thrift"
                 constant = program.includes
                         .asSequence()
-                        .filter { p -> p.location.path == expectedPath } // TODO: Should this be ==, or endsWith?
+                        .filter { p -> p.location.programName == includeName }
                         .mapNotNull { p -> p.constantMap[qualifiedName] }
                         .firstOrNull()
             }
